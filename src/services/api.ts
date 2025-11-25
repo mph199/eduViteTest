@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://elternsprechtagneu.onrender.com/api';
 
 export interface ApiTeacher {
   id: number;
