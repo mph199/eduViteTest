@@ -61,7 +61,7 @@ export const BookingApp = () => {
       <header className="app-header">
         <div className="header-content">
           <img
-            src="/Überschrift_Logo.png"
+            src="/logo.png"
             alt="BKSB Elternsprechtag"
             className="header-logo"
           />
