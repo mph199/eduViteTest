@@ -5,12 +5,6 @@ export const MaintenancePage = () => {
     <div className="maintenance-page">
       <div className="maintenance-container">
         <div className="maintenance-content">
-          <img
-            src="/logo.png"
-            alt="BKSB Logo"
-            className="maintenance-logo"
-          />
-          
           <h1>Website im Aufbau</h1>
           
           <div className="maintenance-icon">
@@ -27,10 +21,6 @@ export const MaintenancePage = () => {
             Bitte versuchen Sie es in Kürze erneut.
           </p>
 
-          <div className="maintenance-info">
-            <p><strong>Berufskolleg kaufmännische Schulen</strong></p>
-            <p>Bergisch Gladbach</p>
-          </div>
         </div>
       </div>
     </div>
