@@ -59,7 +59,8 @@ export const BookingApp = () => {
   return (
     <div className="booking-app">
       <header className="app-header">
-        <div className="header-content">
+        <div className="header-inner">
+          <div className="header-content">
           <img
             src="/logo.png"
             alt="BKSB Elternsprechtag"
@@ -77,6 +78,7 @@ export const BookingApp = () => {
               </a>
             </p>
           </div>
+        </div>
         </div>
       </header>
 

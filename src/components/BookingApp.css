@@ -2,16 +2,28 @@
 .booking-app {
   min-height: 100vh;
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  padding: 2rem;
+  padding-top: 200px; /* Platz für fixierten Header */
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
 }
 
 .app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
   text-align: left;
   color: #065f46;
-  margin-bottom: 1.5rem;
-  max-width: 1280px; /* bündig zu .app-content */
-  margin-left: auto;
-  margin-right: auto;
+}
+
+.app-header .header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
 .app-header .header-content {
