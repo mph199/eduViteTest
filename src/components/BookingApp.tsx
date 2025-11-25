@@ -63,7 +63,7 @@ export const BookingApp = () => {
           <div className="header-content">
           <img
             src="/logo.png"
-            alt="BKSB Elternsprechtag"
+            alt="Berufskolleg kaufmännische Schulen Bergisch Gladbach"
             className="header-logo"
           />
           <div className="header-text">

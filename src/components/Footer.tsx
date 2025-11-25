@@ -12,7 +12,7 @@ export const Footer = () => {
           <a href="/kontakt">Kontakt</a>
         </div>
         <div className="footer-copyright">
-          © {new Date().getFullYear()} BKSB - Berufsbildende Schule für Kosmetik, Gesundheit und Soziales
+          © {new Date().getFullYear()} Berufskolleg kaufmännische Schulen Bergisch Gladbach
         </div>
       </div>
     </footer>

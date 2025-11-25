@@ -28,8 +28,8 @@ export const MaintenancePage = () => {
           </p>
 
           <div className="maintenance-info">
-            <p><strong>BKSB</strong></p>
-            <p>Berufsbildende Schule für Kosmetik, Gesundheit und Soziales</p>
+            <p><strong>Berufskolleg kaufmännische Schulen</strong></p>
+            <p>Bergisch Gladbach</p>
           </div>
         </div>
       </div>

@@ -58,7 +58,7 @@ export const Datenschutz = () => {
           <h3>Hinweis zur verantwortlichen Stelle</h3>
           <p>
             Die verantwortliche Stelle für die Datenverarbeitung auf dieser Website ist:<br />
-            <strong>BKSB - Berufsbildende Schule für Kosmetik, Gesundheit und Soziales</strong><br />
+            <strong>Berufskolleg kaufmännische Schulen Bergisch Gladbach</strong><br />
             [Adresse]<br />
             Telefon: [Telefonnummer]<br />
             E-Mail: [E-Mail-Adresse]
