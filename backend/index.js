@@ -449,18 +449,33 @@ app.delete('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    // Check if teacher has any slots
-    const { count } = await supabase
+    // Check if teacher has any booked slots
+    const { data: bookedSlots, error: slotsError } = await supabase
       .from('slots')
-      .select('id', { count: 'exact', head: true })
+      .select('id, booked')
       .eq('teacher_id', teacherId);
 
-    if (count && count > 0) {
+    if (slotsError) throw slotsError;
+
+    const hasBookedSlots = bookedSlots && bookedSlots.some(slot => slot.booked);
+    
+    if (hasBookedSlots) {
       return res.status(400).json({ 
-        error: 'Lehrkraft kann nicht gelöscht werden, da noch Termine existieren. Bitte zuerst alle Termine löschen.' 
+        error: 'Lehrkraft kann nicht gelöscht werden, da noch gebuchte Termine existieren. Bitte zuerst alle gebuchten Termine stornieren.' 
       });
     }
 
+    // Delete all available (unbooked) slots first
+    if (bookedSlots && bookedSlots.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('slots')
+        .delete()
+        .eq('teacher_id', teacherId);
+      
+      if (deleteError) throw deleteError;
+    }
+
+    // Now delete the teacher
     const { error } = await supabase
       .from('teachers')
       .delete()
