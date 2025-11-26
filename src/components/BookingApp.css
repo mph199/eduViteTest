@@ -1,4 +1,8 @@
 /* BookingApp Styles */
+* {
+  scroll-behavior: smooth;
+}
+
 .booking-app {
   min-height: 100vh;
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
@@ -14,11 +18,17 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem 2rem; /* mehr vertikaler Weißraum */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  padding: 1.5rem 2rem;
   text-align: left;
   color: #065f46;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.4);
 }
 
 .app-header .header-inner {
@@ -75,19 +85,28 @@
   right: 0;
   display: inline-block;
   padding: 0.5rem 1.2rem;
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
-  transition: background 0.15s ease, transform 0.15s ease;
+  box-shadow: 
+    0 4px 12px rgba(16, 185, 129, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-button:hover {
-  background: #0ea66f;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 8px 20px rgba(16, 185, 129, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.admin-button:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* Header Filter Form */
@@ -171,14 +190,20 @@
 }
 
 /* Sidebar - Teacher List */
-/* Vereinheitlichte Panel Styles */
+/* Vereinheitlichte Panel Styles mit Glassmorphism */
 .sidebar,
 .slot-list,
 .booking-form-container {
-  background: #ffffff;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
   padding: 1.25rem 1.25rem 1.4rem;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 .sidebar {
   height: fit-content;
@@ -201,24 +226,32 @@
 
 .teacher-card {
   padding: 1.1rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
+  border: 2px solid rgba(229, 231, 235, 0.6);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.18s ease;
-  background: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
   min-height: 48px; /* Touch-Target-Minimum */
 }
 
 .teacher-card:hover {
   border-color: #10b981;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 
+    0 12px 24px rgba(16, 185, 129, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .teacher-card.selected {
   border-color: #10b981;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
+  box-shadow: 
+    0 8px 20px rgba(16, 185, 129, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
 }
 
 .teacher-card h3 {
@@ -263,25 +296,34 @@
 
 .slot-card {
   padding: 0.75rem 0.8rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
+  border: 2px solid rgba(229, 231, 235, 0.6);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   min-height: 48px; /* Touch-Target-Minimum */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
 }
 
 .slot-card.available:hover {
   border-color: #10b981;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 28px rgba(16, 185, 129, 0.2),
+    0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .slot-card.selected {
   border-color: #10b981;
-  background: #ecfdf5;
+  background: rgba(236, 253, 245, 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 
+    0 8px 20px rgba(16, 185, 129, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: scale(1.03);
 }
 
 .slot-card.booked {
@@ -368,15 +410,22 @@
 
 .form-group input {
   padding: 0.65rem 0.7rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 2px solid rgba(229, 231, 235, 0.6);
+  border-radius: 10px;
   font-size: 0.95rem;
-  transition: border-color 0.18s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #10b981;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 0 0 4px rgba(16, 185, 129, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
 }
 
 .form-actions {
@@ -388,31 +437,67 @@
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 48px; /* Touch-Target-Minimum */
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 12px 24px rgba(16, 185, 129, 0.35),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:active {
+  transform: translateY(-1px) scale(0.98);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .btn-secondary {
-  background: #f3f4f6;
+  background: rgba(243, 244, 246, 0.8);
+  backdrop-filter: blur(8px);
   color: #374151;
+  border: 1px solid rgba(229, 231, 235, 0.6);
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
+  background: rgba(229, 231, 235, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .message {
