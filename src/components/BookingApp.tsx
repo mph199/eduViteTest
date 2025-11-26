@@ -20,7 +20,6 @@ export const BookingApp = () => {
     message,
     loading: slotsLoading,
     error: slotsError,
-    lastBookedSlot,
     handleSelectSlot,
     handleBooking,
     resetSelection,
@@ -145,11 +144,10 @@ export const BookingApp = () => {
             onSubmit={handleBooking}
             onCancel={resetSelection}
             message={message}
-            bookedSlot={lastBookedSlot || undefined}
-            teacherName={teachers.find(t => t.id === selectedTeacherId)?.name}
           />
         </main>
       </div>
     </div>
   );
 };
+// Force rebuild
