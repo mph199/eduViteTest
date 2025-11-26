@@ -156,9 +156,11 @@ export function AdminDashboard() {
                   <th>Fach</th>
                   <th>Datum</th>
                   <th>Zeit</th>
-                  <th>Eltern</th>
-                  <th>Schüler/in</th>
+                  <th>Typ</th>
+                  <th>Besucher</th>
+                  <th>Schüler/Azubi</th>
                   <th>Klasse</th>
+                  <th>E-Mail</th>
                   <th>Aktionen</th>
                 </tr>
               </thead>
@@ -169,9 +171,19 @@ export function AdminDashboard() {
                     <td>{booking.teacherSubject}</td>
                     <td>{booking.date}</td>
                     <td>{booking.time}</td>
-                    <td>{booking.parentName}</td>
-                    <td>{booking.studentName}</td>
+                    <td>{booking.visitorType === 'parent' ? '👨‍👩‍👧' : '🏢'}</td>
+                    <td>
+                      {booking.visitorType === 'parent' 
+                        ? booking.parentName 
+                        : booking.companyName}
+                    </td>
+                    <td>
+                      {booking.visitorType === 'parent' 
+                        ? booking.studentName 
+                        : booking.traineeName}
+                    </td>
                     <td>{booking.className}</td>
+                    <td style={{ fontSize: '0.85rem' }}>{booking.email}</td>
                     <td>
                       <button
                         onClick={() => handleCancelBooking(booking.id)}

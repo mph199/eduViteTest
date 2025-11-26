@@ -13,15 +13,25 @@ export interface ApiSlot {
   time: string;
   date: string;
   booked: boolean;
+  visitorType?: 'parent' | 'company';
   parentName?: string;
+  companyName?: string;
   studentName?: string;
+  traineeName?: string;
   className?: string;
+  email?: string;
+  message?: string;
 }
 
 export interface ApiBookingRequest {
-  parentName: string;
-  studentName: string;
+  visitorType: 'parent' | 'company';
+  parentName?: string;
+  companyName?: string;
+  studentName?: string;
+  traineeName?: string;
   className: string;
+  email: string;
+  message?: string;
 }
 
 export interface ApiBookingResponse {

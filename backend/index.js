@@ -114,9 +114,14 @@ app.get('/api/slots', async (req, res) => {
       time: slot.time,
       date: slot.date,
       booked: slot.booked,
+      visitorType: slot.visitor_type,
       parentName: slot.parent_name,
+      companyName: slot.company_name,
       studentName: slot.student_name,
-      className: slot.class_name
+      traineeName: slot.trainee_name,
+      className: slot.class_name,
+      email: slot.email,
+      message: slot.message
     }));
     
     res.json({ slots });
@@ -127,23 +132,47 @@ app.get('/api/slots', async (req, res) => {
 });
 
 // POST /api/bookings
-// Body: { slotId, parentName, studentName, className }
+// Body: { slotId, visitorType, parentName, companyName, studentName, traineeName, className, email, message }
 app.post('/api/bookings', async (req, res) => {
   try {
-    const { slotId, parentName, studentName, className } = req.body || {};
+    const { slotId, visitorType, parentName, companyName, studentName, traineeName, className, email, message } = req.body || {};
 
-    if (!slotId || !parentName || !studentName || !className) {
-      return res.status(400).json({ error: 'slotId, parentName, studentName, className required' });
+    if (!slotId || !visitorType || !className || !email) {
+      return res.status(400).json({ error: 'slotId, visitorType, className, email required' });
+    }
+
+    // Validate based on visitor type
+    if (visitorType === 'parent') {
+      if (!parentName || !studentName) {
+        return res.status(400).json({ error: 'parentName and studentName required for parent type' });
+      }
+    } else if (visitorType === 'company') {
+      if (!companyName || !traineeName) {
+        return res.status(400).json({ error: 'companyName and traineeName required for company type' });
+      }
+    } else {
+      return res.status(400).json({ error: 'visitorType must be parent or company' });
+    }
+
+    const updateData = {
+      booked: true,
+      visitor_type: visitorType,
+      class_name: className,
+      email: email,
+      message: message || null
+    };
+
+    if (visitorType === 'parent') {
+      updateData.parent_name = parentName;
+      updateData.student_name = studentName;
+    } else {
+      updateData.company_name = companyName;
+      updateData.trainee_name = traineeName;
     }
 
     const { data, error } = await supabase
       .from('slots')
-      .update({
-        booked: true,
-        parent_name: parentName,
-        student_name: studentName,
-        class_name: className
-      })
+      .update(updateData)
       .eq('id', slotId)
       .eq('booked', false) // Prevent double-booking
       .select()
@@ -163,9 +192,14 @@ app.post('/api/bookings', async (req, res) => {
       time: data.time,
       date: data.date,
       booked: data.booked,
+      visitorType: data.visitor_type,
       parentName: data.parent_name,
+      companyName: data.company_name,
       studentName: data.student_name,
-      className: data.class_name
+      traineeName: data.trainee_name,
+      className: data.class_name,
+      email: data.email,
+      message: data.message
     };
     
     res.json({ success: true, updatedSlot });
@@ -198,9 +232,14 @@ app.get('/api/admin/bookings', requireAuth, async (_req, res) => {
       time: slot.time,
       date: slot.date,
       booked: slot.booked,
+      visitorType: slot.visitor_type,
       parentName: slot.parent_name,
+      companyName: slot.company_name,
       studentName: slot.student_name,
+      traineeName: slot.trainee_name,
       className: slot.class_name,
+      email: slot.email,
+      message: slot.message,
       teacherName: slot.teacher?.name || 'Unknown',
       teacherSubject: slot.teacher?.subject || 'Unknown'
     }));
@@ -226,9 +265,14 @@ app.delete('/api/admin/bookings/:slotId', requireAuth, async (req, res) => {
       .from('slots')
       .update({
         booked: false,
+        visitor_type: null,
         parent_name: null,
+        company_name: null,
         student_name: null,
-        class_name: null
+        trainee_name: null,
+        class_name: null,
+        email: null,
+        message: null
       })
       .eq('id', slotId)
       .eq('booked', true) // Only cancel if booked
