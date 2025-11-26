@@ -66,13 +66,14 @@ export function AdminTeachers() {
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Möchten Sie die Lehrkraft "${name}" wirklich löschen?`)) {
+    if (!confirm(`Möchten Sie die Lehrkraft "${name}" wirklich löschen?\n\nHinweis: Die Lehrkraft kann nur gelöscht werden, wenn keine Termine mehr existieren.`)) {
       return;
     }
 
     try {
       await api.admin.deleteTeacher(id);
       await loadTeachers();
+      alert(`Lehrkraft "${name}" wurde erfolgreich gelöscht.`);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler beim Löschen');
     }

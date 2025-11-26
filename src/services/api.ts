@@ -251,7 +251,7 @@ export const api = {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Fehler beim Löschen der Lehrkraft');
+        throw new Error(error.error || error.message || 'Fehler beim Löschen der Lehrkraft');
       }
 
       return response.json();
