@@ -221,7 +221,7 @@
 .teacher-cards {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .teacher-card {
@@ -233,6 +233,7 @@
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(8px);
   min-height: 48px; /* Touch-Target-Minimum */
+  margin-bottom: 0.25rem; /* Zusätzlicher Abstand für Hover-Animation */
 }
 
 .teacher-card:hover {
@@ -241,6 +242,7 @@
   box-shadow: 
     0 12px 24px rgba(16, 185, 129, 0.2),
     0 4px 8px rgba(0, 0, 0, 0.08);
+  z-index: 10;
 }
 
 .teacher-card.selected {
