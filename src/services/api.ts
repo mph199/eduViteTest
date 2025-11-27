@@ -228,7 +228,7 @@ export const api = {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Fehler beim Anlegen der Lehrkraft');
+        throw new Error(error.error || error.message || 'Fehler beim Anlegen der Lehrkraft');
       }
 
       const data = await response.json();

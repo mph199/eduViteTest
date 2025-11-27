@@ -41,16 +41,24 @@ export function AdminTeachers() {
     }
 
     try {
+      const teacherData = {
+        name: formData.name,
+        subject: 'Sprechstunde',
+        system: formData.system,
+        room: formData.room
+      };
+      
       if (editingTeacher) {
-        await api.admin.updateTeacher(editingTeacher.id, formData);
+        await api.admin.updateTeacher(editingTeacher.id, teacherData);
       } else {
-        await api.admin.createTeacher(formData);
+        await api.admin.createTeacher(teacherData);
       }
       await loadTeachers();
       setShowForm(false);
       setEditingTeacher(null);
       setFormData({ name: '', system: 'dual', room: '' });
     } catch (err) {
+      console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
   };
