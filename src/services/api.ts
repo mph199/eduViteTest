@@ -216,7 +216,10 @@ export const api = {
       const response = await fetch(`${API_BASE}/admin/teachers`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(teacherData),
+        body: JSON.stringify({
+          ...teacherData,
+          subject: teacherData.subject ?? 'Sprechstunde',
+        }),
       });
 
       if (!response.ok) {
@@ -232,7 +235,10 @@ export const api = {
       const response = await fetch(`${API_BASE}/admin/teachers/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(teacherData),
+        body: JSON.stringify({
+          ...teacherData,
+          subject: teacherData.subject ?? 'Sprechstunde',
+        }),
       });
 
       if (!response.ok) {
