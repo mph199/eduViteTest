@@ -186,14 +186,18 @@ export const api = {
       return response.json();
     },
 
-    async createTeacher(teacherData: { name: string; subject: string; system: 'dual' | 'vollzeit' }): Promise<ApiTeacher> {
+    async createTeacher(teacherData: { name: string; system: 'dual' | 'vollzeit'; subject?: string }): Promise<ApiTeacher> {
       const response = await fetch(`${API_BASE}/admin/teachers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(teacherData),
+        body: JSON.stringify({
+          name: teacherData.name,
+          system: teacherData.system,
+          subject: teacherData.subject ?? 'Sprechstunde',
+        }),
       });
 
       if (!response.ok) {
@@ -205,14 +209,18 @@ export const api = {
       return data.teacher;
     },
 
-    async updateTeacher(id: number, teacherData: { name: string; subject: string; system: 'dual' | 'vollzeit' }): Promise<ApiTeacher> {
+    async updateTeacher(id: number, teacherData: { name: string; system: 'dual' | 'vollzeit'; subject?: string }): Promise<ApiTeacher> {
       const response = await fetch(`${API_BASE}/admin/teachers/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(teacherData),
+        body: JSON.stringify({
+          name: teacherData.name,
+          system: teacherData.system,
+          subject: teacherData.subject ?? 'Sprechstunde',
+        }),
       });
 
       if (!response.ok) {
