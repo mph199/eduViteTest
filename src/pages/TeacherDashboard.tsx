@@ -248,21 +248,22 @@ export function TeacherDashboard() {
                         {booking.message || '-'}
                       </td>
                       <td>
-                        {booking.status === 'reserved' && (
+                        <div className="action-buttons">
+                          {booking.status === 'reserved' && (
+                            <button
+                              onClick={() => handleAcceptBooking(booking.id)}
+                              className="edit-button"
+                            >
+                              Bestätigen
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleAcceptBooking(booking.id)}
-                            className="edit-button"
-                            style={{ marginRight: 8 }}
+                            onClick={() => handleCancelBooking(booking.id)}
+                            className="cancel-button"
                           >
-                            Bestätigen
+                            Stornieren
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleCancelBooking(booking.id)}
-                          className="cancel-button"
-                        >
-                          Stornieren
-                        </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
