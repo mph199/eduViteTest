@@ -154,6 +154,10 @@ const api = {
       const res = await requestJSON('/teacher/slots', { auth: true });
       return (res && (res as any).slots) || [];
     },
+    async getInfo() {
+      const res = await requestJSON('/teacher/info', { auth: true });
+      return (res && (res as any).teacher) || null;
+    },
     async cancelBooking(bookingId: number) {
       return requestJSON(`/teacher/bookings/${bookingId}`, { method: 'DELETE', auth: true });
     },

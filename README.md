@@ -1,6 +1,25 @@
+# BKSB Eltern-/Ausbildersprechtag
+
+React + TypeScript + Vite Frontend mit Node/Express Backend (Supabase). Siehe den AI-/Developer-Guide für Architektur, Setup und Konventionen.
+
+- Projektleitfaden: [docs/AI_GUIDE.md](./docs/AI_GUIDE.md)
+- Frontend starten:
+  ```bash
+  npm install
+  npm run dev
+  ```
+- Backend starten:
+  ```bash
+  cd backend
+  npm install
+  npm run dev
+  ```
+
+---
+
 # React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Dieses Projekt basiert auf dem Vite-Template. Untenstehend die ursprünglichen Hinweise von Vite.
 
 Currently, two official plugins are available:
 

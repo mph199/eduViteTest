@@ -12,6 +12,7 @@ import { Impressum } from './pages/Impressum';
 import { Datenschutz } from './pages/Datenschutz';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { Footer } from './components/Footer';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import './App.css'
 
 // Setze auf true um Maintenance-Modus zu aktivieren
@@ -23,6 +24,7 @@ function App() {
       <AuthProvider>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <div style={{ flex: 1 }}>
+            <AppErrorBoundary>
             <Routes>
               {/* Login ist immer erreichbar, auch im Maintenance-Modus */}
               <Route path="/login" element={<LoginPage />} />
@@ -78,6 +80,7 @@ function App() {
               {/* Catch-All: leite unbekannte Pfade auf die Startseite um */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </AppErrorBoundary>
           </div>
           <Footer />
         </div>

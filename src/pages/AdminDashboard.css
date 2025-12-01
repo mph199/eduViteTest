@@ -161,6 +161,15 @@
   margin-bottom: 2rem;
 }
 
+.admin-success {
+  background: #eefaf3;
+  border: 1px solid #c7f0d9;
+  color: #0d8f54;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
 .no-bookings {
   background: white;
   padding: 3rem;
