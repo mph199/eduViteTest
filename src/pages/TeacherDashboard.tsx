@@ -72,15 +72,6 @@ export function TeacherDashboard() {
     navigate('/login');
   };
 
-  if (loading) {
-    return (
-      <div className="admin-loading">
-        <div className="spinner"></div>
-        <p>Laden...</p>
-      </div>
-    );
-  }
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return bookings.filter(b => {
@@ -99,20 +90,15 @@ export function TeacherDashboard() {
       return hay.includes(q);
     });
   }, [bookings, query, typeFilter]);
+  if (loading) {
+    return (
+      <div className="admin-loading">
+        <div className="spinner"></div>
+        <p>Laden...</p>
+      </div>
+    );
+  }
 
-  const copyEmails = async () => {
-    const emails = filtered.map(b => b.email).filter(Boolean).join(', ');
-    if (!emails) {
-      setNotice('Keine E-Mail-Adressen vorhanden.');
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(emails);
-      setNotice('E-Mail-Adressen kopiert.');
-    } catch {
-      setError('Kopieren in Zwischenablage fehlgeschlagen.');
-    }
-  };
 
   const exportICal = () => {
     if (!filtered.length) {
@@ -147,9 +133,6 @@ export function TeacherDashboard() {
             <button onClick={loadBookings} className="logout-button" style={{ backgroundColor: '#2d5016' }}>
               Aktualisieren
             </button>
-            <button onClick={copyEmails} className="logout-button" style={{ backgroundColor: '#0d6efd' }}>
-              E-Mails kopieren
-            </button>
             <button onClick={exportICal} className="logout-button" style={{ backgroundColor: '#6f42c1' }}>
               iCal Export
             </button>
@@ -177,15 +160,7 @@ export function TeacherDashboard() {
           </div>
         )}
 
-        <div className="dashboard-stats">
-          <div className="stat-card">
-            <h3>Meine Termine</h3>
-            <p className="stat-number">{bookings.length}</p>
-            <p className="stat-label">Gebuchte Gespräche</p>
-          </div>
-        </div>
-
-        <div className="dashboard-stats">
+        <div className="admin-stats">
           <div className="stat-card" style={{ flex: 1 }}>
             <h3>Filter</h3>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -203,6 +178,11 @@ export function TeacherDashboard() {
               </select>
             </div>
           </div>
+          <div className="stat-card" style={{ minWidth: 220 }}>
+            <h3>Meine Termine</h3>
+            <p className="stat-number">{bookings.length}</p>
+            <p className="stat-label">Gebuchte Gespräche</p>
+          </div>
         </div>
 
         <section className="admin-section">
@@ -213,7 +193,7 @@ export function TeacherDashboard() {
               <p>Noch keine Buchungen vorhanden.</p>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="bookings-table-container">
               <table className="bookings-table">
                 <thead>
                   <tr>
@@ -269,7 +249,7 @@ export function TeacherDashboard() {
                   ))}
                 </tbody>
               </table>
-            </div>
+             </div>
           )}
         </section>
       </main>
