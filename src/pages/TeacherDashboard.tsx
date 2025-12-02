@@ -12,6 +12,9 @@ export function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<string>('');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [teacher, setTeacher] = useState<{ id: number; name: string; subject: string; system?: string; room?: string } | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [query, setQuery] = useState<string>('');
@@ -82,6 +85,28 @@ export function TeacherDashboard() {
     navigate('/login');
   };
 
+  const handleChangePassword = async () => {
+    setError('');
+    setNotice('');
+    if (!currentPassword || !newPassword) {
+      setError('Bitte aktuelles und neues Passwort eingeben.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Neues Passwort muss mindestens 8 Zeichen lang sein.');
+      return;
+    }
+    try {
+      await api.teacher.changePassword(currentPassword, newPassword);
+      setNotice('Passwort erfolgreich geändert.');
+      setShowPasswordForm(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Ändern des Passworts');
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return bookings.filter(b => {
@@ -143,8 +168,8 @@ export function TeacherDashboard() {
             <button onClick={loadBookings} className="logout-button" style={{ backgroundColor: '#2d5016' }}>
               Aktualisieren
             </button>
-            <button onClick={exportICal} className="logout-button" style={{ backgroundColor: '#6f42c1' }}>
-              iCal Export
+            <button onClick={() => setShowPasswordForm(v => !v)} className="logout-button" style={{ backgroundColor: '#444' }}>
+              Passwort ändern
             </button>
             <button onClick={handleLogout} className="logout-button">
               Abmelden
@@ -154,6 +179,30 @@ export function TeacherDashboard() {
       </header>
 
       <main className="admin-main">
+        {showPasswordForm && (
+          <div className="stat-card" style={{ marginBottom: 16 }}>
+            <h3>Passwort ändern</h3>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="password"
+                placeholder="Aktuelles Passwort"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                style={{ padding: 8, flex: 1, minWidth: 220 }}
+              />
+              <input
+                type="password"
+                placeholder="Neues Passwort (min. 8 Zeichen)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                style={{ padding: 8, flex: 1, minWidth: 220 }}
+              />
+              <button onClick={handleChangePassword} className="btn-primary">
+                Speichern
+              </button>
+            </div>
+          </div>
+        )}
         {(error || notice) && (
           <div className={error ? 'admin-error' : 'admin-success'} style={{ marginBottom: 16 }}>
             {error || notice}
@@ -197,6 +246,22 @@ export function TeacherDashboard() {
 
         <section className="admin-section">
           <h2>Meine Buchungen</h2>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.75rem 0 0.5rem 0' }}>
+            <div className="tooltip-container">
+              <button
+                onClick={exportICal}
+                className="btn-primary"
+                disabled={bookings.length === 0}
+              >
+                📅 Alle Termine in den Kalender exportieren
+              </button>
+              <span className="tooltip">
+                {bookings.length === 0
+                  ? 'Keine Buchungen zum Exportieren'
+                  : 'Exportiert alle Termine als .ics Kalenderdatei'}
+              </span>
+            </div>
+          </div>
 
           {filtered.length === 0 ? (
             <div className="no-bookings">

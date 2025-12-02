@@ -130,7 +130,7 @@ export function AdminDashboard() {
               className="btn-primary"
               style={{ marginLeft: '1rem' }}
             >
-              📅 Alle als Kalender exportieren
+              📅 Alle Termine in den Kalender exportieren
             </button>
           )}
         </div>
