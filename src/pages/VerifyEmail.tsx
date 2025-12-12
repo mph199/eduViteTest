@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
 
 export function VerifyEmail() {
-  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>( 'idle');
-  const [message, setMessage] = useState<string>('');
+  const token = new URLSearchParams(window.location.search).get('token');
+
+  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>(() => (token ? 'idle' : 'error'));
+  const [message, setMessage] = useState<string>(() => (token ? '' : 'Ungültiger Link.'));
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (!token) {
-      setStatus('error');
-      setMessage('Ungültiger Link.');
-      return;
-    }
+    if (!token) return;
     fetch(`/api/bookings/verify/${token}`)
       .then(async (r) => {
         const data = await r.json();
@@ -27,7 +23,7 @@ export function VerifyEmail() {
         setStatus('error');
         setMessage('Verifikation fehlgeschlagen.');
       });
-  }, []);
+  }, [token]);
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', padding: '24px', background: 'white', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
