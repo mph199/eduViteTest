@@ -7,6 +7,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
 import { AdminSettings } from './pages/AdminSettings';
 import { AdminSlots } from './pages/AdminSlots';
+import { AdminEvents } from './pages/AdminEvents';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { Impressum } from './pages/Impressum';
 import { Datenschutz } from './pages/Datenschutz';
@@ -76,6 +77,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminSettings />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/events" 
+                element={
+                  <ProtectedRoute>
+                    <AdminEvents />
                   </ProtectedRoute>
                 } 
               />

@@ -160,6 +160,36 @@ const api = {
     async resetTeacherLogin(id: number) {
       return requestJSON(`/admin/teachers/${id}/reset-login`, { method: 'PUT', auth: true });
     },
+
+    // Events
+    async getEvents() {
+      const res = await requestJSON('/admin/events', { auth: true });
+      return (res && (res as any).events) || [];
+    },
+    async createEvent(payload: any) {
+      return requestJSON('/admin/events', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateEvent(id: number, patch: any) {
+      return requestJSON(`/admin/events/${id}`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(patch),
+      });
+    },
+    async deleteEvent(id: number) {
+      return requestJSON(`/admin/events/${id}`, { method: 'DELETE', auth: true });
+    },
+    async generateEventSlots(eventId: number, payload: any) {
+      return requestJSON(`/admin/events/${eventId}/generate-slots`, {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
   },
 
   // Teacher endpoints

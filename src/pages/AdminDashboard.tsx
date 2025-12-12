@@ -101,7 +101,17 @@ export function AdminDashboard() {
               <span className="action-icon">⚙️</span>
               <div>
                 <div className="action-title">Einstellungen</div>
-                <div className="action-desc">Event-Name und Datum konfigurieren</div>
+                <div className="action-desc">Allgemeine Einstellungen</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => navigate('/admin/events')} 
+              className="admin-action-button"
+            >
+              <span className="action-icon">🗓️</span>
+              <div>
+                <div className="action-title">Elternsprechtage</div>
+                <div className="action-desc">Events anlegen, veröffentlichen und Slots generieren</div>
               </div>
             </button>
             <button 
