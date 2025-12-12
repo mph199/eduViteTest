@@ -240,7 +240,7 @@ export function AdminEvents() {
 
       <main className="admin-main">
         <div className="admin-section-header">
-          <h2>Elternsprechtage (Events)</h2>
+          <h2>Elternsprechtage</h2>
         </div>
 
         {error && <div className="admin-error">{error}</div>}
@@ -387,7 +387,7 @@ export function AdminEvents() {
             </div>
           </div>
 
-          <div className="form-actions">
+          <div className="form-actions" style={{ flexWrap: 'wrap' }}>
             <button type="button" className="btn-primary" onClick={handleGenerateSlots} disabled={!selectedEventId}>
               Slots für alle Lehrkräfte generieren
             </button>
@@ -402,6 +402,11 @@ export function AdminEvents() {
                 Event schließen
               </button>
             )}
+            {selectedEventId && (
+              <button type="button" className="btn-secondary" onClick={() => handleSetStatus(selectedEventId, 'draft')}>
+                Als Entwurf setzen
+              </button>
+            )}
           </div>
         </div>
 
@@ -410,7 +415,12 @@ export function AdminEvents() {
             <h3>Alle Events</h3>
           </div>
           {events.length === 0 ? (
-            <p>Keine Events vorhanden.</p>
+            <div className="no-bookings" style={{ padding: '2.25rem' }}>
+              <p style={{ marginBottom: '0.75rem' }}>Keine Events vorhanden.</p>
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                Lege oben ein Event an und setze es auf „Veröffentlicht“, um Buchungen freizuschalten.
+              </p>
+            </div>
           ) : (
             <table className="bookings-table">
               <thead>
@@ -433,21 +443,23 @@ export function AdminEvents() {
                     <td>{formatEventDateTime(ev.starts_at)}</td>
                     <td>{formatEventDateTime(ev.ends_at)}</td>
                     <td>{ev.status}</td>
-                    <td style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button type="button" className="btn-secondary" onClick={() => setSelectedEventId(ev.id)}>
+                    <td>
+                      <div className="action-buttons" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button type="button" className="btn-secondary" onClick={() => setSelectedEventId(ev.id)}>
                         Auswählen
-                      </button>
-                      {ev.status !== 'published' && (
-                        <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'published')}>
-                          Veröffentlichen
                         </button>
-                      )}
-                      <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'draft')}>
-                        Entwurf
-                      </button>
-                      <button type="button" className="cancel-button" onClick={() => handleDelete(ev.id)}>
-                        Löschen
-                      </button>
+                        {ev.status !== 'published' && (
+                          <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'published')}>
+                            Veröffentlichen
+                          </button>
+                        )}
+                        <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'draft')}>
+                          Entwurf
+                        </button>
+                        <button type="button" className="btn-secondary" onClick={() => handleDelete(ev.id)}>
+                          Löschen
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -456,9 +468,10 @@ export function AdminEvents() {
           )}
         </div>
 
-        <div className="settings-info">
-          <p className="text-muted">
-            Hinweis: „Aktiv“ ist das zuletzt veröffentlichte Event, das innerhalb seines Buchungsfensters liegt.
+        <div className="teacher-form-container" style={{ padding: '1.25rem 2rem' }}>
+          <h3 style={{ marginBottom: '0.5rem' }}>Hinweis</h3>
+          <p className="text-muted" style={{ margin: 0, color: '#6b7280' }}>
+            „Aktiv“ ist das zuletzt veröffentlichte Event, das innerhalb seines Buchungsfensters liegt.
           </p>
         </div>
       </main>
