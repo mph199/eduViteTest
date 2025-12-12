@@ -23,7 +23,7 @@ function parseDateToLocal(dateStr: string): Date {
 
 function normalizeTimeRange(timeStr: string): [number, number, number, number] {
   const cleaned = String(timeStr).replace(/,/, '').trim();
-  const parts = cleaned.split(/\s*[\-–—]\s*/);
+  const parts = cleaned.split(/\s*[-–—]\s*/);
   if (!parts[0] || !parts[1]) throw new Error('Invalid time range for ICS');
   const [sh, sm] = String(parts[0]).trim().split(':');
   const [eh, em] = String(parts[1]).trim().split(':');

@@ -17,7 +17,7 @@ async function requestJSON(path: string, options: RequestInit & { auth?: boolean
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, { ...rest, headers: mergedHeaders });
-  } catch (err) {
+  } catch {
     throw new Error('Netzwerkfehler – bitte Verbindung prüfen.');
   }
 
@@ -38,7 +38,9 @@ async function requestJSON(path: string, options: RequestInit & { auth?: boolean
       localStorage.removeItem('auth_token');
       try {
         window.dispatchEvent(new Event('auth:logout'));
-      } catch {}
+      } catch {
+        // ignore
+      }
       throw new Error('Nicht angemeldet (401) – bitte neu einloggen.');
     }
     throw new Error(typeof message === 'string' ? message : 'Unbekannter Fehler');
@@ -86,7 +88,7 @@ const api = {
       try {
         const data = await requestJSON('/auth/verify', { auth: true });
         return data || { authenticated: false } as any;
-      } catch (e) {
+      } catch {
         return { authenticated: false } as any;
       }
     },
