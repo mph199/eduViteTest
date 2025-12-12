@@ -7,12 +7,26 @@ import type { Teacher } from '../types';
 import api from '../services/api';
 import './BookingApp.css';
 
+type ActiveEvent = {
+  id: number;
+  name: string;
+  school_year: string;
+  starts_at: string;
+  ends_at: string;
+  status: 'draft' | 'published' | 'closed';
+  booking_opens_at?: string | null;
+  booking_closes_at?: string | null;
+} | null;
+
 export const BookingApp = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teachersLoading, setTeachersLoading] = useState<boolean>(true);
   const [teachersError, setTeachersError] = useState<string>('');
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [teacherSearch, setTeacherSearch] = useState<string>('');
+  const [activeEvent, setActiveEvent] = useState<ActiveEvent>(null);
+  const [eventLoading, setEventLoading] = useState<boolean>(true);
+  const [eventError, setEventError] = useState<string>('');
   
   
   const {
@@ -25,10 +39,24 @@ export const BookingApp = () => {
     handleSelectSlot,
     handleBooking,
     resetSelection,
-  } = useBooking(selectedTeacherId);
+  } = useBooking(selectedTeacherId, activeEvent?.id ?? null);
 
   // Lade Lehrkräfte beim Mount
   useEffect(() => {
+    const loadActiveEvent = async () => {
+      setEventLoading(true);
+      setEventError('');
+      try {
+        const res = await api.events.getActive();
+        setActiveEvent((res as any)?.event || null);
+      } catch (e) {
+        setEventError(e instanceof Error ? e.message : 'Fehler beim Laden des Elternsprechtags');
+        setActiveEvent(null);
+      } finally {
+        setEventLoading(false);
+      }
+    };
+
     const loadTeachers = async () => {
       try {
         const fetchedTeachers = await api.getTeachers();
@@ -40,6 +68,7 @@ export const BookingApp = () => {
       }
     };
 
+    loadActiveEvent();
     loadTeachers();
   }, []);
 
@@ -98,6 +127,28 @@ export const BookingApp = () => {
           </div>
         </div>
       </header>
+
+      {eventLoading ? (
+        <div className="event-banner">
+          <p>Lade Elternsprechtag…</p>
+        </div>
+      ) : eventError ? (
+        <div className="event-banner event-banner-error">
+          <p>{eventError}</p>
+        </div>
+      ) : !activeEvent ? (
+        <div className="event-banner">
+          <p>
+            Buchungen sind aktuell noch nicht freigeschaltet.
+          </p>
+        </div>
+      ) : (
+        <div className="event-banner">
+          <p>
+            Aktiver Elternsprechtag: <strong>{activeEvent.name}</strong>
+          </p>
+        </div>
+      )}
 
       <div className="app-content">
         <aside className="sidebar">

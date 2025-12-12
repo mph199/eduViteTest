@@ -24,7 +24,7 @@ export function mapBookingRowWithTeacher(slot) {
   if (!mapped) return null;
   return {
     ...mapped,
-    teacherName: slot.teacher?.name || 'Unknown',
+      eventId: slot.event_id ?? undefined,
     teacherSubject: slot.teacher?.subject || 'Unknown',
   };
 }

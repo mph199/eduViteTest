@@ -49,12 +49,18 @@ async function requestJSON(path: string, options: RequestInit & { auth?: boolean
 
 const api = {
   // Public endpoints
+  events: {
+    async getActive() {
+      return requestJSON('/events/active');
+    },
+  },
   async getTeachers() {
     const res = await requestJSON('/teachers');
     return (res && (res as any).teachers) || [];
   },
-  async getSlots(teacherId: number) {
-    const res = await requestJSON(`/slots?teacherId=${encodeURIComponent(String(teacherId))}`);
+  async getSlots(teacherId: number, eventId?: number | null) {
+    const ev = eventId ? `&eventId=${encodeURIComponent(String(eventId))}` : '';
+    const res = await requestJSON(`/slots?teacherId=${encodeURIComponent(String(teacherId))}${ev}`);
     return (res && (res as any).slots) || [];
   },
   async createBooking(slotId: number, formData: any) {

@@ -79,7 +79,7 @@ app.get('/api/teachers', async (_req, res) => {
 // GET /api/slots?teacherId=1
 app.get('/api/slots', async (req, res) => {
   try {
-    const { teacherId } = req.query;
+    const { teacherId, eventId } = req.query;
     if (!teacherId) {
       return res.status(400).json({ error: 'teacherId query param required' });
     }
@@ -88,8 +88,37 @@ app.get('/api/slots', async (req, res) => {
       return res.status(400).json({ error: 'teacherId must be a number' });
     }
 
+    // Resolve event scope: explicit eventId OR active published event
+    let resolvedEventId = null;
+    if (eventId !== undefined) {
+      const parsed = parseInt(String(eventId), 10);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ error: 'eventId must be a number' });
+      }
+      resolvedEventId = parsed;
+    } else {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('events')
+        .select('id')
+        .eq('status', 'published')
+        .or(`booking_opens_at.is.null,booking_opens_at.lte.${now}`)
+        .or(`booking_closes_at.is.null,booking_closes_at.gte.${now}`)
+        .order('starts_at', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      resolvedEventId = data && data.length ? data[0].id : null;
+    }
+
     const slots = await listSlotsByTeacherId(teacherIdNum);
-    res.json({ slots });
+
+    // Backwards-compatible: if DB rows don't have event_id yet, return as-is.
+    // If they do, scope to the resolved event.
+    const scopedSlots = resolvedEventId
+      ? slots.filter((s) => (s.eventId === undefined ? true : s.eventId === resolvedEventId))
+      : slots;
+
+    res.json({ slots: scopedSlots });
   } catch (error) {
     console.error('Error fetching slots:', error);
     res.status(500).json({ error: 'Failed to fetch slots' });
@@ -101,7 +130,29 @@ app.get('/api/slots', async (req, res) => {
 app.post('/api/bookings', async (req, res) => {
   try {
     const payload = req.body || {};
+
+    // Require active published event before accepting booking requests
+    const nowIso = new Date().toISOString();
+    const { data: activeEvents, error: activeErr } = await supabase
+      .from('events')
+      .select('id')
+      .eq('status', 'published')
+      .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
+      .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
+      .order('starts_at', { ascending: false })
+      .limit(1);
+    if (activeErr) throw activeErr;
+    const activeEventId = activeEvents && activeEvents.length ? activeEvents[0].id : null;
+    if (!activeEventId) {
+      return res.status(409).json({ error: 'Buchungen sind aktuell nicht freigegeben' });
+    }
+
     const { slotRow, verificationToken } = await reserveBooking(payload);
+
+    // If the slot is linked to an event, enforce it matches active event
+    if (slotRow?.event_id && slotRow.event_id !== activeEventId) {
+      return res.status(409).json({ error: 'Dieser Termin gehört nicht zum aktuell freigegebenen Elternsprechtag' });
+    }
 
     // Send verification email (best-effort)
     if (slotRow && isEmailConfigured()) {
@@ -666,6 +717,111 @@ app.get('/api/health', async (_req, res) => {
   } catch (error) {
     console.error('Error in health check:', error);
     res.status(500).json({ status: 'error', message: 'Health check failed' });
+  }
+});
+
+// EVENTS
+// Public: get the currently active (published) event
+app.get('/api/events/active', async (_req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'published')
+      .or(`booking_opens_at.is.null,booking_opens_at.lte.${now}`)
+      .or(`booking_closes_at.is.null,booking_closes_at.gte.${now}`)
+      .order('starts_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    const activeEvent = data && data.length ? data[0] : null;
+    res.json({ event: activeEvent });
+  } catch (error) {
+    console.error('Error fetching active event:', error);
+    res.status(500).json({ error: 'Failed to fetch active event' });
+  }
+});
+
+// Admin: list events
+app.get('/api/admin/events', requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('starts_at', { ascending: false });
+    if (error) throw error;
+    res.json({ events: data || [] });
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// Admin: create event
+app.post('/api/admin/events', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, school_year, starts_at, ends_at, timezone, booking_opens_at, booking_closes_at, status } = req.body || {};
+    if (!name || !school_year || !starts_at || !ends_at) {
+      return res.status(400).json({ error: 'name, school_year, starts_at, ends_at required' });
+    }
+
+    const payload = {
+      name,
+      school_year,
+      starts_at,
+      ends_at,
+      timezone: timezone || 'Europe/Berlin',
+      status: status || 'draft',
+      booking_opens_at: booking_opens_at || null,
+      booking_closes_at: booking_closes_at || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('events')
+      .insert(payload)
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json({ success: true, event: data });
+  } catch (error) {
+    console.error('Error creating event:', error);
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
+// Admin: update event (including publish/close)
+app.put('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  try {
+    const patch = { ...(req.body || {}), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('events')
+      .update(patch)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json({ success: true, event: data });
+  } catch (error) {
+    console.error('Error updating event:', error);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+// Admin: delete event
+app.delete('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  try {
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: 'Failed to delete event' });
   }
 });
 
