@@ -6,6 +6,13 @@ import type { Teacher as ApiTeacher } from '../types';
 import './AdminDashboard.css';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 
+type TeacherLoginResponse = {
+  user?: {
+    username: string;
+    tempPassword: string;
+  };
+};
+
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,8 +63,9 @@ export function AdminTeachers() {
         await api.admin.updateTeacher(editingTeacher.id, teacherData);
       } else {
         const res = await api.admin.createTeacher(teacherData);
-        if (res && (res as any).user) {
-          setCreatedCreds({ username: (res as any).user.username, tempPassword: (res as any).user.tempPassword });
+        const typed = res as TeacherLoginResponse;
+        if (typed?.user) {
+          setCreatedCreds({ username: typed.user.username, tempPassword: typed.user.tempPassword });
         }
       }
       await loadTeachers();
@@ -239,7 +247,9 @@ export function AdminTeachers() {
                       try {
                         navigator.clipboard.writeText(createdCreds.tempPassword);
                         alert('Passwort kopiert');
-                      } catch {}
+                      } catch {
+                        // ignore
+                      }
                     }}
                     style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}
                   >
@@ -297,8 +307,9 @@ export function AdminTeachers() {
                           onClick={async () => {
                             try {
                               const res = await api.admin.resetTeacherLogin(teacher.id);
-                              if (res && (res as any).user) {
-                                alert(`Login zurückgesetzt\n\nBenutzername: ${(res as any).user.username}\nTemporäres Passwort: ${(res as any).user.tempPassword}`);
+                              const typed = res as TeacherLoginResponse;
+                              if (typed?.user) {
+                                alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
                               } else {
                                 alert('Login zurückgesetzt.');
                               }

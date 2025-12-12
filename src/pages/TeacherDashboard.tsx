@@ -7,6 +7,14 @@ import { exportBookingsToICal } from '../utils/icalExport';
 import './AdminDashboard.css';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 
+type TeacherInfo = {
+  id: number;
+  name: string;
+  subject: string;
+  system?: string;
+  room?: string;
+};
+
 export function TeacherDashboard() {
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +23,7 @@ export function TeacherDashboard() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [teacher, setTeacher] = useState<{ id: number; name: string; subject: string; system?: string; room?: string } | null>(null);
+  const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [query, setQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'parent' | 'company'>('all');
@@ -47,8 +55,8 @@ export function TeacherDashboard() {
           api.admin.getSettings().catch(() => null),
         ]);
         setBookings(b);
-        if (t) setTeacher(t as any);
-        if (s) setSettings(s as any);
+        if (t) setTeacher(t as TeacherInfo);
+        if (s) setSettings(s as Settings);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fehler beim Laden');
       } finally {
@@ -141,7 +149,7 @@ export function TeacherDashboard() {
       return;
     }
     exportBookingsToICal(
-      (filtered as any[]).map(b => ({ ...b, teacherName: teacher?.name || 'Lehrkraft' })),
+      filtered.map((b) => ({ ...b, teacherName: teacher?.name || 'Lehrkraft' })),
       settings || undefined
     );
   };
@@ -230,7 +238,11 @@ export function TeacherDashboard() {
                 onChange={(e) => setQuery(e.target.value)}
                 style={{ padding: 8, flex: 1 }}
               />
-              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} style={{ padding: 8 }}>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as 'all' | 'parent' | 'company')}
+                style={{ padding: 8 }}
+              >
                 <option value="all">Alle</option>
                 <option value="parent">Eltern</option>
                 <option value="company">Ausbilder</option>
