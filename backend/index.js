@@ -112,10 +112,10 @@ app.get('/api/slots', async (req, res) => {
 
     const slots = await listSlotsByTeacherId(teacherIdNum);
 
-    // Backwards-compatible: if DB rows don't have event_id yet, return as-is.
-    // If they do, scope to the resolved event.
+    // Strict scoping: when an event is resolved (explicit or active), only return slots for that event.
+    // This prevents legacy slots (event_id NULL) from showing up mixed with the active event.
     const scopedSlots = resolvedEventId
-      ? slots.filter((s) => (s.eventId === undefined ? true : s.eventId === resolvedEventId))
+      ? slots.filter((s) => s.eventId === resolvedEventId)
       : slots;
 
     res.json({ slots: scopedSlots });
@@ -822,6 +822,119 @@ app.delete('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) 
   } catch (error) {
     console.error('Error deleting event:', error);
     res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+// Admin: generate slots for a specific event (single-day events)
+// POST /api/admin/events/:id/generate-slots
+// Body (optional): { slotMinutes?: number, dryRun?: boolean, replaceExisting?: boolean }
+app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, async (req, res) => {
+  const eventId = parseInt(req.params.id, 10);
+  if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid id' });
+
+  const { slotMinutes, dryRun, replaceExisting } = req.body || {};
+  const slotLen = Number(slotMinutes || 15);
+  if (!Number.isFinite(slotLen) || slotLen < 5 || slotLen > 60) {
+    return res.status(400).json({ error: 'slotMinutes must be between 5 and 60' });
+  }
+
+  const formatDateDE = (isoOrDate) => {
+    const d = new Date(isoOrDate);
+    if (Number.isNaN(d.getTime())) return null;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${dd}.${mm}.${yyyy}`;
+  };
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toMinutes = (h, m) => h * 60 + m;
+  const minutesToHHMM = (mins) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${pad2(h)}:${pad2(m)}`;
+  };
+
+  try {
+    const { data: eventRow, error: eventErr } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .single();
+    if (eventErr) throw eventErr;
+    if (!eventRow) return res.status(404).json({ error: 'Event not found' });
+
+    const eventDate = formatDateDE(eventRow.starts_at);
+    if (!eventDate) return res.status(400).json({ error: 'Event starts_at is invalid' });
+
+    // Optional: replace existing slots for this event day
+    if (replaceExisting) {
+      if (!dryRun) {
+        const { error: delErr } = await supabase
+          .from('slots')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('date', eventDate);
+        if (delErr) throw delErr;
+      }
+    }
+
+    const { data: teachers, error: teachersErr } = await supabase
+      .from('teachers')
+      .select('id, system');
+    if (teachersErr) throw teachersErr;
+
+    const teacherRows = teachers || [];
+    if (!teacherRows.length) return res.json({ success: true, created: 0, skipped: 0, eventDate });
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const t of teacherRows) {
+      const teacherSystem = t.system || 'dual';
+      const windowStart = teacherSystem === 'vollzeit' ? toMinutes(17, 0) : toMinutes(16, 0);
+      const windowEnd = teacherSystem === 'vollzeit' ? toMinutes(19, 0) : toMinutes(18, 0);
+
+      // Fetch existing slots for this teacher+event+date to avoid duplicates
+      const { data: existingSlots, error: existingErr } = await supabase
+        .from('slots')
+        .select('time')
+        .eq('teacher_id', t.id)
+        .eq('event_id', eventId)
+        .eq('date', eventDate);
+      if (existingErr) throw existingErr;
+      const existingTimes = new Set((existingSlots || []).map((s) => s.time));
+
+      const inserts = [];
+      for (let start = windowStart; start + slotLen <= windowEnd; start += slotLen) {
+        const end = start + slotLen;
+        const time = `${minutesToHHMM(start)} - ${minutesToHHMM(end)}`;
+        if (existingTimes.has(time)) {
+          skipped += 1;
+          continue;
+        }
+        inserts.push({
+          teacher_id: t.id,
+          event_id: eventId,
+          date: eventDate,
+          time,
+          booked: false,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      if (inserts.length) {
+        if (!dryRun) {
+          const { error: insErr } = await supabase.from('slots').insert(inserts);
+          if (insErr) throw insErr;
+        }
+        created += inserts.length;
+      }
+    }
+
+    return res.json({ success: true, eventId, eventDate, created, skipped, dryRun: Boolean(dryRun), replaceExisting: Boolean(replaceExisting) });
+  } catch (error) {
+    console.error('Error generating slots for event:', error);
+    return res.status(500).json({ error: 'Failed to generate slots for event' });
   }
 });
 
