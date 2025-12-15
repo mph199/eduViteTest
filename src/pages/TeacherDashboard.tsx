@@ -367,8 +367,8 @@ export function TeacherDashboard() {
           {teacher && (
             <div className="stat-card" style={{ flex: '0 1 330px', minWidth: 240, padding: '1.1rem 1.1rem' }}>
               <h3>Raum</h3>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ flex: '1 1 auto' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: '1 1 auto', minWidth: 160 }}>
                   <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Derzeitiger Raum</div>
                   <div
                     style={{
@@ -396,7 +396,7 @@ export function TeacherDashboard() {
                   disabled={savingRoom}
                   style={{ padding: '0.55rem 0.9rem', whiteSpace: 'nowrap' }}
                 >
-                  Raumänderung vornehmen
+                  Raum ändern
                 </button>
               </div>
             </div>
