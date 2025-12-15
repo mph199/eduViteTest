@@ -252,24 +252,24 @@ export function TeacherDashboard() {
               }}
             >
               <h3>Raum ändern</h3>
-              <p style={{ marginTop: 0, color: '#555' }}>
+              <p style={{ marginTop: 4, marginBottom: 12, color: '#555', lineHeight: 1.35 }}>
                 Hinweis: Räume sollten nur geändert werden, wenn dies zuvor mit dem Sekretariat abgestimmt wurde.
               </p>
 
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                   type="text"
                   placeholder="z.B. B204"
                   value={roomDraft}
                   onChange={(e) => setRoomDraft(e.target.value)}
-                  style={{ padding: 8, flex: 1, minWidth: 220 }}
+                  style={{ padding: '8px 10px', flex: 1, minWidth: 220 }}
                   aria-label="Neuer Raum"
                   disabled={savingRoom}
                   autoFocus
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
                     setError('');
@@ -299,42 +299,6 @@ export function TeacherDashboard() {
           </div>
         )}
 
-        {teacher && (
-          <div className="stat-card" style={{ marginBottom: 16 }}>
-            <h3>Raum</h3>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Derzeitiger Raum</div>
-                <div
-                  style={{
-                    background: '#eee',
-                    padding: '8px 10px',
-                    borderRadius: 6,
-                    display: 'inline-block',
-                    color: '#333',
-                    minWidth: 120,
-                    textAlign: 'center',
-                  }}
-                >
-                  {teacher.room ? teacher.room : '—'}
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setError('');
-                  setNotice('');
-                  setRoomDraft(teacher.room || '');
-                  setShowRoomDialog(true);
-                }}
-                className="btn-primary"
-                disabled={savingRoom}
-              >
-                Raumänderung vornehmen
-              </button>
-            </div>
-          </div>
-        )}
         {showPasswordForm && (
           <div className="stat-card" style={{ marginBottom: 16 }}>
             <h3>Passwort ändern</h3>
@@ -376,20 +340,20 @@ export function TeacherDashboard() {
         )}
 
         <div className="admin-stats">
-          <div className="stat-card" style={{ flex: 1 }}>
+          <div className="stat-card" style={{ flex: '0 1 520px', minWidth: 260 }}>
             <h3>Filter</h3>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 placeholder="Suche (Name, Klasse, E-Mail)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                style={{ padding: 8, flex: 1 }}
+                style={{ padding: '8px 10px', flex: '1 1 220px' }}
               />
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as 'all' | 'parent' | 'company')}
-                style={{ padding: 8 }}
+                style={{ padding: '8px 10px', flex: '0 0 220px' }}
               >
                 <option value="all">Alle</option>
                 <option value="parent">Erziehungsberechtigte</option>
@@ -397,6 +361,45 @@ export function TeacherDashboard() {
               </select>
             </div>
           </div>
+
+          {teacher && (
+            <div className="stat-card" style={{ flex: '0 1 360px', minWidth: 260 }}>
+              <h3>Raum</h3>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1 1 auto' }}>
+                  <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Derzeitiger Raum</div>
+                  <div
+                    style={{
+                      background: '#eee',
+                      padding: '7px 10px',
+                      borderRadius: 8,
+                      display: 'inline-block',
+                      color: '#333',
+                      minWidth: 120,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {teacher.room ? teacher.room : '—'}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setError('');
+                    setNotice('');
+                    setRoomDraft(teacher.room || '');
+                    setShowRoomDialog(true);
+                  }}
+                  className="btn-primary"
+                  disabled={savingRoom}
+                  style={{ padding: '0.55rem 0.95rem' }}
+                >
+                  Raumänderung vornehmen
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="stat-card" style={{ minWidth: 220 }}>
             <h3>Meine Termine</h3>
             <p className="stat-number">{bookings.length}</p>
