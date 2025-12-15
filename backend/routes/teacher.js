@@ -189,6 +189,22 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
+    // Load current booking data first (needed for cancellation email)
+    const { data: current, error: curErr } = await supabase
+      .from('slots')
+      .select('*')
+      .eq('id', slotId)
+      .eq('teacher_id', teacherId)
+      .eq('booked', true)
+      .single();
+
+    if (curErr) {
+      if (curErr.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
+      }
+      throw curErr;
+    }
+
     // Clear booking data, but only for own slots
     const { data, error } = await supabase
       .from('slots')
@@ -205,9 +221,11 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
         email: null,
         message: null,
         verification_token: null,
+        verification_token_hash: null,
         verification_sent_at: null,
         verified_at: null,
         confirmation_sent_at: null,
+        // cancellation_sent_at is written after mail send (best-effort)
         updated_at: new Date().toISOString(),
       })
       .eq('id', slotId)
@@ -221,6 +239,37 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
         return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
       }
       throw error;
+    }
+
+    // Best-effort cancellation email (only if the booking email was verified)
+    if (current && current.email && current.verified_at && isEmailConfigured()) {
+      try {
+        const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherId).single();
+        const teacher = teacherRes.data || {};
+        const subject = `Stornierung: Termin am ${current.date} (${current.time})`;
+        const plain = `Guten Tag,
+
+Ihr Termin wurde storniert.
+
+Termin: ${current.date} ${current.time}
+Lehrkraft: ${teacher.name || '—'}
+Raum: ${teacher.room || '—'}
+
+Bei Bedarf können Sie über das Buchungssystem einen neuen Termin buchen.
+
+Viele Grüße`;
+        const html = `<p>Guten Tag,</p>
+<p>Ihr Termin wurde storniert.</p>
+<p><strong>Termin:</strong> ${current.date} ${current.time}<br/>
+<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
+<strong>Raum:</strong> ${teacher.room || '—'}</p>
+<p>Bei Bedarf können Sie über das Buchungssystem einen neuen Termin buchen.</p>
+<p>Viele Grüße</p>`;
+        await sendMail({ to: current.email, subject, text: plain, html });
+        await supabase.from('slots').update({ cancellation_sent_at: new Date().toISOString() }).eq('id', slotId);
+      } catch (e) {
+        console.warn('Sending cancellation email (teacher) failed:', e?.message || e);
+      }
     }
 
     res.json({ 

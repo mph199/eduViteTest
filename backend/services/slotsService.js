@@ -49,6 +49,10 @@ export async function reserveBooking({
   }
 
   const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationTokenHash = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
   const nowIso = new Date().toISOString();
 
   const updateData = {
@@ -58,10 +62,14 @@ export async function reserveBooking({
     class_name: className,
     email: email,
     message: message || null,
-    verification_token: verificationToken,
+    // Best practice: store only a hash of the verification token.
+    // Keep legacy verification_token for backwards compatibility (older bookings).
+    verification_token: null,
+    verification_token_hash: verificationTokenHash,
     verification_sent_at: nowIso,
     verified_at: null,
     confirmation_sent_at: null,
+    cancellation_sent_at: null,
     updated_at: nowIso,
   };
 
@@ -100,11 +108,19 @@ export async function reserveBooking({
 }
 
 export async function verifyBookingToken(token) {
+  if (!token || typeof token !== 'string') {
+    const err = new Error('Ungültiger oder abgelaufener Link');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const { data: slot, error } = await supabase
     .from('slots')
     .select('*')
-    .eq('verification_token', token)
     .eq('booked', true)
+    // Support both new hashed tokens and legacy plaintext tokens
+    .or(`verification_token_hash.eq.${tokenHash},verification_token.eq.${token}`)
     .single();
 
   if (error || !slot) {
@@ -113,8 +129,46 @@ export async function verifyBookingToken(token) {
     throw err;
   }
 
+  const ttlHoursRaw = process.env.VERIFICATION_TOKEN_TTL_HOURS;
+  const ttlHours = Number.parseInt(ttlHoursRaw || '72', 10);
+  const ttlMs = (Number.isFinite(ttlHours) ? ttlHours : 72) * 60 * 60 * 1000;
+
+  // Idempotent verify: if already verified, return existing timestamp.
+  if (slot.verified_at) {
+    // Also invalidate any remaining token fields.
+    try {
+      await supabase
+        .from('slots')
+        .update({ verification_token: null, verification_token_hash: null, updated_at: new Date().toISOString() })
+        .eq('id', slot.id);
+    } catch {}
+    return { slotRow: slot, verifiedAt: slot.verified_at };
+  }
+
+  if (slot.verification_sent_at) {
+    const sentAt = new Date(slot.verification_sent_at);
+    const sentOk = Number.isNaN(sentAt.getTime()) ? false : true;
+    if (sentOk) {
+      const ageMs = Date.now() - sentAt.getTime();
+      if (ageMs > ttlMs) {
+        const err = new Error('Link abgelaufen. Bitte buchen Sie den Termin erneut.');
+        err.statusCode = 410;
+        throw err;
+      }
+    }
+  }
+
   const now = new Date().toISOString();
-  await supabase.from('slots').update({ verified_at: now, updated_at: now }).eq('id', slot.id);
+  await supabase
+    .from('slots')
+    .update({
+      verified_at: now,
+      // Invalidate token after use
+      verification_token: null,
+      verification_token_hash: null,
+      updated_at: now,
+    })
+    .eq('id', slot.id);
 
   return { slotRow: slot, verifiedAt: now };
 }
@@ -132,6 +186,22 @@ export async function listAdminBookings() {
 }
 
 export async function cancelBookingAdmin(slotId) {
+  const { data: current, error: curErr } = await supabase
+    .from('slots')
+    .select('*')
+    .eq('id', slotId)
+    .eq('booked', true)
+    .single();
+
+  if (curErr || !current) {
+    if (curErr?.code === 'PGRST116') {
+      const err = new Error('Slot not found or not booked');
+      err.statusCode = 404;
+      throw err;
+    }
+    throw curErr;
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('slots')
@@ -148,9 +218,11 @@ export async function cancelBookingAdmin(slotId) {
       email: null,
       message: null,
       verification_token: null,
+      verification_token_hash: null,
       verification_sent_at: null,
       verified_at: null,
       confirmation_sent_at: null,
+      // cancellation_sent_at is written after mail send (best-effort)
       updated_at: now,
     })
     .eq('id', slotId)
@@ -167,5 +239,5 @@ export async function cancelBookingAdmin(slotId) {
     throw error;
   }
 
-  return data;
+  return { cleared: data, previous: current };
 }

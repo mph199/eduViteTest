@@ -276,7 +276,40 @@ app.delete('/api/admin/bookings/:slotId', requireAuth, async (req, res) => {
 
   // Clear booking data with Supabase
   try {
-    await cancelBookingAdmin(slotId);
+    const { previous } = await cancelBookingAdmin(slotId);
+
+    // Best-effort cancellation email (only if the booking email was verified)
+    if (previous && previous.email && previous.verified_at && isEmailConfigured()) {
+      try {
+        const teacherRes = await supabase.from('teachers').select('*').eq('id', previous.teacher_id).single();
+        const teacher = teacherRes.data || {};
+
+        const subject = `Stornierung: Termin am ${previous.date} (${previous.time})`;
+        const plain = `Guten Tag,
+
+Ihr Termin wurde storniert.
+
+Termin: ${previous.date} ${previous.time}
+Lehrkraft: ${teacher.name || '—'}
+Raum: ${teacher.room || '—'}
+
+Bei Bedarf können Sie über das Buchungssystem einen neuen Termin buchen.
+
+Viele Grüße`;
+        const html = `<p>Guten Tag,</p>
+<p>Ihr Termin wurde storniert.</p>
+<p><strong>Termin:</strong> ${previous.date} ${previous.time}<br/>
+<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
+<strong>Raum:</strong> ${teacher.room || '—'}</p>
+<p>Bei Bedarf können Sie über das Buchungssystem einen neuen Termin buchen.</p>
+<p>Viele Grüße</p>`;
+
+        await sendMail({ to: previous.email, subject, text: plain, html });
+        await supabase.from('slots').update({ cancellation_sent_at: new Date().toISOString() }).eq('id', slotId);
+      } catch (e) {
+        console.warn('Sending cancellation email (admin) failed:', e?.message || e);
+      }
+    }
 
     res.json({ 
       success: true, 
