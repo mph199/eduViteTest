@@ -24,6 +24,8 @@ export function TeacherDashboard() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
+  const [roomDraft, setRoomDraft] = useState<string>('');
+  const [savingRoom, setSavingRoom] = useState<boolean>(false);
   const [query, setQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'parent' | 'company'>('all');
   const { user, logout } = useAuth();
@@ -53,7 +55,11 @@ export function TeacherDashboard() {
           api.teacher.getInfo().catch(() => null),
         ]);
         setBookings(b);
-        if (t) setTeacher(t as TeacherInfo);
+        if (t) {
+          const ti = t as TeacherInfo;
+          setTeacher(ti);
+          setRoomDraft(ti.room || '');
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fehler beim Laden');
       } finally {
@@ -109,6 +115,35 @@ export function TeacherDashboard() {
       setNewPassword('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Ändern des Passworts');
+    }
+  };
+
+  const handleSaveRoom = async () => {
+    setError('');
+    setNotice('');
+    if (!teacher) {
+      setError('Lehrkraftdaten konnten nicht geladen werden.');
+      return;
+    }
+
+    const next = roomDraft.trim();
+    if (next.length > 60) {
+      setError('Raum darf maximal 60 Zeichen lang sein.');
+      return;
+    }
+
+    try {
+      setSavingRoom(true);
+      const updated = await api.teacher.updateRoom(next.length ? next : null);
+      if (updated) {
+        setTeacher(updated as TeacherInfo);
+        setRoomDraft((updated as TeacherInfo).room || '');
+      }
+      setNotice('Raum gespeichert.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Speichern des Raums');
+    } finally {
+      setSavingRoom(false);
     }
   };
 
@@ -184,6 +219,29 @@ export function TeacherDashboard() {
       </header>
 
       <main className="admin-main">
+        {teacher && (
+          <div className="stat-card" style={{ marginBottom: 16 }}>
+            <h3>Raum</h3>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="z.B. B204"
+                value={roomDraft}
+                onChange={(e) => setRoomDraft(e.target.value)}
+                style={{ padding: 8, flex: 1, minWidth: 220 }}
+                aria-label="Raum"
+                disabled={savingRoom}
+              />
+              <button
+                onClick={handleSaveRoom}
+                className="btn-primary"
+                disabled={savingRoom}
+              >
+                {savingRoom ? 'Speichern…' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        )}
         {showPasswordForm && (
           <div className="stat-card" style={{ marginBottom: 16 }}>
             <h3>Passwort ändern</h3>

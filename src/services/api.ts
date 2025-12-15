@@ -202,6 +202,15 @@ const api = {
       const res = await requestJSON('/teacher/info', { auth: true });
       return (res && (res as any).teacher) || null;
     },
+    async updateRoom(room: string | null) {
+      const payload = { room };
+      const res = await requestJSON('/teacher/room', {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+      return (res && (res as any).teacher) || null;
+    },
     async cancelBooking(bookingId: number) {
       return requestJSON(`/teacher/bookings/${bookingId}`, { method: 'DELETE', auth: true });
     },

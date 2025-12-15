@@ -120,6 +120,56 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
 });
 
 /**
+ * PUT /api/teacher/room
+ * Body: { room?: string | null }
+ * Allows logged-in teacher to update their own room.
+ */
+router.put('/room', requireAuth, requireTeacher, async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    if (!teacherId) {
+      return res.status(400).json({ error: 'Teacher ID not found in token' });
+    }
+
+    const rawRoom = req.body?.room;
+    const nextRoom = typeof rawRoom === 'string'
+      ? rawRoom.trim()
+      : rawRoom == null
+        ? null
+        : String(rawRoom).trim();
+
+    if (typeof nextRoom === 'string' && nextRoom.length > 60) {
+      return res.status(400).json({ error: 'Raum darf maximal 60 Zeichen lang sein' });
+    }
+
+    const roomValue = nextRoom && nextRoom.length ? nextRoom : null;
+
+    const { data, error } = await supabase
+      .from('teachers')
+      .update({ room: roomValue })
+      .eq('id', teacherId)
+      .select('id, name, subject, system, room')
+      .single();
+
+    if (error) throw error;
+
+    return res.json({
+      success: true,
+      teacher: {
+        id: data.id,
+        name: data.name,
+        subject: data.subject,
+        system: data.system,
+        room: data.room,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating teacher room:', error);
+    return res.status(500).json({ error: 'Failed to update teacher room' });
+  }
+});
+
+/**
  * DELETE /api/teacher/bookings/:slotId
  * Cancel a booking (teacher can cancel their own bookings)
  */
