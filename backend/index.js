@@ -1118,7 +1118,22 @@ app.post('/api/admin/events', requireAuth, requireAdmin, async (req, res) => {
     res.json({ success: true, event: data });
   } catch (error) {
     console.error('Error creating event:', error);
-    res.status(500).json({ error: 'Failed to create event' });
+    const message = (error && typeof error === 'object' && 'message' in error)
+      ? String(error.message)
+      : 'Failed to create event';
+
+    // Common case when RLS is enabled but backend uses a publishable/anon key.
+    if (message.toLowerCase().includes('row-level security')) {
+      return res.status(403).json({
+        error: 'RLS blocked insert on events',
+        message,
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Failed to create event',
+      message,
+    });
   }
 });
 

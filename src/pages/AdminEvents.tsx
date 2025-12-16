@@ -231,7 +231,7 @@ export function AdminEvents() {
             <button onClick={() => navigate('/admin')} className="back-button">
               Dashboard
             </button>
-            <button onClick={handleLogout} className="logout-button">
+            <button onClick={handleLogout} className="logout-button logout-button-danger">
               Abmelden
             </button>
           </div>

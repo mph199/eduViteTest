@@ -27,5 +27,8 @@ ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES events(id) ON DELETE CASCAD
 
 CREATE INDEX IF NOT EXISTS idx_slots_event_id ON slots(event_id);
 
--- Optional: Allow events to be viewable by everyone (like teachers/slots) if RLS is enabled.
--- Enable RLS and add policy in Supabase if needed.
+-- Enable RLS (recommended). Without policies, the table is not directly accessible.
+ALTER TABLE IF EXISTS public.events ENABLE ROW LEVEL SECURITY;
+
+-- Optional: If you later want events to be readable directly from Supabase clients,
+-- create a SELECT policy in Supabase. This project currently serves events via the backend.

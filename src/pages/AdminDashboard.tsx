@@ -204,7 +204,7 @@ export function AdminDashboard() {
             <button onClick={() => navigate('/')} className="back-button">
               ← Zur Buchungsseite
             </button>
-            <button onClick={handleLogout} className="logout-button">
+            <button onClick={handleLogout} className="logout-button logout-button-danger">
               Abmelden
             </button>
           </div>
