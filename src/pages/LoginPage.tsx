@@ -21,7 +21,14 @@ export function LoginPage() {
       const u = await login(username, password);
       // Direkt anhand der Rolle weiterleiten (kein Timeout nötig)
       if (u?.role === 'admin') {
-        navigate('/admin', { replace: true });
+        // Admin-Lehrkräfte: in die zuletzt genutzte Ansicht (oder admin als Default)
+        if (u.teacherId) {
+          const stored = localStorage.getItem('active_view');
+          const preferred = stored === 'teacher' ? 'teacher' : 'admin';
+          navigate(preferred === 'teacher' ? '/teacher' : '/admin', { replace: true });
+        } else {
+          navigate('/admin', { replace: true });
+        }
       } else if (u?.role === 'teacher') {
         navigate('/teacher', { replace: true });
       } else {

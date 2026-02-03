@@ -29,7 +29,7 @@ export const TeacherList = ({
           >
             <h3>{teacherDisplayName(teacher)}</h3>
             <p className="subject">{teacher.subject}</p>
-            {teacher.room && <p className="room">📍 {teacher.room}</p>}
+            {teacher.room && <p className="room">Raum: {teacher.room}</p>}
           </button>
         ))}
       </div>

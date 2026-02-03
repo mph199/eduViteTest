@@ -32,6 +32,15 @@ function splitName(rawName: string): { firstName: string; lastName: string } {
   return { firstName, lastName };
 }
 
+export function teacherPersonName(teacher: Pick<Teacher, 'name' | 'salutation'>): string {
+  const rawName = String(teacher?.name || '').trim();
+  if (!rawName) return '';
+  const { firstName, lastName } = splitName(rawName);
+  if (!lastName) return firstName;
+  if (!firstName) return lastName;
+  return `${firstName} ${lastName}`;
+}
+
 export function teacherDisplayName(teacher: Teacher): string {
   const rawName = String(teacher?.name || '').trim();
   if (!rawName) return '';

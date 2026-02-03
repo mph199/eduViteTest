@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
 import type { TimeSlot } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
+import { teacherPersonName } from '../utils/teacherDisplayName';
 import './AdminDashboard.css';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Dropdown } from '../components/Dropdown';
 
 type TeacherInfo = {
   id: number;
@@ -32,8 +34,14 @@ export function TeacherDashboard() {
   const [feedbackMessage, setFeedbackMessage] = useState<string>('');
   const [sendingFeedback, setSendingFeedback] = useState<boolean>(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState<boolean>(false);
-  const { user, logout } = useAuth();
+  const { user, logout, activeView, setActiveView } = useAuth();
   const navigate = useNavigate();
+
+  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+
+  useEffect(() => {
+    if (canSwitchView) setActiveView('teacher');
+  }, [canSwitchView, setActiveView]);
 
   const loadBookings = async () => {
     try {
@@ -234,31 +242,126 @@ export function TeacherDashboard() {
     <div className="admin-dashboard admin-dashboard--teacher">
       <header className="admin-header">
         <div className="admin-header-content admin-header-content--teacher">
-          <Breadcrumbs />
-          <div className="admin-header-meta">
-            <p className="admin-user">Angemeldet als: <strong>{user?.username}</strong></p>
-            {teacher && (
-              <p className="admin-user">
-                {teacher.name}
-                {teacher.room ? ` • Raum ${teacher.room}` : ''}
-              </p>
+          <div className="admin-header-left">
+            {canSwitchView && (
+              <Dropdown label="Ansicht" ariaLabel="Ansicht" variant="icon" align="left">
+                {({ close }) => (
+                  <>
+                    <div className="dropdown__sectionTitle">Ansicht</div>
+                    <button
+                      type="button"
+                      className={(activeView ?? 'teacher') === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => {
+                        setActiveView('teacher');
+                        navigate('/teacher', { replace: true });
+                        close();
+                      }}
+                    >
+                      <span>Lehrkraft</span>
+                      {(activeView ?? 'teacher') === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className={(activeView ?? 'teacher') === 'admin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => {
+                        setActiveView('admin');
+                        navigate('/admin', { replace: true });
+                        close();
+                      }}
+                    >
+                      <span>Admin</span>
+                      {(activeView ?? 'teacher') === 'admin' && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+
+                    <div className="dropdown__divider" role="separator" />
+                    <button
+                      type="button"
+                      className="dropdown__item dropdown__item--danger"
+                      onClick={() => {
+                        close();
+                        handleLogout();
+                      }}
+                    >
+                      <span>Abmelden</span>
+                    </button>
+                  </>
+                )}
+              </Dropdown>
             )}
+            <Breadcrumbs />
           </div>
-          <div className="header-actions">
-            <button onClick={() => navigate('/')} className="back-button">
-              ← Zur Buchungsseite
-            </button>
-            <button onClick={() => setShowPasswordForm(v => !v)} className="logout-button" style={{ backgroundColor: '#444' }}>
-              Passwort ändern
-            </button>
-            <button onClick={handleLogout} className="logout-button logout-button-danger">
-              Abmelden
-            </button>
+          <div className="admin-header-meta">
+            <p className="admin-user">
+              Willkommen in der Ansicht für Lehrkräfte,{' '}
+              <strong>{(teacher && teacherPersonName(teacher)) || user?.fullName || user?.username}</strong>!
+            </p>
           </div>
+          <div className="header-actions" />
         </div>
       </header>
 
       <main className="admin-main">
+        <div className="admin-actions" style={{ marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="admin-action-button"
+            onClick={() => {
+              setShowPasswordForm(true);
+              setShowRoomDialog(false);
+              setShowFeedbackForm(false);
+            }}
+          >
+            <div className="action-icon">🔐</div>
+            <div>
+              <div className="action-title">Passwort ändern</div>
+              <div className="action-desc">Zugang schützen</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="admin-action-button"
+            onClick={() => {
+              setShowRoomDialog(true);
+            }}
+          >
+            <div className="action-icon">📍</div>
+            <div>
+              <div className="action-title">Raum bearbeiten</div>
+              <div className="action-desc">Aktuell: {teacher?.room?.trim() ? teacher.room : 'nicht gesetzt'}</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="admin-action-button"
+            onClick={() => {
+              setShowFeedbackForm(true);
+              setShowPasswordForm(false);
+            }}
+          >
+            <div className="action-icon">📝</div>
+            <div>
+              <div className="action-title">Feedback senden</div>
+              <div className="action-desc">Anonym an die Admins</div>
+            </div>
+          </button>
+
+          {!canSwitchView && (
+            <button
+              type="button"
+              className="admin-action-button"
+              onClick={handleLogout}
+            >
+              <div className="action-icon">🚪</div>
+              <div>
+                <div className="action-title">Abmelden</div>
+                <div className="action-desc">Sitzung beenden</div>
+              </div>
+            </button>
+          )}
+        </div>
+
         {showRoomDialog && teacher && (
           <div
             role="dialog"
@@ -402,45 +505,7 @@ export function TeacherDashboard() {
             </div>
           </div>
 
-          {teacher && (
-            <div className="stat-card" style={{ flex: '0 1 330px', minWidth: 240, padding: '1.1rem 1.1rem' }}>
-              <h3>Raum</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 12, color: '#666' }}>Derzeitiger Raum</div>
-
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'nowrap' }}>
-                  <div
-                    style={{
-                      background: '#eee',
-                      padding: '7px 10px',
-                      borderRadius: 8,
-                      display: 'inline-block',
-                      color: '#333',
-                      minWidth: 120,
-                      textAlign: 'center',
-                      flex: '0 0 auto',
-                    }}
-                  >
-                    {teacher.room ? teacher.room : '—'}
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setError('');
-                      setNotice('');
-                      setRoomDraft(teacher.room || '');
-                      setShowRoomDialog(true);
-                    }}
-                    className="btn-primary"
-                    disabled={savingRoom}
-                    style={{ padding: '0.55rem 0.9rem', whiteSpace: 'nowrap', marginLeft: 'auto' }}
-                  >
-                    Raum ändern
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/** Raum-Änderung ist im Menü gebündelt ("Raum bearbeiten"). */}
 
           <div className="stat-card" style={{ flex: '0 0 220px', minWidth: 220, padding: '1.1rem 1.1rem' }}>
             <h3>Meine Termine</h3>
@@ -450,15 +515,15 @@ export function TeacherDashboard() {
         </div>
 
         <section className="admin-section">
-          <h2>Meine Buchungen</h2>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.75rem 0 0.5rem 0' }}>
+          <div className="admin-section-header">
+            <h2>Meine Buchungen</h2>
             <div className="tooltip-container">
               <button
                 onClick={exportICal}
                 className="btn-primary"
                 disabled={bookings.length === 0}
               >
-                📅 Alle Termine in den Kalender exportieren
+                📅 Alle Termine als Kalenderdatei exportieren
               </button>
               <span className="tooltip">
                 {bookings.length === 0
@@ -561,7 +626,7 @@ export function TeacherDashboard() {
               className="btn-secondary"
               onClick={() => setShowFeedbackForm((v) => !v)}
             >
-              💬 Feedback
+              Feedback
             </button>
           </div>
 

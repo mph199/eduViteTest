@@ -6,6 +6,7 @@ import type { TimeSlot as ApiBooking, FeedbackItem } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
 import './AdminDashboard.css';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { Dropdown } from '../components/Dropdown';
 
 type ActiveEvent = {
   id: number;
@@ -38,8 +39,14 @@ export function AdminDashboard() {
   const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
   const [activeEventStats, setActiveEventStats] = useState<EventStats | null>(null);
   const [activeEventStatsError, setActiveEventStatsError] = useState<string>('');
-  const { user, logout } = useAuth();
+  const { user, logout, activeView, setActiveView } = useAuth();
   const navigate = useNavigate();
+
+  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+
+  useEffect(() => {
+    if (canSwitchView) setActiveView('admin');
+  }, [canSwitchView, setActiveView]);
 
   const formatDateTime = (iso?: string | null) => {
     if (!iso) return null;
@@ -196,17 +203,79 @@ export function AdminDashboard() {
     <div className="admin-dashboard admin-dashboard--admin">
       <header className="admin-header">
         <div className="admin-header-content">
-          <Breadcrumbs />
-          <div>
-            <p className="admin-user">Angemeldet als: <strong>{user?.username}</strong></p>
+          <div className="admin-header-left">
+            <Dropdown label="Menü" ariaLabel="Menü" variant="icon" align="left">
+              {({ close }) => (
+                <>
+                  <div className="dropdown__sectionTitle">Aktionen</div>
+                  <button type="button" className="dropdown__item dropdown__item--active" onClick={() => { navigate('/admin'); close(); }}>
+                    <span>Übersicht öffnen</span>
+                    <span className="dropdown__hint">Aktiv</span>
+                  </button>
+                  <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/teachers'); close(); }}>
+                    <span>Lehrkräfte verwalten</span>
+                  </button>
+                  <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/events'); close(); }}>
+                    <span>Elternsprechtage verwalten</span>
+                  </button>
+                  <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/slots'); close(); }}>
+                    <span>Slots verwalten</span>
+                  </button>
+                  <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/users'); close(); }}>
+                    <span>Benutzer & Rechte verwalten</span>
+                  </button>
+
+                  {canSwitchView && (
+                    <>
+                      <div className="dropdown__divider" role="separator" />
+                      <div className="dropdown__sectionTitle">Ansicht</div>
+                      <button
+                        type="button"
+                        className={activeView === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                        onClick={() => {
+                          setActiveView('teacher');
+                          navigate('/teacher', { replace: true });
+                          close();
+                        }}
+                      >
+                        <span>Lehrkraft</span>
+                        {activeView === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                      </button>
+                      <button
+                        type="button"
+                        className={activeView !== 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                        onClick={() => {
+                          setActiveView('admin');
+                          navigate('/admin', { replace: true });
+                          close();
+                        }}
+                      >
+                        <span>Admin</span>
+                        {activeView !== 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                      </button>
+                    </>
+                  )}
+
+                  <div className="dropdown__divider" role="separator" />
+                  <button
+                    type="button"
+                    className="dropdown__item dropdown__item--danger"
+                    onClick={() => {
+                      close();
+                      handleLogout();
+                    }}
+                  >
+                    <span>Abmelden</span>
+                  </button>
+                </>
+              )}
+            </Dropdown>
+            <Breadcrumbs />
           </div>
-          <div className="header-actions">
-            <button onClick={() => navigate('/')} className="back-button">
-              ← Zur Buchungsseite
-            </button>
-            <button onClick={handleLogout} className="logout-button logout-button-danger">
-              Abmelden
-            </button>
+          <div className="admin-header-meta">
+            <p className="admin-user">
+              Willkommen in der Admin-Ansicht, <strong>{user?.fullName || user?.username}</strong>!
+            </p>
           </div>
         </div>
       </header>
@@ -245,50 +314,7 @@ export function AdminDashboard() {
           )}
         </div>
 
-        {user?.role === 'admin' && (
-          <div className="admin-actions">
-            <button 
-              onClick={() => navigate('/admin/teachers')} 
-              className="admin-action-button"
-            >
-              <span className="action-icon">👨‍🏫</span>
-              <div>
-                <div className="action-title">Lehrkräfte verwalten</div>
-                <div className="action-desc">Lehrkräfte anlegen, bearbeiten und löschen</div>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/events')} 
-              className="admin-action-button"
-            >
-              <span className="action-icon">🗓️</span>
-              <div>
-                <div className="action-title">Elternsprechtage</div>
-                <div className="action-desc">Events anlegen, veröffentlichen und Slots generieren</div>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/slots')} 
-              className="admin-action-button"
-            >
-              <span className="action-icon">📅</span>
-              <div>
-                <div className="action-title">Termine verwalten</div>
-                <div className="action-desc">Zeitslots anlegen, bearbeiten und löschen</div>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/users')} 
-              className="admin-action-button"
-            >
-              <span className="action-icon">👤</span>
-              <div>
-                <div className="action-title">Benutzer & Rechte</div>
-                <div className="action-desc">Adminrechte vergeben und entziehen</div>
-              </div>
-            </button>
-          </div>
-        )}
+        {/* Navigation ist im Menü gebündelt */}
 
         {user?.role === 'admin' && (
           <div className="teacher-form-container" style={{ marginBottom: '1.25rem' }}>
@@ -363,7 +389,7 @@ export function AdminDashboard() {
               className="btn-primary"
               disabled={bookings.length === 0}
             >
-              📅 Alle Termine in den Kalender exportieren
+              📅 Alle Termine als Kalenderdatei exportieren
             </button>
             <span className="tooltip">
               {bookings.length === 0
