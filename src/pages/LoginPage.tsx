@@ -9,7 +9,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -21,9 +21,16 @@ export function LoginPage() {
       const u = await login(username, password);
       // Direkt anhand der Rolle weiterleiten (kein Timeout nötig)
       if (u?.role === 'admin') {
-        navigate('/admin', { replace: true });
+        // Admin-Lehrkräfte: in die zuletzt genutzte Ansicht (oder admin als Default)
+        if (u.teacherId) {
+          const stored = localStorage.getItem('active_view');
+          const preferred = stored === 'teacher' ? 'teacher' : 'admin';
+          navigate(preferred === 'teacher' ? '/teacher/bookings' : '/admin', { replace: true });
+        } else {
+          navigate('/admin', { replace: true });
+        }
       } else if (u?.role === 'teacher') {
-        navigate('/teacher', { replace: true });
+        navigate('/teacher/bookings', { replace: true });
       } else {
         navigate('/', { replace: true });
       }

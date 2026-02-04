@@ -2,16 +2,17 @@ import { useState, useCallback, useEffect } from 'react';
 import type { TimeSlot, BookingFormData } from '../types';
 import api from '../services/api';
 
-export const useBooking = (selectedTeacherId: number | null) => {
+export const useBooking = (selectedTeacherId: number | null, eventId?: number | null) => {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [message, setMessage] = useState<string>('');
+  const [bookingNoticeOpen, setBookingNoticeOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
   // Lade Slots wenn Lehrkraft ausgewählt wird
   useEffect(() => {
-    if (!selectedTeacherId) {
+    if (!selectedTeacherId || eventId === null) {
       setSlots([]);
       return;
     }
@@ -20,7 +21,7 @@ export const useBooking = (selectedTeacherId: number | null) => {
       setLoading(true);
       setError('');
       try {
-        const fetchedSlots = await api.getSlots(selectedTeacherId);
+        const fetchedSlots = await api.getSlots(selectedTeacherId, eventId);
         setSlots(fetchedSlots);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fehler beim Laden der Termine');
@@ -31,16 +32,22 @@ export const useBooking = (selectedTeacherId: number | null) => {
     };
 
     loadSlots();
-  }, [selectedTeacherId]);
+  }, [selectedTeacherId, eventId]);
 
   const handleSelectSlot = useCallback((slotId: number) => {
     setSelectedSlotId(slotId);
     setMessage('');
+    setBookingNoticeOpen(false);
   }, []);
 
   const handleBooking = useCallback(async (formData: BookingFormData) => {
     if (!selectedSlotId) {
       setMessage('Bitte wählen Sie einen Zeitslot aus.');
+      return;
+    }
+
+    if (eventId === null) {
+      setMessage('Buchungen sind aktuell nicht freigeschaltet.');
       return;
     }
 
@@ -56,7 +63,8 @@ export const useBooking = (selectedTeacherId: number | null) => {
             slot.id === selectedSlotId ? response.updatedSlot! : slot
           )
         );
-        setMessage('Buchung erfolgreich!');
+        setMessage('Danke für Ihre Buchungsanfrage!');
+        setBookingNoticeOpen(true);
         setSelectedSlotId(null);
       } else {
         setMessage(response.message || 'Buchung fehlgeschlagen');
@@ -68,17 +76,19 @@ export const useBooking = (selectedTeacherId: number | null) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedSlotId]);
+  }, [selectedSlotId, eventId]);
 
   const resetSelection = useCallback(() => {
     setSelectedSlotId(null);
     setMessage('');
+    setBookingNoticeOpen(false);
   }, []);
 
   return {
     slots,
     selectedSlotId,
     message,
+    bookingNoticeOpen,
     loading,
     error,
     handleSelectSlot,

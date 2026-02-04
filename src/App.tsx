@@ -5,17 +5,28 @@ import { BookingApp } from './components/BookingApp'
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
-import { AdminSettings } from './pages/AdminSettings';
 import { AdminSlots } from './pages/AdminSlots';
-import { TeacherDashboard } from './pages/TeacherDashboard';
+import { AdminEvents } from './pages/AdminEvents';
+import { AdminUsers } from './pages/AdminUsers';
+import { AdminFeedback } from './pages/AdminFeedback';
+import { TeacherLayout } from './pages/teacher/TeacherLayout';
+import { TeacherBookings } from './pages/teacher/TeacherBookings';
+import { TeacherPassword } from './pages/teacher/TeacherPassword';
+import { TeacherRoom } from './pages/teacher/TeacherRoom';
+import { TeacherFeedback } from './pages/teacher/TeacherFeedback';
 import { Impressum } from './pages/Impressum';
 import { Datenschutz } from './pages/Datenschutz';
+import { VerifyEmail } from './pages/VerifyEmail';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { Footer } from './components/Footer';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import './App.css'
 
-// Setze auf true um Maintenance-Modus zu aktivieren
-const MAINTENANCE_MODE = false;
+// Maintenance-Modus via Env: VITE_MAINTENANCE_MODE=true|1|yes
+const MAINTENANCE_MODE = (() => {
+  const raw = (import.meta as any).env?.VITE_MAINTENANCE_MODE;
+  return typeof raw === 'string' && /^(1|true|yes)$/i.test(raw);
+})();
 
 function App() {
   return (
@@ -23,6 +34,7 @@ function App() {
       <AuthProvider>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <div style={{ flex: 1 }}>
+            <AppErrorBoundary>
             <Routes>
               {/* Login ist immer erreichbar, auch im Maintenance-Modus */}
               <Route path="/login" element={<LoginPage />} />
@@ -31,16 +43,23 @@ function App() {
               <Route path="/" element={MAINTENANCE_MODE ? <MaintenancePage /> : <BookingApp />} />
               <Route path="/impressum" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Impressum />} />
               <Route path="/datenschutz" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Datenschutz />} />
+              <Route path="/verify" element={<VerifyEmail />} />
               
               {/* Geschützter Teacher-Bereich */}
-              <Route 
+              <Route
                 path="/teacher"
                 element={
                   <ProtectedRoute>
-                    <TeacherDashboard />
+                    <TeacherLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<Navigate to="/teacher/bookings" replace />} />
+                <Route path="bookings" element={<TeacherBookings />} />
+                <Route path="password" element={<TeacherPassword />} />
+                <Route path="room" element={<TeacherRoom />} />
+                <Route path="feedback" element={<TeacherFeedback />} />
+              </Route>
 
               {/* Admin-Bereich ist immer erreichbar, auch im Maintenance-Modus */}
               <Route 
@@ -68,16 +87,33 @@ function App() {
                 } 
               />
               <Route 
-                path="/admin/settings" 
+                path="/admin/events" 
                 element={
                   <ProtectedRoute>
-                    <AdminSettings />
+                    <AdminEvents />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/feedback" 
+                element={
+                  <ProtectedRoute>
+                    <AdminFeedback />
                   </ProtectedRoute>
                 } 
               />
               {/* Catch-All: leite unbekannte Pfade auf die Startseite um */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </AppErrorBoundary>
           </div>
           <Footer />
         </div>

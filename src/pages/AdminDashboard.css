@@ -1,23 +1,88 @@
 .admin-dashboard {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  /* Background: white base with subtle green accents (variant of booking page) */
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(circle at 16% 14%, rgba(var(--brand-primary-rgb), 0.12) 0%, rgba(var(--brand-primary-rgb), 0) 58%),
+    radial-gradient(circle at 92% 26%, rgba(var(--brand-primary-dark-rgb), 0.10) 0%, rgba(var(--brand-primary-dark-rgb), 0) 56%),
+    linear-gradient(135deg, var(--brand-surface-1) 0%, #ffffff 60%, var(--brand-surface-2) 100%);
+  background-attachment: fixed;
+}
+
+/* Admin dashboard gets a slightly stronger line pattern */
+.admin-dashboard--admin {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(var(--brand-primary-rgb), 0.06) 0px,
+      rgba(var(--brand-primary-rgb), 0.06) 1px,
+      rgba(var(--brand-primary-rgb), 0) 1px,
+      rgba(var(--brand-primary-rgb), 0) 28px
+    ),
+    radial-gradient(circle at 16% 14%, rgba(var(--brand-primary-rgb), 0.12) 0%, rgba(var(--brand-primary-rgb), 0) 58%),
+    radial-gradient(circle at 92% 26%, rgba(var(--brand-primary-dark-rgb), 0.10) 0%, rgba(var(--brand-primary-dark-rgb), 0) 56%),
+    linear-gradient(135deg, var(--brand-surface-1) 0%, #ffffff 60%, var(--brand-surface-2) 100%);
+}
+
+/* Teacher dashboard gets a softer pattern and slightly different blob placement */
+.admin-dashboard--teacher {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(var(--brand-primary-rgb), 0.045) 0px,
+      rgba(var(--brand-primary-rgb), 0.045) 1px,
+      rgba(var(--brand-primary-rgb), 0) 1px,
+      rgba(var(--brand-primary-rgb), 0) 26px
+    ),
+    radial-gradient(circle at 18% 18%, rgba(var(--brand-primary-rgb), 0.10) 0%, rgba(var(--brand-primary-rgb), 0) 60%),
+    radial-gradient(circle at 86% 78%, rgba(var(--brand-primary-dark-rgb), 0.10) 0%, rgba(var(--brand-primary-dark-rgb), 0) 56%),
+    linear-gradient(135deg, var(--brand-surface-1) 0%, #ffffff 62%, var(--brand-surface-2) 100%);
 }
 
 .admin-header {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  padding: 1.5rem 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: transparent;
+  color: var(--brand-ink);
+  padding: 1.25rem 0 0;
 }
 
 .admin-header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  max-width: 1280px;
+  margin: 0 auto 1rem;
+  padding: 0.9rem 1rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 2rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+}
+
+/* Teacher dashboard header: keep actions on one row on wider screens */
+.admin-header-content--teacher {
+  flex-wrap: nowrap;
+}
+
+.admin-header-meta {
+  flex: 1 1 auto;
+  min-width: 260px;
+}
+
+.admin-header-content--teacher .header-actions {
+  margin-left: auto;
+}
+
+@media (max-width: 960px) {
+  .admin-header-content--teacher {
+    flex-wrap: wrap;
+  }
 }
 
 .admin-header h1 {
@@ -50,13 +115,83 @@
 
 .logout-button:hover {
   background: white;
-  color: #10b981;
+  color: var(--brand-primary);
+}
+
+/* Red variant (used for teacher logout) */
+.logout-button.logout-button-danger {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.logout-button.logout-button-danger:hover {
+  background: #c82333;
+  border-color: #c82333;
+  color: white;
+}
+
+/* Ensure edit buttons inside action rows retain green gradient */
+.action-buttons .edit-button {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+  color: #fff;
 }
 
 .admin-main {
-  max-width: 1400px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.25rem;
+}
+
+/* Breadcrumb positioning & theming in header */
+.admin-header .breadcrumbs {
+  margin: 0;
+}
+
+/* Breadcrumb spacing in content areas */
+.admin-main .breadcrumbs {
+  margin-bottom: 1rem;
+}
+
+/* Breadcrumbs base styles for admin pages */
+.breadcrumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.breadcrumbs .crumb-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.breadcrumbs .crumb {
+  color: #374151;
+  text-decoration: none;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+.breadcrumbs .crumb:hover {
+  background: #f3f4f6;
+}
+.breadcrumbs .crumb.home { font-weight: 600; }
+.breadcrumbs .sep {
+  color: #9ca3af;
+  margin: 0 0.25rem;
+}
+.breadcrumbs .current {
+  color: #111827;
+  font-weight: 600;
+  background: #f3f4f6;
 }
 
 .admin-actions {
@@ -82,9 +217,9 @@
 }
 
 .admin-action-button:hover {
-  border-color: #10b981;
+  border-color: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--brand-primary-rgb), 0.15);
 }
 
 .action-icon {
@@ -94,7 +229,7 @@
 .action-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #10b981;
+  color: var(--brand-primary);
   margin-bottom: 0.25rem;
 }
 
@@ -120,8 +255,26 @@
 .stat-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #10b981;
+  color: var(--brand-primary);
   margin-bottom: 0.5rem;
+}
+
+.admin-feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-feedback-title {
+  margin: 0;
+}
+
+.admin-feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .stat-label {
@@ -136,14 +289,14 @@
   justify-content: center;
   min-height: 100vh;
   gap: 1rem;
-  color: #2d5016;
+  color: var(--brand-ink);
 }
 
 .spinner {
   width: 48px;
   height: 48px;
   border: 4px solid #e0e0e0;
-  border-top-color: #10b981;
+  border-top-color: var(--brand-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -156,6 +309,15 @@
   background: #fee;
   border: 1px solid #fcc;
   color: #c33;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.admin-success {
+  background: #e7f0ff;
+  border: 1px solid #c6dbff;
+  color: #1d4ed8;
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 2rem;
@@ -177,26 +339,28 @@
 
 .back-to-booking {
   display: inline-block;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.2s;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 2px 6px rgba(var(--brand-primary-rgb), 0.2);
 }
 
 .back-to-booking:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--brand-primary-rgb), 0.3);
 }
 
 .bookings-table-container {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bookings-table {
@@ -221,6 +385,11 @@
   padding: 1rem;
   border-bottom: 1px solid #f0f0f0;
   color: #555;
+  vertical-align: middle;
+}
+
+.bookings-table th {
+  vertical-align: middle;
 }
 
 .bookings-table tbody tr:hover {
@@ -233,7 +402,7 @@
 
 .teacher-name {
   font-weight: 600;
-  color: #10b981;
+  color: var(--brand-primary);
 }
 
 .cancel-button {
@@ -259,21 +428,22 @@
 }
 
 .back-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
-  padding: 0.65rem 1.5rem;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  background: rgba(243, 244, 246, 0.9);
+  color: #374151;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
   white-space: nowrap;
 }
 
 .back-button:hover {
-  background: white;
-  color: #10b981;
+  background: rgba(229, 231, 235, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
 }
 
 .admin-section-header {
@@ -285,12 +455,38 @@
 
 .admin-section-header h2 {
   font-size: 1.8rem;
-  color: #10b981;
+  color: var(--brand-primary);
   margin: 0;
 }
 
+/* Tooltip styling for action buttons */
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+.tooltip-container .tooltip {
+  position: absolute;
+  top: -36px;
+  right: 0;
+  background: rgba(31, 41, 55, 0.95);
+  color: #fff;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateY(4px);
+}
+.tooltip-container:hover .tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .btn-primary {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -299,12 +495,23 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 2px 6px rgba(var(--brand-primary-rgb), 0.2);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--brand-primary-rgb), 0.3);
+}
+
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.35) 0%, var(--brand-secondary) 100%);
+  color: #064e3b;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  border: none;
+  opacity: 1;
 }
 
 .btn-secondary {
@@ -333,7 +540,7 @@
 
 .teacher-form-container h3 {
   margin: 0 0 1.5rem 0;
-  color: #10b981;
+  color: var(--brand-primary);
   font-size: 1.3rem;
 }
 
@@ -341,6 +548,49 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+/* Admin teacher search (match booking combobox feel) */
+.admin-teacher-search {
+  margin-bottom: 1rem;
+}
+
+.admin-teacher-search-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+
+.admin-teacher-search-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-teacher-search-input {
+  flex: 1;
+  padding: 0.55rem 0.6rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-teacher-search-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.25);
+}
+
+/* Simple admin grid helpers */
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .form-group {
@@ -365,7 +615,7 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #10b981;
+  border-color: var(--brand-primary);
 }
 
 .form-group select {
@@ -380,7 +630,7 @@
 
 .form-group select:focus {
   outline: none;
-  border-color: #10b981;
+  border-color: var(--brand-primary);
 }
 
 .form-actions {
@@ -407,7 +657,9 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .action-buttons {
@@ -415,22 +667,220 @@
   gap: 0.5rem;
 }
 
-.edit-button {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+/* Compact action buttons (e.g., AdminEvents table) */
+.action-buttons--compact {
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
-.edit-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+.btn-secondary--sm {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+.admin-table-select {
+  padding: 0.35rem 0.55rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+}
+
+.admin-table-select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.admin-table-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #f3f4f6;
+}
+
+/* AdminUsers page polish */
+.admin-users-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-users-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-users-stats {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.admin-users-stat {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  min-width: 104px;
+}
+
+.admin-users-stat__label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+
+.admin-users-stat__value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #111827;
+  margin-top: 2px;
+}
+
+.admin-users-controls {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 0.9rem;
+  align-items: end;
+  flex: 1;
+  min-width: 320px;
+}
+
+.admin-users-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.admin-users-username {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.admin-users-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.16rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--brand-ink);
+  background: rgba(var(--brand-primary-rgb), 0.14);
+  border: 1px solid rgba(var(--brand-primary-rgb), 0.25);
+}
+
+.admin-role-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.admin-role-pill--admin {
+  color: #7c2d12;
+  background: rgba(251, 146, 60, 0.18);
+  border-color: rgba(251, 146, 60, 0.35);
+}
+
+.admin-role-pill--teacher {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.admin-users-action {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-users-saving {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.admin-users-row--self td {
+  background: rgba(var(--brand-primary-rgb), 0.05);
+}
+
+@media (max-width: 980px) {
+  .admin-users-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-users-controls {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+}
+
+/* Ensure inline action buttons align nicely inside table cells */
+.edit-button,
+.cancel-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Match confirm (btn-primary) to cancel button sizing within table actions */
+.action-buttons .btn-primary {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+}
+
+/* Make Bearbeiten same size as Bestätigen within action buttons */
+.action-buttons .edit-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(var(--brand-primary-rgb), 0.2);
+  transition: all 0.25s ease;
+}
+
+.action-buttons .edit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(var(--brand-primary-rgb), 0.3);
+}
+
+.logout-button {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(var(--brand-primary-rgb), 0.2);
+}
+.logout-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(var(--brand-primary-rgb), 0.35);
 }
 
 @media (max-width: 1200px) {
@@ -450,6 +900,19 @@
     gap: 1rem;
   }
 
+  .header-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .header-actions .back-button,
+  .header-actions .logout-button {
+    flex: 1;
+    min-width: 10.5rem;
+  }
+
   .admin-header h1 {
     font-size: 1.5rem;
   }
@@ -462,8 +925,54 @@
     padding: 1rem;
   }
 
+  .admin-actions {
+    flex-direction: column;
+  }
+
+  .admin-action-button {
+    max-width: none;
+    width: 100%;
+  }
+
   .stat-card {
     flex: 1;
     min-width: 0;
+  }
+}
+
+/* Additional mobile refinements */
+@media (max-width: 768px) {
+  .breadcrumbs { flex-wrap: wrap; }
+  .action-buttons { flex-wrap: wrap; }
+  .bookings-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .bookings-table { min-width: 720px; }
+  .bookings-table th, .bookings-table td { padding: 0.6rem 0.75rem; font-size: 0.92rem; }
+  .action-buttons .btn-primary, .action-buttons .edit-button, .action-buttons .cancel-button { padding: 0.5rem 0.75rem; font-size: 0.9rem; }
+
+  .admin-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-header h1 { font-size: 1.35rem; }
+  .breadcrumbs { font-size: 0.85rem; padding: 0.3rem 0.5rem; }
+  .back-button, .logout-button, .btn-primary, .btn-secondary { font-size: 0.9rem; padding: 0.55rem 0.9rem; }
+
+  .admin-header-content {
+    padding: 0.75rem 0.75rem 0.85rem;
+  }
+
+  .teacher-form-container {
+    padding: 1.25rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions > button {
+    width: 100%;
   }
 }

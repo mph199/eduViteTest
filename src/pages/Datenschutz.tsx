@@ -72,8 +72,8 @@ export const Datenschutz = () => {
             Bei der Buchung eines Elternsprechtags erheben wir folgende Daten:
           </p>
           <ul>
-            <li>Name des Erziehungsberechtigten</li>
-            <li>Name des Schülers/der Schülerin</li>
+            <li>Name der erziehungsberechtigten Person</li>
+            <li>Name der Schüler*in</li>
             <li>Klasse</li>
             <li>Gewählter Termin und Lehrkraft</li>
           </ul>

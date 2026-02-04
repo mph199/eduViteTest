@@ -4,7 +4,10 @@ import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
 import type { TimeSlot as ApiSlot, Teacher as ApiTeacher } from '../types';
 import { exportTeacherSlotsToICal } from '../utils/icalExport';
+import { teacherDisplayName, teacherGroupKey } from '../utils/teacherDisplayName';
 import './AdminDashboard.css';
+import { Sidebar } from '../components/Sidebar';
+import { Header } from '../components/Header';
 
 export function AdminSlots() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
@@ -15,8 +18,15 @@ export function AdminSlots() {
   const [showForm, setShowForm] = useState(false);
   const [editingSlot, setEditingSlot] = useState<ApiSlot | null>(null);
   const [formData, setFormData] = useState({ time: '', date: '' });
-  const { user, logout } = useAuth();
+  const [bulkCreating, setBulkCreating] = useState(false);
+  const { user, logout, activeView, setActiveView } = useAuth();
   const navigate = useNavigate();
+
+  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+
+  useEffect(() => {
+    if (canSwitchView) setActiveView('admin');
+  }, [canSwitchView, setActiveView]);
 
   const loadTeachers = useCallback(async () => {
     try {
@@ -123,36 +133,128 @@ export function AdminSlots() {
 
   return (
     <div className="admin-dashboard">
-      <header className="admin-header">
-        <div className="admin-header-content">
-          <div>
-            <h1>BKSB Elternsprechtag - Slot-Verwaltung</h1>
-            <p className="admin-user">Angemeldet als: <strong>{user?.username}</strong></p>
-          </div>
-          <div className="header-actions">
-            <button onClick={() => navigate('/')} className="back-button">
-              ← Zur Buchungsseite
-            </button>
-            <button onClick={() => navigate('/admin')} className="back-button">
-              Dashboard
-            </button>
-            <button onClick={handleLogout} className="logout-button">
-              Abmelden
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        sectionLabel="Admin · Slots verwalten"
+        userLabel={user?.fullName || user?.username}
+        menu={
+          <Sidebar
+            label="Menü"
+            ariaLabel="Menü"
+            variant="icon"
+            side="left"
+            noWrapper
+            buttonClassName="expHeader__menuLines"
+          >
+            {({ close }) => (
+              <>
+                <div className="dropdown__sectionTitle">Aktionen</div>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin'); close(); }}>
+                  <span>Übersicht öffnen</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/teachers'); close(); }}>
+                  <span>Lehrkräfte verwalten</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/events'); close(); }}>
+                  <span>Elternsprechtage verwalten</span>
+                </button>
+                <button type="button" className="dropdown__item dropdown__item--active" onClick={() => { navigate('/admin/slots'); close(); }}>
+                  <span>Slots verwalten</span>
+                  <span className="dropdown__hint">Aktiv</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/users'); close(); }}>
+                  <span>Benutzer & Rechte verwalten</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/feedback'); close(); }}>
+                  <span>Feedback einsehen</span>
+                </button>
+
+                {canSwitchView && (
+                  <>
+                    <div className="dropdown__divider" role="separator" />
+                    <div className="dropdown__sectionTitle">Ansicht</div>
+                    <button
+                      type="button"
+                      className={activeView === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => {
+                        setActiveView('teacher');
+                        navigate('/teacher/bookings', { replace: true });
+                        close();
+                      }}
+                    >
+                      <span>Lehrkraft</span>
+                      {activeView === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className={activeView !== 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => {
+                        setActiveView('admin');
+                        navigate('/admin', { replace: true });
+                        close();
+                      }}
+                    >
+                      <span>Admin</span>
+                      {activeView !== 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+                  </>
+                )}
+
+                <div className="dropdown__divider" role="separator" />
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/'); close(); }}>
+                  <span>Zur Buchungsseite</span>
+                </button>
+                <button
+                  type="button"
+                  className="dropdown__item dropdown__item--danger"
+                  onClick={() => {
+                    close();
+                    handleLogout();
+                  }}
+                >
+                  <span>Abmelden</span>
+                </button>
+              </>
+            )}
+          </Sidebar>
+        }
+      />
 
       <main className="admin-main">
         <div className="admin-section-header">
           <h2>Zeitslots verwalten</h2>
           {selectedTeacherId && !showForm && (
-            <button 
-              onClick={() => setShowForm(true)} 
-              className="btn-primary"
-            >
-              + Neuer Slot
-            </button>
+            <div className="action-buttons action-buttons--compact">
+              <button 
+                onClick={() => setShowForm(true)} 
+                className="btn-primary"
+              >
+                + Neuer Slot
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedTeacherId) return;
+                  const name = selectedTeacher ? teacherDisplayName(selectedTeacher) : 'diese Lehrkraft';
+                  if (!confirm(`Alle Slots für ${name} anlegen?`)) return;
+                  try {
+                    setBulkCreating(true);
+                    const res = await api.admin.generateTeacherSlots(selectedTeacherId);
+                    const created = (res as any)?.created ?? 0;
+                    const skipped = (res as any)?.skipped ?? 0;
+                    const eventDate = (res as any)?.eventDate;
+                    await loadSlots(selectedTeacherId);
+                    alert(`Slots angelegt${eventDate ? ` (${eventDate})` : ''}: ${created}\nBereits vorhanden: ${skipped}`);
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : 'Fehler beim Anlegen der Slots');
+                  } finally {
+                    setBulkCreating(false);
+                  }
+                }}
+                className="btn-secondary"
+                disabled={bulkCreating}
+              >
+                {bulkCreating ? 'Anlegen…' : 'Alle Slots anlegen'}
+              </button>
+            </div>
           )}
         </div>
 
@@ -177,11 +279,28 @@ export function AdminSlots() {
               maxWidth: '400px'
             }}
           >
-            {teachers.map((teacher) => (
-              <option key={teacher.id} value={teacher.id}>
-                {teacher.name} - {teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual'}
-              </option>
-            ))}
+              {(() => {
+                const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
+                const sorted = [...teachers].sort((l, r) => collator.compare(teacherDisplayName(l), teacherDisplayName(r)));
+                const groups = new Map<string, typeof sorted>();
+                for (const t of sorted) {
+                  const key = teacherGroupKey(t);
+                  const list = groups.get(key);
+                  if (list) list.push(t);
+                  else groups.set(key, [t]);
+                }
+
+                const entries = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], 'de'));
+                return entries.map(([key, list]) => (
+                  <optgroup key={`tg-${key}`} label={key}>
+                    {list.map((teacher) => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacherDisplayName(teacher)} - {teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual'}
+                      </option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
           </select>
         </div>
 
@@ -233,13 +352,13 @@ export function AdminSlots() {
               <div className="settings-info" style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h3>Slots für {selectedTeacher.name}</h3>
+                    <h3>Slots für {teacherDisplayName(selectedTeacher)}</h3>
                     <p>System: {selectedTeacher.system === 'vollzeit' ? 'Vollzeit (17:00 - 19:00)' : 'Dual (16:00 - 18:00)'}</p>
                     <p>Anzahl Slots: {slots.length} ({slots.filter(s => s.booked).length} gebucht)</p>
                   </div>
                   {slots.filter(s => s.booked).length > 0 && (
                     <button
-                      onClick={() => exportTeacherSlotsToICal(slots, selectedTeacher.name)}
+                      onClick={() => exportTeacherSlotsToICal(slots, teacherDisplayName(selectedTeacher), selectedTeacher.room)}
                       className="btn-primary"
                     >
                       📅 Termine exportieren
@@ -263,6 +382,7 @@ export function AdminSlots() {
                       <th>Datum</th>
                       <th>Status</th>
                       <th>Gebucht von</th>
+                      <th>Vertreter*in</th>
                       <th>Aktionen</th>
                     </tr>
                   </thead>
@@ -280,12 +400,24 @@ export function AdminSlots() {
                         <td>
                           {slot.booked ? (
                             <div>
-                              <div>{slot.parentName}</div>
-                              <small>{slot.studentName} ({slot.className})</small>
+                              {slot.visitorType === 'parent' ? (
+                                <>
+                                  <div>{slot.parentName}</div>
+                                  <small>{slot.studentName} ({slot.className})</small>
+                                </>
+                              ) : (
+                                <>
+                                  <div>{slot.companyName}</div>
+                                  <small>{slot.traineeName} ({slot.className})</small>
+                                </>
+                              )}
                             </div>
                           ) : (
                             '-'
                           )}
+                        </td>
+                        <td>
+                          {slot.booked && slot.visitorType === 'company' ? (slot.representativeName || '-') : '-'}
                         </td>
                         <td>
                           <div className="action-buttons">

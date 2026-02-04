@@ -5,8 +5,38 @@ import authRoutes from './routes/auth.js';
 import teacherRoutes from './routes/teacher.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
 import { supabase } from './config/supabase.js';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from './config/email.js';
+import { listTeachers } from './services/teachersService.js';
+import {
+  listSlotsByTeacherId,
+  reserveBooking,
+  verifyBookingToken,
+  listAdminBookings,
+  cancelBookingAdmin,
+} from './services/slotsService.js';
+import { mapSlotRow } from './utils/mappers.js';
 
 dotenv.config();
+
+function normalizeAndValidateTeacherEmail(rawEmail) {
+  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+  const isValid = /^[a-z0-9._%+-]+@bksb\.nrw$/i.test(email);
+  if (!email || !isValid) {
+    return { ok: false, email: null };
+  }
+  return { ok: true, email };
+}
+
+function normalizeAndValidateTeacherSalutation(raw) {
+  const salutation = typeof raw === 'string' ? raw.trim() : '';
+  const allowed = new Set(['Herr', 'Frau', 'Divers']);
+  if (!salutation || !allowed.has(salutation)) {
+    return { ok: false, salutation: null };
+  }
+  return { ok: true, salutation };
+}
 
 // Express App
 const app = express();
@@ -53,26 +83,77 @@ app.use('/api/auth', authRoutes);
 app.use('/api/teacher', teacherRoutes);
 
 // Public Routes
+// Dev helper: fetch last email preview URL (Ethereal)
+app.get('/api/dev/email/last', (req, res) => {
+  const transport = (process.env.MAIL_TRANSPORT || '').trim().toLowerCase();
+  const allow = transport === 'ethereal' && process.env.NODE_ENV !== 'production';
+  if (!allow) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  return res.json({ email: getLastEmailDebugInfo() });
+});
+
 // GET /api/teachers
 app.get('/api/teachers', async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('teachers')
-      .select('*')
-      .order('id');
-    
-    if (error) throw error;
-    res.json({ teachers: data });
+    const teachers = await listTeachers();
+    res.json({ teachers });
   } catch (error) {
     console.error('Error fetching teachers:', error);
     res.status(500).json({ error: 'Failed to fetch teachers' });
   }
 });
 
+// GET /api/admin/feedback - List anonymous teacher feedback (admin only)
+app.get('/api/admin/feedback', requireAdmin, async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('feedback')
+      .select('id, message, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+
+    return res.json({ feedback: data || [] });
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    return res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// DELETE /api/admin/feedback/:id - Delete a single feedback entry (admin only)
+app.delete('/api/admin/feedback/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid feedback id' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('feedback')
+      .delete()
+      .eq('id', id)
+      .select('id');
+
+    if (error) throw error;
+
+    const deleted = Array.isArray(data) ? data.length : 0;
+    if (!deleted) {
+      return res.status(404).json({ error: 'Feedback not found' });
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    return res.status(500).json({ error: 'Failed to delete feedback' });
+  }
+});
+
 // GET /api/slots?teacherId=1
 app.get('/api/slots', async (req, res) => {
   try {
-    const { teacherId } = req.query;
+    const { teacherId, eventId } = req.query;
     if (!teacherId) {
       return res.status(400).json({ error: 'teacherId query param required' });
     }
@@ -81,32 +162,37 @@ app.get('/api/slots', async (req, res) => {
       return res.status(400).json({ error: 'teacherId must be a number' });
     }
 
-    const { data, error } = await supabase
-      .from('slots')
-      .select('*')
-      .eq('teacher_id', teacherIdNum)
-      .order('time');
-    
-    if (error) throw error;
-    
-    // Map snake_case to camelCase for frontend compatibility
-    const slots = data.map(slot => ({
-      id: slot.id,
-      teacherId: slot.teacher_id,
-      time: slot.time,
-      date: slot.date,
-      booked: slot.booked,
-      visitorType: slot.visitor_type,
-      parentName: slot.parent_name,
-      companyName: slot.company_name,
-      studentName: slot.student_name,
-      traineeName: slot.trainee_name,
-      className: slot.class_name,
-      email: slot.email,
-      message: slot.message
-    }));
-    
-    res.json({ slots });
+    // Resolve event scope: explicit eventId OR active published event
+    let resolvedEventId = null;
+    if (eventId !== undefined) {
+      const parsed = parseInt(String(eventId), 10);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ error: 'eventId must be a number' });
+      }
+      resolvedEventId = parsed;
+    } else {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('events')
+        .select('id')
+        .eq('status', 'published')
+        .or(`booking_opens_at.is.null,booking_opens_at.lte.${now}`)
+        .or(`booking_closes_at.is.null,booking_closes_at.gte.${now}`)
+        .order('starts_at', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      resolvedEventId = data && data.length ? data[0].id : null;
+    }
+
+    const slots = await listSlotsByTeacherId(teacherIdNum);
+
+    // Strict scoping: when an event is resolved (explicit or active), only return slots for that event.
+    // This prevents legacy slots (event_id NULL) from showing up mixed with the active event.
+    const scopedSlots = resolvedEventId
+      ? slots.filter((s) => s.eventId === resolvedEventId)
+      : slots;
+
+    res.json({ slots: scopedSlots });
   } catch (error) {
     console.error('Error fetching slots:', error);
     res.status(500).json({ error: 'Failed to fetch slots' });
@@ -117,115 +203,129 @@ app.get('/api/slots', async (req, res) => {
 // Body: { slotId, visitorType, parentName, companyName, studentName, traineeName, className, email, message }
 app.post('/api/bookings', async (req, res) => {
   try {
-    const { slotId, visitorType, parentName, companyName, studentName, traineeName, className, email, message } = req.body || {};
+    const payload = req.body || {};
 
-    if (!slotId || !visitorType || !className || !email) {
-      return res.status(400).json({ error: 'slotId, visitorType, className, email required' });
+    // Require active published event before accepting booking requests
+    const nowIso = new Date().toISOString();
+    const { data: activeEvents, error: activeErr } = await supabase
+      .from('events')
+      .select('id')
+      .eq('status', 'published')
+      .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
+      .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
+      .order('starts_at', { ascending: false })
+      .limit(1);
+    if (activeErr) throw activeErr;
+    const activeEventId = activeEvents && activeEvents.length ? activeEvents[0].id : null;
+    if (!activeEventId) {
+      return res.status(409).json({ error: 'Buchungen sind aktuell nicht freigegeben' });
     }
 
-    // Validate based on visitor type
-    if (visitorType === 'parent') {
-      if (!parentName || !studentName) {
-        return res.status(400).json({ error: 'parentName and studentName required for parent type' });
+    const { slotRow, verificationToken } = await reserveBooking(payload);
+
+    // If the slot is linked to an event, enforce it matches active event
+    if (slotRow?.event_id && slotRow.event_id !== activeEventId) {
+      return res.status(409).json({ error: 'Dieser Termin gehört nicht zum aktuell freigegebenen Elternsprechtag' });
+    }
+
+    // Send verification email (best-effort)
+    if (slotRow && isEmailConfigured()) {
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
+      const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
+      const teacherRes = await supabase.from('teachers').select('*').eq('id', slotRow.teacher_id).single();
+      const teacher = teacherRes.data || {};
+      const subject = `BKSB Elternsprechtag – E-Mail-Adresse bestätigen (Terminreservierung)`;
+      const plain = `Guten Tag,
+
+    bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung im BKSB-Elternsprechtag-System abzuschließen.
+
+    Termin: ${slotRow.date} ${slotRow.time}
+    Lehrkraft: ${teacher.name || '—'}
+    Raum: ${teacher.room || '—'}
+
+    Bestätigungslink: ${verifyUrl}
+
+    Hinweis: Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.
+
+    Mit freundlichen Grüßen
+
+    Ihr BKSB-Team`;
+      const html = `<p>Guten Tag,</p>
+    <p>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung im BKSB-Elternsprechtag-System abzuschließen.</p>
+    <p><strong>Termin:</strong> ${slotRow.date} ${slotRow.time}<br/>
+    <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
+    <strong>Raum:</strong> ${teacher.room || '—'}</p>
+    <p><a href="${verifyUrl}">E-Mail-Adresse jetzt bestätigen</a></p>
+    <p><strong>Hinweis:</strong> Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.</p>
+    <p>Mit freundlichen Grüßen</p>
+    <p>Ihr BKSB-Team</p>`;
+      try {
+        await sendMail({ to: payload.email, subject, text: plain, html });
+      } catch (e) {
+        console.warn('Sending verification email failed:', e?.message || e);
       }
-    } else if (visitorType === 'company') {
-      if (!companyName || !traineeName) {
-        return res.status(400).json({ error: 'companyName and traineeName required for company type' });
-      }
-    } else {
-      return res.status(400).json({ error: 'visitorType must be parent or company' });
     }
 
-    const updateData = {
-      booked: true,
-      visitor_type: visitorType,
-      class_name: className,
-      email: email,
-      message: message || null
-    };
-
-    if (visitorType === 'parent') {
-      updateData.parent_name = parentName;
-      updateData.student_name = studentName;
-    } else {
-      updateData.company_name = companyName;
-      updateData.trainee_name = traineeName;
-    }
-
-    const { data, error } = await supabase
-      .from('slots')
-      .update(updateData)
-      .eq('id', slotId)
-      .eq('booked', false) // Prevent double-booking
-      .select()
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(409).json({ error: 'Slot already booked or not found' });
-      }
-      throw error;
-    }
-    
-    // Map to camelCase for response
-    const updatedSlot = {
-      id: data.id,
-      teacherId: data.teacher_id,
-      time: data.time,
-      date: data.date,
-      booked: data.booked,
-      visitorType: data.visitor_type,
-      parentName: data.parent_name,
-      companyName: data.company_name,
-      studentName: data.student_name,
-      traineeName: data.trainee_name,
-      className: data.class_name,
-      email: data.email,
-      message: data.message
-    };
-    
-    res.json({ success: true, updatedSlot });
+    res.json({ success: true, updatedSlot: mapSlotRow(slotRow) });
   } catch (error) {
     console.error('Error creating booking:', error);
-    res.status(500).json({ error: 'Failed to create booking' });
+    const status = error?.statusCode || 500;
+    res.status(status).json({ error: error?.message || 'Failed to create booking' });
+  }
+});
+
+// GET /api/bookings/verify/:token - verify email and possibly send confirmation if already accepted
+app.get('/api/bookings/verify/:token', async (req, res) => {
+  const { token } = req.params;
+  if (!token) return res.status(400).json({ error: 'Missing token' });
+
+  try {
+    const { slotRow: slot, verifiedAt: now } = await verifyBookingToken(token);
+
+    // If already confirmed and confirmation mail not sent, send now
+    if (slot.status === 'confirmed' && !slot.confirmation_sent_at && isEmailConfigured()) {
+      try {
+        const teacherRes = await supabase.from('teachers').select('*').eq('id', slot.teacher_id).single();
+        const teacher = teacherRes.data || {};
+        const subject = `BKSB Elternsprechtag – Termin bestätigt am ${slot.date} (${slot.time})`;
+        const plain = `Guten Tag,
+
+      Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.
+
+      Termin: ${slot.date} ${slot.time}
+      Lehrkraft: ${teacher.name || '—'}
+      Raum: ${teacher.room || '—'}
+
+      Mit freundlichen Grüßen
+
+      Ihr BKSB-Team`;
+        const html = `<p>Guten Tag,</p>
+      <p>Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.</p>
+      <p><strong>Termin:</strong> ${slot.date} ${slot.time}<br/>
+      <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
+      <strong>Raum:</strong> ${teacher.room || '—'}</p>
+      <p>Mit freundlichen Grüßen</p>
+      <p>Ihr BKSB-Team</p>`;
+        await sendMail({ to: slot.email, subject, text: plain, html });
+        await supabase.from('slots').update({ confirmation_sent_at: now, updated_at: now }).eq('id', slot.id);
+      } catch (e) {
+        console.warn('Sending confirmation after verify failed:', e?.message || e);
+      }
+    }
+
+    return res.json({ success: true, message: 'E-Mail bestätigt. Wir informieren Sie bei Bestätigung durch die Lehrkraft.' });
+  } catch (e) {
+    console.error('Error verifying email:', e);
+    const status = e?.statusCode || 500;
+    return res.status(status).json({ error: e?.message || 'Verifikation fehlgeschlagen' });
   }
 });
 
 // Admin Routes (Protected)
 // GET /api/admin/bookings - Get all bookings with teacher info
-app.get('/api/admin/bookings', requireAuth, async (_req, res) => {
+app.get('/api/admin/bookings', requireAdmin, async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('slots')
-      .select(`
-        *,
-        teacher:teachers(name, subject)
-      `)
-      .eq('booked', true)
-      .order('date')
-      .order('time');
-    
-    if (error) throw error;
-    
-    // Map to camelCase with teacher info
-    const bookings = data.map(slot => ({
-      id: slot.id,
-      teacherId: slot.teacher_id,
-      time: slot.time,
-      date: slot.date,
-      booked: slot.booked,
-      visitorType: slot.visitor_type,
-      parentName: slot.parent_name,
-      companyName: slot.company_name,
-      studentName: slot.student_name,
-      traineeName: slot.trainee_name,
-      className: slot.class_name,
-      email: slot.email,
-      message: slot.message,
-      teacherName: slot.teacher?.name || 'Unknown',
-      teacherSubject: slot.teacher?.subject || 'Unknown'
-    }));
-  
+    const bookings = await listAdminBookings();
     res.json({ bookings });
   } catch (error) {
     console.error('Error fetching bookings:', error);
@@ -234,7 +334,7 @@ app.get('/api/admin/bookings', requireAuth, async (_req, res) => {
 });
 
 // DELETE /api/admin/bookings/:slotId - Cancel a booking
-app.delete('/api/admin/bookings/:slotId', requireAuth, async (req, res) => {
+app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
   const slotId = parseInt(req.params.slotId, 10);
   
   if (isNaN(slotId)) {
@@ -243,29 +343,42 @@ app.delete('/api/admin/bookings/:slotId', requireAuth, async (req, res) => {
 
   // Clear booking data with Supabase
   try {
-    const { data, error } = await supabase
-      .from('slots')
-      .update({
-        booked: false,
-        visitor_type: null,
-        parent_name: null,
-        company_name: null,
-        student_name: null,
-        trainee_name: null,
-        class_name: null,
-        email: null,
-        message: null
-      })
-      .eq('id', slotId)
-      .eq('booked', true) // Only cancel if booked
-      .select()
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Slot not found or not booked' });
+    const { previous } = await cancelBookingAdmin(slotId);
+
+    // Best-effort cancellation email (only if the booking email was verified)
+    if (previous && previous.email && previous.verified_at && isEmailConfigured()) {
+      try {
+        const teacherRes = await supabase.from('teachers').select('*').eq('id', previous.teacher_id).single();
+        const teacher = teacherRes.data || {};
+
+        const subject = `BKSB Elternsprechtag – Termin storniert am ${previous.date} (${previous.time})`;
+        const plain = `Guten Tag,
+
+      wir bestätigen Ihnen die Stornierung Ihres Termins.
+
+      Termin: ${previous.date} ${previous.time}
+      Lehrkraft: ${teacher.name || '—'}
+      Raum: ${teacher.room || '—'}
+
+      Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.
+
+      Mit freundlichen Grüßen
+
+      Ihr BKSB-Team`;
+        const html = `<p>Guten Tag,</p>
+      <p>wir bestätigen Ihnen die Stornierung Ihres Termins.</p>
+      <p><strong>Termin:</strong> ${previous.date} ${previous.time}<br/>
+      <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
+      <strong>Raum:</strong> ${teacher.room || '—'}</p>
+      <p>Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.</p>
+      <p>Mit freundlichen Grüßen</p>
+      <p>Ihr BKSB-Team</p>`;
+
+        await sendMail({ to: previous.email, subject, text: plain, html });
+        await supabase.from('slots').update({ cancellation_sent_at: new Date().toISOString() }).eq('id', slotId);
+      } catch (e) {
+        console.warn('Sending cancellation email (admin) failed:', e?.message || e);
       }
-      throw error;
     }
 
     res.json({ 
@@ -274,7 +387,76 @@ app.delete('/api/admin/bookings/:slotId', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error cancelling booking:', error);
-    res.status(500).json({ error: 'Failed to cancel booking' });
+    const status = error?.statusCode || 500;
+    res.status(status).json({ error: error?.message || 'Failed to cancel booking' });
+  }
+});
+
+// GET /api/admin/users - List login users (admin only)
+app.get('/api/admin/users', requireAdmin, async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, role, teacher_id, created_at, updated_at')
+      .order('id');
+
+    if (error) throw error;
+    return res.json({ users: data || [] });
+  } catch (error) {
+    console.error('Error fetching admin users:', error);
+    return res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// PATCH /api/admin/users/:id - Update user role (admin only)
+app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  const { role } = req.body || {};
+  const roleStr = String(role || '').trim();
+  if (roleStr !== 'admin' && roleStr !== 'teacher') {
+    return res.status(400).json({ error: 'role must be "admin" or "teacher"' });
+  }
+
+  // Best-effort safety: prevent an admin from demoting themselves.
+  try {
+    if (req.user?.username) {
+      const { data: me, error: meErr } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('username', req.user.username)
+        .limit(1)
+        .maybeSingle();
+      if (!meErr && me && Number(me.id) === userId && roleStr !== 'admin') {
+        return res.status(400).json({ error: 'You cannot remove your own admin role.' });
+      }
+    }
+  } catch {
+    // ignore safety check failures
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ role: roleStr })
+      .eq('id', userId)
+      .select('id, username, role, teacher_id, created_at, updated_at')
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      throw error;
+    }
+
+    return res.json({ success: true, user: data });
+  } catch (error) {
+    console.error('Error updating admin user role:', error);
+    return res.status(500).json({ error: 'Failed to update user' });
   }
 });
 
@@ -315,13 +497,23 @@ function generateTimeSlots(system) {
   return slots;
 }
 
-// POST /api/admin/teachers - Create new teacher
+// POST /api/admin/teachers - Create new teacher (and login user)
 app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
   try {
-    const { name, subject, system, room } = req.body || {};
+    const { name, email, salutation, subject, system, room, username: reqUsername, password: reqPassword } = req.body || {};
 
     if (!name) {
       return res.status(400).json({ error: 'name required' });
+    }
+
+    const parsedEmail = normalizeAndValidateTeacherEmail(email);
+    if (!parsedEmail.ok) {
+      return res.status(400).json({ error: 'Ungültige E-Mail-Adresse. Sie muss auf @bksb.nrw enden.' });
+    }
+
+    const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
+    if (!parsedSalutation.ok) {
+      return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
     }
 
     const teacherSystem = system || 'dual'; // Fallback to dual if not provided
@@ -335,6 +527,8 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
       .from('teachers')
       .insert({ 
         name: name.trim(), 
+        email: parsedEmail.email,
+        salutation: parsedSalutation.salutation,
         subject: subject || 'Sprechstunde', 
         system: teacherSystem,
         room: room ? room.trim() : null
@@ -346,17 +540,85 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
 
     // Generate time slots based on system
     const timeSlots = generateTimeSlots(teacherSystem);
-    
-    // Create slots for the teacher
-    // Default date can be set later by admin
-    const currentDate = new Date();
-    const dateString = currentDate.toLocaleDateString('de-DE');
-    
+
+    // Prefer: create slots for the currently active (published) event.
+    // Fallback: newest event (any status). Last resort: settings.event_date.
+    const formatDateDE = (isoOrDate) => {
+      const d = new Date(isoOrDate);
+      if (Number.isNaN(d.getTime())) return null;
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = String(d.getFullYear());
+      return `${dd}.${mm}.${yyyy}`;
+    };
+
+    let targetEventId = null;
+    let eventDate = null;
+
+    try {
+      const nowIso = new Date().toISOString();
+      const { data: activeEvents, error: activeErr } = await supabase
+        .from('events')
+        .select('id, starts_at')
+        .eq('status', 'published')
+        .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
+        .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
+        .order('starts_at', { ascending: false })
+        .limit(1);
+      if (activeErr) throw activeErr;
+      const activeEvent = activeEvents && activeEvents.length ? activeEvents[0] : null;
+      if (activeEvent?.id) {
+        targetEventId = activeEvent.id;
+        eventDate = formatDateDE(activeEvent.starts_at);
+      }
+    } catch (e) {
+      console.warn('Resolving active event for teacher slots failed:', e?.message || e);
+    }
+
+    if (!targetEventId || !eventDate) {
+      try {
+        const { data: latestEvents, error: latestErr } = await supabase
+          .from('events')
+          .select('id, starts_at')
+          .order('starts_at', { ascending: false })
+          .limit(1);
+        if (latestErr) throw latestErr;
+        const latest = latestEvents && latestEvents.length ? latestEvents[0] : null;
+        if (latest?.id) {
+          targetEventId = latest.id;
+          eventDate = formatDateDE(latest.starts_at);
+        }
+      } catch (e) {
+        console.warn('Resolving latest event for teacher slots failed:', e?.message || e);
+      }
+    }
+
+    if (!eventDate) {
+      // Settings fallback: stored as DATE (YYYY-MM-DD)
+      try {
+        const { data: settings } = await supabase
+          .from('settings')
+          .select('event_date')
+          .limit(1)
+          .single();
+        if (settings?.event_date) {
+          eventDate = formatDateDE(settings.event_date);
+        }
+      } catch {}
+    }
+
+    if (!eventDate) {
+      eventDate = formatDateDE(new Date().toISOString()) || '01.01.1970';
+    }
+
+    const now = new Date().toISOString();
     const slotsToInsert = timeSlots.map(time => ({
       teacher_id: teacher.id,
+      event_id: targetEventId,
       time: time,
-      date: dateString,
-      booked: false
+      date: eventDate,
+      booked: false,
+      updated_at: now,
     }));
 
     const { error: slotsError } = await supabase
@@ -368,10 +630,65 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
       // Don't fail the teacher creation if slots fail
     }
 
-    res.json({ success: true, teacher, slotsCreated: timeSlots.length });
+    // Create or upsert a linked user account for the teacher
+    // Use provided username/password if present; otherwise generate
+    const baseUsername = String(reqUsername || teacher.name || `teacher${teacher.id}`)
+      .toLowerCase()
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 20) || `teacher${teacher.id}`;
+
+    // Ensure uniqueness by appending id if needed
+    const username = `${baseUsername}${baseUsername.endsWith(String(teacher.id)) ? '' : teacher.id}`;
+    const providedPw = reqPassword && typeof reqPassword === 'string' ? reqPassword.trim() : '';
+    const isStrongEnough = providedPw.length >= 8;
+    const tempPassword = isStrongEnough
+      ? providedPw
+      : crypto.randomBytes(6).toString('base64url');
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    try {
+      await supabase
+        .from('users')
+        .upsert({
+          username,
+          password_hash: passwordHash,
+          role: 'teacher',
+          teacher_id: teacher.id
+        }, { onConflict: 'username' });
+    } catch (userErr) {
+      console.warn('User creation for teacher failed:', userErr?.message || userErr);
+    }
+
+    res.json({
+      success: true,
+      teacher,
+      slotsCreated: timeSlots.length,
+      slotsEventId: targetEventId,
+      slotsEventDate: eventDate,
+      user: { username, tempPassword }
+    });
   } catch (error) {
     console.error('Error creating teacher:', error);
     res.status(500).json({ error: 'Failed to create teacher' });
+  }
+});
+
+// GET /api/admin/teachers - List all teachers (admin only)
+app.get('/api/admin/teachers', requireAdmin, async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('teachers')
+      .select('*')
+      .order('id');
+    if (error) throw error;
+    return res.json({ teachers: data || [] });
+  } catch (error) {
+    console.error('Error fetching admin teachers:', error);
+    return res.status(500).json({ error: 'Failed to fetch teachers' });
   }
 });
 
@@ -384,10 +701,20 @@ app.put('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { name, subject, system, room } = req.body || {};
+    const { name, email, salutation, subject, system, room } = req.body || {};
 
     if (!name) {
       return res.status(400).json({ error: 'name required' });
+    }
+
+    const parsedEmail = normalizeAndValidateTeacherEmail(email);
+    if (!parsedEmail.ok) {
+      return res.status(400).json({ error: 'Ungültige E-Mail-Adresse. Sie muss auf @bksb.nrw enden.' });
+    }
+
+    const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
+    if (!parsedSalutation.ok) {
+      return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
     }
 
     const teacherSystem = system || 'dual'; // Fallback to dual if not provided
@@ -400,6 +727,8 @@ app.put('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
       .from('teachers')
       .update({ 
         name: name.trim(), 
+        email: parsedEmail.email,
+        salutation: parsedSalutation.salutation,
         subject: subject || 'Sprechstunde', 
         system: teacherSystem,
         room: room ? room.trim() : null
@@ -419,6 +748,43 @@ app.put('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error updating teacher:', error);
     res.status(500).json({ error: 'Failed to update teacher' });
+  }
+});
+
+// PUT /api/admin/teachers/:id/reset-login - Regenerate teacher user's temp password
+app.put('/api/admin/teachers/:id/reset-login', requireAdmin, async (req, res) => {
+  const teacherId = parseInt(req.params.id, 10);
+  if (isNaN(teacherId)) {
+    return res.status(400).json({ error: 'Invalid teacher ID' });
+  }
+
+  try {
+    // Find user for this teacher
+    const { data: users, error: userErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('teacher_id', teacherId)
+      .limit(1);
+    if (userErr) throw userErr;
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: 'Kein Benutzer für diese Lehrkraft gefunden' });
+    }
+
+    const user = users[0];
+    const tempPassword = crypto.randomBytes(6).toString('base64url');
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    const { error: upErr } = await supabase
+      .from('users')
+      .update({ password_hash: passwordHash })
+      .eq('id', user.id);
+    if (upErr) throw upErr;
+
+    res.json({ success: true, user: { username: user.username, tempPassword } });
+  } catch (error) {
+    console.error('Error resetting teacher login:', error);
+    res.status(500).json({ error: 'Failed to reset teacher login' });
   }
 });
 
@@ -533,6 +899,63 @@ app.put('/api/admin/settings', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/slots - List slots (admin only)
+// Optional query: teacherId, eventId (number | "null"), booked ("true"|"false"), limit
+app.get('/api/admin/slots', requireAdmin, async (req, res) => {
+  try {
+    const { teacherId, eventId, booked, limit } = req.query;
+
+    let q = supabase
+      .from('slots')
+      .select('*')
+      .order('date')
+      .order('time');
+
+    if (teacherId !== undefined) {
+      const teacherIdNum = parseInt(String(teacherId), 10);
+      if (isNaN(teacherIdNum)) {
+        return res.status(400).json({ error: 'teacherId must be a number' });
+      }
+      q = q.eq('teacher_id', teacherIdNum);
+    }
+
+    if (eventId !== undefined) {
+      const raw = String(eventId);
+      if (raw === 'null') {
+        q = q.is('event_id', null);
+      } else {
+        const eventIdNum = parseInt(raw, 10);
+        if (isNaN(eventIdNum)) {
+          return res.status(400).json({ error: 'eventId must be a number or "null"' });
+        }
+        q = q.eq('event_id', eventIdNum);
+      }
+    }
+
+    if (booked !== undefined) {
+      const raw = String(booked).toLowerCase();
+      if (raw !== 'true' && raw !== 'false') {
+        return res.status(400).json({ error: 'booked must be "true" or "false"' });
+      }
+      q = q.eq('booked', raw === 'true');
+    }
+
+    const limitNum = limit !== undefined ? parseInt(String(limit), 10) : 2000;
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 10000) {
+      return res.status(400).json({ error: 'limit must be between 1 and 10000' });
+    }
+    q = q.limit(limitNum);
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    return res.json({ slots: (data || []).map(mapSlotRow) });
+  } catch (error) {
+    console.error('Error fetching admin slots:', error);
+    return res.status(500).json({ error: 'Failed to fetch slots' });
+  }
+});
+
 // POST /api/admin/slots - Create new slot
 app.post('/api/admin/slots', requireAdmin, async (req, res) => {
   try {
@@ -628,6 +1051,152 @@ app.delete('/api/admin/slots/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/teachers/:id/generate-slots
+// Create all default (15-min) slots for a single teacher for the active (published) event.
+// Falls back to latest event, then settings.event_date, then today.
+app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
+  const teacherId = parseInt(req.params.id, 10);
+  if (isNaN(teacherId)) {
+    return res.status(400).json({ error: 'Invalid teacher ID' });
+  }
+
+  const formatDateDE = (isoOrDate) => {
+    const d = new Date(isoOrDate);
+    if (Number.isNaN(d.getTime())) return null;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${dd}.${mm}.${yyyy}`;
+  };
+
+  try {
+    const { data: teacherRow, error: teacherErr } = await supabase
+      .from('teachers')
+      .select('id, system')
+      .eq('id', teacherId)
+      .single();
+    if (teacherErr) {
+      if (teacherErr.code === 'PGRST116') return res.status(404).json({ error: 'Teacher not found' });
+      throw teacherErr;
+    }
+    if (!teacherRow) return res.status(404).json({ error: 'Teacher not found' });
+
+    const nowIso = new Date().toISOString();
+    let targetEventId = null;
+    let eventDate = null;
+
+    try {
+      const { data: activeEvents, error: activeErr } = await supabase
+        .from('events')
+        .select('id, starts_at')
+        .eq('status', 'published')
+        .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
+        .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
+        .order('starts_at', { ascending: false })
+        .limit(1);
+      if (activeErr) throw activeErr;
+      const activeEvent = activeEvents && activeEvents.length ? activeEvents[0] : null;
+      if (activeEvent?.id) {
+        targetEventId = activeEvent.id;
+        eventDate = formatDateDE(activeEvent.starts_at);
+      }
+    } catch (e) {
+      console.warn('Resolving active event for teacher slot generation failed:', e?.message || e);
+    }
+
+    if (!targetEventId || !eventDate) {
+      try {
+        const { data: latestEvents, error: latestErr } = await supabase
+          .from('events')
+          .select('id, starts_at')
+          .order('starts_at', { ascending: false })
+          .limit(1);
+        if (latestErr) throw latestErr;
+        const latest = latestEvents && latestEvents.length ? latestEvents[0] : null;
+        if (latest?.id) {
+          targetEventId = latest.id;
+          eventDate = formatDateDE(latest.starts_at);
+        }
+      } catch (e) {
+        console.warn('Resolving latest event for teacher slot generation failed:', e?.message || e);
+      }
+    }
+
+    if (!eventDate) {
+      // Settings fallback: stored as DATE (YYYY-MM-DD)
+      try {
+        const { data: settings } = await supabase
+          .from('settings')
+          .select('event_date')
+          .limit(1)
+          .single();
+        if (settings?.event_date) {
+          eventDate = formatDateDE(settings.event_date);
+        }
+      } catch {}
+    }
+
+    if (!eventDate) {
+      eventDate = formatDateDE(new Date().toISOString()) || '01.01.1970';
+    }
+
+    const teacherSystem = teacherRow.system || 'dual';
+    const times = generateTimeSlots(teacherSystem);
+    const now = new Date().toISOString();
+
+    // Fetch existing slots for this teacher for the resolved scope to avoid duplicates
+    let existingQuery = supabase
+      .from('slots')
+      .select('time')
+      .eq('teacher_id', teacherId)
+      .eq('date', eventDate);
+
+    if (targetEventId === null) {
+      existingQuery = existingQuery.is('event_id', null);
+    } else {
+      existingQuery = existingQuery.eq('event_id', targetEventId);
+    }
+
+    const { data: existingSlots, error: existingErr } = await existingQuery;
+    if (existingErr) throw existingErr;
+    const existingTimes = new Set((existingSlots || []).map((s) => s.time));
+
+    const inserts = [];
+    let skipped = 0;
+    for (const time of times) {
+      if (existingTimes.has(time)) {
+        skipped += 1;
+        continue;
+      }
+      inserts.push({
+        teacher_id: teacherId,
+        event_id: targetEventId,
+        time,
+        date: eventDate,
+        booked: false,
+        updated_at: now,
+      });
+    }
+
+    if (inserts.length) {
+      const { error: insErr } = await supabase.from('slots').insert(inserts);
+      if (insErr) throw insErr;
+    }
+
+    return res.json({
+      success: true,
+      teacherId,
+      eventId: targetEventId,
+      eventDate,
+      created: inserts.length,
+      skipped,
+    });
+  } catch (error) {
+    console.error('Error generating slots for teacher:', error);
+    return res.status(500).json({ error: 'Failed to generate slots for teacher' });
+  }
+});
+
 // Health / readiness route
 app.get('/api/health', async (_req, res) => {
   try {
@@ -649,6 +1218,290 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+// EVENTS
+// Public: get the currently active (published) event
+app.get('/api/events/active', async (_req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'published')
+      .or(`booking_opens_at.is.null,booking_opens_at.lte.${now}`)
+      .or(`booking_closes_at.is.null,booking_closes_at.gte.${now}`)
+      .order('starts_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    const activeEvent = data && data.length ? data[0] : null;
+    res.json({ event: activeEvent });
+  } catch (error) {
+    console.error('Error fetching active event:', error);
+    res.status(500).json({ error: 'Failed to fetch active event' });
+  }
+});
+
+// Admin: list events
+app.get('/api/admin/events', requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('starts_at', { ascending: false });
+    if (error) throw error;
+    res.json({ events: data || [] });
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// Admin: create event
+app.post('/api/admin/events', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, school_year, starts_at, ends_at, timezone, booking_opens_at, booking_closes_at, status } = req.body || {};
+    if (!name || !school_year || !starts_at || !ends_at) {
+      return res.status(400).json({ error: 'name, school_year, starts_at, ends_at required' });
+    }
+
+    const payload = {
+      name,
+      school_year,
+      starts_at,
+      ends_at,
+      timezone: timezone || 'Europe/Berlin',
+      status: status || 'draft',
+      booking_opens_at: booking_opens_at || null,
+      booking_closes_at: booking_closes_at || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('events')
+      .insert(payload)
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json({ success: true, event: data });
+  } catch (error) {
+    console.error('Error creating event:', error);
+    const message = (error && typeof error === 'object' && 'message' in error)
+      ? String(error.message)
+      : 'Failed to create event';
+
+    // Common case when RLS is enabled but backend uses a publishable/anon key.
+    if (message.toLowerCase().includes('row-level security')) {
+      return res.status(403).json({
+        error: 'RLS blocked insert on events',
+        message,
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Failed to create event',
+      message,
+    });
+  }
+});
+
+// Admin: update event (including publish/close)
+app.put('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  try {
+    const patch = { ...(req.body || {}), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('events')
+      .update(patch)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    res.json({ success: true, event: data });
+  } catch (error) {
+    console.error('Error updating event:', error);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+// Admin: delete event
+app.delete('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  try {
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+// Admin: event stats (slot counts)
+// GET /api/admin/events/:id/stats
+app.get('/api/admin/events/:id/stats', requireAuth, requireAdmin, async (req, res) => {
+  const eventId = parseInt(req.params.id, 10);
+  if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid id' });
+
+  try {
+    // Validate event exists (keeps errors clearer)
+    const { data: eventRow, error: eventErr } = await supabase
+      .from('events')
+      .select('id')
+      .eq('id', eventId)
+      .single();
+    if (eventErr) throw eventErr;
+    if (!eventRow) return res.status(404).json({ error: 'Event not found' });
+
+    const [
+      totalRes,
+      availableRes,
+      bookedRes,
+      reservedRes,
+      confirmedRes,
+    ] = await Promise.all([
+      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
+      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('booked', false),
+      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('booked', true),
+      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'reserved'),
+      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'confirmed'),
+    ]);
+
+    // Any error in the batch -> throw
+    if (totalRes.error) throw totalRes.error;
+    if (availableRes.error) throw availableRes.error;
+    if (bookedRes.error) throw bookedRes.error;
+    if (reservedRes.error) throw reservedRes.error;
+    if (confirmedRes.error) throw confirmedRes.error;
+
+    res.json({
+      eventId,
+      totalSlots: totalRes.count || 0,
+      availableSlots: availableRes.count || 0,
+      bookedSlots: bookedRes.count || 0,
+      reservedSlots: reservedRes.count || 0,
+      confirmedSlots: confirmedRes.count || 0,
+    });
+  } catch (error) {
+    console.error('Error fetching event stats:', error);
+    res.status(500).json({ error: 'Failed to fetch event stats' });
+  }
+});
+
+// Admin: generate slots for a specific event (single-day events)
+// POST /api/admin/events/:id/generate-slots
+// Body (optional): { slotMinutes?: number, dryRun?: boolean, replaceExisting?: boolean }
+app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, async (req, res) => {
+  const eventId = parseInt(req.params.id, 10);
+  if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid id' });
+
+  const { slotMinutes, dryRun, replaceExisting } = req.body || {};
+  const slotLen = Number(slotMinutes || 15);
+  if (!Number.isFinite(slotLen) || slotLen < 5 || slotLen > 60) {
+    return res.status(400).json({ error: 'slotMinutes must be between 5 and 60' });
+  }
+
+  const formatDateDE = (isoOrDate) => {
+    const d = new Date(isoOrDate);
+    if (Number.isNaN(d.getTime())) return null;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${dd}.${mm}.${yyyy}`;
+  };
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toMinutes = (h, m) => h * 60 + m;
+  const minutesToHHMM = (mins) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${pad2(h)}:${pad2(m)}`;
+  };
+
+  try {
+    const { data: eventRow, error: eventErr } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .single();
+    if (eventErr) throw eventErr;
+    if (!eventRow) return res.status(404).json({ error: 'Event not found' });
+
+    const eventDate = formatDateDE(eventRow.starts_at);
+    if (!eventDate) return res.status(400).json({ error: 'Event starts_at is invalid' });
+
+    // Optional: replace existing slots for this event day
+    if (replaceExisting) {
+      if (!dryRun) {
+        const { error: delErr } = await supabase
+          .from('slots')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('date', eventDate);
+        if (delErr) throw delErr;
+      }
+    }
+
+    const { data: teachers, error: teachersErr } = await supabase
+      .from('teachers')
+      .select('id, system');
+    if (teachersErr) throw teachersErr;
+
+    const teacherRows = teachers || [];
+    if (!teacherRows.length) return res.json({ success: true, created: 0, skipped: 0, eventDate });
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const t of teacherRows) {
+      const teacherSystem = t.system || 'dual';
+      const windowStart = teacherSystem === 'vollzeit' ? toMinutes(17, 0) : toMinutes(16, 0);
+      const windowEnd = teacherSystem === 'vollzeit' ? toMinutes(19, 0) : toMinutes(18, 0);
+
+      // Fetch existing slots for this teacher+event+date to avoid duplicates
+      const { data: existingSlots, error: existingErr } = await supabase
+        .from('slots')
+        .select('time')
+        .eq('teacher_id', t.id)
+        .eq('event_id', eventId)
+        .eq('date', eventDate);
+      if (existingErr) throw existingErr;
+      const existingTimes = new Set((existingSlots || []).map((s) => s.time));
+
+      const inserts = [];
+      for (let start = windowStart; start + slotLen <= windowEnd; start += slotLen) {
+        const end = start + slotLen;
+        const time = `${minutesToHHMM(start)} - ${minutesToHHMM(end)}`;
+        if (existingTimes.has(time)) {
+          skipped += 1;
+          continue;
+        }
+        inserts.push({
+          teacher_id: t.id,
+          event_id: eventId,
+          date: eventDate,
+          time,
+          booked: false,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      if (inserts.length) {
+        if (!dryRun) {
+          const { error: insErr } = await supabase.from('slots').insert(inserts);
+          if (insErr) throw insErr;
+        }
+        created += inserts.length;
+      }
+    }
+
+    return res.json({ success: true, eventId, eventDate, created, skipped, dryRun: Boolean(dryRun), replaceExisting: Boolean(replaceExisting) });
+  } catch (error) {
+    console.error('Error generating slots for event:', error);
+    return res.status(500).json({ error: 'Failed to generate slots for event' });
+  }
+});
+
 // 404 fallback
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -660,8 +1513,10 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend listening on http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  const printedHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+  console.log(`Backend listening on http://${printedHost}:${PORT}`);
 });
 
 /*

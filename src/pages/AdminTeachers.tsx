@@ -4,22 +4,40 @@ import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
 import type { Teacher as ApiTeacher } from '../types';
 import './AdminDashboard.css';
+import { Sidebar } from '../components/Sidebar';
+import { Header } from '../components/Header';
+
+type TeacherLoginResponse = {
+  user?: {
+    username: string;
+    tempPassword: string;
+  };
+};
 
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<ApiTeacher | null>(null);
-  const [formData, setFormData] = useState({ name: '', system: 'dual' as 'dual' | 'vollzeit', room: '' });
-  const { user, logout } = useAuth();
+  const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', system: 'dual' as 'dual' | 'vollzeit', room: '', username: '', password: '' });
+  const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
+  const [systemSaving, setSystemSaving] = useState<Record<number, boolean>>({});
+  const { user, logout, activeView, setActiveView } = useAuth();
   const navigate = useNavigate();
+
+  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+
+  useEffect(() => {
+    if (canSwitchView) setActiveView('admin');
+  }, [canSwitchView, setActiveView]);
 
   const loadTeachers = async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await api.getTeachers();
+      const data = await api.admin.getTeachers();
       setTeachers(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden der Lehrkräfte');
@@ -35,28 +53,43 @@ export function AdminTeachers() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
-      alert('Bitte alle Felder ausfüllen');
+    if (!formData.name.trim() || !formData.email.trim() || !formData.salutation) {
+      alert('Bitte Name, Anrede und E-Mail ausfüllen');
+      return;
+    }
+
+    const normalizedEmail = formData.email.trim().toLowerCase();
+    const isValidEmail = /^[a-z0-9._%+-]+@bksb\.nrw$/i.test(normalizedEmail);
+    if (!isValidEmail) {
+      alert('Die E-Mail-Adresse muss auf @bksb.nrw enden.');
       return;
     }
 
     try {
       const teacherData = {
         name: formData.name,
+        email: normalizedEmail,
+        salutation: formData.salutation,
         subject: 'Sprechstunde',
         system: formData.system,
-        room: formData.room
+        room: formData.room,
+        username: formData.username || undefined,
+        password: formData.password || undefined,
       };
       
       if (editingTeacher) {
         await api.admin.updateTeacher(editingTeacher.id, teacherData);
       } else {
-        await api.admin.createTeacher(teacherData);
+        const res = await api.admin.createTeacher(teacherData);
+        const typed = res as TeacherLoginResponse;
+        if (typed?.user) {
+          setCreatedCreds({ username: typed.user.username, tempPassword: typed.user.tempPassword });
+        }
       }
       await loadTeachers();
       setShowForm(false);
       setEditingTeacher(null);
-      setFormData({ name: '', system: 'dual', room: '' });
+      setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', room: '', username: '', password: '' });
     } catch (err) {
       console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -65,10 +98,14 @@ export function AdminTeachers() {
 
   const handleEdit = (teacher: ApiTeacher) => {
     setEditingTeacher(teacher);
-    setFormData({ 
-      name: teacher.name, 
+    setFormData({
+      name: teacher.name,
+      email: teacher.email || '',
+      salutation: (teacher.salutation || 'Herr') as 'Herr' | 'Frau' | 'Divers',
       system: teacher.system || 'dual', // Fallback falls system undefined ist
-      room: teacher.room || ''
+      room: teacher.room || '',
+      username: '',
+      password: '',
     });
     setShowForm(true);
   };
@@ -90,7 +127,38 @@ export function AdminTeachers() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingTeacher(null);
-    setFormData({ name: '', system: 'dual', room: '' });
+    setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', room: '', username: '', password: '' });
+  };
+
+  const handleInlineSystemChange = async (teacher: ApiTeacher, nextSystem: 'dual' | 'vollzeit') => {
+    const currentSystem: 'dual' | 'vollzeit' = teacher.system || 'dual';
+    if (currentSystem === nextSystem) return;
+
+    // Backend update requires these fields; if missing, fall back to edit form.
+    if (!teacher.email || !teacher.salutation) {
+      alert('Bitte erst über "Bearbeiten" E-Mail und Anrede setzen, bevor das System geändert werden kann.');
+      return;
+    }
+
+    setSystemSaving((prev) => ({ ...prev, [teacher.id]: true }));
+    setTeachers((prev) => prev.map((t) => (t.id === teacher.id ? { ...t, system: nextSystem } : t)));
+
+    try {
+      await api.admin.updateTeacher(teacher.id, {
+        name: teacher.name,
+        email: teacher.email,
+        salutation: teacher.salutation,
+        subject: teacher.subject || 'Sprechstunde',
+        system: nextSystem,
+        room: teacher.room || '',
+      });
+    } catch (err) {
+      // Revert optimistic update
+      setTeachers((prev) => prev.map((t) => (t.id === teacher.id ? { ...t, system: currentSystem } : t)));
+      alert(err instanceof Error ? err.message : 'Fehler beim Aktualisieren des Systems');
+    } finally {
+      setSystemSaving((prev) => ({ ...prev, [teacher.id]: false }));
+    }
   };
 
   const handleLogout = async () => {
@@ -102,32 +170,98 @@ export function AdminTeachers() {
     return (
       <div className="admin-loading">
         <div className="spinner"></div>
-        <p>Laden...</p>
+        <p>Lade Lehrkräfte...</p>
       </div>
     );
   }
 
   return (
     <div className="admin-dashboard">
-      <header className="admin-header">
-        <div className="admin-header-content">
-          <div>
-            <h1>BKSB Elternsprechtag - Verwaltung</h1>
-            <p className="admin-user">Angemeldet als: <strong>{user?.username}</strong></p>
-          </div>
-          <div className="header-actions">
-            <button onClick={() => navigate('/')} className="back-button">
-              ← Zur Buchungsseite
-            </button>
-            <button onClick={() => navigate('/admin')} className="back-button">
-              Dashboard
-            </button>
-            <button onClick={handleLogout} className="logout-button">
-              Abmelden
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        sectionLabel="Admin · Lehrkräfte verwalten"
+        userLabel={user?.fullName || user?.username}
+        menu={
+          <Sidebar
+            label="Menü"
+            ariaLabel="Menü"
+            variant="icon"
+            side="left"
+            noWrapper
+            buttonClassName="expHeader__menuLines"
+          >
+            {({ close }) => (
+              <>
+                <div className="dropdown__sectionTitle">Aktionen</div>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin'); close(); }}>
+                  <span>Übersicht öffnen</span>
+                </button>
+                <button type="button" className="dropdown__item dropdown__item--active" onClick={() => { navigate('/admin/teachers'); close(); }}>
+                  <span>Lehrkräfte verwalten</span>
+                  <span className="dropdown__hint">Aktiv</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/events'); close(); }}>
+                  <span>Elternsprechtage verwalten</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/slots'); close(); }}>
+                  <span>Slots verwalten</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/users'); close(); }}>
+                  <span>Benutzer & Rechte verwalten</span>
+                </button>
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/admin/feedback'); close(); }}>
+                  <span>Feedback einsehen</span>
+                </button>
+
+                {canSwitchView && (
+                  <>
+                    <div className="dropdown__divider" role="separator" />
+                    <div className="dropdown__sectionTitle">Ansicht</div>
+                    <button
+                      type="button"
+                      className={activeView === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => {
+                        setActiveView('teacher');
+                        navigate('/teacher/bookings', { replace: true });
+                        close();
+                      }}
+                    >
+                      <span>Lehrkraft</span>
+                      {activeView === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className={activeView !== 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => {
+                        setActiveView('admin');
+                        navigate('/admin', { replace: true });
+                        close();
+                      }}
+                    >
+                      <span>Admin</span>
+                      {activeView !== 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+                  </>
+                )}
+
+                <div className="dropdown__divider" role="separator" />
+                <button type="button" className="dropdown__item" onClick={() => { navigate('/'); close(); }}>
+                  <span>Zur Buchungsseite</span>
+                </button>
+                <button
+                  type="button"
+                  className="dropdown__item dropdown__item--danger"
+                  onClick={() => {
+                    close();
+                    handleLogout();
+                  }}
+                >
+                  <span>Abmelden</span>
+                </button>
+              </>
+            )}
+          </Sidebar>
+        }
+      />
 
       <main className="admin-main">
         <div className="admin-section-header">
@@ -141,6 +275,33 @@ export function AdminTeachers() {
             </button>
           )}
         </div>
+
+        {!showForm && (
+          <div className="admin-teacher-search">
+            <label htmlFor="teacherAdminSearch" className="admin-teacher-search-label">
+              Suche
+            </label>
+            <div className="admin-teacher-search-row">
+              <input
+                id="teacherAdminSearch"
+                className="admin-teacher-search-input"
+                type="text"
+                placeholder="Name, E-Mail oder Raum…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="btn-secondary btn-secondary--sm"
+                  onClick={() => setSearch('')}
+                >
+                  Löschen
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="admin-error">
@@ -160,6 +321,30 @@ export function AdminTeachers() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="z.B. Max Mustermann"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="salutation">Anrede</label>
+                <select
+                  id="salutation"
+                  value={formData.salutation}
+                  onChange={(e) => setFormData({ ...formData, salutation: e.target.value as 'Herr' | 'Frau' | 'Divers' })}
+                  required
+                >
+                  <option value="Herr">Herr</option>
+                  <option value="Frau">Frau</option>
+                  <option value="Divers">Divers</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="email">E-Mail (muss auf @bksb.nrw enden)</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="z.B. vorname.nachname@bksb.nrw"
                   required
                 />
               </div>
@@ -185,6 +370,30 @@ export function AdminTeachers() {
                   placeholder="z.B. Raum 101"
                 />
               </div>
+              {!editingTeacher && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="username">Benutzername (optional)</label>
+                    <input
+                      id="username"
+                      type="text"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      placeholder="z.B. herrhuhn"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="password">Passwort (optional, min. 8 Zeichen)</label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="z.B. sicherespasswort"
+                    />
+                  </div>
+                </>
+              )}
               <div className="form-actions">
                 <button type="submit" className="btn-primary">
                   {editingTeacher ? 'Speichern' : 'Anlegen'}
@@ -194,10 +403,44 @@ export function AdminTeachers() {
                 </button>
               </div>
             </form>
+            {!editingTeacher && createdCreds && (
+              <div className="admin-success" style={{ marginTop: '1rem' }}>
+                <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Login für Lehrkraft erstellt</div>
+                <div><strong>Benutzername:</strong> {createdCreds.username}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span><strong>Temporäres Passwort:</strong> {createdCreds.tempPassword}</span>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      try {
+                        navigator.clipboard.writeText(createdCreds.tempPassword);
+                        alert('Passwort kopiert');
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}
+                  >
+                    Kopieren
+                  </button>
+                </div>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                  Bitte sicher weitergeben und nach dem ersten Login ändern.
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {teachers.length === 0 ? (
+        {teachers.filter((t) => {
+          const q = search.trim().toLowerCase();
+          if (!q) return true;
+          const name = (t.name || '').toLowerCase();
+          const email = (t.email || '').toLowerCase();
+          const room = (t.room || '').toLowerCase();
+          return name.includes(q) || email.includes(q) || room.includes(q);
+        }).length === 0 ? (
           <div className="no-teachers">
             <p>Keine Lehrkräfte vorhanden.</p>
           </div>
@@ -208,6 +451,8 @@ export function AdminTeachers() {
                 <tr>
                   <th>ID</th>
                   <th>Name</th>
+                  <th>Anrede</th>
+                  <th>E-Mail</th>
                   <th>System</th>
                   <th>Sprechstunde</th>
                   <th>Raum</th>
@@ -215,11 +460,34 @@ export function AdminTeachers() {
                 </tr>
               </thead>
               <tbody>
-                {teachers.map((teacher) => (
+                {teachers
+                  .filter((t) => {
+                    const q = search.trim().toLowerCase();
+                    if (!q) return true;
+                    const name = (t.name || '').toLowerCase();
+                    const email = (t.email || '').toLowerCase();
+                    const room = (t.room || '').toLowerCase();
+                    return name.includes(q) || email.includes(q) || room.includes(q);
+                  })
+                  .map((teacher) => (
                   <tr key={teacher.id}>
                     <td>{teacher.id}</td>
                     <td className="teacher-name">{teacher.name}</td>
-                    <td>{teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual'}</td>
+                    <td>{teacher.salutation || '-'}</td>
+                    <td>{teacher.email || '-'}</td>
+                    <td>
+                      <select
+                        className="admin-table-select"
+                        value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
+                        onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
+                        disabled={!!systemSaving[teacher.id]}
+                        aria-label={`System für ${teacher.name}`}
+                        title={systemSaving[teacher.id] ? 'Speichere…' : undefined}
+                      >
+                        <option value="dual">Dual</option>
+                        <option value="vollzeit">Vollzeit</option>
+                      </select>
+                    </td>
                     <td>{teacher.system === 'vollzeit' ? '17:00 - 19:00 Uhr' : '16:00 - 18:00 Uhr'}</td>
                     <td>{teacher.room || '-'}</td>
                     <td>
@@ -235,6 +503,24 @@ export function AdminTeachers() {
                           className="cancel-button"
                         >
                           Löschen
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await api.admin.resetTeacherLogin(teacher.id);
+                              const typed = res as TeacherLoginResponse;
+                              if (typed?.user) {
+                                alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
+                              } else {
+                                alert('Login zurückgesetzt.');
+                              }
+                            } catch (err) {
+                              alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
+                            }
+                          }}
+                          className="edit-button"
+                        >
+                          Login zurücksetzen
                         </button>
                       </div>
                     </td>

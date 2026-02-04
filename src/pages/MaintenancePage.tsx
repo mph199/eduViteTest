@@ -14,7 +14,7 @@ export const MaintenancePage = () => {
           </div>
 
           <p className="maintenance-message">
-            Unser Buchungssystem für den Eltern- und Ausbildersprechtag befindet sich derzeit im Aufbau.
+            Unser Buchungssystem für den Eltern- und Ausbildungsbetriebssprechtag befindet sich derzeit im Aufbau.
           </p>
           
           <p className="maintenance-submessage">

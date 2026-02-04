@@ -11,13 +11,13 @@ ALTER SEQUENCE slots_id_seq RESTART WITH 1;
 CREATE OR REPLACE FUNCTION reset_teacher_sequence()
 RETURNS void AS $$
 BEGIN
-  ALTER SEQUENCE teachers_id_seq RESTART WITH 1;
+  EXECUTE 'ALTER SEQUENCE IF EXISTS public.teachers_id_seq RESTART WITH 1';
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public;
 
 CREATE OR REPLACE FUNCTION reset_slot_sequence()
 RETURNS void AS $$
 BEGIN
-  ALTER SEQUENCE slots_id_seq RESTART WITH 1;
+  EXECUTE 'ALTER SEQUENCE IF EXISTS public.slots_id_seq RESTART WITH 1';
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public;

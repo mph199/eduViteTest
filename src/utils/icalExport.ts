@@ -4,52 +4,144 @@ import type { TimeSlot as ApiSlot, TimeSlot as ApiBooking, Settings as ApiSettin
  * Generiert eine iCal (.ics) Datei für Kalender-Export
  */
 
-function formatICalDate(dateStr: string, timeStr: string): string {
-  // Parse date (YYYY-MM-DD) and time (HH:MM - HH:MM)
-  const [startTime] = timeStr.split(' - ');
-  const [hours, minutes] = startTime.split(':');
-  
-  // Create date object in local time
-  const date = new Date(dateStr);
-  date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  
-  // Format as iCal date (YYYYMMDDTHHMMSS)
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  
-  return `${year}${month}${day}T${hour}${minute}00`;
+function escapeICalText(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  // RFC 5545 text escaping: backslash, semicolon, comma, and newlines
+  return raw
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,');
 }
 
-function getEndTime(dateStr: string, timeStr: string): string {
-  // Parse end time from "HH:MM - HH:MM" format
-  const [, endTime] = timeStr.split(' - ');
-  const [hours, minutes] = endTime.split(':');
-  
-  const date = new Date(dateStr);
-  date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  
-  return `${year}${month}${day}T${hour}${minute}00`;
+function sanitizeFileName(name: string): string {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9._-]+/g, '')
+    .slice(0, 120) || 'export';
+}
+
+function foldICalLine(line: string): string {
+  // Fold lines at 75 octets with CRLF + space continuation (RFC 5545)
+  const enc = new TextEncoder();
+  const bytes = enc.encode(line);
+  if (bytes.length <= 75) return line;
+
+  let out = '';
+  let chunk = '';
+  let chunkBytes = 0;
+
+  for (const ch of line) {
+    const b = enc.encode(ch).length;
+    if (chunkBytes + b > 75) {
+      out += (out ? '\r\n ' : '') + chunk;
+      chunk = ch;
+      chunkBytes = b;
+    } else {
+      chunk += ch;
+      chunkBytes += b;
+    }
+  }
+
+  if (chunk) out += (out ? '\r\n ' : '') + chunk;
+  return out;
+}
+
+function buildICalContent(lines: string[]): string {
+  const folded = lines
+    .flatMap((l) => String(l).split(/\r\n|\r|\n/))
+    .map((l) => foldICalLine(l));
+  return `${folded.join('\r\n')}\r\n`;
+}
+
+function parseDateToLocal(dateStr: string): Date {
+  const raw = String(dateStr).trim();
+  // Accept ISO (YYYY-MM-DD) or German (DD.MM.YYYY)
+  let d: Date | null = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    d = new Date(`${raw}T00:00:00`);
+  } else if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) {
+    const [dd, mm, yyyy] = raw.split('.');
+    d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+  } else {
+    // Try native parsing last (may be unreliable)
+    d = new Date(raw);
+  }
+  if (!d || Number.isNaN(d.getTime())) throw new Error('Invalid date value');
+  return d;
+}
+
+function normalizeTimeRange(timeStr: string): [number, number, number, number] {
+  const cleaned = String(timeStr).trim();
+  const parts = cleaned.split(/\s*[-–—]\s*/);
+  if (!parts[0] || !parts[1]) throw new Error('Invalid time range for ICS');
+
+  const extract = (part: string): [number, number] => {
+    const m = String(part).match(/(\d{1,2}):(\d{2})/);
+    if (!m) throw new Error('Invalid time value for ICS');
+    return [Number(m[1]), Number(m[2])];
+  };
+
+  const [sH, sM] = extract(parts[0]);
+  const [eH, eM] = extract(parts[1]);
+  if ([sH, sM, eH, eM].some((n) => Number.isNaN(n))) throw new Error('NaN time values');
+  return [sH, sM, eH, eM];
+}
+
+function formatICalDateLocal(dateStr: string, timeStr: string): string {
+  if (!dateStr || !timeStr) throw new Error('Invalid date/time for ICS');
+  const date = parseDateToLocal(dateStr);
+  const [sH, sM] = normalizeTimeRange(timeStr);
+  date.setHours(sH, sM, 0, 0);
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+function getEndTimeLocal(dateStr: string, timeStr: string): string {
+  if (!dateStr || !timeStr) throw new Error('Invalid date/time for ICS');
+  const date = parseDateToLocal(dateStr);
+  const [, , eH, eM] = normalizeTimeRange(timeStr);
+  date.setHours(eH, eM, 0, 0);
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
 function getCurrentTimestamp(): string {
+  // DTSTAMP should be UTC
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hour = String(now.getHours()).padStart(2, '0');
-  const minute = String(now.getMinutes()).padStart(2, '0');
-  const second = String(now.getSeconds()).padStart(2, '0');
-  
-  return `${year}${month}${day}T${hour}${minute}${second}Z`;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+}
+
+function buildVisitorDetails(slot: ApiSlot | ApiBooking): { titleTarget: string; description: string } {
+  const safeClassName = slot.className?.trim() || 'nicht angegeben';
+
+  if (slot.visitorType === 'company') {
+    const safeCompanyName = slot.companyName?.trim() || 'nicht angegeben';
+    const safeRepresentativeName = slot.representativeName?.trim() || 'nicht angegeben';
+    const safeTraineeName = slot.traineeName?.trim() || slot.studentName?.trim() || 'nicht angegeben';
+    return {
+      titleTarget: safeCompanyName,
+      description: `Ausbildungsbetrieb: ${safeCompanyName}\nVertreter*in: ${safeRepresentativeName}\nAzubi: ${safeTraineeName}\nKlasse: ${safeClassName}`,
+    };
+  }
+
+  const safeParentName = slot.parentName?.trim() || 'nicht angegeben';
+  const safeStudentName = slot.studentName?.trim() || 'nicht angegeben';
+  return {
+    titleTarget: safeParentName,
+    description: `Schüler*in: ${safeStudentName}\nKlasse: ${safeClassName}\nErziehungsberechtigte: ${safeParentName}`,
+  };
+}
+
+function buildLocation(teacherRoom?: string): string {
+  const base = 'BKSB';
+  const room = teacherRoom?.trim();
+  if (!room) return base;
+  return `${base}, Raum ${room}`;
 }
 
 /**
@@ -60,37 +152,65 @@ export function exportSlotToICal(
   teacherName: string,
   settings?: ApiSettings
 ): void {
-  const startDate = formatICalDate(slot.date, slot.time);
-  const endDate = getEndTime(slot.date, slot.time);
+  let startDate: string;
+  let endDate: string;
+  try {
+    startDate = formatICalDateLocal(slot.date, slot.time);
+    endDate = getEndTimeLocal(slot.date, slot.time);
+  } catch (e) {
+    console.error('ICS export error (slot):', e);
+    alert('Export fehlgeschlagen: Ungültiges Datum/Zeit im Termin. Bitte prüfen Sie die Terminzeit.');
+    return;
+  }
   const timestamp = getCurrentTimestamp();
   const eventName = settings?.event_name || 'BKSB Elternsprechtag';
-  
-  const icalContent = [
+  const visitor = buildVisitorDetails(slot);
+
+  const icalLines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//BKSB Elternsprechtag//DE',
     'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+    'X-WR-TIMEZONE:Europe/Berlin',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Berlin',
+    'X-LIC-LOCATION:Europe/Berlin',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:+0100',
+    'TZOFFSETTO:+0200',
+    'TZNAME:CEST',
+    'DTSTART:19700329T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:+0200',
+    'TZOFFSETTO:+0100',
+    'TZNAME:CET',
+    'DTSTART:19701025T030000',
+    'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
     'BEGIN:VEVENT',
-    `UID:slot-${slot.id}@bksb-elternsprechtag.de`,
+    `UID:slot-${slot.id}-${startDate}@bksb-elternsprechtag.de`,
     `DTSTAMP:${timestamp}`,
-    `DTSTART:${startDate}`,
-    `DTEND:${endDate}`,
-    `SUMMARY:${eventName} - ${teacherName}`,
-    `DESCRIPTION:Elterngespräch mit ${teacherName}\\nSchüler/in: ${slot.studentName}\\nKlasse: ${slot.className}`,
-    `LOCATION:BKSB`,
+    `DTSTART;TZID=Europe/Berlin:${startDate}`,
+    `DTEND;TZID=Europe/Berlin:${endDate}`,
+    `SUMMARY:${escapeICalText(`${eventName} - ${teacherName}`)}`,
+    `DESCRIPTION:${escapeICalText(`Gespräch mit ${teacherName}\n${visitor.description}`)}`,
+    `LOCATION:${escapeICalText('BKSB')}`,
     'STATUS:CONFIRMED',
     'SEQUENCE:0',
     'BEGIN:VALARM',
     'TRIGGER:-PT15M',
     'ACTION:DISPLAY',
-    'DESCRIPTION:Erinnerung: Elternsprechtag in 15 Minuten',
+    `DESCRIPTION:${escapeICalText('Erinnerung: Elternsprechtag in 15 Minuten')}`,
     'END:VALARM',
     'END:VEVENT',
-    'END:VCALENDAR'
-  ].join('\r\n');
+    'END:VCALENDAR',
+  ];
 
-  downloadICalFile(icalContent, `Elternsprechtag-${teacherName}-${slot.time.replace(/[: ]/g, '')}.ics`);
+  const icalContent = buildICalContent(icalLines);
+  downloadICalFile(icalContent, `${sanitizeFileName(`Elternsprechtag-${teacherName}-${slot.time}`)}.ics`);
 }
 
 /**
@@ -98,44 +218,77 @@ export function exportSlotToICal(
  */
 export function exportBookingsToICal(
   bookings: ApiBooking[],
-  settings?: ApiSettings
+  settings?: ApiSettings,
+  opts?: { teacherRoomById?: Record<number, string | undefined>; defaultRoom?: string }
 ): void {
   const timestamp = getCurrentTimestamp();
   const eventName = settings?.event_name || 'BKSB Elternsprechtag';
   
   const events = bookings.map(booking => {
-    const startDate = formatICalDate(booking.date, booking.time);
-    const endDate = getEndTime(booking.date, booking.time);
-    
-    return [
-      'BEGIN:VEVENT',
-      `UID:booking-${booking.id}@bksb-elternsprechtag.de`,
-      `DTSTAMP:${timestamp}`,
-      `DTSTART:${startDate}`,
-      `DTEND:${endDate}`,
-      `SUMMARY:${booking.teacherName} - ${booking.parentName}`,
-      `DESCRIPTION:Schüler/in: ${booking.studentName}\\nKlasse: ${booking.className}\\nEltern: ${booking.parentName}`,
-      `LOCATION:BKSB`,
-      'STATUS:CONFIRMED',
-      'SEQUENCE:0',
-      'END:VEVENT'
-    ].join('\r\n');
-  }).join('\r\n');
+    try {
+      const startDate = formatICalDateLocal(booking.date, booking.time);
+      const endDate = getEndTimeLocal(booking.date, booking.time);
+      const safeTeacherName = booking.teacherName?.trim() || 'nicht angegeben';
+      const visitor = buildVisitorDetails(booking);
+      const roomFromMap = opts?.teacherRoomById && booking.teacherId ? opts.teacherRoomById[booking.teacherId] : undefined;
+      const room = roomFromMap ?? opts?.defaultRoom;
+      return [
+        'BEGIN:VEVENT',
+        `UID:booking-${booking.id}-${startDate}@bksb-elternsprechtag.de`,
+        `DTSTAMP:${timestamp}`,
+        `DTSTART;TZID=Europe/Berlin:${startDate}`,
+        `DTEND;TZID=Europe/Berlin:${endDate}`,
+        `SUMMARY:${escapeICalText(`${eventName} – ${safeTeacherName}`)}`,
+        `DESCRIPTION:${escapeICalText(visitor.description)}`,
+        `LOCATION:${escapeICalText(buildLocation(room))}`,
+        'STATUS:CONFIRMED',
+        'SEQUENCE:0',
+        'END:VEVENT'
+      ].join('\r\n');
+    } catch (e) {
+      console.warn('Überspringe ungültigen Termin beim Export:', booking, e);
+      return null;
+    }
+  }).filter(Boolean).join('\r\n');
+  
+  if (!events) {
+    alert('Export fehlgeschlagen: Keine gültigen Termine gefunden. Bitte prüfen Sie die Daten.');
+    return;
+  }
 
-  const icalContent = [
+  const icalLines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//BKSB Elternsprechtag//DE',
     'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${eventName} - Alle Buchungen`,
-    `X-WR-CALDESC:Übersicht aller Termine für ${eventName}`,
+    'X-WR-TIMEZONE:Europe/Berlin',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Berlin',
+    'X-LIC-LOCATION:Europe/Berlin',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:+0100',
+    'TZOFFSETTO:+0200',
+    'TZNAME:CEST',
+    'DTSTART:19700329T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:+0200',
+    'TZOFFSETTO:+0100',
+    'TZNAME:CET',
+    'DTSTART:19701025T030000',
+    'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+    `X-WR-CALNAME:${escapeICalText(`${eventName} - Alle Buchungen`)}`,
+    `X-WR-CALDESC:${escapeICalText(`Übersicht aller Termine für ${eventName}`)}`,
     events,
-    'END:VCALENDAR'
-  ].join('\r\n');
+    'END:VCALENDAR',
+  ];
 
   const dateStr = settings?.event_date ? new Date(settings.event_date).toISOString().split('T')[0] : 'termine';
-  downloadICalFile(icalContent, `Elternsprechtag-Alle-Buchungen-${dateStr}.ics`);
+  const icalContent = buildICalContent(icalLines);
+  downloadICalFile(icalContent, `${sanitizeFileName(`Elternsprechtag-Alle-Buchungen-${dateStr}`)}.ics`);
 }
 
 /**
@@ -144,6 +297,7 @@ export function exportBookingsToICal(
 export function exportTeacherSlotsToICal(
   slots: ApiSlot[],
   teacherName: string,
+  teacherRoom?: string,
   settings?: ApiSettings
 ): void {
   const timestamp = getCurrentTimestamp();
@@ -156,37 +310,66 @@ export function exportTeacherSlotsToICal(
   }
   
   const events = bookedSlots.map(slot => {
-    const startDate = formatICalDate(slot.date, slot.time);
-    const endDate = getEndTime(slot.date, slot.time);
-    
-    return [
-      'BEGIN:VEVENT',
-      `UID:teacher-slot-${slot.id}@bksb-elternsprechtag.de`,
-      `DTSTAMP:${timestamp}`,
-      `DTSTART:${startDate}`,
-      `DTEND:${endDate}`,
-      `SUMMARY:${eventName} - ${slot.parentName}`,
-      `DESCRIPTION:Schüler/in: ${slot.studentName}\\nKlasse: ${slot.className}\\nEltern: ${slot.parentName}`,
-      `LOCATION:BKSB`,
-      'STATUS:CONFIRMED',
-      'SEQUENCE:0',
-      'END:VEVENT'
-    ].join('\r\n');
-  }).join('\r\n');
+    try {
+      const startDate = formatICalDateLocal(slot.date, slot.time);
+      const endDate = getEndTimeLocal(slot.date, slot.time);
+      const visitor = buildVisitorDetails(slot);
+      return [
+        'BEGIN:VEVENT',
+        `UID:teacher-slot-${slot.id}-${startDate}@bksb-elternsprechtag.de`,
+        `DTSTAMP:${timestamp}`,
+        `DTSTART;TZID=Europe/Berlin:${startDate}`,
+        `DTEND;TZID=Europe/Berlin:${endDate}`,
+        `SUMMARY:${escapeICalText(`Termin: ${visitor.titleTarget}`.trim())}`,
+        `DESCRIPTION:${escapeICalText(visitor.description)}`,
+        `LOCATION:${escapeICalText(buildLocation(teacherRoom))}`,
+        'STATUS:CONFIRMED',
+        'SEQUENCE:0',
+        'END:VEVENT'
+      ].join('\r\n');
+    } catch (e) {
+      console.warn('Überspringe ungültigen Slot beim Export:', slot, e);
+      return null;
+    }
+  }).filter(Boolean).join('\r\n');
+  
+  if (!events) {
+    alert('Export fehlgeschlagen: Keine gültigen Slots gefunden. Bitte prüfen Sie die Daten.');
+    return;
+  }
 
-  const icalContent = [
+  const icalLines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//BKSB Elternsprechtag//DE',
     'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${eventName} - ${teacherName}`,
-    `X-WR-CALDESC:Termine für ${teacherName}`,
+    'X-WR-TIMEZONE:Europe/Berlin',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Berlin',
+    'X-LIC-LOCATION:Europe/Berlin',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:+0100',
+    'TZOFFSETTO:+0200',
+    'TZNAME:CEST',
+    'DTSTART:19700329T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:+0200',
+    'TZOFFSETTO:+0100',
+    'TZNAME:CET',
+    'DTSTART:19701025T030000',
+    'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+    `X-WR-CALNAME:${escapeICalText(`${eventName} - ${teacherName}`)}`,
+    `X-WR-CALDESC:${escapeICalText(`Termine für ${teacherName}`)}`,
     events,
-    'END:VCALENDAR'
-  ].join('\r\n');
+    'END:VCALENDAR',
+  ];
 
-  downloadICalFile(icalContent, `Elternsprechtag-${teacherName}.ics`);
+  const icalContent = buildICalContent(icalLines);
+  downloadICalFile(icalContent, `${sanitizeFileName(`Elternsprechtag-${teacherName}`)}.ics`);
 }
 
 /**
@@ -194,11 +377,32 @@ export function exportTeacherSlotsToICal(
  */
 function downloadICalFile(content: string, filename: string): void {
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
+
+  // Mobile-friendly: use Web Share API (share .ics to Calendar apps) if available.
+  // Fallback: classic download via object URL.
+  const tryShare = async () => {
+    try {
+      const nav = navigator as unknown as { share?: (data: any) => Promise<void>; canShare?: (data: any) => boolean };
+      if (!nav?.share) return false;
+      const file = new File([blob], filename, { type: 'text/calendar;charset=utf-8' });
+      if (nav.canShare && !nav.canShare({ files: [file] })) return false;
+      await nav.share({ files: [file], title: filename });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  void (async () => {
+    const shared = await tryShare();
+    if (shared) return;
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  })();
 }
