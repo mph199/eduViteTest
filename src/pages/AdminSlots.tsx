@@ -238,9 +238,11 @@ export function AdminSlots() {
                   try {
                     setBulkCreating(true);
                     const res = await api.admin.generateTeacherSlots(selectedTeacherId);
-                    const created = (res as any)?.created ?? 0;
-                    const skipped = (res as any)?.skipped ?? 0;
-                    const eventDate = (res as any)?.eventDate;
+                    type GenerateSlotsResponse = { created?: number; skipped?: number; eventDate?: string | null };
+                    const parsed = res as unknown as GenerateSlotsResponse;
+                    const created = parsed?.created ?? 0;
+                    const skipped = parsed?.skipped ?? 0;
+                    const eventDate = parsed?.eventDate ?? null;
                     await loadSlots(selectedTeacherId);
                     alert(`Slots angelegt${eventDate ? ` (${eventDate})` : ''}: ${created}\nBereits vorhanden: ${skipped}`);
                   } catch (err) {

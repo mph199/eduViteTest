@@ -1,11 +1,37 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 
+type CachedVerify = { status: 'pending' | 'ok' | 'error'; message?: string };
+
+function readCached(storageKey: string): CachedVerify | null {
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    return JSON.parse(raw) as CachedVerify;
+  } catch {
+    return null;
+  }
+}
+
 export function VerifyEmail() {
   const token = new URLSearchParams(window.location.search).get('token');
 
-  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>(() => (token ? 'idle' : 'error'));
-  const [message, setMessage] = useState<string>(() => (token ? '' : 'Ungültiger Link.'));
+  const initial = (() => {
+    if (!token) return { status: 'error' as const, message: 'Ungültiger Link.' };
+
+    const storageKey = `verifyEmail:${token}`;
+    const cached = readCached(storageKey);
+    if (cached?.status === 'ok') {
+      return { status: 'ok' as const, message: cached.message || 'E-Mail bestätigt.' };
+    }
+    if (cached?.status === 'error') {
+      return { status: 'error' as const, message: cached.message || 'Verifikation fehlgeschlagen.' };
+    }
+    return { status: 'idle' as const, message: '' };
+  })();
+
+  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>(initial.status);
+  const [message, setMessage] = useState<string>(initial.message);
 
   useEffect(() => {
     if (!token) return;
@@ -14,27 +40,9 @@ export function VerifyEmail() {
     // Verification links are one-time-use, so we cache the result per token in sessionStorage.
     const storageKey = `verifyEmail:${token}`;
 
-    const readCached = () => {
-      try {
-        const raw = sessionStorage.getItem(storageKey);
-        if (!raw) return null;
-        return JSON.parse(raw) as { status: 'pending' | 'ok' | 'error'; message?: string };
-      } catch {
-        return null;
-      }
-    };
-
-    const cached = readCached();
-    if (cached?.status === 'ok') {
-      setStatus('ok');
-      setMessage(cached.message || 'E-Mail bestätigt.');
-      return;
-    }
-    if (cached?.status === 'error') {
-      setStatus('error');
-      setMessage(cached.message || 'Verifikation fehlgeschlagen.');
-      return;
-    }
+    const cached = readCached(storageKey);
+    // If already final, nothing to do (avoid setState in effect body)
+    if (cached?.status === 'ok' || cached?.status === 'error') return;
 
     let cancelled = false;
 
@@ -42,7 +50,7 @@ export function VerifyEmail() {
     if (cached?.status === 'pending') {
       const startedAt = Date.now();
       const interval = window.setInterval(() => {
-        const next = readCached();
+        const next = readCached(storageKey);
         if (next?.status === 'ok') {
           window.clearInterval(interval);
           if (!cancelled) {
@@ -77,8 +85,9 @@ export function VerifyEmail() {
     }
 
     api.bookings.verifyEmail(token)
-      .then((data: any) => {
-        const nextMessage = data?.message || 'E-Mail bestätigt.';
+      .then((data: unknown) => {
+        const parsed = data as { message?: string };
+        const nextMessage = parsed?.message || 'E-Mail bestätigt.';
         try {
           sessionStorage.setItem(storageKey, JSON.stringify({ status: 'ok', message: nextMessage }));
         } catch {

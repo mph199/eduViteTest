@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
 import { AuthContext } from './AuthContextBase.ts';
@@ -15,19 +15,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const VIEW_KEY = 'active_view';
 
-  const readStoredView = (): ActiveView | null => {
+  const readStoredView = useCallback((): ActiveView | null => {
     const raw = localStorage.getItem(VIEW_KEY);
     if (raw === 'admin' || raw === 'teacher') return raw;
     return null;
-  };
+  }, []);
 
-  const computeInitialView = (u: User): ActiveView => {
+  const computeInitialView = useCallback((u: User): ActiveView => {
     if (u.role === 'teacher') return 'teacher';
     if (u.role === 'admin' && u.teacherId) {
       return readStoredView() ?? 'admin';
     }
     return 'admin';
-  };
+  }, [readStoredView]);
 
   const setActiveView = (next: ActiveView) => {
     // If not authenticated yet, just persist (for later) and set state.
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     verifyAuth();
-  }, []);
+  }, [computeInitialView]);
 
   // Sofortige Reaktion auf 401-Events aus dem API-Client
   useEffect(() => {

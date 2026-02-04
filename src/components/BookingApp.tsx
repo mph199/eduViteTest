@@ -205,7 +205,7 @@ export const BookingApp = () => {
           )}
 
           <BookingForm
-            selectedTeacherId={selectedTeacherId}
+            key={selectedTeacherId ?? 'no-teacher'}
             selectedSlotId={selectedSlotId}
             onSubmit={handleBooking}
             onCancel={resetSelection}

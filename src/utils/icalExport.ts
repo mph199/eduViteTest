@@ -382,10 +382,10 @@ function downloadICalFile(content: string, filename: string): void {
   // Fallback: classic download via object URL.
   const tryShare = async () => {
     try {
-      const nav = navigator as unknown as { share?: (data: any) => Promise<void>; canShare?: (data: any) => boolean };
-      if (!nav?.share) return false;
+      const nav = navigator as Navigator;
+      if (typeof nav.share !== 'function') return false;
       const file = new File([blob], filename, { type: 'text/calendar;charset=utf-8' });
-      if (nav.canShare && !nav.canShare({ files: [file] })) return false;
+      if (typeof nav.canShare === 'function' && !nav.canShare({ files: [file] })) return false;
       await nav.share({ files: [file], title: filename });
       return true;
     } catch {

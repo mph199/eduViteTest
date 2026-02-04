@@ -82,7 +82,8 @@ export function AdminDashboard() {
   const loadActiveEvent = useCallback(async () => {
     try {
       const res = await api.events.getActive();
-      setActiveEvent(((res as any)?.event as ActiveEvent) || null);
+      const parsed = res as unknown as { event?: ActiveEvent | null };
+      setActiveEvent(parsed?.event || null);
     } catch {
       // Non-blocking: keep UI usable even if event endpoint fails
       setActiveEvent(null);

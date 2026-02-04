@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { BookingFormData } from '../types';
 
 interface BookingFormProps {
-  selectedTeacherId: number | null;
   selectedSlotId: number | null;
   onSubmit: (formData: BookingFormData) => void;
   onCancel: () => void;
@@ -11,7 +10,6 @@ interface BookingFormProps {
 }
 
 export const BookingForm = ({
-  selectedTeacherId,
   selectedSlotId,
   onSubmit,
   onCancel,
@@ -34,11 +32,6 @@ export const BookingForm = ({
 
   const [formData, setFormData] = useState<BookingFormState>(getInitialFormData);
 
-  // Wenn eine andere Lehrkraft gewählt wird, muss der Besuchertyp neu gewählt werden.
-  useEffect(() => {
-    setFormData(getInitialFormData());
-  }, [selectedTeacherId]);
-
   const visitorTypeSelected = formData.visitorType === 'parent' || formData.visitorType === 'company';
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -53,7 +46,8 @@ export const BookingForm = ({
     const visitorType = formData.visitorType;
     if (visitorType !== 'parent' && visitorType !== 'company') return;
 
-    const { visitorType: _ignored, ...rest } = formData;
+    const { visitorType: _visitorType, ...rest } = formData;
+    void _visitorType;
     onSubmit({ visitorType, ...rest });
     
     // Reset form after successful submission

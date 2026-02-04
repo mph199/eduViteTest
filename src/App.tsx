@@ -24,7 +24,8 @@ import './App.css'
 
 // Maintenance-Modus via Env: VITE_MAINTENANCE_MODE=true|1|yes
 const MAINTENANCE_MODE = (() => {
-  const raw = (import.meta as any).env?.VITE_MAINTENANCE_MODE;
+  const env = import.meta.env as unknown as Record<string, unknown>;
+  const raw = env?.VITE_MAINTENANCE_MODE;
   return typeof raw === 'string' && /^(1|true|yes)$/i.test(raw);
 })();
 
