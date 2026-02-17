@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { SlotList } from './SlotList';
 import { BookingForm } from './BookingForm';
 import { TeacherCombobox } from './TeacherCombobox';
@@ -54,6 +54,34 @@ export const BookingApp = () => {
     }).format(ends);
 
     return `${weekday}, ${date} | ${startTime}–${endTime} Uhr`;
+  }, [activeEvent]);
+
+  const formattedEventBanner = useMemo<ReactNode>(() => {
+    if (!activeEvent) return '';
+
+    const starts = new Date(activeEvent.starts_at);
+    const ends = new Date(activeEvent.ends_at);
+
+    const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'long' }).format(starts);
+    const date = new Intl.DateTimeFormat('de-DE', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(starts);
+    const startTime = new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(starts);
+    const endTime = new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(ends);
+
+    return (
+      <>
+        Der nächste Eltern- und Ausbildersprechtag findet am <strong>{weekday}, den {date}</strong> von {startTime} bis {endTime} Uhr statt.
+      </>
+    );
   }, [activeEvent]);
   
   
@@ -156,10 +184,6 @@ export const BookingApp = () => {
                 Wählen Sie die gewünschte Lehrkraft aus, klicken Sie auf einen freien Termin und senden Sie Ihre Anfrage ab.
               </p>
 
-              <div className="welcomeWindow__eventLine" aria-label="Termin">
-                {formattedEventHeader ? formattedEventHeader : 'Termine folgen'}
-              </div>
-
               {(eventLoading || eventError || !activeEvent) && (
                 <div className={`welcomeWindow__notice${eventError ? ' is-error' : ''}`} role="status">
                   {eventLoading ? 'Lade Eltern- und Ausbildersprechtag…' : eventError ? eventError : 'Buchungen sind aktuell noch nicht freigeschaltet.'}
@@ -175,6 +199,10 @@ export const BookingApp = () => {
                 <li>Daten eingeben und Anfrage senden</li>
               </ol>
             </aside>
+
+            <div className="welcomeWindow__eventLine" aria-label="Termin">
+              {formattedEventBanner ? formattedEventBanner : 'Der nächste Eltern- und Ausbildersprechtag: Termine folgen.'}
+            </div>
           </div>
         </div>
       </section>

@@ -85,8 +85,8 @@
 
   padding: 0.18rem 0.55rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.40);
-  border: 1px solid rgba(255, 255, 255, 0.40);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .globalTopHeader__brandBottom {
@@ -108,8 +108,8 @@
 .globalTopHeader__login {
   padding: 0.38rem 0.55rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.40);
-  border: 1px solid rgba(255, 255, 255, 0.40);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   line-height: 1.05;
 }
 
@@ -127,8 +127,8 @@
 
   padding: 0.38rem 0.55rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.30);
   color: rgba(17, 24, 39, 0.68);
   font-weight: 650;
   line-height: 1.05;
@@ -197,8 +197,8 @@
 
   padding: 0.38rem 0.55rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.40);
-  border: 1px solid rgba(255, 255, 255, 0.40);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   color: rgba(17, 24, 39, 0.66);
   font-weight: 650;
   line-height: 1.05;
@@ -286,10 +286,26 @@
   outline-offset: 2px;
 }
 
+@media (max-width: 900px) {
+  /* Admin/Teacher: keep header readable on tablets (burger + BKSB only) */
+  .globalTopHeader--area .globalTopHeader__areaLabel,
+  .globalTopHeader--area .globalTopHeader__moduleTitle {
+    display: none;
+  }
+
+  .globalTopHeader--area .globalTopHeader__right {
+    display: none;
+  }
+
+  .globalTopHeader--area .globalTopHeader__left {
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 720px) {
   .globalTopHeader__inner {
-    grid-template-columns: 1fr;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     padding: 0.65rem var(--page-gutter, 1.1rem) 0.4rem;
   }
 
@@ -298,7 +314,7 @@
   }
 
   .globalTopHeader__left {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.75rem;
   }
 
@@ -309,11 +325,16 @@
   }
 
   .globalTopHeader__right {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .globalTopHeader__menu {
     top: calc(100% + 0.4rem);
     min-width: min(92vw, 420px);
+  }
+
+  /* Public: hide long module title chip on small screens */
+  .globalTopHeader--public .globalTopHeader__moduleTitle {
+    display: none;
   }
 }

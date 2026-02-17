@@ -1,10 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../contexts/useAuth';
 import './GlobalTopHeader.css';
 
 export function GlobalTopHeader() {
+  const headerRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout, activeView, setActiveView } = useAuth();
@@ -16,6 +17,7 @@ export function GlobalTopHeader() {
   const showAreaMenu = Boolean(isAuthenticated && (inAdmin || inTeacher));
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
   const isPublic = showModuleTitle;
+  const isArea = showAreaMenu;
   const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
 
   const userLabel = user?.fullName || user?.username;
@@ -39,8 +41,33 @@ export function GlobalTopHeader() {
     return 'Admin';
   }, [inTeacher, pathname, showAreaMenu]);
 
+  useEffect(() => {
+    const element = headerRef.current;
+    if (!element) return;
+
+    const setHeightVar = () => {
+      const height = element.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--globalTopHeaderHeight', `${Math.round(height)}px`);
+    };
+
+    setHeightVar();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => setHeightVar());
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', setHeightVar);
+    return () => window.removeEventListener('resize', setHeightVar);
+  }, []);
+
   return (
-    <header className={`globalTopHeader${isPublic ? ' globalTopHeader--public' : ''}`} aria-label="BKSB Buchungssystem">
+    <header
+      ref={headerRef}
+      className={`globalTopHeader${isPublic ? ' globalTopHeader--public' : ''}${isArea ? ' globalTopHeader--area' : ''}`}
+      aria-label="BKSB Buchungssystem"
+    >
       <div className="globalTopHeader__inner">
         <div className="globalTopHeader__left">
           {showAreaMenu ? (

@@ -893,6 +893,47 @@
   }
 }
 
+/* Option A: AdminTeachers table becomes compact on tablets */
+@media (max-width: 900px) {
+  /* In compact mode we avoid a scroll-container wrapper so sticky works with page scrolling */
+  .teachers-table-container {
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+
+  /* Sticky header for the compact AdminTeachers table */
+  .teachers-table-container .bookings-table thead th {
+    position: sticky;
+    top: calc(var(--globalTopHeaderHeight, 72px) - 1px);
+    z-index: 2;
+    background: #f8f9fa;
+  }
+
+  .teachers-table-container .bookings-table {
+    min-width: 0;
+  }
+
+  .teachers-table-container .bookings-table th.col-id,
+  .teachers-table-container .bookings-table td.col-id,
+  .teachers-table-container .bookings-table th.col-salutation,
+  .teachers-table-container .bookings-table td.col-salutation,
+  .teachers-table-container .bookings-table th.col-email,
+  .teachers-table-container .bookings-table td.col-email,
+  .teachers-table-container .bookings-table th.col-officehours,
+  .teachers-table-container .bookings-table td.col-officehours {
+    display: none;
+  }
+
+  .teachers-table-container .bookings-table th,
+  .teachers-table-container .bookings-table td {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .teachers-table-container .action-buttons {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 768px) {
   .admin-header-content {
     flex-direction: column;

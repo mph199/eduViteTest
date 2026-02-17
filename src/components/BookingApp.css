@@ -92,11 +92,17 @@
 }
 
 .welcomeWindow__eventLine {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+
+  grid-column: 1 / -1;
+  justify-self: center;
+
+  width: fit-content;
+  max-width: 100%;
 
   margin-top: 0.85rem;
+  margin-left: auto;
+  margin-right: auto;
   padding: 0.7rem 0.9rem;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
@@ -106,14 +112,19 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.55);
 
   font-family: var(--font-heading);
-  font-size: 1.02rem;
-  font-weight: 750;
+  font-size: clamp(0.92rem, 1.2vw, 1.02rem);
+  font-weight: 500;
   font-style: normal;
   letter-spacing: 0.1px;
   color: rgba(17, 24, 39, 0.80);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.35;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+.welcomeWindow__eventLine strong {
+  font-weight: 800;
 }
 
 .welcomeWindow__text {
@@ -192,7 +203,6 @@
 @media (max-width: 720px) {
   .welcomeWindow__eventLine {
     width: 100%;
-    justify-content: flex-start;
   }
 }
 
@@ -396,15 +406,17 @@
   column-gap: 0.4rem;
   row-gap: 0.25rem;
   align-items: baseline;
-  padding: 0.5rem 0.65rem;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
-  border: 1px solid rgba(var(--brand-ink-rgb), 0.20);
-  color: rgba(255, 255, 255, 0.92);
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: var(--brand-ink);
   box-shadow:
-    0 10px 22px rgba(var(--brand-primary-rgb), 0.20),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  width: fit-content;
+    0 10px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  width: 100%;
 }
 
 .teacher-combobox-selectedLabel {
@@ -412,46 +424,53 @@
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(var(--brand-ink-rgb), 0.60);
 }
 
 .teacher-combobox-selectedValue {
   font-size: 0.92rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.96);
+  color: rgba(var(--brand-ink-rgb), 0.95);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .teacher-combobox-selectedValueRow {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
 }
 
 .teacher-combobox-selectedClear {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(var(--brand-ink-rgb), 0.18);
+  background: #ffffff;
+  color: rgba(var(--brand-ink-rgb), 0.9);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .teacher-combobox-selectedClearIcon {
   display: block;
   line-height: 1;
-  transform: translate(0.5px, -1.5px);
+  transform: none;
 }
 
 .teacher-combobox-selectedClear:hover {
-  background: rgba(255, 255, 255, 0.20);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(var(--brand-primary-rgb), 0.06);
+  border-color: rgba(var(--brand-primary-rgb), 0.30);
 }
 
 .teacher-combobox-selectedClear:active {
@@ -471,7 +490,7 @@
   position: relative;
   padding-left: 18px; /* space for pin */
   font-size: 0.88rem;
-  color: rgba(255, 255, 255, 0.90);
+  color: rgba(var(--brand-ink-rgb), 0.85);
   line-height: 1.25;
 }
 
@@ -482,10 +501,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: var(--brand-primary);
 }
 
 .teacher-combobox-pin svg {
-  fill: #991b1b;
+  fill: currentColor;
 }
 
 .teacher-combobox-room {

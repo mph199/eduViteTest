@@ -354,14 +354,14 @@ export function AdminTeachers() {
             <table className="bookings-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Anrede</th>
-                  <th>E-Mail</th>
-                  <th>System</th>
-                  <th>Sprechstunde</th>
-                  <th>Raum</th>
-                  <th>Aktionen</th>
+                  <th className="col-id">ID</th>
+                  <th className="col-name">Name</th>
+                  <th className="col-salutation">Anrede</th>
+                  <th className="col-email">E-Mail</th>
+                  <th className="col-system">System</th>
+                  <th className="col-officehours">Sprechstunde</th>
+                  <th className="col-room">Raum</th>
+                  <th className="col-actions">Aktionen</th>
                 </tr>
               </thead>
               <tbody>
@@ -376,11 +376,11 @@ export function AdminTeachers() {
                   })
                   .map((teacher) => (
                   <tr key={teacher.id}>
-                    <td>{teacher.id}</td>
-                    <td className="teacher-name">{teacher.name}</td>
-                    <td>{teacher.salutation || '-'}</td>
-                    <td>{teacher.email || '-'}</td>
-                    <td>
+                    <td className="col-id">{teacher.id}</td>
+                    <td className="teacher-name col-name">{teacher.name}</td>
+                    <td className="col-salutation">{teacher.salutation || '-'}</td>
+                    <td className="col-email">{teacher.email || '-'}</td>
+                    <td className="col-system">
                       <select
                         className="admin-table-select"
                         value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
@@ -393,10 +393,10 @@ export function AdminTeachers() {
                         <option value="vollzeit">Vollzeit</option>
                       </select>
                     </td>
-                    <td>{teacher.system === 'vollzeit' ? '17:00 - 19:00 Uhr' : '16:00 - 18:00 Uhr'}</td>
-                    <td>{teacher.room || '-'}</td>
-                    <td>
-                      <div className="action-buttons">
+                    <td className="col-officehours">{teacher.system === 'vollzeit' ? '17:00 - 19:00 Uhr' : '16:00 - 18:00 Uhr'}</td>
+                    <td className="col-room">{teacher.room || '-'}</td>
+                    <td className="col-actions">
+                      <div className="action-buttons action-buttons--compact">
                         <button
                           onClick={() => handleEdit(teacher)}
                           className="edit-button"
