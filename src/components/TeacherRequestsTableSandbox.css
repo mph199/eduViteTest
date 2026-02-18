@@ -47,10 +47,33 @@
 }
 
 .sandbox-carousel-progress {
-  margin: 0;
+  margin: 0 0 10px;
   color: #475569;
   font-size: 0.84rem;
   font-weight: 700;
+  text-align: center;
+}
+
+.sandbox-carousel-frame {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sandbox-carousel-frame .sandbox-carousel {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sandbox-nav-arrow {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .sandbox-nav-btn {
@@ -634,6 +657,12 @@
 
   .sandbox-nav-btn {
     padding: 7px 10px;
+  }
+
+  .sandbox-nav-arrow {
+    width: 38px;
+    height: 38px;
+    padding: 0;
   }
 
   .sandbox-table__cards {

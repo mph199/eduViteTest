@@ -275,38 +275,33 @@ export function TeacherRequestsTableSandbox({
     <section className="sandbox-table" aria-label="Anfragen-Kartenansicht">
       <div className="sandbox-table__views">
       {total > 0 && (
-        <div className="sandbox-carousel-toolbar" aria-label="Karten-Navigation">
+        <p className="sandbox-carousel-progress">
+          Anfrage {Math.min(safeActiveIndex + 1, total)} von {total}
+        </p>
+      )}
+
+      <div className="sandbox-carousel-frame" aria-label="Karten-Navigation">
+        {total > 0 && (
           <button
             type="button"
-            className="sandbox-nav-btn"
+            className="sandbox-nav-btn sandbox-nav-arrow"
+            aria-label="Vorherige Anfrage"
             onClick={() => scrollToIndex(safeActiveIndex - 1)}
             disabled={safeActiveIndex <= 0}
           >
-            Zurück
+            {'<'}
           </button>
-          <p className="sandbox-carousel-progress">
-            Anfrage {Math.min(safeActiveIndex + 1, total)} von {total}
-          </p>
-          <button
-            type="button"
-            className="sandbox-nav-btn"
-            onClick={() => scrollToIndex(safeActiveIndex + 1)}
-            disabled={safeActiveIndex >= total - 1}
-          >
-            Weiter
-          </button>
-        </div>
-      )}
+        )}
 
-      <div
-        ref={carouselRef}
-        className="sandbox-carousel"
-        aria-label="Kartenansicht der Anfragen"
-        onPointerDown={handleDragStart}
-        onTouchStart={handleDragStart}
-        onWheel={handleDragStart}
-        onScroll={handleCarouselScroll}
-      >
+        <div
+          ref={carouselRef}
+          className="sandbox-carousel"
+          aria-label="Kartenansicht der Anfragen"
+          onPointerDown={handleDragStart}
+          onTouchStart={handleDragStart}
+          onWheel={handleDragStart}
+          onScroll={handleCarouselScroll}
+        >
         {requests.length === 0 ? (
           <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
         ) : requests.map((request, index) => {
@@ -454,6 +449,19 @@ export function TeacherRequestsTableSandbox({
           </article>
           );
         })}
+        </div>
+
+        {total > 0 && (
+          <button
+            type="button"
+            className="sandbox-nav-btn sandbox-nav-arrow"
+            aria-label="Nächste Anfrage"
+            onClick={() => scrollToIndex(safeActiveIndex + 1)}
+            disabled={safeActiveIndex >= total - 1}
+          >
+            {'>'}
+          </button>
+        )}
       </div>
 
       {total > 0 && (
