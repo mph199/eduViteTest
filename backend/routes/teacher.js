@@ -42,17 +42,23 @@ function fmtMinutes(mins) {
   return `${hh}:${mm}`;
 }
 
-function buildAssignableSlotTimesFromRequestedWindow(requestedTime) {
+function buildAssignableSlotTimesFromRequestedWindow(requestedTime, slotMinutes = null) {
   const parsed = parseTimeWindow(requestedTime);
   if (!parsed) return [];
 
+  // Infer slot duration from the window size or use the explicit parameter
+  const windowSize = parsed.end - parsed.start;
+  const dur = slotMinutes && [10, 15, 20, 30].includes(slotMinutes)
+    ? slotMinutes
+    : (windowSize <= 30 ? windowSize : 15);
+
   const times = [];
-  for (let m = parsed.start; m + 15 <= parsed.end; m += 15) {
-    times.push(`${fmtMinutes(m)} - ${fmtMinutes(m + 15)}`);
+  for (let m = parsed.start; m + dur <= parsed.end; m += dur) {
+    times.push(`${fmtMinutes(m)} - ${fmtMinutes(m + dur)}`);
   }
 
-  // Backward compatibility: if a legacy 15-min request is stored, keep it assignable.
-  if (!times.length && parsed.end - parsed.start === 15) {
+  // Backward compatibility: if the window exactly equals one slot, keep it assignable.
+  if (!times.length && windowSize > 0) {
     return [`${fmtMinutes(parsed.start)} - ${fmtMinutes(parsed.end)}`];
   }
   return times;
@@ -158,30 +164,37 @@ ${teacherMessageHtml}
 }
 
 async function assignRequestToSlot(current, teacherId, preferredTime = null, teacherMessage = '', teacherSystem = null) {
-  const resolvedTeacherSystem = teacherSystem || (await getTeacherSystem(teacherId));
-  const allowedTimes = buildAssignableSlotTimesForSystem(resolvedTeacherSystem);
-  const allowedSet = new Set(allowedTimes);
-
   const candidateTimes = buildAssignableSlotTimesFromRequestedWindow(current.requested_time);
   const normalizedPreferredTime = typeof preferredTime === 'string' ? preferredTime.trim() : '';
   if (normalizedPreferredTime && !isValidSlotTimeRange(normalizedPreferredTime)) {
-    return { ok: false, code: 'INVALID_TIME_SELECTION', candidateTimes: allowedTimes };
+    return { ok: false, code: 'INVALID_TIME_SELECTION', candidateTimes };
   }
 
-  if (!candidateTimes.length && !normalizedPreferredTime) {
-    return { ok: false, code: 'INVALID_REQUEST_WINDOW' };
-  }
-
+  // Build ordered list of times to try: preferred first, then candidates from window
   const orderedTimes = [];
   if (normalizedPreferredTime) orderedTimes.push(normalizedPreferredTime);
   for (const t of candidateTimes) {
     if (!orderedTimes.includes(t)) orderedTimes.push(t);
   }
 
-  const systemConformTimes = orderedTimes.filter((time) => allowedSet.has(time));
-
-  if (!systemConformTimes.length) {
-    return { ok: false, code: 'INVALID_TIME_SELECTION', candidateTimes: allowedTimes };
+  // If no preferred time and no candidates, query all free slots for this teacher+date
+  if (!orderedTimes.length) {
+    const { data: anyFreeSlots, error: anyErr } = await supabase
+      .from('slots')
+      .select('*')
+      .eq('teacher_id', teacherId)
+      .eq('date', current.date)
+      .eq('booked', false)
+      .order('time', { ascending: true })
+      .limit(50);
+    if (anyErr) throw anyErr;
+    if (!anyFreeSlots?.length) {
+      return { ok: false, code: 'NO_SLOT_AVAILABLE' };
+    }
+    // Use all free slots as candidates
+    for (const s of anyFreeSlots) {
+      if (!orderedTimes.includes(s.time)) orderedTimes.push(s.time);
+    }
   }
 
   const { data: slotRows, error: slotErr } = await supabase
@@ -190,11 +203,11 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
     .eq('teacher_id', teacherId)
     .eq('date', current.date)
     .eq('booked', false)
-    .in('time', systemConformTimes)
+    .in('time', orderedTimes)
     .limit(50);
   if (slotErr) throw slotErr;
 
-  const slot = pickPreferredSlot(slotRows, systemConformTimes, current.event_id ?? null);
+  const slot = pickPreferredSlot(slotRows, orderedTimes, current.event_id ?? null);
   if (!slot) {
     const eventIds = Array.from(new Set((slotRows || []).map((r) => r.event_id)));
     return {
@@ -417,7 +430,6 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const teacherSystem = await getTeacherSystem(teacherId);
-    const allowedSet = new Set(buildAssignableSlotTimesForSystem(teacherSystem));
 
     // Auto-assign verified requests older than 24h to the earliest free slot.
     await autoAssignOverdueRequestsForTeacher(teacherId);
@@ -454,7 +466,6 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
           const scopedFreeTimes = allFreeSlots
             .filter((slot) => slot.date === row.date)
             .map((slot) => slot.time)
-            .filter((time) => allowedSet.has(time))
             .filter((value, index, arr) => arr.indexOf(value) === index);
 
           return {

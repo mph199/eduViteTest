@@ -65,8 +65,8 @@ export const BookingForm = ({
 
   return (
     <div className="booking-form-container" role="region" aria-label="Buchungsformular">
-      <h2>Termin buchen</h2>
-      <form onSubmit={handleSubmit} className="booking-form" aria-label="Termin buchen">
+      <h2>Terminanfrage</h2>
+      <form onSubmit={handleSubmit} className="booking-form" aria-label="Terminanfrage absenden">
         <div className="form-group">
           <label htmlFor="visitorType">Besuchertyp</label>
           <select

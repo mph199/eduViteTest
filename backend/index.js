@@ -34,7 +34,8 @@ function buildHalfHourWindows(startHour, endHour) {
   return windows;
 }
 
-function buildQuarterHourWindows(startHour, endHour) {
+function buildQuarterHourWindows(startHour, endHour, slotMinutes = 15) {
+  const dur = [10, 15, 20, 30].includes(slotMinutes) ? slotMinutes : 15;
   const windows = [];
   const pad2 = (n) => String(n).padStart(2, '0');
   const toMins = (h, m) => h * 60 + m;
@@ -42,8 +43,8 @@ function buildQuarterHourWindows(startHour, endHour) {
 
   const start = toMins(startHour, 0);
   const end = toMins(endHour, 0);
-  for (let m = start; m + 15 <= end; m += 15) {
-    windows.push(`${fmt(m)} - ${fmt(m + 15)}`);
+  for (let m = start; m + dur <= end; m += dur) {
+    windows.push(`${fmt(m)} - ${fmt(m + dur)}`);
   }
   return windows;
 }
@@ -803,11 +804,11 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
 });
 
 // Helper function to generate time slots
-function generateTimeSlots(system) {
+function generateTimeSlots(system, slotMinutes = 15) {
   if (system === 'vollzeit') {
-    return buildQuarterHourWindows(17, 19);
+    return buildQuarterHourWindows(17, 19, slotMinutes);
   }
-  return buildQuarterHourWindows(16, 18);
+  return buildQuarterHourWindows(16, 18, slotMinutes);
 }
 
 // POST /api/admin/teachers - Create new teacher (and login user)
@@ -1729,7 +1730,8 @@ app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, asyn
   const eventId = parseInt(req.params.id, 10);
   if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid id' });
 
-  const { dryRun, replaceExisting } = req.body || {};
+  const { dryRun, replaceExisting, slotMinutes: rawSlotMinutes } = req.body || {};
+  const slotMinutes = [10, 15, 20, 30].includes(rawSlotMinutes) ? rawSlotMinutes : 15;
 
   const formatDateDE = (isoOrDate) => {
     const d = new Date(isoOrDate);
@@ -1776,7 +1778,7 @@ app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, asyn
     let skipped = 0;
 
     for (const t of teacherRows) {
-      const times = generateTimeSlots(t.system || 'dual');
+      const times = generateTimeSlots(t.system || 'dual', slotMinutes);
 
       // Fetch existing slots for this teacher+event+date to avoid duplicates
       const { data: existingSlots, error: existingErr } = await supabase

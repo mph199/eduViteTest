@@ -1,0 +1,319 @@
+# Tenant-SaaS-Architektur – Konzept & Umsetzungsschritte
+
+## Vision
+Das bestehende BKSB-Buchungstool wird zu einer Multi-Tenant-SaaS-Plattform erweitert. Jede Schule ist ein eigener Tenant mit isolierten Daten und eigenem Branding. Alle Tenants laufen auf einem gemeinsamen Webspace, nutzen aber jeweils eigene Datenbanken.
+
+---
+
+## Architekturmodell: „Shared App, Separate Databases"
+
+```
+                    ┌─────────────────────────┐
+                    │     Reverse Proxy        │
+                    │   (Nginx / Caddy)        │
+                    │                          │
+                    │  bksb.sprechtag.de       │
+                    │  schule-x.sprechtag.de   │
+                    │  schule-y.sprechtag.de   │
+                    └────────┬────────────────┘
+                             │
+                    ┌────────▼────────────────┐
+                    │   Node.js Backend        │
+                    │   (1 Instanz)            │
+                    │                          │
+                    │   Tenant-Router:         │
+                    │   Request → Subdomain    │
+                    │         → DB-Connection  │
+                    └────┬───────┬───────┬────┘
+                         │       │       │
+                    ┌────▼──┐ ┌──▼───┐ ┌─▼────┐
+                    │ DB 1  │ │ DB 2 │ │ DB 3 │
+                    │ BKSB  │ │ Sch.X│ │ Sch.Y│
+                    └───────┘ └──────┘ └──────┘
+```
+
+**Warum separate Datenbanken?**
+- Maximale Datenisolation (DSGVO-konform, keine Schule sieht Daten anderer Schulen)
+- Einfaches Backup/Restore pro Schule
+- Unabhängige Schema-Migration möglich
+- Bei Bedarf einzelne Schulen auf andere Server migrierbar
+
+---
+
+## Schritt-für-Schritt-Umsetzung
+
+### Phase 1: Tenant-Registry (zentrale Verwaltungsebene)
+
+#### 1.1 Meta-Datenbank anlegen
+Eine kleine zentrale Datenbank, die alle Tenants verwaltet:
+
+```sql
+-- meta_db
+CREATE TABLE tenants (
+  id          SERIAL PRIMARY KEY,
+  slug        VARCHAR(63) UNIQUE NOT NULL,   -- z.B. "bksb", "schule-x"
+  name        VARCHAR(255) NOT NULL,          -- "Berufskolleg Simmerath/Stolberg"
+  domain      VARCHAR(255),                   -- Custom Domain (optional)
+  db_host     VARCHAR(255) NOT NULL,
+  db_port     INTEGER DEFAULT 5432,
+  db_name     VARCHAR(255) NOT NULL,
+  db_user     VARCHAR(255) NOT NULL,
+  db_password TEXT NOT NULL,                  -- verschlüsselt gespeichert
+  logo_url    TEXT,
+  primary_color VARCHAR(7) DEFAULT '#16a34a',
+  status      VARCHAR(20) DEFAULT 'active',   -- active | suspended | trial
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE tenant_admins (
+  id          SERIAL PRIMARY KEY,
+  tenant_id   INTEGER REFERENCES tenants(id),
+  email       VARCHAR(255) NOT NULL,
+  password    TEXT NOT NULL,
+  role        VARCHAR(20) DEFAULT 'tenant_admin',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### 1.2 Tenant-Identifikation
+Jeder Request wird einem Tenant zugeordnet über:
+- **Subdomain:** `bksb.sprechtag.de` → Tenant "bksb"
+- **Oder Header/Path:** `sprechtag.de/bksb/...` (weniger elegant, aber einfacher auf Shared Hosting)
+
+```javascript
+// middleware/tenant.js
+function resolveTenant(req, res, next) {
+  const host = req.hostname;                     // "bksb.sprechtag.de"
+  const slug = host.split('.')[0];               // "bksb"
+
+  const tenant = tenantCache.get(slug);
+  if (!tenant || tenant.status !== 'active') {
+    return res.status(404).json({ error: 'Schule nicht gefunden' });
+  }
+
+  req.tenant = tenant;
+  req.db = getDbConnection(tenant);              // Tenant-spezifische DB
+  next();
+}
+```
+
+### Phase 2: Datenbankzugriff dynamisieren
+
+#### 2.1 Connection-Pool pro Tenant
+```javascript
+// config/tenantDb.js
+import pg from 'pg';
+const pools = new Map();
+
+export function getDbConnection(tenant) {
+  if (pools.has(tenant.slug)) {
+    return pools.get(tenant.slug);
+  }
+
+  const pool = new pg.Pool({
+    host: tenant.db_host,
+    port: tenant.db_port,
+    database: tenant.db_name,
+    user: tenant.db_user,
+    password: decrypt(tenant.db_password),
+    max: 5,                                      // Connections pro Tenant begrenzen
+    idleTimeoutMillis: 30000,
+  });
+
+  pools.set(tenant.slug, pool);
+  return pool;
+}
+```
+
+#### 2.2 Supabase-Client ersetzen
+Der aktuelle Code nutzt überall `supabase.from('table').select(...)`. Dieser muss durch tenant-bewusste Queries ersetzt werden:
+
+**Vorher (aktuell):**
+```javascript
+const { data, error } = await supabase.from('teachers').select('*');
+```
+
+**Nachher (Multi-Tenant):**
+```javascript
+const { rows } = await req.db.query('SELECT * FROM teachers');
+```
+
+Betroffen: **Alle Backend-Dateien** die `supabase` importieren:
+- `backend/index.js` (~80 Stellen)
+- `backend/routes/auth.js` (~10 Stellen)
+- `backend/routes/teacher.js` (~40 Stellen)
+- `backend/services/slotsService.js` (~15 Stellen)
+- `backend/services/teachersService.js` (~5 Stellen)
+
+**Empfehlung:** Einen dünnen DB-Abstraction-Layer bauen:
+```javascript
+// utils/db.js
+export function dbFrom(req) {
+  return {
+    async select(table, where = {}, options = {}) { ... },
+    async insert(table, data) { ... },
+    async update(table, data, where) { ... },
+    async delete(table, where) { ... },
+  };
+}
+```
+
+### Phase 3: Frontend Multi-Tenant-fähig machen
+
+#### 3.1 Tenant-Kontext
+```typescript
+// contexts/TenantContext.tsx
+interface TenantConfig {
+  slug: string;
+  name: string;           // "Berufskolleg Simmerath/Stolberg"
+  logoUrl?: string;
+  primaryColor: string;
+}
+
+// Beim App-Start: GET /api/tenant/config → liefert Branding-Daten
+```
+
+#### 3.2 Dynamisches Branding
+- Schulname in Header/Footer/Titel dynamisch aus Tenant-Config
+- Primärfarbe per CSS Custom Property: `document.documentElement.style.setProperty('--color-primary', tenant.primaryColor)`
+- Logo dynamisch laden
+- Hardcodierte Referenzen auf "BKSB" durch `tenant.name` ersetzen
+
+#### 3.3 Ein Build, viele Tenants
+Das Frontend bleibt ein **einzelner Build**. Der Tenant wird zur Laufzeit über die URL erkannt:
+```typescript
+const slug = window.location.hostname.split('.')[0];
+// → API-Calls gehen automatisch an die richtige Subdomain
+```
+
+### Phase 4: Tenant-Onboarding-Prozess
+
+#### 4.1 Neue Schule anlegen (Admin-Panel)
+Ein Super-Admin-Bereich, der neue Tenants provisioniert:
+
+1. **Datenbank erstellen:**
+   ```sql
+   CREATE DATABASE sprechtag_schule_xyz;
+   ```
+2. **Schema anwenden:** Alle Tabellen + Migrations automatisiert ausführen
+3. **Tenant in Meta-DB registrieren:** slug, DB-Credentials, Branding
+4. **Initialen Admin-Account anlegen**
+5. **DNS-Eintrag:** Wildcard `*.sprechtag.de → Server-IP` (einmalig) oder individueller CNAME
+
+#### 4.2 Automatisiertes Setup-Skript
+```bash
+#!/bin/bash
+# provision-tenant.sh
+SLUG=$1
+DB_NAME="sprechtag_${SLUG}"
+
+# 1. Datenbank anlegen
+createdb $DB_NAME
+
+# 2. Schema migrieren
+psql $DB_NAME < backend/schema.sql
+for f in backend/migrations/*.sql; do psql $DB_NAME < "$f"; done
+
+# 3. Admin-User anlegen
+node backend/create-tenant-admin.js --slug=$SLUG --email=admin@schule.de
+
+# 4. Tenant registrieren
+node backend/register-tenant.js --slug=$SLUG --db=$DB_NAME --name="Neue Schule"
+```
+
+### Phase 5: Infrastruktur auf IONOS
+
+#### 5.1 Server-Setup
+```
+IONOS VPS / Cloud Server
+├── Nginx (Reverse Proxy + SSL)
+│   ├── *.sprechtag.de → Node.js :4000
+│   └── SSL via Let's Encrypt (Wildcard-Zertifikat)
+├── Node.js (PM2)
+│   └── 1 Instanz, multi-tenant-fähig
+├── PostgreSQL
+│   ├── meta_db           (Tenant-Registry)
+│   ├── sprechtag_bksb    (BKSB)
+│   ├── sprechtag_xyz     (Schule X)
+│   └── sprechtag_abc     (Schule Y)
+└── Certbot (Wildcard SSL)
+```
+
+#### 5.2 DNS-Konfiguration
+- Wildcard-DNS: `*.sprechtag.de → A-Record → IONOS-Server-IP`
+- Oder pro Schule individuellen CNAME setzen
+- Wildcard-SSL mit Let's Encrypt + DNS-Challenge (IONOS API unterstützt das)
+
+#### 5.3 Ressourcen-Planung
+| Schulen | RAM | CPU | Disk | DB-Pool |
+|---|---|---|---|---|
+| 1–5 | 2 GB | 2 vCPU | 40 GB | 5 Conn/Tenant |
+| 5–20 | 4 GB | 4 vCPU | 80 GB | 3 Conn/Tenant |
+| 20–50 | 8 GB | 4 vCPU | 160 GB | 2 Conn/Tenant |
+
+---
+
+## Abgrenzung: Was ändert sich, was bleibt?
+
+| Bereich | Aktuell | Multi-Tenant |
+|---|---|---|
+| Frontend-Code | 1 Build, hardcodiert "BKSB" | 1 Build, dynamisches Branding |
+| Backend-Code | Supabase-Client, 1 DB | pg-Client, N DBs via Tenant-Middleware |
+| Datenbank | 1 Supabase-Instanz | N PostgreSQL-Datenbanken |
+| Auth/JWT | 1 Secret | 1 Secret (global) + tenant_slug im JWT |
+| E-Mail | 1 SMTP-Config | Pro Tenant konfigurierbar (Absender-Domain) |
+| Deploy | Vercel + Render | 1 IONOS VPS |
+| Domain | 1 URL | *.sprechtag.de (Wildcard-Subdomains) |
+
+---
+
+## Umsetzungsreihenfolge (empfohlen)
+
+```
+1. IONOS-Migration durchführen (siehe ToDo_IONOS.md)
+   └── Supabase-Client → direkter pg-Client
+       (Das ist Voraussetzung für Multi-Tenant!)
+
+2. Tenant-Middleware + Meta-DB einführen
+   └── req.tenant + req.db in jeder Route
+
+3. DB-Zugriffe dynamisieren
+   └── supabase.from() → req.db.query()
+       (Wurde in Schritt 1 schon vorbereitet!)
+
+4. Frontend-Branding dynamisieren
+   └── Tenant-Config-Endpoint + CSS Custom Properties
+
+5. Onboarding-Tooling bauen
+   └── Provisioning-Skript + Super-Admin-Panel
+
+6. DNS + SSL Wildcard einrichten
+```
+
+---
+
+## Aufwandschätzung
+
+| Phase | Aufwand |
+|---|---|
+| Phase 1: Tenant-Registry | 4–6h |
+| Phase 2: DB-Dynamisierung | 8–12h (Kernaufwand, ~150 Stellen) |
+| Phase 3: Frontend Multi-Tenant | 4–6h |
+| Phase 4: Onboarding-Tooling | 6–8h |
+| Phase 5: Infra/DNS/SSL | 3–4h |
+| Testing & Stabilisierung | 6–8h |
+| **Gesamt** | **~31–44h** |
+
+**Hinweis:** Phase 2 (DB-Dynamisierung) überschneidet sich stark mit der IONOS-Migration. Wenn man beides zusammen plant, spart man ca. 6–8h, da der Supabase-Client ohnehin ersetzt werden muss.
+
+---
+
+## Risiken & Offene Fragen
+
+- **Connection-Pool-Limits:** Bei vielen Tenants muss der Pool pro Tenant klein bleiben. Lazy-Loading + Idle-Timeout sind Pflicht.
+- **Schema-Migrationen:** Müssen auf *allen* Tenant-DBs ausgeführt werden → Migrations-Runner bauen.
+- **Backup-Strategie:** Automatisierte pg_dump pro Tenant-DB (Cronjob).
+- **Kosten:** IONOS VPS ab ~8€/Monat (2 vCPU, 2 GB RAM). Skaliert linear mit Schulanzahl.
+- **DSGVO:** Separate DBs sind ideal für AVV (Auftragsverarbeitungsvertrag) pro Schule.
+- **Alternative „Database per Schema":** Statt separater DBs könnte man PostgreSQL-Schemas nutzen (`SET search_path TO tenant_bksb`). Einfacher, aber weniger isoliert.

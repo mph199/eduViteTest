@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BookingRequest } from '../types';
 import './TeacherRequestsTableSandbox.css';
 
-function buildAssignableQuarterHourSlots(timeWindow: string): string[] {
+function buildAssignableSlots(timeWindow: string): string[] {
   const m = String(timeWindow || '').trim().match(/^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/);
   if (!m) return [];
 
@@ -16,9 +16,13 @@ function buildAssignableQuarterHourSlots(timeWindow: string): string[] {
     return `${hh}:${mm}`;
   };
 
+  // Infer slot duration from the window size
+  const windowSize = end - start;
+  const dur = windowSize <= 30 ? windowSize : 15;
+
   const result: string[] = [];
-  for (let t = start; t + 15 <= end; t += 15) {
-    result.push(`${fmt(t)} - ${fmt(t + 15)}`);
+  for (let t = start; t + dur <= end; t += dur) {
+    result.push(`${fmt(t)} - ${fmt(t + dur)}`);
   }
   return result;
 }
@@ -42,7 +46,8 @@ function parseTimeWindowToMinutes(timeWindow: string): { start: number; end: num
 
   const start = Number.parseInt(pointMatch[1], 10) * 60 + Number.parseInt(pointMatch[2], 10);
   if (!Number.isFinite(start)) return null;
-  return { start, end: start + 15 };
+  // For a bare point time, assume a minimal 10-min slot
+  return { start, end: start + 10 };
 }
 
 function splitTimesByRequestedWindow(times: string[], requestedWindow: string) {
@@ -78,7 +83,7 @@ function getAssignableTimes(request: BookingRequest): string[] {
   if (Array.isArray(request.assignableTimes)) {
     return request.assignableTimes.filter((value) => typeof value === 'string' && value.trim().length > 0);
   }
-  return buildAssignableQuarterHourSlots(request.requestedTime);
+  return buildAssignableSlots(request.requestedTime);
 }
 
 function formatCreatedAt(createdAt?: string): string {

@@ -132,14 +132,15 @@ export const BookingApp = () => {
       {bookingNoticeOpen && (
         <div className="booking-notice-overlay" role="dialog" aria-modal="true" aria-label="Hinweis zur E-Mail-Bestätigung">
           <div className="booking-notice">
-            <h3>Fast fertig</h3>
+            <h3>Fast fertig!</h3>
             <p>
-              Danke für Ihre Buchungsanfrage!
+              Vielen Dank für Ihre Terminanfrage!
             </p>
             <p>
               <span className="booking-notice-important">Wichtig:</span>{' '}
-              Die Lehrkraft kann Ihnen erst nach der E-Mail-Bestätigung einen Termin zuweisen.
-              Bitte prüfen Sie Ihr Postfach (ggf. Spam) und klicken Sie auf den Bestätigungslink.
+              Bitte bestätigen Sie zunächst Ihre E-Mail-Adresse über den zugesandten Link (ggf. im Spam-Ordner prüfen).
+              Anschließend wird die Lehrkraft Ihnen einen Termin im gewünschten Zeitfenster zuweisen.
+              Sie erhalten eine Bestätigungs-E-Mail mit Datum, Uhrzeit und Raum.
             </p>
             <button type="button" className="btn btn-primary" onClick={resetSelection}>
               Verstanden
@@ -157,11 +158,15 @@ export const BookingApp = () => {
               </div>
 
               <p className="welcomeWindow__text">
-                Über dieses Portal können Sie Termine für den Eltern- und Ausbildersprechtag am BKSB bequem online anfragen.
+                Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag am BKSB anfragen.
               </p>
 
               <p className="welcomeWindow__text">
-                Wählen Sie die gewünschte Lehrkraft aus, wählen Sie ein Zeitfenster und senden Sie Ihre Anfrage ab.
+                Wählen Sie die gewünschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewünschten Zeitfenster zuzuweisen. 
+              </p>
+
+              <p className="welcomeWindow__text">
+                Sobald Ihr Termin bestätigt wurde, erhalten Sie eine E-Mail mit allen Details.
               </p>
 
               {(eventLoading || eventError || !activeEvent) && (
@@ -175,9 +180,10 @@ export const BookingApp = () => {
               <h2 className="welcomeWindow__sideTitle">In drei Schritten zum Termin:</h2>
               <ol className="welcomeWindow__steps">
                 <li>Lehrkraft auswählen</li>
-                <li>Zeitfenster auswählen</li>
-                <li>Daten eingeben und Anfrage senden</li>
+                <li>Wunsch-Zeitfenster wählen</li>
+                <li>Daten eingeben und Anfrage absenden</li>
               </ol>
+              <p className="welcomeWindow__sideHint">Die Lehrkraft vergibt nach Möglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.</p>
             </aside>
 
             <div className="welcomeWindow__eventLine" aria-label="Termin">

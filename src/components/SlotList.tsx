@@ -18,14 +18,14 @@ export const SlotList = ({
   onSelectSlot,
 }: SlotListProps) => {
   const emptyMessage = !selectedTeacherId
-    ? 'Bitte wählen Sie eine Lehrkraft aus, um Zeitfenster zu sehen.'
+    ? 'Bitte wählen Sie eine Lehrkraft aus, um verfügbare Zeitfenster zu sehen.'
     : eventId === null
       ? 'Buchungen sind aktuell nicht freigeschaltet. Bitte versuchen Sie es später erneut.'
       : 'Für diese Lehrkraft sind aktuell keine Zeitfenster verfügbar. Bitte wählen Sie eine andere Lehrkraft oder versuchen Sie es später erneut.';
 
   const headline = selectedTeacherId && selectedTeacherName
-    ? `Zeitfenster bei ${selectedTeacherName}`
-    : 'Zeitfenster';
+    ? `Wunsch-Zeitfenster bei ${selectedTeacherName}`
+    : 'Wunsch-Zeitfenster';
 
   return (
     <div className="slot-list" role="region" aria-label={headline}>
@@ -50,8 +50,8 @@ export const SlotList = ({
               <div className="slot-time" aria-label="Zeitraum">
                 {slot.time || 'Uhrzeit folgt'}
               </div>
-              <div className="slot-meta" aria-label="Tag">
-                <span className="slot-meta-label">Tag</span>
+              <div className="slot-meta" aria-label="Datum">
+                <span className="slot-meta-label">Datum</span>
                 <span className="slot-date">{slot.date || 'Datum folgt'}</span>
               </div>
             </button>
