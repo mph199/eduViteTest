@@ -4,25 +4,26 @@ Dieser Leitfaden hilft KI-Assistenzsystemen (und neuen Entwickler:innen), sich s
 
 ## Projektüberblick
 - Frontend: React 19 + Vite 7 (`src/`), TypeScript 5.9, React Router 7, Context-basiertes Auth, zentraler API-Client.
-- Backend: Node.js + Express (`backend/`), Supabase als DB, JWT-Auth, Nodemailer (E-Mail-Versand).
-- Deployment: Vercel (Frontend), Render (Backend) – siehe `vercel.json`, `backend/render.yaml`.
+- Backend: Node.js + Express (`backend/`), PostgreSQL via `pg` (node-postgres) Connection Pool, JWT-Auth, Nodemailer (E-Mail-Versand).
+- Deployment (Ziel): IONOS Deploy Now (Frontend, statisches SPA), IONOS VPS (Backend + PostgreSQL) – siehe `docs/ToDo_IONOS.md`.
+- Deployment (Legacy): Vercel (Frontend), Render (Backend), Supabase (DB) – siehe `vercel.json`, `backend/render.yaml`.
 
 ## Lokales Setup
 - Voraussetzungen: Node 20+ und npm.
 - Env-Dateien:
   - `.env.example` → Frontend: `VITE_API_URL` (Standard: `http://localhost:4000/api`)
-  - `backend/.env.example` → Backend: Supabase-Keys, PORT, SESSION_SECRET, SMTP-Config, `PUBLIC_BASE_URL`, `VERIFICATION_TOKEN_TTL_HOURS`
+  - `backend/.env.example` → Backend: `DATABASE_URL` (PostgreSQL), PORT, SESSION_SECRET, SMTP-Config, `PUBLIC_BASE_URL`, `VERIFICATION_TOKEN_TTL_HOURS`
 - Frontend starten:
   ```bash
-  cd /workspaces/elternsprechtagNavi_01_12_2025
+  cd /workspaces/eduViteTest
   npm install
   npm run dev   # Standard Port 5173, weicht bei Konflikt aus
   ```
 - Backend starten:
   ```bash
-  cd /workspaces/elternsprechtagNavi_01_12_2025/backend
+  cd /workspaces/eduViteTest/backend
   npm install
-  # .env anhand von .env.example anlegen (Supabase-Keys, JWT-Secret, SMTP)
+  # .env anhand von .env.example anlegen (DATABASE_URL, JWT-Secret, SMTP)
   npm run dev   # Port 4000 (node --watch index.js)
   ```
 
@@ -61,7 +62,8 @@ Dieser Leitfaden hilft KI-Assistenzsystemen (und neuen Entwickler:innen), sich s
 - `backend/routes/auth.js`: Login/Logout/Verify, JWT-Issuance (mit `teacherId` bei Lehrern).
 - `backend/routes/teacher.js`: Geschützte Lehrer-Endpoints (Bookings, Slots, Requests, Cancel, Accept, Decline, Password, Room, Feedback). Enthält Auto-Assignment-Timer für überfällige Anfragen (5-Min-Intervall, 24h-Schwelle).
 - `backend/middleware/auth.js`: JWT-Validierung, Rollen-Checks (`requireAuth`, `requireAdmin`, `requireTeacher`).
-- `backend/config/supabase.js`: Supabase-Client-Konfiguration.
+- `backend/config/db.js`: PostgreSQL Connection Pool (`pg.Pool`). Exportiert `query(text, params)` und `getClient()` für Transaktionen. Unterstützt `DATABASE_URL` oder einzelne `DB_*`-Umgebungsvariablen.
+- `backend/config/supabase.js`: ~~Supabase-Client-Konfiguration.~~ **Legacy – nicht mehr importiert.** Wird durch `db.js` ersetzt.
 - `backend/config/email.js`: E-Mail-Konfiguration (Ethereal für Dev, SMTP für Produktion); `sendMail`, `isEmailConfigured`.
 - `backend/services/slotsService.js`: Slot-Listing, Reserve-Booking, Token-Verify, Admin-Bookings, Cancel.
 - `backend/services/teachersService.js`: Lehrer-Listing.
@@ -207,15 +209,15 @@ Hinweis: `TeacherRoom.tsx` existiert als Page-Datei, ist aber aktuell **nicht al
 ## Schnellbefehle
 ```bash
 # Frontend starten
-cd /workspaces/elternsprechtagNavi_01_12_2025
+cd /workspaces/eduViteTest
 npm run dev
 
 # Backend starten
-cd /workspaces/elternsprechtagNavi_01_12_2025/backend
+cd /workspaces/eduViteTest/backend
 npm run dev
 
 # Git
-cd /workspaces/elternsprechtagNavi_01_12_2025
+cd /workspaces/eduViteTest
 git status
 git add -A && git commit -m "feat: …"
 git push origin main

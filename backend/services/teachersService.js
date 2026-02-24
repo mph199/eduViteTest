@@ -1,27 +1,28 @@
-import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 
 export async function listTeachers() {
   // Public endpoint: do not expose private fields (e.g. teacher email)
   // During migrations, some columns might not exist yet; keep endpoint resilient.
-  const attempt = async (select) => {
-    const { data, error } = await supabase
-      .from('teachers')
-      .select(select)
-      .order('id');
-    return { data, error };
-  };
-
-  const withSalutation = await attempt('id, name, salutation, subject, system, room');
-  if (!withSalutation.error) return withSalutation.data;
-
-  // Fallback (pre-salutation schema)
-  const withoutSalutation = await attempt('id, name, subject, system, room');
-  if (withoutSalutation.error) throw withoutSalutation.error;
-  return withoutSalutation.data;
+  try {
+    const { rows } = await query(
+      'SELECT id, name, salutation, subject, system, room FROM teachers ORDER BY id'
+    );
+    return rows;
+  } catch (e) {
+    // Fallback (pre-salutation schema)
+    const { rows } = await query(
+      'SELECT id, name, subject, system, room FROM teachers ORDER BY id'
+    );
+    return rows;
+  }
 }
 
 export async function getTeacherById(id) {
-  const { data, error } = await supabase.from('teachers').select('*').eq('id', id).single();
-  if (error) throw error;
-  return data;
+  const { rows } = await query('SELECT * FROM teachers WHERE id = $1', [id]);
+  if (rows.length === 0) {
+    const err = new Error('Teacher not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return rows[0];
 }

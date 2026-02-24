@@ -2,33 +2,37 @@
 
 ## Ausgangslage
 - **Aktuell:** Frontend auf Vercel (Static SPA), Backend auf Render (Node.js), Datenbank auf Supabase (PostgreSQL).
-- **Ziel:** Alles auf IONOS Webspace + IONOS Datenbank (MySQL oder PostgreSQL, je nach Tarif).
+- **Ziel:** Frontend über **IONOS Deploy Now** (statisches SPA), Backend + PostgreSQL auf **IONOS VPS**.
+
+## Entscheidungen
+- **Frontend:** IONOS Deploy Now (Git-basiertes Deployment für Static Sites)
+- **Backend:** IONOS VPS/Cloud-Server (Node.js-Runtime mit PM2 + Nginx)
+- **Datenbank:** PostgreSQL auf dem VPS (Schema bleibt unverändert)
 
 ---
 
 ## Phase 1: IONOS-Umgebung vorbereiten
 
-- [ ] **1.1 Hosting-Tarif prüfen**
-  - Node.js-Unterstützung vorhanden? (IONOS Webhosting = PHP-only; für Node.js braucht man einen **VPS/Cloud-Server** oder **Deploy Now**)
-  - Falls nur PHP-Webspace: Prüfen ob IONOS Deploy Now (Git-based Deployment) oder ein VPS-Tarif nötig ist
-  - Alternativ: Backend als serverless Functions (nicht nativ auf IONOS)
+- [ ] **1.1 IONOS VPS buchen**
+  - Mindestens 2 GB RAM, Ubuntu 22/24
+  - Node.js 20+ installieren (`nvm` oder Distro-Pakete)
+  - PostgreSQL installieren
 
-- [ ] **1.2 Datenbank-Typ klären**
-  - IONOS Webhosting bietet MySQL/MariaDB (kein PostgreSQL bei Shared Hosting)
-  - IONOS VPS/Cloud: PostgreSQL installierbar
-  - **Entscheidung:** PostgreSQL beibehalten (empfohlen, da Schema + Queries darauf ausgelegt) → VPS nötig
-  - Oder: MySQL-Migration (erfordert Schema-Anpassungen: `SERIAL` → `AUTO_INCREMENT`, Datumsformate, etc.)
+- [x] ~~**1.2 Datenbank-Typ klären**~~
+  - **Entscheidung:** PostgreSQL beibehalten → VPS
+  - Schema + Queries sind bereits darauf ausgelegt
 
 - [ ] **1.3 Domain / Subdomain einrichten**
-  - z.B. `sprechtag.meineschule.de` (Frontend)
-  - API entweder unter gleicher Domain (`/api/...`) oder Subdomain (`api.sprechtag.meineschule.de`)
+  - z.B. `sprechtag.meineschule.de` (Frontend via Deploy Now)
+  - API: `api.sprechtag.meineschule.de` (Backend auf VPS)
 
 - [ ] **1.4 SSL-Zertifikat**
-  - IONOS bietet kostenloses SSL (Let's Encrypt) → aktivieren
+  - Deploy Now: SSL automatisch (Let's Encrypt)
+  - VPS: Let's Encrypt via Certbot für API-Subdomain
 
 ---
 
-## Phase 2: Datenbank migrieren (Supabase → IONOS)
+## Phase 2: Datenbank migrieren (Supabase → IONOS VPS)
 
 - [ ] **2.1 Schema exportieren**
   - Alle Tabellen aus Supabase exportieren: `teachers`, `slots`, `booking_requests`, `events`, `users`, `feedback`, `settings`
@@ -42,34 +46,48 @@
       --data-only --inserts > supabase_data.sql
     ```
 
-- [ ] **2.3 Datenbank auf IONOS anlegen**
-  - PostgreSQL installieren (VPS) oder MySQL-DB anlegen (Shared Hosting)
-  - Schema + Daten importieren
+- [ ] **2.3 Datenbank auf IONOS VPS anlegen**
+  - PostgreSQL installieren + DB erstellen:
+    ```bash
+    sudo apt install postgresql postgresql-contrib
+    sudo -u postgres createdb sprechtag
+    sudo -u postgres psql sprechtag < backend/schema.sql
+    # Migrations anwenden:
+    for f in backend/migrations/*.sql; do sudo -u postgres psql sprechtag < "$f"; done
+    # Daten importieren:
+    sudo -u postgres psql sprechtag < supabase_data.sql
+    ```
   - Testabfrage: `SELECT count(*) FROM teachers;`
 
-- [ ] **2.4 DB-Client im Backend austauschen**
-  - **Option A (PostgreSQL beibehalten):** Supabase-JS-Client durch direkten `pg`-Client oder Knex/Drizzle ersetzen
-    - `npm install pg` (oder `npm install knex pg`)
-    - Alle `supabase.from('table').select/insert/update/delete` Aufrufe umschreiben
-    - Betrifft: `backend/index.js`, `backend/routes/*.js`, `backend/services/*.js`
-  - **Option B (MySQL):** Zusätzlich Schema-Anpassungen
-    - `npm install mysql2` (oder `knex` + `mysql2`)
+- [x] **2.4 DB-Client im Backend austauschen** ✅ ERLEDIGT
+  - ~~Supabase-JS-Client durch direkten `pg`-Client ersetzt~~
+  - Neuer DB-Pool: `backend/config/db.js` (nutzt `DATABASE_URL` oder einzelne `DB_*`-Variablen)
+  - **93 Supabase-Aufrufe** in **12 Dateien** zu native SQL migriert:
+    - `backend/index.js` (48 Queries)
+    - `backend/routes/teacher.js` (22 Queries)
+    - `backend/services/slotsService.js` (10 Queries)
+    - `backend/seed-teachers-from-stdin.js` (10 Queries)
+    - `backend/routes/auth.js` (1 Query)
+    - `backend/services/teachersService.js` (2 Queries)
+    - + 6 weitere Utility-Scripts
 
-- [ ] **2.5 Supabase-spezifische Logik entfernen**
-  - `backend/config/supabase.js` → durch neue DB-Config ersetzen
-  - `@supabase/supabase-js` aus `package.json` entfernen
-  - Error-Codes wie `PGRST116` durch Standard-SQL-Fehlerbehandlung ersetzen
+- [x] **2.5 Supabase-spezifische Logik entfernt** ✅ ERLEDIGT
+  - ~~`backend/config/supabase.js`~~ → ersetzt durch `backend/config/db.js`
+  - `@supabase/supabase-js` aus `package.json` entfernt, `pg` hinzugefügt
+  - `PGRST116`-Error-Codes durch `rows.length === 0`-Checks ersetzt
+  - `.env.example` aktualisiert: `DATABASE_URL` statt Supabase-Keys
 
 ---
 
-## Phase 3: Backend auf IONOS deployen
+## Phase 3: Backend auf IONOS VPS deployen
 
 - [ ] **3.1 Node.js-Laufzeit**
-  - VPS: Node 20+ installieren (`nvm` oder Distro-Pakete)
-  - Prozessmanager einrichten: `pm2` (empfohlen) oder `systemd`-Service
+  - Node 20+ installieren (`nvm` oder Distro-Pakete)
+  - Prozessmanager einrichten: `pm2`
   - ```bash
     npm install -g pm2
     cd /var/www/backend
+    npm install
     pm2 start index.js --name sprechtag-api
     pm2 save && pm2 startup
     ```
@@ -81,20 +99,26 @@
         listen 443 ssl;
         server_name api.sprechtag.meineschule.de;
 
+        ssl_certificate /etc/letsencrypt/live/api.sprechtag.meineschule.de/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/api.sprechtag.meineschule.de/privkey.pem;
+
         location / {
             proxy_pass http://127.0.0.1:4000;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
     ```
 
 - [ ] **3.3 Environment-Variablen**
-  - `.env` auf dem Server anlegen mit:
-    - `DATABASE_URL` (neue DB-Connection)
+  - `.env` auf dem Server anlegen (siehe `backend/.env.example`):
+    - `DATABASE_URL=postgresql://user:pass@localhost:5432/sprechtag`
     - `SESSION_SECRET` / `JWT_SECRET`
-    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (IONOS SMTP oder externer Anbieter)
-    - `PUBLIC_BASE_URL` (neue öffentliche URL)
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (IONOS SMTP)
+    - `PUBLIC_BASE_URL=https://sprechtag.meineschule.de`
+    - `FRONTEND_URL=https://sprechtag.meineschule.de`
     - `PORT=4000`
 
 - [ ] **3.4 E-Mail-Konfiguration**
@@ -104,26 +128,17 @@
 
 ---
 
-## Phase 4: Frontend auf IONOS deployen
+## Phase 4: Frontend auf IONOS Deploy Now deployen
 
-- [ ] **4.1 Build erstellen**
-  - ```bash
-    VITE_API_URL=https://api.sprechtag.meineschule.de/api npm run build
-    ```
-  - Output: `dist/`-Ordner (statische Dateien)
+- [ ] **4.1 Deploy Now einrichten**
+  - GitHub-Repository mit IONOS Deploy Now verbinden
+  - Framework-Erkennung: Vite/React (Static Build)
+  - Build-Befehl: `npm run build`
+  - Output-Verzeichnis: `dist`
+  - Environment-Variable setzen: `VITE_API_URL=https://api.sprechtag.meineschule.de/api`
 
-- [ ] **4.2 Dateien hochladen**
-  - `dist/`-Inhalt per SFTP/SSH in den Webspace-Ordner (z.B. `/var/www/html/` oder IONOS DocumentRoot)
-  - Alternativ: Git-basiertes Deployment mit IONOS Deploy Now
-
-- [ ] **4.3 SPA-Routing konfigurieren**
-  - Nginx (VPS):
-    ```nginx
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    ```
-  - Apache (Shared Hosting) – `.htaccess`:
+- [ ] **4.2 SPA-Routing konfigurieren**
+  - Deploy Now: `.htaccess` im `public/`-Ordner oder Deploy-Now-Config:
     ```apache
     RewriteEngine On
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -131,9 +146,9 @@
     RewriteRule . /index.html [L]
     ```
 
-- [ ] **4.4 CORS anpassen**
-  - Backend-CORS-Config auf die neue Frontend-Domain setzen
-  - In `backend/index.js`: `cors({ origin: 'https://sprechtag.meineschule.de' })`
+- [ ] **4.3 CORS anpassen**
+  - Backend: `FRONTEND_URL` auf `https://sprechtag.meineschule.de` setzen
+  - Wird automatisch in die CORS-Whitelist aufgenommen (über `backend/index.js`)
 
 ---
 
@@ -154,20 +169,42 @@
 - [ ] **5.3 Alte Services abschalten**
   - Vercel-Projekt deaktivieren/löschen
   - Render-Service stoppen
-  - Supabase-Projekt ggf. als Backup behalten, dann later löschen
+  - Supabase-Projekt ggf. als Backup behalten, dann später löschen
 
 ---
 
-## Aufwandschätzung
+## Aufwandschätzung (aktualisiert)
 
-| Aufgabe | Geschätzter Aufwand |
+| Aufgabe | Geschätzter Aufwand | Status |
+|---|---|---|
+| DB-Client austauschen (Supabase → pg) | 4–8h | ✅ Erledigt |
+| Schema-Migration + Datenimport | 1–2h | ⬜ Offen |
+| VPS-Setup (Node, Nginx, PM2, PostgreSQL) | 2–3h | ⬜ Offen |
+| Frontend-Deploy (IONOS Deploy Now) | 0.5–1h | ⬜ Offen |
+| E-Mail + DNS + SSL | 1–2h | ⬜ Offen |
+| Testing | 2–3h | ⬜ Offen |
+| **Gesamt** | **~10–19h** | **~6–8h verbleibend** |
+
+---
+
+## Migrierte Dateien (Referenz)
+
+| Datei | Änderung |
 |---|---|
-| DB-Client austauschen (Supabase → pg/mysql) | 4–8h (größter Posten) |
-| Schema-Migration + Datenimport | 1–2h |
-| Server-Setup (Node, Nginx, PM2) | 2–3h |
-| Frontend-Deploy + SPA-Config | 0.5–1h |
-| E-Mail + DNS + SSL | 1–2h |
-| Testing | 2–3h |
-| **Gesamt** | **~10–19h** |
-
-**Kritischer Pfad:** Der Austausch des Supabase-JS-Clients durch einen direkten PostgreSQL/MySQL-Client ist die aufwändigste Aufgabe (~50+ Stellen in Backend-Code).
+| `backend/config/db.js` | **NEU** – PostgreSQL Connection Pool |
+| `backend/config/supabase.js` | Nicht mehr verwendet (Legacy) |
+| `backend/index.js` | 48 Supabase → pg Queries |
+| `backend/routes/teacher.js` | 22 Supabase → pg Queries |
+| `backend/routes/auth.js` | 1 Supabase → pg Query |
+| `backend/services/slotsService.js` | 10 Supabase → pg Queries |
+| `backend/services/teachersService.js` | 2 Supabase → pg Queries |
+| `backend/seed-teachers-from-stdin.js` | Supabase → pg |
+| `backend/reset-teachers.js` | Supabase → pg + `.rpc()` → direkte SQL |
+| `backend/reset-users.js` | Supabase → pg |
+| `backend/create-teacher-user.js` | Supabase → pg |
+| `backend/create-test-booking-requests.js` | Supabase → pg |
+| `backend/create-test-confirmed-booking.js` | Supabase → pg |
+| `backend/upsert-herrhuhn.js` | Supabase → pg |
+| `backend/apply-teacher-salutations.js` | Supabase → pg |
+| `backend/package.json` | `@supabase/supabase-js` → `pg` |
+| `backend/.env.example` | `SUPABASE_*` → `DATABASE_URL` / `DB_*` |

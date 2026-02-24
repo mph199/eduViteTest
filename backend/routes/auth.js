@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -35,19 +35,10 @@ router.post('/login', async (req, res) => {
     }
 
     // 2) DB-User (teacher / user)
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('id, username, role, password_hash, teacher_id')
-      .eq('username', username)
-      .limit(1);
-
-    if (error) {
-      console.warn('Users query failed:', error.message || error);
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid credentials'
-      });
-    }
+    const { rows: users } = await query(
+      'SELECT id, username, role, password_hash, teacher_id FROM users WHERE username = $1 LIMIT 1',
+      [username]
+    );
 
     if (!users || users.length === 0) {
       return res.status(401).json({

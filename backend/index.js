@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import teacherRoutes from './routes/teacher.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from './config/email.js';
@@ -91,15 +91,13 @@ async function verifyBookingRequestToken(token) {
   }
 
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  const { data: reqRow, error } = await supabase
-    .from('booking_requests')
-    .select('*')
-    // only pending requests are verifiable
-    .eq('status', 'requested')
-    .eq('verification_token_hash', tokenHash)
-    .single();
+  const { rows } = await query(
+    `SELECT * FROM booking_requests WHERE status = 'requested' AND verification_token_hash = $1`,
+    [tokenHash]
+  );
+  const reqRow = rows[0] || null;
 
-  if (error || !reqRow) {
+  if (!reqRow) {
     const err = new Error('Ungültiger oder abgelaufener Link');
     err.statusCode = 404;
     throw err;
@@ -127,14 +125,10 @@ async function verifyBookingRequestToken(token) {
   }
 
   const now = new Date().toISOString();
-  await supabase
-    .from('booking_requests')
-    .update({
-      verified_at: now,
-      verification_token_hash: null,
-      updated_at: now,
-    })
-    .eq('id', reqRow.id);
+  await query(
+    `UPDATE booking_requests SET verified_at = $1, verification_token_hash = NULL, updated_at = $1 WHERE id = $2`,
+    [now, reqRow.id]
+  );
 
   return {
     requestRow: { ...reqRow, verified_at: now, verification_token_hash: null },
@@ -211,15 +205,9 @@ app.get('/api/teachers', async (_req, res) => {
 // GET /api/admin/feedback - List anonymous teacher feedback (admin only)
 app.get('/api/admin/feedback', requireAdmin, async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('feedback')
-      .select('id, message, created_at')
-      .order('created_at', { ascending: false })
-      .limit(200);
+    const { rows } = await query('SELECT id, message, created_at FROM feedback ORDER BY created_at DESC LIMIT 200');
 
-    if (error) throw error;
-
-    return res.json({ feedback: data || [] });
+    return res.json({ feedback: rows });
   } catch (error) {
     console.error('Error fetching feedback:', error);
     return res.status(500).json({ error: 'Failed to fetch feedback' });
@@ -234,15 +222,9 @@ app.delete('/api/admin/feedback/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('feedback')
-      .delete()
-      .eq('id', id)
-      .select('id');
+    const { rows } = await query('DELETE FROM feedback WHERE id = $1 RETURNING id', [id]);
 
-    if (error) throw error;
-
-    const deleted = Array.isArray(data) ? data.length : 0;
+    const deleted = rows.length;
     if (!deleted) {
       return res.status(404).json({ error: 'Feedback not found' });
     }
@@ -266,12 +248,9 @@ app.get('/api/slots', async (req, res) => {
       return res.status(400).json({ error: 'teacherId must be a number' });
     }
 
-    const { data: teacherRow, error: teacherErr } = await supabase
-      .from('teachers')
-      .select('id, system')
-      .eq('id', teacherIdNum)
-      .single();
-    if (teacherErr) throw teacherErr;
+    const { rows: teacherRows } = await query('SELECT id, system FROM teachers WHERE id = $1', [teacherIdNum]);
+    const teacherRow = teacherRows[0] || null;
+    if (!teacherRow) throw new Error('Teacher not found');
 
     // Resolve event scope: explicit eventId OR active published event
     let resolvedEventId = null;
@@ -283,29 +262,20 @@ app.get('/api/slots', async (req, res) => {
       }
       resolvedEventId = parsed;
       try {
-        const { data: ev, error: evErr } = await supabase
-          .from('events')
-          .select('id, starts_at')
-          .eq('id', resolvedEventId)
-          .single();
-        if (evErr) throw evErr;
+        const { rows: evRows } = await query('SELECT id, starts_at FROM events WHERE id = $1', [resolvedEventId]);
+        const ev = evRows[0] || null;
         resolvedEventStartsAt = ev?.starts_at || null;
       } catch {
         resolvedEventStartsAt = null;
       }
     } else {
       const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, starts_at')
-        .eq('status', 'published')
-        .or(`booking_opens_at.is.null,booking_opens_at.lte.${now}`)
-        .or(`booking_closes_at.is.null,booking_closes_at.gte.${now}`)
-        .order('starts_at', { ascending: false })
-        .limit(1);
-      if (error) throw error;
-      resolvedEventId = data && data.length ? data[0].id : null;
-      resolvedEventStartsAt = data && data.length ? data[0].starts_at : null;
+      const { rows: activeRows } = await query(
+        `SELECT id, starts_at FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
+        [now]
+      );
+      resolvedEventId = activeRows.length ? activeRows[0].id : null;
+      resolvedEventStartsAt = activeRows.length ? activeRows[0].starts_at : null;
     }
 
     const teacherSystem = teacherRow?.system || 'dual';
@@ -338,16 +308,11 @@ app.post('/api/bookings', async (req, res) => {
 
     // Require active published event before accepting booking requests
     const nowIso = new Date().toISOString();
-    const { data: activeEvents, error: activeErr } = await supabase
-      .from('events')
-      .select('id')
-      .eq('status', 'published')
-      .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
-      .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
-      .order('starts_at', { ascending: false })
-      .limit(1);
-    if (activeErr) throw activeErr;
-    const activeEventId = activeEvents && activeEvents.length ? activeEvents[0].id : null;
+    const { rows: activeEventRows } = await query(
+      `SELECT id FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
+      [nowIso]
+    );
+    const activeEventId = activeEventRows.length ? activeEventRows[0].id : null;
     if (!activeEventId) {
       return res.status(409).json({ error: 'Buchungen sind aktuell nicht freigegeben' });
     }
@@ -363,8 +328,8 @@ app.post('/api/bookings', async (req, res) => {
     if (slotRow && isEmailConfigured()) {
       const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
       const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
-      const teacherRes = await supabase.from('teachers').select('*').eq('id', slotRow.teacher_id).single();
-      const teacher = teacherRes.data || {};
+      const { rows: teacherLookupRows } = await query('SELECT * FROM teachers WHERE id = $1', [slotRow.teacher_id]);
+      const teacher = teacherLookupRows[0] || {};
       const subject = `BKSB Elternsprechtag – E-Mail-Adresse bestätigen (Terminreservierung)`;
       const plain = `Guten Tag,
 
@@ -413,16 +378,11 @@ app.post('/api/booking-requests', async (req, res) => {
 
     // Require active published event
     const nowIso = new Date().toISOString();
-    const { data: activeEvents, error: activeErr } = await supabase
-      .from('events')
-      .select('id, starts_at')
-      .eq('status', 'published')
-      .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
-      .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
-      .order('starts_at', { ascending: false })
-      .limit(1);
-    if (activeErr) throw activeErr;
-    const activeEvent = activeEvents && activeEvents.length ? activeEvents[0] : null;
+    const { rows: activeEventRows } = await query(
+      `SELECT id, starts_at FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
+      [nowIso]
+    );
+    const activeEvent = activeEventRows.length ? activeEventRows[0] : null;
     const activeEventId = activeEvent?.id || null;
     if (!activeEventId) {
       return res.status(409).json({ error: 'Buchungen sind aktuell nicht freigegeben' });
@@ -433,12 +393,9 @@ app.post('/api/booking-requests', async (req, res) => {
       return res.status(400).json({ error: 'teacherId required' });
     }
 
-    const { data: teacherRow, error: teacherErr } = await supabase
-      .from('teachers')
-      .select('id, system')
-      .eq('id', teacherIdNum)
-      .single();
-    if (teacherErr) throw teacherErr;
+    const { rows: teacherLookupRows2 } = await query('SELECT id, system FROM teachers WHERE id = $1', [teacherIdNum]);
+    const teacherRow = teacherLookupRows2[0] || null;
+    if (!teacherRow) throw new Error('Teacher not found');
 
     const requestedTime = typeof payload.requestedTime === 'string' ? payload.requestedTime.trim() : '';
     const allowedTimes = getRequestedTimeWindowsForSystem(teacherRow?.system || 'dual');
@@ -511,19 +468,22 @@ app.post('/api/booking-requests', async (req, res) => {
       insert.student_name = null;
     }
 
-    const { data: created, error: insErr } = await supabase
-      .from('booking_requests')
-      .insert(insert)
-      .select('*')
-      .single();
-    if (insErr) throw insErr;
+    const insertKeys = Object.keys(insert);
+    const insertValues = Object.values(insert);
+    const insertPlaceholders = insertKeys.map((_, i) => `$${i + 1}`).join(', ');
+    const insertColumns = insertKeys.join(', ');
+    const { rows: createdRows } = await query(
+      `INSERT INTO booking_requests (${insertColumns}) VALUES (${insertPlaceholders}) RETURNING *`,
+      insertValues
+    );
+    const created = createdRows[0] || null;
 
     // Send verification email (best-effort)
     if (created && isEmailConfigured()) {
       const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
       const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
-      const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherIdNum).single();
-      const teacher = teacherRes.data || {};
+      const { rows: teacherEmailRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherIdNum]);
+      const teacher = teacherEmailRows[0] || {};
       const subject = `BKSB Elternsprechtag – E-Mail-Adresse bestätigen (Terminanfrage)`;
       const plain = `Guten Tag,
 
@@ -588,8 +548,8 @@ app.get('/api/bookings/verify/:token', async (req, res) => {
     if (slot) {
       if (slot.status === 'confirmed' && !slot.confirmation_sent_at && isEmailConfigured()) {
         try {
-          const teacherRes = await supabase.from('teachers').select('*').eq('id', slot.teacher_id).single();
-          const teacher = teacherRes.data || {};
+          const { rows: tRows } = await query('SELECT * FROM teachers WHERE id = $1', [slot.teacher_id]);
+          const teacher = tRows[0] || {};
           const subject = `BKSB Elternsprechtag – Termin bestätigt am ${slot.date} (${slot.time})`;
           const plain = `Guten Tag,
 
@@ -610,7 +570,7 @@ Ihr BKSB-Team`;
 <p>Mit freundlichen Grüßen</p>
 <p>Ihr BKSB-Team</p>`;
           await sendMail({ to: slot.email, subject, text: plain, html });
-          await supabase.from('slots').update({ confirmation_sent_at: now, updated_at: now }).eq('id', slot.id);
+          await query('UPDATE slots SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, slot.id]);
         } catch (e) {
           console.warn('Sending confirmation after verify failed:', e?.message || e);
         }
@@ -623,10 +583,10 @@ Ihr BKSB-Team`;
       // If already accepted and slot assigned, and confirmation not sent, send now
       if (request.status === 'accepted' && request.assigned_slot_id && !request.confirmation_sent_at && isEmailConfigured()) {
         try {
-          const slotRes = await supabase.from('slots').select('*').eq('id', request.assigned_slot_id).single();
-          const slotRow = slotRes.data || null;
-          const teacherRes = await supabase.from('teachers').select('*').eq('id', request.teacher_id).single();
-          const teacher = teacherRes.data || {};
+          const { rows: slotLookupRows } = await query('SELECT * FROM slots WHERE id = $1', [request.assigned_slot_id]);
+          const slotRow = slotLookupRows[0] || null;
+          const { rows: tRows2 } = await query('SELECT * FROM teachers WHERE id = $1', [request.teacher_id]);
+          const teacher = tRows2[0] || {};
           const when = slotRow ? `${slotRow.date} ${slotRow.time}` : `${request.date} ${request.requested_time}`;
           const subject = `BKSB Elternsprechtag – Termin bestätigt (${when})`;
           const plain = `Guten Tag,
@@ -648,7 +608,7 @@ Ihr BKSB-Team`;
 <p>Mit freundlichen Grüßen</p>
 <p>Ihr BKSB-Team</p>`;
           await sendMail({ to: request.email, subject, text: plain, html });
-          await supabase.from('booking_requests').update({ confirmation_sent_at: now, updated_at: now }).eq('id', request.id);
+          await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, request.id]);
         } catch (e) {
           console.warn('Sending confirmation after request verify failed:', e?.message || e);
         }
@@ -684,15 +644,15 @@ app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid slotId' });
   }
 
-  // Clear booking data with Supabase
+  // Clear booking data
   try {
     const { previous } = await cancelBookingAdmin(slotId);
 
     // Best-effort cancellation email (only if the booking email was verified)
     if (previous && previous.email && previous.verified_at && isEmailConfigured()) {
       try {
-        const teacherRes = await supabase.from('teachers').select('*').eq('id', previous.teacher_id).single();
-        const teacher = teacherRes.data || {};
+        const { rows: tRows3 } = await query('SELECT * FROM teachers WHERE id = $1', [previous.teacher_id]);
+        const teacher = tRows3[0] || {};
 
         const subject = `BKSB Elternsprechtag – Termin storniert am ${previous.date} (${previous.time})`;
         const plain = `Guten Tag,
@@ -718,7 +678,7 @@ app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
       <p>Ihr BKSB-Team</p>`;
 
         await sendMail({ to: previous.email, subject, text: plain, html });
-        await supabase.from('slots').update({ cancellation_sent_at: new Date().toISOString() }).eq('id', slotId);
+        await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
       } catch (e) {
         console.warn('Sending cancellation email (admin) failed:', e?.message || e);
       }
@@ -738,13 +698,9 @@ app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
 // GET /api/admin/users - List login users (admin only)
 app.get('/api/admin/users', requireAdmin, async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, role, teacher_id, created_at, updated_at')
-      .order('id');
+    const { rows } = await query('SELECT id, username, role, teacher_id, created_at, updated_at FROM users ORDER BY id');
 
-    if (error) throw error;
-    return res.json({ users: data || [] });
+    return res.json({ users: rows });
   } catch (error) {
     console.error('Error fetching admin users:', error);
     return res.status(500).json({ error: 'Failed to fetch users' });
@@ -767,13 +723,9 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
   // Best-effort safety: prevent an admin from demoting themselves.
   try {
     if (req.user?.username) {
-      const { data: me, error: meErr } = await supabase
-        .from('users')
-        .select('id, role')
-        .eq('username', req.user.username)
-        .limit(1)
-        .maybeSingle();
-      if (!meErr && me && Number(me.id) === userId && roleStr !== 'admin') {
+      const { rows: meRows } = await query('SELECT id, role FROM users WHERE username = $1 LIMIT 1', [req.user.username]);
+      const me = meRows[0] || null;
+      if (me && Number(me.id) === userId && roleStr !== 'admin') {
         return res.status(400).json({ error: 'You cannot remove your own admin role.' });
       }
     }
@@ -782,18 +734,14 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ role: roleStr })
-      .eq('id', userId)
-      .select('id, username, role, teacher_id, created_at, updated_at')
-      .single();
+    const { rows: updatedUserRows } = await query(
+      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, username, role, teacher_id, created_at, updated_at',
+      [roleStr, userId]
+    );
+    const data = updatedUserRows[0] || null;
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      throw error;
+    if (!data) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     return res.json({ success: true, user: data });
@@ -837,20 +785,11 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
     }
 
     // Create teacher
-    const { data: teacher, error: teacherError } = await supabase
-      .from('teachers')
-      .insert({ 
-        name: name.trim(), 
-        email: parsedEmail.email,
-        salutation: parsedSalutation.salutation,
-        subject: subject || 'Sprechstunde', 
-        system: teacherSystem,
-        room: room ? room.trim() : null
-      })
-      .select()
-      .single();
-    
-    if (teacherError) throw teacherError;
+    const { rows: newTeacherRows } = await query(
+      'INSERT INTO teachers (name, email, salutation, subject, system, room) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', teacherSystem, room ? room.trim() : null]
+    );
+    const teacher = newTeacherRows[0];
 
     // Generate time slots based on system
     const timeSlots = generateTimeSlots(teacherSystem);
@@ -871,16 +810,11 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
 
     try {
       const nowIso = new Date().toISOString();
-      const { data: activeEvents, error: activeErr } = await supabase
-        .from('events')
-        .select('id, starts_at')
-        .eq('status', 'published')
-        .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
-        .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
-        .order('starts_at', { ascending: false })
-        .limit(1);
-      if (activeErr) throw activeErr;
-      const activeEvent = activeEvents && activeEvents.length ? activeEvents[0] : null;
+      const { rows: activeEvRows } = await query(
+        `SELECT id, starts_at FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
+        [nowIso]
+      );
+      const activeEvent = activeEvRows.length ? activeEvRows[0] : null;
       if (activeEvent?.id) {
         targetEventId = activeEvent.id;
         eventDate = formatDateDE(activeEvent.starts_at);
@@ -891,13 +825,8 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
 
     if (!targetEventId || !eventDate) {
       try {
-        const { data: latestEvents, error: latestErr } = await supabase
-          .from('events')
-          .select('id, starts_at')
-          .order('starts_at', { ascending: false })
-          .limit(1);
-        if (latestErr) throw latestErr;
-        const latest = latestEvents && latestEvents.length ? latestEvents[0] : null;
+        const { rows: latestEvRows } = await query('SELECT id, starts_at FROM events ORDER BY starts_at DESC LIMIT 1');
+        const latest = latestEvRows.length ? latestEvRows[0] : null;
         if (latest?.id) {
           targetEventId = latest.id;
           eventDate = formatDateDE(latest.starts_at);
@@ -910,13 +839,9 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
     if (!eventDate) {
       // Settings fallback: stored as DATE (YYYY-MM-DD)
       try {
-        const { data: settings } = await supabase
-          .from('settings')
-          .select('event_date')
-          .limit(1)
-          .single();
-        if (settings?.event_date) {
-          eventDate = formatDateDE(settings.event_date);
+        const { rows: settingsRows } = await query('SELECT event_date FROM settings LIMIT 1');
+        if (settingsRows[0]?.event_date) {
+          eventDate = formatDateDE(settingsRows[0].event_date);
         }
       } catch {}
     }
@@ -935,13 +860,18 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
       updated_at: now,
     }));
 
-    const { error: slotsError } = await supabase
-      .from('slots')
-      .insert(slotsToInsert);
-    
-    if (slotsError) {
-      console.error('Error creating slots:', slotsError);
-      // Don't fail the teacher creation if slots fail
+    if (slotsToInsert.length) {
+      try {
+        const slotCols = Object.keys(slotsToInsert[0]);
+        const valueClauses = slotsToInsert.map((_, rowIdx) =>
+          `(${slotCols.map((_, colIdx) => `$${rowIdx * slotCols.length + colIdx + 1}`).join(', ')})`
+        ).join(', ');
+        const slotValues = slotsToInsert.flatMap(s => slotCols.map(c => s[c]));
+        await query(`INSERT INTO slots (${slotCols.join(', ')}) VALUES ${valueClauses}`, slotValues);
+      } catch (slotsError) {
+        console.error('Error creating slots:', slotsError);
+        // Don't fail the teacher creation if slots fail
+      }
     }
 
     // Create or upsert a linked user account for the teacher
@@ -965,14 +895,11 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     try {
-      await supabase
-        .from('users')
-        .upsert({
-          username,
-          password_hash: passwordHash,
-          role: 'teacher',
-          teacher_id: teacher.id
-        }, { onConflict: 'username' });
+      await query(
+        `INSERT INTO users (username, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (username) DO UPDATE SET password_hash = $2, role = $3, teacher_id = $4`,
+        [username, passwordHash, 'teacher', teacher.id]
+      );
     } catch (userErr) {
       console.warn('User creation for teacher failed:', userErr?.message || userErr);
     }
@@ -994,12 +921,8 @@ app.post('/api/admin/teachers', requireAdmin, async (req, res) => {
 // GET /api/admin/teachers - List all teachers (admin only)
 app.get('/api/admin/teachers', requireAdmin, async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('teachers')
-      .select('*')
-      .order('id');
-    if (error) throw error;
-    return res.json({ teachers: data || [] });
+    const { rows } = await query('SELECT * FROM teachers ORDER BY id');
+    return res.json({ teachers: rows || [] });
   } catch (error) {
     console.error('Error fetching admin teachers:', error);
     return res.status(500).json({ error: 'Failed to fetch teachers' });
@@ -1037,28 +960,17 @@ app.put('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'system must be "dual" or "vollzeit"' });
     }
 
-    const { data, error } = await supabase
-      .from('teachers')
-      .update({ 
-        name: name.trim(), 
-        email: parsedEmail.email,
-        salutation: parsedSalutation.salutation,
-        subject: subject || 'Sprechstunde', 
-        system: teacherSystem,
-        room: room ? room.trim() : null
-      })
-      .eq('id', teacherId)
-      .select()
-      .single();
+    const { rows: updateTeacherRows } = await query(
+      `UPDATE teachers SET name = $1, email = $2, salutation = $3, subject = $4, system = $5, room = $6
+       WHERE id = $7 RETURNING *`,
+      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', teacherSystem, room ? room.trim() : null, teacherId]
+    );
     
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Teacher not found' });
-      }
-      throw error;
+    if (updateTeacherRows.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
     }
 
-    res.json({ success: true, teacher: data });
+    res.json({ success: true, teacher: updateTeacherRows[0] });
   } catch (error) {
     console.error('Error updating teacher:', error);
     res.status(500).json({ error: 'Failed to update teacher' });
@@ -1074,12 +986,10 @@ app.put('/api/admin/teachers/:id/reset-login', requireAdmin, async (req, res) =>
 
   try {
     // Find user for this teacher
-    const { data: users, error: userErr } = await supabase
-      .from('users')
-      .select('*')
-      .eq('teacher_id', teacherId)
-      .limit(1);
-    if (userErr) throw userErr;
+    const { rows: users } = await query(
+      'SELECT * FROM users WHERE teacher_id = $1 LIMIT 1',
+      [teacherId]
+    );
 
     if (!users || users.length === 0) {
       return res.status(404).json({ error: 'Kein Benutzer für diese Lehrkraft gefunden' });
@@ -1089,11 +999,7 @@ app.put('/api/admin/teachers/:id/reset-login', requireAdmin, async (req, res) =>
     const tempPassword = crypto.randomBytes(6).toString('base64url');
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    const { error: upErr } = await supabase
-      .from('users')
-      .update({ password_hash: passwordHash })
-      .eq('id', user.id);
-    if (upErr) throw upErr;
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, user.id]);
 
     res.json({ success: true, user: { username: user.username, tempPassword } });
   } catch (error) {
@@ -1112,12 +1018,10 @@ app.delete('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
 
   try {
     // Check if teacher has any booked slots
-    const { data: bookedSlots, error: slotsError } = await supabase
-      .from('slots')
-      .select('id, booked')
-      .eq('teacher_id', teacherId);
-
-    if (slotsError) throw slotsError;
+    const { rows: bookedSlots } = await query(
+      'SELECT id, booked FROM slots WHERE teacher_id = $1',
+      [teacherId]
+    );
 
     const hasBookedSlots = bookedSlots && bookedSlots.some(slot => slot.booked);
     
@@ -1129,21 +1033,11 @@ app.delete('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
 
     // Delete all available (unbooked) slots first
     if (bookedSlots && bookedSlots.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('slots')
-        .delete()
-        .eq('teacher_id', teacherId);
-      
-      if (deleteError) throw deleteError;
+      await query('DELETE FROM slots WHERE teacher_id = $1', [teacherId]);
     }
 
     // Now delete the teacher
-    const { error } = await supabase
-      .from('teachers')
-      .delete()
-      .eq('id', teacherId);
-    
-    if (error) throw error;
+    await query('DELETE FROM teachers WHERE id = $1', [teacherId]);
 
     res.json({ 
       success: true, 
@@ -1158,22 +1052,16 @@ app.delete('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
 // GET /api/admin/settings - Get event settings
 app.get('/api/admin/settings', requireAuth, async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('*')
-      .limit(1)
-      .single();
+    const { rows: settRows } = await query('SELECT * FROM settings LIMIT 1');
+    const data = settRows[0] || null;
     
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (!data) {
         // No settings found, return default
         return res.json({
           id: 1,
           event_name: 'BKSB Elternsprechtag',
           event_date: new Date().toISOString().split('T')[0]
         });
-      }
-      throw error;
     }
 
     res.json(data);
@@ -1193,20 +1081,14 @@ app.put('/api/admin/settings', requireAdmin, async (req, res) => {
     }
 
     // Update or insert settings
-    const { data, error } = await supabase
-      .from('settings')
-      .upsert({ 
-        id: 1, 
-        event_name: event_name.trim(), 
-        event_date,
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
+    const { rows: upsertRows } = await query(
+      `INSERT INTO settings (id, event_name, event_date, updated_at) VALUES (1, $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET event_name = $1, event_date = $2, updated_at = $3
+       RETURNING *`,
+      [event_name.trim(), event_date, new Date().toISOString()]
+    );
 
-    res.json({ success: true, settings: data });
+    res.json({ success: true, settings: upsertRows[0] });
   } catch (error) {
     console.error('Error updating settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
@@ -1219,30 +1101,31 @@ app.get('/api/admin/slots', requireAdmin, async (req, res) => {
   try {
     const { teacherId, eventId, booked, limit } = req.query;
 
-    let q = supabase
-      .from('slots')
-      .select('*')
-      .order('date')
-      .order('time');
+    // Build dynamic query
+    const conditions = [];
+    const params = [];
+    let paramIdx = 1;
 
     if (teacherId !== undefined) {
       const teacherIdNum = parseInt(String(teacherId), 10);
       if (isNaN(teacherIdNum)) {
         return res.status(400).json({ error: 'teacherId must be a number' });
       }
-      q = q.eq('teacher_id', teacherIdNum);
+      conditions.push(`teacher_id = $${paramIdx++}`);
+      params.push(teacherIdNum);
     }
 
     if (eventId !== undefined) {
       const raw = String(eventId);
       if (raw === 'null') {
-        q = q.is('event_id', null);
+        conditions.push('event_id IS NULL');
       } else {
         const eventIdNum = parseInt(raw, 10);
         if (isNaN(eventIdNum)) {
           return res.status(400).json({ error: 'eventId must be a number or "null"' });
         }
-        q = q.eq('event_id', eventIdNum);
+        conditions.push(`event_id = $${paramIdx++}`);
+        params.push(eventIdNum);
       }
     }
 
@@ -1251,19 +1134,22 @@ app.get('/api/admin/slots', requireAdmin, async (req, res) => {
       if (raw !== 'true' && raw !== 'false') {
         return res.status(400).json({ error: 'booked must be "true" or "false"' });
       }
-      q = q.eq('booked', raw === 'true');
+      conditions.push(`booked = $${paramIdx++}`);
+      params.push(raw === 'true');
     }
 
     const limitNum = limit !== undefined ? parseInt(String(limit), 10) : 2000;
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 10000) {
       return res.status(400).json({ error: 'limit must be between 1 and 10000' });
     }
-    q = q.limit(limitNum);
 
-    const { data, error } = await q;
-    if (error) throw error;
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { rows } = await query(
+      `SELECT * FROM slots ${whereClause} ORDER BY date, time LIMIT $${paramIdx}`,
+      [...params, limitNum]
+    );
 
-    return res.json({ slots: (data || []).map(mapSlotRow) });
+    return res.json({ slots: (rows || []).map(mapSlotRow) });
   } catch (error) {
     console.error('Error fetching admin slots:', error);
     return res.status(500).json({ error: 'Failed to fetch slots' });
@@ -1279,20 +1165,12 @@ app.post('/api/admin/slots', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'teacher_id, time, and date required' });
     }
 
-    const { data, error} = await supabase
-      .from('slots')
-      .insert({
-        teacher_id,
-        time: time.trim(),
-        date: date.trim(),
-        booked: false
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
+    const { rows } = await query(
+      `INSERT INTO slots (teacher_id, time, date, booked) VALUES ($1, $2, $3, false) RETURNING *`,
+      [teacher_id, time.trim(), date.trim()]
+    );
 
-    res.json({ success: true, slot: data });
+    res.json({ success: true, slot: rows[0] });
   } catch (error) {
     console.error('Error creating slot:', error);
     res.status(500).json({ error: 'Failed to create slot' });
@@ -1314,25 +1192,16 @@ app.put('/api/admin/slots/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'time and date required' });
     }
 
-    const { data, error } = await supabase
-      .from('slots')
-      .update({ 
-        time: time.trim(), 
-        date: date.trim(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', slotId)
-      .select()
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Slot not found' });
-      }
-      throw error;
+    const { rows } = await query(
+      `UPDATE slots SET time = $1, date = $2, updated_at = $3 WHERE id = $4 RETURNING *`,
+      [time.trim(), date.trim(), new Date().toISOString(), slotId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Slot not found' });
     }
 
-    res.json({ success: true, slot: data });
+    res.json({ success: true, slot: rows[0] });
   } catch (error) {
     console.error('Error updating slot:', error);
     res.status(500).json({ error: 'Failed to update slot' });
@@ -1348,12 +1217,7 @@ app.delete('/api/admin/slots/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { error } = await supabase
-      .from('slots')
-      .delete()
-      .eq('id', slotId);
-    
-    if (error) throw error;
+    await query('DELETE FROM slots WHERE id = $1', [slotId]);
 
     res.json({ 
       success: true, 
@@ -1384,15 +1248,11 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
   };
 
   try {
-    const { data: teacherRow, error: teacherErr } = await supabase
-      .from('teachers')
-      .select('id, system')
-      .eq('id', teacherId)
-      .single();
-    if (teacherErr) {
-      if (teacherErr.code === 'PGRST116') return res.status(404).json({ error: 'Teacher not found' });
-      throw teacherErr;
-    }
+    const { rows: teacherRows } = await query(
+      'SELECT id, system FROM teachers WHERE id = $1',
+      [teacherId]
+    );
+    const teacherRow = teacherRows[0];
     if (!teacherRow) return res.status(404).json({ error: 'Teacher not found' });
 
     const nowIso = new Date().toISOString();
@@ -1400,15 +1260,14 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
     let eventDate = null;
 
     try {
-      const { data: activeEvents, error: activeErr } = await supabase
-        .from('events')
-        .select('id, starts_at')
-        .eq('status', 'published')
-        .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
-        .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
-        .order('starts_at', { ascending: false })
-        .limit(1);
-      if (activeErr) throw activeErr;
+      const { rows: activeEvents } = await query(
+        `SELECT id, starts_at FROM events
+         WHERE status = 'published'
+           AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
+           AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
+         ORDER BY starts_at DESC LIMIT 1`,
+        [nowIso]
+      );
       const activeEvent = activeEvents && activeEvents.length ? activeEvents[0] : null;
       if (activeEvent?.id) {
         targetEventId = activeEvent.id;
@@ -1420,12 +1279,9 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
 
     if (!targetEventId || !eventDate) {
       try {
-        const { data: latestEvents, error: latestErr } = await supabase
-          .from('events')
-          .select('id, starts_at')
-          .order('starts_at', { ascending: false })
-          .limit(1);
-        if (latestErr) throw latestErr;
+        const { rows: latestEvents } = await query(
+          'SELECT id, starts_at FROM events ORDER BY starts_at DESC LIMIT 1'
+        );
         const latest = latestEvents && latestEvents.length ? latestEvents[0] : null;
         if (latest?.id) {
           targetEventId = latest.id;
@@ -1439,11 +1295,10 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
     if (!eventDate) {
       // Settings fallback: stored as DATE (YYYY-MM-DD)
       try {
-        const { data: settings } = await supabase
-          .from('settings')
-          .select('event_date')
-          .limit(1)
-          .single();
+        const { rows: settingsRows } = await query(
+          'SELECT event_date FROM settings LIMIT 1'
+        );
+        const settings = settingsRows[0];
         if (settings?.event_date) {
           eventDate = formatDateDE(settings.event_date);
         }
@@ -1459,20 +1314,19 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
     const now = new Date().toISOString();
 
     // Fetch existing slots for this teacher for the resolved scope to avoid duplicates
-    let existingQuery = supabase
-      .from('slots')
-      .select('time')
-      .eq('teacher_id', teacherId)
-      .eq('date', eventDate);
-
+    let existingConditions = 'teacher_id = $1 AND date = $2';
+    let existingParams = [teacherId, eventDate];
     if (targetEventId === null) {
-      existingQuery = existingQuery.is('event_id', null);
+      existingConditions += ' AND event_id IS NULL';
     } else {
-      existingQuery = existingQuery.eq('event_id', targetEventId);
+      existingConditions += ' AND event_id = $3';
+      existingParams.push(targetEventId);
     }
 
-    const { data: existingSlots, error: existingErr } = await existingQuery;
-    if (existingErr) throw existingErr;
+    const { rows: existingSlots } = await query(
+      `SELECT time FROM slots WHERE ${existingConditions}`,
+      existingParams
+    );
     const existingTimes = new Set((existingSlots || []).map((s) => s.time));
 
     const inserts = [];
@@ -1493,8 +1347,17 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
     }
 
     if (inserts.length) {
-      const { error: insErr } = await supabase.from('slots').insert(inserts);
-      if (insErr) throw insErr;
+      const values = inserts.map((ins, i) => {
+        const base = i * 6;
+        return `($${base+1}, $${base+2}, $${base+3}, $${base+4}, $${base+5}, $${base+6})`;
+      }).join(', ');
+      const flatParams = inserts.flatMap(ins => [
+        ins.teacher_id, ins.event_id, ins.time, ins.date, ins.booked, ins.updated_at
+      ]);
+      await query(
+        `INSERT INTO slots (teacher_id, event_id, time, date, booked, updated_at) VALUES ${values}`,
+        flatParams
+      );
     }
 
     return res.json({
@@ -1515,16 +1378,16 @@ app.post('/api/admin/teachers/:id/generate-slots', requireAdmin, async (req, res
 app.get('/api/health', async (_req, res) => {
   try {
     const [teacherResult, slotResult, bookedResult] = await Promise.all([
-      supabase.from('teachers').select('id', { count: 'exact', head: true }),
-      supabase.from('slots').select('id', { count: 'exact', head: true }),
-      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('booked', true)
+      query('SELECT COUNT(*) AS count FROM teachers'),
+      query('SELECT COUNT(*) AS count FROM slots'),
+      query('SELECT COUNT(*) AS count FROM slots WHERE booked = true')
     ]);
 
     res.json({ 
       status: 'ok', 
-      teacherCount: teacherResult.count || 0, 
-      slotCount: slotResult.count || 0,
-      bookedCount: bookedResult.count || 0
+      teacherCount: parseInt(teacherResult.rows[0].count, 10) || 0, 
+      slotCount: parseInt(slotResult.rows[0].count, 10) || 0,
+      bookedCount: parseInt(bookedResult.rows[0].count, 10) || 0
     });
   } catch (error) {
     console.error('Error in health check:', error);
@@ -1537,17 +1400,16 @@ app.get('/api/health', async (_req, res) => {
 app.get('/api/events/active', async (_req, res) => {
   try {
     const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('status', 'published')
-      .or(`booking_opens_at.is.null,booking_opens_at.lte.${now}`)
-      .or(`booking_closes_at.is.null,booking_closes_at.gte.${now}`)
-      .order('starts_at', { ascending: false })
-      .limit(1);
+    const { rows } = await query(
+      `SELECT * FROM events
+       WHERE status = 'published'
+         AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
+         AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
+       ORDER BY starts_at DESC LIMIT 1`,
+      [now]
+    );
 
-    if (error) throw error;
-    const activeEvent = data && data.length ? data[0] : null;
+    const activeEvent = rows && rows.length ? rows[0] : null;
     res.json({ event: activeEvent });
   } catch (error) {
     console.error('Error fetching active event:', error);
@@ -1559,16 +1421,14 @@ app.get('/api/events/active', async (_req, res) => {
 app.get('/api/events/upcoming', async (_req, res) => {
   try {
     const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('status', 'published')
-      .gte('starts_at', now)
-      .order('starts_at', { ascending: true })
-      .limit(3);
+    const { rows } = await query(
+      `SELECT * FROM events
+       WHERE status = 'published' AND starts_at >= $1
+       ORDER BY starts_at ASC LIMIT 3`,
+      [now]
+    );
 
-    if (error) throw error;
-    res.json({ events: data || [] });
+    res.json({ events: rows || [] });
   } catch (error) {
     console.error('Error fetching upcoming events:', error);
     res.status(500).json({ error: 'Failed to fetch upcoming events' });
@@ -1578,12 +1438,10 @@ app.get('/api/events/upcoming', async (_req, res) => {
 // Admin: list events
 app.get('/api/admin/events', requireAuth, requireAdmin, async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('starts_at', { ascending: false });
-    if (error) throw error;
-    res.json({ events: data || [] });
+    const { rows } = await query(
+      'SELECT * FROM events ORDER BY starts_at DESC'
+    );
+    res.json({ events: rows || [] });
   } catch (error) {
     console.error('Error fetching events:', error);
     res.status(500).json({ error: 'Failed to fetch events' });
@@ -1598,25 +1456,12 @@ app.post('/api/admin/events', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'name, school_year, starts_at, ends_at required' });
     }
 
-    const payload = {
-      name,
-      school_year,
-      starts_at,
-      ends_at,
-      timezone: timezone || 'Europe/Berlin',
-      status: status || 'draft',
-      booking_opens_at: booking_opens_at || null,
-      booking_closes_at: booking_closes_at || null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('events')
-      .insert(payload)
-      .select('*')
-      .single();
-    if (error) throw error;
-    res.json({ success: true, event: data });
+    const { rows } = await query(
+      `INSERT INTO events (name, school_year, starts_at, ends_at, timezone, status, booking_opens_at, booking_closes_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [name, school_year, starts_at, ends_at, timezone || 'Europe/Berlin', status || 'draft', booking_opens_at || null, booking_closes_at || null, new Date().toISOString()]
+    );
+    res.json({ success: true, event: rows[0] });
   } catch (error) {
     console.error('Error creating event:', error);
     const message = (error && typeof error === 'object' && 'message' in error)
@@ -1644,14 +1489,23 @@ app.put('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) => 
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
   try {
     const patch = { ...(req.body || {}), updated_at: new Date().toISOString() };
-    const { data, error } = await supabase
-      .from('events')
-      .update(patch)
-      .eq('id', id)
-      .select('*')
-      .single();
-    if (error) throw error;
-    res.json({ success: true, event: data });
+    // Build dynamic SET clause
+    const setCols = [];
+    const setParams = [];
+    let pi = 1;
+    for (const [key, val] of Object.entries(patch)) {
+      if (key === 'id') continue; // never update PK
+      setCols.push(`${key} = $${pi++}`);
+      setParams.push(val);
+    }
+    if (!setCols.length) return res.status(400).json({ error: 'No fields to update' });
+    setParams.push(id);
+    const { rows } = await query(
+      `UPDATE events SET ${setCols.join(', ')} WHERE id = $${pi} RETURNING *`,
+      setParams
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    res.json({ success: true, event: rows[0] });
   } catch (error) {
     console.error('Error updating event:', error);
     res.status(500).json({ error: 'Failed to update event' });
@@ -1663,8 +1517,7 @@ app.delete('/api/admin/events/:id', requireAuth, requireAdmin, async (req, res) 
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
   try {
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    if (error) throw error;
+    await query('DELETE FROM events WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting event:', error);
@@ -1680,13 +1533,11 @@ app.get('/api/admin/events/:id/stats', requireAuth, requireAdmin, async (req, re
 
   try {
     // Validate event exists (keeps errors clearer)
-    const { data: eventRow, error: eventErr } = await supabase
-      .from('events')
-      .select('id')
-      .eq('id', eventId)
-      .single();
-    if (eventErr) throw eventErr;
-    if (!eventRow) return res.status(404).json({ error: 'Event not found' });
+    const { rows: eventRows } = await query(
+      'SELECT id FROM events WHERE id = $1',
+      [eventId]
+    );
+    if (!eventRows.length) return res.status(404).json({ error: 'Event not found' });
 
     const [
       totalRes,
@@ -1695,27 +1546,20 @@ app.get('/api/admin/events/:id/stats', requireAuth, requireAdmin, async (req, re
       reservedRes,
       confirmedRes,
     ] = await Promise.all([
-      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
-      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('booked', false),
-      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('booked', true),
-      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'reserved'),
-      supabase.from('slots').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'confirmed'),
+      query('SELECT COUNT(*) AS count FROM slots WHERE event_id = $1', [eventId]),
+      query('SELECT COUNT(*) AS count FROM slots WHERE event_id = $1 AND booked = false', [eventId]),
+      query('SELECT COUNT(*) AS count FROM slots WHERE event_id = $1 AND booked = true', [eventId]),
+      query(`SELECT COUNT(*) AS count FROM slots WHERE event_id = $1 AND status = 'reserved'`, [eventId]),
+      query(`SELECT COUNT(*) AS count FROM slots WHERE event_id = $1 AND status = 'confirmed'`, [eventId]),
     ]);
-
-    // Any error in the batch -> throw
-    if (totalRes.error) throw totalRes.error;
-    if (availableRes.error) throw availableRes.error;
-    if (bookedRes.error) throw bookedRes.error;
-    if (reservedRes.error) throw reservedRes.error;
-    if (confirmedRes.error) throw confirmedRes.error;
 
     res.json({
       eventId,
-      totalSlots: totalRes.count || 0,
-      availableSlots: availableRes.count || 0,
-      bookedSlots: bookedRes.count || 0,
-      reservedSlots: reservedRes.count || 0,
-      confirmedSlots: confirmedRes.count || 0,
+      totalSlots: parseInt(totalRes.rows[0].count, 10) || 0,
+      availableSlots: parseInt(availableRes.rows[0].count, 10) || 0,
+      bookedSlots: parseInt(bookedRes.rows[0].count, 10) || 0,
+      reservedSlots: parseInt(reservedRes.rows[0].count, 10) || 0,
+      confirmedSlots: parseInt(confirmedRes.rows[0].count, 10) || 0,
     });
   } catch (error) {
     console.error('Error fetching event stats:', error);
@@ -1743,12 +1587,11 @@ app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, asyn
   };
 
   try {
-    const { data: eventRow, error: eventErr } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', eventId)
-      .single();
-    if (eventErr) throw eventErr;
+    const { rows: evtRows } = await query(
+      'SELECT * FROM events WHERE id = $1',
+      [eventId]
+    );
+    const eventRow = evtRows[0];
     if (!eventRow) return res.status(404).json({ error: 'Event not found' });
 
     const eventDate = formatDateDE(eventRow.starts_at);
@@ -1757,19 +1600,16 @@ app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, asyn
     // Optional: replace existing slots for this event day
     if (replaceExisting) {
       if (!dryRun) {
-        const { error: delErr } = await supabase
-          .from('slots')
-          .delete()
-          .eq('event_id', eventId)
-          .eq('date', eventDate);
-        if (delErr) throw delErr;
+        await query(
+          'DELETE FROM slots WHERE event_id = $1 AND date = $2',
+          [eventId, eventDate]
+        );
       }
     }
 
-    const { data: teachers, error: teachersErr } = await supabase
-      .from('teachers')
-      .select('id, system');
-    if (teachersErr) throw teachersErr;
+    const { rows: teachers } = await query(
+      'SELECT id, system FROM teachers'
+    );
 
     const teacherRows = teachers || [];
     if (!teacherRows.length) return res.json({ success: true, created: 0, skipped: 0, eventDate });
@@ -1781,13 +1621,10 @@ app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, asyn
       const times = generateTimeSlots(t.system || 'dual', slotMinutes);
 
       // Fetch existing slots for this teacher+event+date to avoid duplicates
-      const { data: existingSlots, error: existingErr } = await supabase
-        .from('slots')
-        .select('time')
-        .eq('teacher_id', t.id)
-        .eq('event_id', eventId)
-        .eq('date', eventDate);
-      if (existingErr) throw existingErr;
+      const { rows: existingSlots } = await query(
+        'SELECT time FROM slots WHERE teacher_id = $1 AND event_id = $2 AND date = $3',
+        [t.id, eventId, eventDate]
+      );
       const existingTimes = new Set((existingSlots || []).map((s) => s.time));
 
       const inserts = [];
@@ -1808,8 +1645,17 @@ app.post('/api/admin/events/:id/generate-slots', requireAuth, requireAdmin, asyn
 
       if (inserts.length) {
         if (!dryRun) {
-          const { error: insErr } = await supabase.from('slots').insert(inserts);
-          if (insErr) throw insErr;
+          const values = inserts.map((ins, i) => {
+            const base = i * 6;
+            return `($${base+1}, $${base+2}, $${base+3}, $${base+4}, $${base+5}, $${base+6})`;
+          }).join(', ');
+          const flatParams = inserts.flatMap(ins => [
+            ins.teacher_id, ins.event_id, ins.date, ins.time, ins.booked, ins.updated_at
+          ]);
+          await query(
+            `INSERT INTO slots (teacher_id, event_id, date, time, booked, updated_at) VALUES ${values}`,
+            flatParams
+          );
         }
         created += inserts.length;
       }

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 
 function parseArgs(argv) {
   const args = {};
@@ -22,12 +22,8 @@ async function upsertHerrHuhn() {
 
   // Resolve teacher by id
   try {
-    const { data: teacher, error: tErr } = await supabase
-      .from('teachers')
-      .select('*')
-      .eq('id', teacherId)
-      .single();
-    if (tErr) throw tErr;
+    const { rows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const teacher = rows[0];
     if (!teacher) {
       console.error(`Lehrer mit ID ${teacherId} nicht gefunden. Bitte zuerst anlegen.`);
       process.exit(1);
@@ -42,15 +38,15 @@ async function upsertHerrHuhn() {
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    const { error: upsertErr } = await supabase
-      .from('users')
-      .upsert({
-        username,
-        password_hash: passwordHash,
-        role: 'teacher',
-        teacher_id: teacherId
-      }, { onConflict: 'username' });
-    if (upsertErr) throw upsertErr;
+    await query(
+      `INSERT INTO users (username, password_hash, role, teacher_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO UPDATE
+         SET password_hash = EXCLUDED.password_hash,
+             role = EXCLUDED.role,
+             teacher_id = EXCLUDED.teacher_id`,
+      [username, passwordHash, 'teacher', teacherId]
+    );
 
     console.log('✓ Benutzer upsert erfolgreich:');
     console.log(`  Username: ${username}`);

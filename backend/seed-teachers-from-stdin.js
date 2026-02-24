@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 
 function parseArgs(argv) {
   const args = {
@@ -195,17 +195,17 @@ async function resolveActiveEventIdAndDate() {
   };
 
   const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('events')
-    .select('id, starts_at')
-    .eq('status', 'published')
-    .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
-    .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
-    .order('starts_at', { ascending: false })
-    .limit(1);
+  const { rows } = await query(
+    `SELECT id, starts_at FROM events
+     WHERE status = 'published'
+       AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
+       AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
+     ORDER BY starts_at DESC
+     LIMIT 1`,
+    [nowIso]
+  );
 
-  if (error) throw error;
-  const ev = data && data.length ? data[0] : null;
+  const ev = rows.length ? rows[0] : null;
   if (!ev?.id) return { eventId: null, date: null };
 
   return { eventId: ev.id, date: formatDateDE(ev.starts_at) };
@@ -215,31 +215,23 @@ async function resetAllTeachersAndTeacherUsers() {
   console.log('Starte Reset (Slots, Teacher-User, Teachers)...');
 
   // 1) Slots löschen
-  const { error: slotsError } = await supabase.from('slots').delete().neq('id', 0);
-  if (slotsError) throw slotsError;
+  await query('DELETE FROM slots');
   console.log('✓ Slots gelöscht');
 
   // 2) Teacher users löschen (nur Lehrkräfte)
-  const { data: teacherIdsRows, error: idsErr } = await supabase
-    .from('teachers')
-    .select('id')
-    .order('id');
-  if (idsErr) throw idsErr;
+  const { rows: teacherIdsRows } = await query('SELECT id FROM teachers ORDER BY id');
   const teacherIds = (teacherIdsRows || []).map((r) => r.id).filter(Boolean);
 
-  const { error: usersErr1 } = await supabase.from('users').delete().eq('role', 'teacher');
-  if (usersErr1) throw usersErr1;
+  await query("DELETE FROM users WHERE role = 'teacher'");
 
   if (teacherIds.length) {
-    const { error: usersErr2 } = await supabase.from('users').delete().in('teacher_id', teacherIds);
-    if (usersErr2) throw usersErr2;
+    await query('DELETE FROM users WHERE teacher_id = ANY($1)', [teacherIds]);
   }
 
   console.log('✓ Teacher-Users gelöscht');
 
   // 3) Teachers löschen
-  const { error: teachersError } = await supabase.from('teachers').delete().neq('id', 0);
-  if (teachersError) throw teachersError;
+  await query('DELETE FROM teachers');
   console.log('✓ Teachers gelöscht');
 }
 
@@ -248,12 +240,7 @@ async function main() {
 
   // Ensure DB has the required schema (teachers.email)
   try {
-    const { error: schemaErr } = await supabase.from('teachers').select('email').limit(1);
-    if (schemaErr) {
-      console.error('❌ Datenbank-Schema fehlt: Spalte teachers.email.');
-      console.error('Bitte zuerst die Migration ausführen: backend/migrations/add_teacher_email.sql');
-      process.exit(1);
-    }
+    await query('SELECT email FROM teachers LIMIT 1');
   } catch {
     console.error('❌ Datenbank-Schema fehlt: Spalte teachers.email.');
     console.error('Bitte zuerst die Migration ausführen: backend/migrations/add_teacher_email.sql');
@@ -341,58 +328,48 @@ async function main() {
     const password = sharedPassword || crypto.randomBytes(6).toString('base64url');
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const { data: teacher, error: teacherErr } = await supabase
-      .from('teachers')
-      .insert({
-        name: t.name,
-        email: t.email,
-        salutation: salutationForFirstName(t.firstName),
-        subject: 'Sprechstunde',
-        system: 'dual',
-        room: null,
-      })
-      .select()
-      .single();
+    const { rows: teacherRows } = await query(
+      `INSERT INTO teachers (name, email, salutation, subject, system, room)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [t.name, t.email, salutationForFirstName(t.firstName), 'Sprechstunde', 'dual', null]
+    );
+    const teacher = teacherRows[0];
 
-    if (teacherErr) {
-      console.error('Teacher insert failed:', t.name, teacherErr);
+    if (!teacher) {
+      console.error('Teacher insert failed:', t.name, 'no row returned');
       process.exit(1);
     }
 
-    const { error: userErr } = await supabase
-      .from('users')
-      .upsert(
-        {
-          username: t.username,
-          password_hash: passwordHash,
-          role: 'teacher',
-          teacher_id: teacher.id,
-        },
-        { onConflict: 'username' }
-      );
-
-    if (userErr) {
-      console.error('User upsert failed:', t.username, userErr);
-      process.exit(1);
-    }
+    await query(
+      `INSERT INTO users (username, password_hash, role, teacher_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO UPDATE
+         SET password_hash = EXCLUDED.password_hash,
+             role = EXCLUDED.role,
+             teacher_id = EXCLUDED.teacher_id`,
+      [t.username, passwordHash, 'teacher', teacher.id]
+    );
 
     if (args.createSlots) {
       const slots = generateTimeSlots('dual');
       const now = new Date().toISOString();
-      const slotsToInsert = slots.map((time) => ({
-        teacher_id: teacher.id,
-        event_id: activeEvent.eventId,
-        time,
-        date: activeEvent.date,
-        booked: false,
-        updated_at: now,
-      }));
 
-      const { error: slotsErr } = await supabase.from('slots').insert(slotsToInsert);
-      if (slotsErr) {
-        console.error('Slot insert failed for teacher:', t.username, slotsErr);
-        process.exit(1);
+      // Build parameterized bulk insert for slots
+      const slotCols = ['teacher_id', 'event_id', 'time', 'date', 'booked', 'updated_at'];
+      const slotPlaceholders = [];
+      const slotVals = [];
+      let pIdx = 1;
+      for (const time of slots) {
+        slotPlaceholders.push(`($${pIdx}, $${pIdx + 1}, $${pIdx + 2}, $${pIdx + 3}, $${pIdx + 4}, $${pIdx + 5})`);
+        slotVals.push(teacher.id, activeEvent.eventId, time, activeEvent.date, false, now);
+        pIdx += 6;
       }
+
+      await query(
+        `INSERT INTO slots (${slotCols.join(', ')}) VALUES ${slotPlaceholders.join(', ')}`,
+        slotVals
+      );
     }
 
     credentials.push({ name: t.name, email: t.email, username: t.username, password });
@@ -408,7 +385,7 @@ async function main() {
     }
   }
 
-  console.log('\nHinweis: Bitte ggf. reset-sequences.sql in Supabase ausführen, falls IDs wieder bei 1 starten sollen.');
+  console.log('\nHinweis: Bitte ggf. reset-sequences.sql ausführen, falls IDs wieder bei 1 starten sollen.');
 }
 
 main().then(() => process.exit(0)).catch((e) => {

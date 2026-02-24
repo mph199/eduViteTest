@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 
 function getArgValue(name) {
   const idx = process.argv.indexOf(name);
@@ -22,21 +22,18 @@ async function resolveTeacherId() {
   const username = getArgValue('--teacher-username');
   if (!username) return undefined;
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('teacher_id')
-    .eq('username', username)
-    .limit(1)
-    .single();
-  if (error) throw error;
-  return data?.teacher_id ? Number(data.teacher_id) : undefined;
+  const { rows } = await query(
+    'SELECT teacher_id FROM users WHERE username = $1 LIMIT 1',
+    [username]
+  );
+  return rows[0]?.teacher_id ? Number(rows[0].teacher_id) : undefined;
 }
 
 async function resolveEventDateDE() {
   try {
-    const { data } = await supabase.from('settings').select('event_date').limit(1).single();
-    if (data?.event_date) {
-      const de = formatDateDE(data.event_date);
+    const { rows } = await query('SELECT event_date FROM settings LIMIT 1');
+    if (rows[0]?.event_date) {
+      const de = formatDateDE(rows[0].event_date);
       if (de) return de;
     }
   } catch {
@@ -56,15 +53,10 @@ async function main() {
   const nowIso = new Date().toISOString();
 
   // Prefer updating an existing unbooked slot to avoid duplicate times.
-  const { data: candidateSlots, error: slotSelErr } = await supabase
-    .from('slots')
-    .select('id,date,time,booked')
-    .eq('teacher_id', teacherId)
-    .eq('booked', false)
-    .order('date')
-    .order('time')
-    .limit(1);
-  if (slotSelErr) throw slotSelErr;
+  const { rows: candidateSlots } = await query(
+    'SELECT id, date, time, booked FROM slots WHERE teacher_id = $1 AND booked = false ORDER BY date, time LIMIT 1',
+    [teacherId]
+  );
 
   let slotId;
   let slotDate;
@@ -78,19 +70,13 @@ async function main() {
     // No slots exist — create a new one.
     slotDate = await resolveEventDateDE();
     slotTime = '16:00 - 16:15';
-    const { data: inserted, error: insErr } = await supabase
-      .from('slots')
-      .insert({
-        teacher_id: teacherId,
-        date: slotDate,
-        time: slotTime,
-        booked: false,
-        updated_at: nowIso,
-      })
-      .select('id')
-      .single();
-    if (insErr) throw insErr;
-    slotId = inserted?.id;
+    const { rows: inserted } = await query(
+      `INSERT INTO slots (teacher_id, date, time, booked, updated_at)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [teacherId, slotDate, slotTime, false, nowIso]
+    );
+    slotId = inserted[0]?.id;
   }
 
   const baseUpdate = {
@@ -124,11 +110,12 @@ async function main() {
     };
   }
 
-  const { error: updErr } = await supabase
-    .from('slots')
-    .update(update)
-    .eq('id', slotId);
-  if (updErr) throw updErr;
+  // Build dynamic SET clause
+  const cols = Object.keys(update);
+  const vals = Object.values(update);
+  const setClause = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
+  vals.push(slotId);
+  await query(`UPDATE slots SET ${setClause} WHERE id = $${vals.length}`, vals);
 
   console.log('✅ Created/updated confirmed booking');
   console.log(`- teacher_id: ${teacherId}`);

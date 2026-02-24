@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../utils/mappers.js';
@@ -76,13 +76,12 @@ function buildAssignableSlotTimesForSystem(system) {
 }
 
 async function getTeacherSystem(teacherId) {
-  const { data, error } = await supabase
-    .from('teachers')
-    .select('system')
-    .eq('id', teacherId)
-    .single();
-  if (error) throw error;
-  return data?.system === 'vollzeit' ? 'vollzeit' : 'dual';
+  const { rows } = await query(
+    'SELECT system FROM teachers WHERE id = $1',
+    [teacherId]
+  );
+  if (rows.length === 0) throw new Error('Teacher not found');
+  return rows[0]?.system === 'vollzeit' ? 'vollzeit' : 'dual';
 }
 
 function isValidSlotTimeRange(value) {
@@ -123,8 +122,8 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
   if (!updatedSlot?.email || !isEmailConfigured()) return;
 
   try {
-    const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherId).single();
-    const teacher = teacherRes.data || {};
+    const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
     const teacherMessagePlain = safeTeacherMessage
       ? `\n\nNachricht der Lehrkraft:\n${safeTeacherMessage}`
@@ -156,8 +155,8 @@ ${teacherMessageHtml}
 <p>Ihr BKSB-Team</p>`;
 
     await sendMail({ to: updatedSlot.email, subject, text: plain, html });
-    await supabase.from('slots').update({ confirmation_sent_at: now }).eq('id', updatedSlot.id);
-    await supabase.from('booking_requests').update({ confirmation_sent_at: now, updated_at: now }).eq('id', requestRow.id);
+    await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [now, updatedSlot.id]);
+    await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
   } catch (e) {
     console.warn('Sending request confirmation email failed:', e?.message || e);
   }
@@ -179,15 +178,12 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
 
   // If no preferred time and no candidates, query all free slots for this teacher+date
   if (!orderedTimes.length) {
-    const { data: anyFreeSlots, error: anyErr } = await supabase
-      .from('slots')
-      .select('*')
-      .eq('teacher_id', teacherId)
-      .eq('date', current.date)
-      .eq('booked', false)
-      .order('time', { ascending: true })
-      .limit(50);
-    if (anyErr) throw anyErr;
+    const { rows: anyFreeSlots } = await query(
+      `SELECT * FROM slots
+       WHERE teacher_id = $1 AND date = $2 AND booked = false
+       ORDER BY time ASC LIMIT 50`,
+      [teacherId, current.date]
+    );
     if (!anyFreeSlots?.length) {
       return { ok: false, code: 'NO_SLOT_AVAILABLE' };
     }
@@ -197,15 +193,12 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
     }
   }
 
-  const { data: slotRows, error: slotErr } = await supabase
-    .from('slots')
-    .select('*')
-    .eq('teacher_id', teacherId)
-    .eq('date', current.date)
-    .eq('booked', false)
-    .in('time', orderedTimes)
-    .limit(50);
-  if (slotErr) throw slotErr;
+  const { rows: slotRows } = await query(
+    `SELECT * FROM slots
+     WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = ANY($3)
+     LIMIT 50`,
+    [teacherId, current.date, orderedTimes]
+  );
 
   const slot = pickPreferredSlot(slotRows, orderedTimes, current.event_id ?? null);
   if (!slot) {
@@ -247,37 +240,34 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
     updated_at: now,
   };
 
-  const { data: updatedSlot, error: updErr } = await supabase
-    .from('slots')
-    .update(slotUpdate)
-    .eq('id', slot.id)
-    .eq('teacher_id', teacherId)
-    .eq('booked', false)
-    .select('*')
-    .single();
+  const slotUpdateKeys = Object.keys(slotUpdate);
+  const slotSetClauses = slotUpdateKeys.map((k, i) => `${k} = $${i + 1}`);
+  const slotValues = slotUpdateKeys.map((k) => slotUpdate[k]);
+  const slotOffset = slotValues.length;
 
-  if (updErr) {
-    if (updErr.code === 'PGRST116') {
-      return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
-    }
-    throw updErr;
+  const { rows: updatedSlotRows } = await query(
+    `UPDATE slots SET ${slotSetClauses.join(', ')}
+     WHERE id = $${slotOffset + 1} AND teacher_id = $${slotOffset + 2} AND booked = false
+     RETURNING *`,
+    [...slotValues, slot.id, teacherId]
+  );
+
+  if (updatedSlotRows.length === 0) {
+    return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
   }
+  const updatedSlot = updatedSlotRows[0];
 
-  const { data: updatedReq, error: reqUpdErr } = await supabase
-    .from('booking_requests')
-    .update({ status: 'accepted', assigned_slot_id: updatedSlot.id, updated_at: now })
-    .eq('id', current.id)
-    .eq('teacher_id', teacherId)
-    .eq('status', 'requested')
-    .select('*')
-    .single();
+  const { rows: updatedReqRows } = await query(
+    `UPDATE booking_requests SET status = 'accepted', assigned_slot_id = $1, updated_at = $2
+     WHERE id = $3 AND teacher_id = $4 AND status = 'requested'
+     RETURNING *`,
+    [updatedSlot.id, now, current.id, teacherId]
+  );
 
-  if (reqUpdErr) {
-    if (reqUpdErr.code === 'PGRST116') {
-      return { ok: false, code: 'REQUEST_NOT_PENDING_ANYMORE' };
-    }
-    throw reqUpdErr;
+  if (updatedReqRows.length === 0) {
+    return { ok: false, code: 'REQUEST_NOT_PENDING_ANYMORE' };
   }
+  const updatedReq = updatedReqRows[0];
 
   await sendRequestConfirmationIfPossible(updatedSlot, updatedReq, teacherId, now, teacherMessage);
   return { ok: true, updatedSlot, updatedReq };
@@ -285,16 +275,12 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
 
 async function autoAssignOverdueRequestsForTeacher(teacherId) {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: overdueRequests, error } = await supabase
-    .from('booking_requests')
-    .select('*')
-    .eq('teacher_id', teacherId)
-    .eq('status', 'requested')
-    .not('verified_at', 'is', null)
-    .lte('created_at', cutoff)
-    .order('created_at', { ascending: true })
-    .limit(200);
-
+  const { rows: overdueRequests } = await query(
+    `SELECT * FROM booking_requests
+     WHERE teacher_id = $1 AND status = 'requested' AND verified_at IS NOT NULL AND created_at <= $2
+     ORDER BY created_at ASC LIMIT 200`,
+    [teacherId, cutoff]
+  );
   if (error) throw error;
 
   for (const reqRow of overdueRequests || []) {
@@ -308,16 +294,12 @@ async function autoAssignOverdueRequestsForTeacher(teacherId) {
 
 async function autoAssignOverdueRequestsGlobal() {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: overdueRequests, error } = await supabase
-    .from('booking_requests')
-    .select('*')
-    .eq('status', 'requested')
-    .not('verified_at', 'is', null)
-    .lte('created_at', cutoff)
-    .order('created_at', { ascending: true })
-    .limit(500);
-
-  if (error) throw error;
+  const { rows: overdueRequests } = await query(
+    `SELECT * FROM booking_requests
+     WHERE status = 'requested' AND verified_at IS NOT NULL AND created_at <= $1
+     ORDER BY created_at ASC LIMIT 500`,
+    [cutoff]
+  );
 
   for (const reqRow of overdueRequests || []) {
     try {
@@ -366,20 +348,20 @@ router.get('/bookings', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { data, error } = await supabase
-      .from('slots')
-      .select(`
-        *,
-        teacher:teachers(name, subject)
-      `)
-      .eq('teacher_id', teacherId)
-      .eq('booked', true)
-      .order('date')
-      .order('time');
+    const { rows: bookingRows } = await query(
+      `SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
+       FROM slots s
+       LEFT JOIN teachers t ON s.teacher_id = t.id
+       WHERE s.teacher_id = $1 AND s.booked = true
+       ORDER BY s.date, s.time`,
+      [teacherId]
+    );
     
-    if (error) throw error;
-    
-    const bookings = (data || []).map(mapBookingRowWithTeacher);
+    const bookings = (bookingRows || []).map((r) => {
+      const { teacher_name, teacher_subject, ...slot } = r;
+      slot.teacher = { name: teacher_name, subject: teacher_subject };
+      return mapBookingRowWithTeacher(slot);
+    });
   
     res.json({ bookings });
   } catch (error) {
@@ -400,16 +382,12 @@ router.get('/slots', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { data, error } = await supabase
-      .from('slots')
-      .select('*')
-      .eq('teacher_id', teacherId)
-      .order('date')
-      .order('time');
+    const { rows: slotData } = await query(
+      'SELECT * FROM slots WHERE teacher_id = $1 ORDER BY date, time',
+      [teacherId]
+    );
     
-    if (error) throw error;
-    
-    const slots = (data || []).map(mapSlotRow);
+    const slots = (slotData || []).map(mapSlotRow);
     
     res.json({ slots });
   } catch (error) {
@@ -434,31 +412,26 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
     // Auto-assign verified requests older than 24h to the earliest free slot.
     await autoAssignOverdueRequestsForTeacher(teacherId);
 
-    const { data, error } = await supabase
-      .from('booking_requests')
-      .select('*')
-      .eq('teacher_id', teacherId)
-      .eq('status', 'requested')
-      .order('created_at', { ascending: false })
-      .limit(500);
+    const { rows: requestData } = await query(
+      `SELECT * FROM booking_requests
+       WHERE teacher_id = $1 AND status = 'requested'
+       ORDER BY created_at DESC LIMIT 500`,
+      [teacherId]
+    );
 
-    if (error) throw error;
     return res.json({
       requests: await (async () => {
-        const rows = data || [];
+        const rows = requestData || [];
         const dates = Array.from(new Set(rows.map((row) => row.date).filter(Boolean)));
 
         let allFreeSlots = [];
         if (dates.length) {
-          const { data: freeSlotRows, error: freeSlotErr } = await supabase
-            .from('slots')
-            .select('time, date')
-            .eq('teacher_id', teacherId)
-            .eq('booked', false)
-            .in('date', dates)
-            .order('time', { ascending: true })
-            .limit(3000);
-          if (freeSlotErr) throw freeSlotErr;
+          const { rows: freeSlotRows } = await query(
+            `SELECT time, date FROM slots
+             WHERE teacher_id = $1 AND booked = false AND date = ANY($2)
+             ORDER BY time ASC LIMIT 3000`,
+            [teacherId, dates]
+          );
           allFreeSlots = freeSlotRows || [];
         }
 
@@ -492,15 +465,12 @@ async function assignExtraSlot(requestRow, teacherId, preferredTime) {
     return { ok: false, code: 'INVALID_TIME_SELECTION' };
   }
 
-  const { data: slotRows, error: slotErr } = await supabase
-    .from('slots')
-    .select('*')
-    .eq('teacher_id', teacherId)
-    .eq('date', requestRow.date)
-    .eq('booked', false)
-    .eq('time', normalizedTime)
-    .limit(10);
-  if (slotErr) throw slotErr;
+  const { rows: slotRows } = await query(
+    `SELECT * FROM slots
+     WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = $3
+     LIMIT 10`,
+    [teacherId, requestRow.date, normalizedTime]
+  );
 
   const slot = pickPreferredSlot(slotRows, [normalizedTime], requestRow.event_id ?? null);
   if (!slot) {
@@ -528,23 +498,23 @@ async function assignExtraSlot(requestRow, teacherId, preferredTime) {
     updated_at: now,
   };
 
-  const { data: updatedSlot, error: updErr } = await supabase
-    .from('slots')
-    .update(slotUpdate)
-    .eq('id', slot.id)
-    .eq('teacher_id', teacherId)
-    .eq('booked', false)
-    .select('*')
-    .single();
+  const extraKeys = Object.keys(slotUpdate);
+  const extraSet = extraKeys.map((k, i) => `${k} = $${i + 1}`);
+  const extraVals = extraKeys.map((k) => slotUpdate[k]);
+  const extraOff = extraVals.length;
 
-  if (updErr) {
-    if (updErr.code === 'PGRST116') {
-      return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
-    }
-    throw updErr;
+  const { rows: updatedSlotRows } = await query(
+    `UPDATE slots SET ${extraSet.join(', ')}
+     WHERE id = $${extraOff + 1} AND teacher_id = $${extraOff + 2} AND booked = false
+     RETURNING *`,
+    [...extraVals, slot.id, teacherId]
+  );
+
+  if (updatedSlotRows.length === 0) {
+    return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
   }
 
-  return { ok: true, updatedSlot };
+  return { ok: true, updatedSlot: updatedSlotRows[0] };
 }
 
 /**
@@ -555,8 +525,8 @@ async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId, teache
   if (!allSlots?.length || !allSlots[0]?.email || !isEmailConfigured()) return;
 
   try {
-    const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherId).single();
-    const teacher = teacherRes.data || {};
+    const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
     const teacherMessagePlain = safeTeacherMessage
       ? `\n\nNachricht der Lehrkraft:\n${safeTeacherMessage}`
@@ -602,9 +572,9 @@ ${teacherMessageHtml}
 
     // Mark all slots as confirmation sent
     for (const slot of allSlots) {
-      await supabase.from('slots').update({ confirmation_sent_at: now }).eq('id', slot.id);
+      await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [now, slot.id]);
     }
-    await supabase.from('booking_requests').update({ confirmation_sent_at: now, updated_at: now }).eq('id', requestRow.id);
+    await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
   } catch (e) {
     console.warn('Sending multi-slot confirmation email failed:', e?.message || e);
   }
@@ -629,18 +599,14 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { data: current, error: curErr } = await supabase
-      .from('booking_requests')
-      .select('*')
-      .eq('id', requestId)
-      .eq('teacher_id', teacherId)
-      .single();
+    const { rows: currentRows } = await query(
+      'SELECT * FROM booking_requests WHERE id = $1 AND teacher_id = $2',
+      [requestId, teacherId]
+    );
+    const current = currentRows[0] || null;
 
-    if (curErr) {
-      if (curErr.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Request not found' });
-      }
-      throw curErr;
+    if (!current) {
+      return res.status(404).json({ error: 'Request not found' });
     }
 
     if (current.status === 'accepted') {
@@ -747,23 +713,18 @@ router.put('/requests/:id/decline', requireAuth, requireTeacher, async (req, res
     }
 
     const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('booking_requests')
-      .update({ status: 'declined', updated_at: now })
-      .eq('id', requestId)
-      .eq('teacher_id', teacherId)
-      .eq('status', 'requested')
-      .select('*')
-      .single();
+    const { rows: declineRows } = await query(
+      `UPDATE booking_requests SET status = 'declined', updated_at = $1
+       WHERE id = $2 AND teacher_id = $3 AND status = 'requested'
+       RETURNING *`,
+      [now, requestId, teacherId]
+    );
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Request not found or not pending' });
-      }
-      throw error;
+    if (declineRows.length === 0) {
+      return res.status(404).json({ error: 'Request not found or not pending' });
     }
 
-    return res.json({ success: true, request: mapBookingRequestRow(data) });
+    return res.json({ success: true, request: mapBookingRequestRow(declineRows[0]) });
   } catch (error) {
     console.error('Error declining booking request:', error);
     return res.status(500).json({ error: 'Failed to decline request' });
@@ -782,13 +743,13 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { data, error } = await supabase
-      .from('teachers')
-      .select('*')
-      .eq('id', teacherId)
-      .single();
+    const { rows: teacherInfoRows } = await query(
+      'SELECT * FROM teachers WHERE id = $1',
+      [teacherId]
+    );
+    const data = teacherInfoRows[0];
     
-    if (error) throw error;
+    if (!data) throw new Error('Teacher not found');
     
     res.json({ 
       teacher: {
@@ -835,14 +796,13 @@ router.put('/room', requireAuth, requireTeacher, async (req, res) => {
 
     const roomValue = nextRoom && nextRoom.length ? nextRoom : null;
 
-    const { data, error } = await supabase
-      .from('teachers')
-      .update({ room: roomValue })
-      .eq('id', teacherId)
-      .select('id, name, subject, system, room')
-      .single();
+    const { rows: roomRows } = await query(
+      'UPDATE teachers SET room = $1 WHERE id = $2 RETURNING id, name, subject, system, room',
+      [roomValue, teacherId]
+    );
+    const data = roomRows[0];
 
-    if (error) throw error;
+    if (!data) throw new Error('Teacher not found');
 
     return res.json({
       success: true,
@@ -875,13 +835,11 @@ router.post('/feedback', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Nachricht darf maximal 2000 Zeichen lang sein.' });
     }
 
-    const { data, error } = await supabase
-      .from('feedback')
-      .insert({ message })
-      .select('id, message, created_at')
-      .single();
-
-    if (error) throw error;
+    const { rows: feedbackRows } = await query(
+      'INSERT INTO feedback (message) VALUES ($1) RETURNING id, message, created_at',
+      [message]
+    );
+    const data = feedbackRows[0];
 
     return res.json({ success: true, feedback: data });
   } catch (error) {
@@ -909,62 +867,41 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
     }
 
     // Load current booking data first (needed for cancellation email)
-    const { data: current, error: curErr } = await supabase
-      .from('slots')
-      .select('*')
-      .eq('id', slotId)
-      .eq('teacher_id', teacherId)
-      .eq('booked', true)
-      .single();
+    const { rows: currentRows } = await query(
+      'SELECT * FROM slots WHERE id = $1 AND teacher_id = $2 AND booked = true',
+      [slotId, teacherId]
+    );
+    const current = currentRows[0] || null;
 
-    if (curErr) {
-      if (curErr.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
-      }
-      throw curErr;
+    if (!current) {
+      return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
     }
 
     // Clear booking data, but only for own slots
-    const { data, error } = await supabase
-      .from('slots')
-      .update({
-        booked: false,
-        status: null,
-        visitor_type: null,
-        parent_name: null,
-        company_name: null,
-        student_name: null,
-        trainee_name: null,
-        representative_name: null,
-        class_name: null,
-        email: null,
-        message: null,
-        verification_token: null,
-        verification_token_hash: null,
-        verification_sent_at: null,
-        verified_at: null,
-        confirmation_sent_at: null,
-        // cancellation_sent_at is written after mail send (best-effort)
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', slotId)
-      .eq('teacher_id', teacherId) // Only allow canceling own bookings
-      .eq('booked', true)
-      .select()
-      .single();
+    const { rows: clearedRows } = await query(
+      `UPDATE slots SET
+         booked = false, status = NULL, visitor_type = NULL,
+         parent_name = NULL, company_name = NULL, student_name = NULL,
+         trainee_name = NULL, representative_name = NULL, class_name = NULL,
+         email = NULL, message = NULL,
+         verification_token = NULL, verification_token_hash = NULL,
+         verification_sent_at = NULL, verified_at = NULL,
+         confirmation_sent_at = NULL,
+         updated_at = $1
+       WHERE id = $2 AND teacher_id = $3 AND booked = true
+       RETURNING *`,
+      [new Date().toISOString(), slotId, teacherId]
+    );
     
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
-      }
-      throw error;
+    if (clearedRows.length === 0) {
+      return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
     }
 
     // Best-effort cancellation email (only if the booking email was verified)
     if (current && current.email && current.verified_at && isEmailConfigured()) {
       try {
-        const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherId).single();
-        const teacher = teacherRes.data || {};
+        const { rows: tcRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+        const teacher = tcRows[0] || {};
         const subject = `BKSB Elternsprechtag – Termin storniert am ${current.date} (${current.time})`;
         const plain = `Guten Tag,
 
@@ -988,7 +925,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
       <p>Mit freundlichen Grüßen</p>
       <p>Ihr BKSB-Team</p>`;
         await sendMail({ to: current.email, subject, text: plain, html });
-        await supabase.from('slots').update({ cancellation_sent_at: new Date().toISOString() }).eq('id', slotId);
+        await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
       } catch (e) {
         console.warn('Sending cancellation email (teacher) failed:', e?.message || e);
       }
@@ -1021,19 +958,14 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
     }
 
     // Load current state first (needed to enforce email verification before confirmation)
-    const { data: current, error: curErr } = await supabase
-      .from('slots')
-      .select('*')
-      .eq('id', slotId)
-      .eq('teacher_id', teacherId)
-      .eq('booked', true)
-      .single();
+    const { rows: acceptRows } = await query(
+      'SELECT * FROM slots WHERE id = $1 AND teacher_id = $2 AND booked = true',
+      [slotId, teacherId]
+    );
+    const current = acceptRows[0] || null;
 
-    if (curErr) {
-      if (curErr.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Slot not found or not booked' });
-      }
-      throw curErr;
+    if (!current) {
+      return res.status(404).json({ error: 'Slot not found or not booked' });
     }
 
     if (current?.status === 'confirmed') {
@@ -1047,27 +979,23 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
     }
 
     // Update status to confirmed
-    const { data, error } = await supabase
-      .from('slots')
-      .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-      .eq('id', slotId)
-      .eq('teacher_id', teacherId)
-      .eq('booked', true)
-      .select()
-      .single();
+    const { rows: confirmRows } = await query(
+      `UPDATE slots SET status = 'confirmed', updated_at = $1
+       WHERE id = $2 AND teacher_id = $3 AND booked = true
+       RETURNING *`,
+      [new Date().toISOString(), slotId, teacherId]
+    );
+    const data = confirmRows[0] || null;
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Slot not found or not booked' });
-      }
-      throw error;
+    if (!data) {
+      return res.status(404).json({ error: 'Slot not found or not booked' });
     }
 
     // If visitor already verified and we haven't sent confirmation, send now
     if (data && data.verified_at && !data.confirmation_sent_at && isEmailConfigured()) {
       try {
-        const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherId).single();
-        const teacher = teacherRes.data || {};
+        const { rows: teachConfirmRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+        const teacher = teachConfirmRows[0] || {};
         const subject = `BKSB Elternsprechtag – Termin bestätigt am ${data.date} (${data.time})`;
         const plain = `Guten Tag,
 
@@ -1088,7 +1016,7 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
       <p>Mit freundlichen Grüßen</p>
       <p>Ihr BKSB-Team</p>`;
         await sendMail({ to: data.email, subject, text: plain, html });
-        await supabase.from('slots').update({ confirmation_sent_at: new Date().toISOString() }).eq('id', data.id);
+        await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), data.id]);
       } catch (e) {
         console.warn('Sending confirmation email failed:', e?.message || e);
       }
@@ -1114,12 +1042,10 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
   try {
     // Find user by username from token
     const username = req.user.username;
-    const { data: users, error: userErr } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .limit(1);
-    if (userErr) throw userErr;
+    const { rows: users } = await query(
+      'SELECT * FROM users WHERE username = $1 LIMIT 1',
+      [username]
+    );
     if (!users || users.length === 0) {
       return res.status(404).json({ error: 'Benutzer nicht gefunden' });
     }
@@ -1131,11 +1057,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
-    const { error: upErr } = await supabase
-      .from('users')
-      .update({ password_hash: passwordHash })
-      .eq('id', user.id);
-    if (upErr) throw upErr;
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, user.id]);
 
     res.json({ success: true, message: 'Passwort erfolgreich geändert' });
   } catch (error) {

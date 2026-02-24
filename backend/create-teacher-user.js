@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 
 function parseArgs(argv) {
   const args = {};
@@ -27,11 +27,7 @@ async function createTeacherUser() {
   let teacherId = teacherIdArg;
   let teacherName = '';
   if (!teacherId) {
-    const { data: teachers, error } = await supabase
-      .from('teachers')
-      .select('*')
-      .limit(1);
-    if (error) throw error;
+    const { rows: teachers } = await query('SELECT * FROM teachers ORDER BY id LIMIT 1');
     if (!teachers || teachers.length === 0) {
       console.log('Keine Lehrer in der Datenbank gefunden. Bitte erst einen Lehrer anlegen.');
       return;
@@ -39,32 +35,25 @@ async function createTeacherUser() {
     teacherId = teachers[0].id;
     teacherName = teachers[0].name;
   } else {
-    const { data: t, error } = await supabase
-      .from('teachers')
-      .select('*')
-      .eq('id', teacherId)
-      .single();
-    if (error) {
-      console.error('Lehrer konnte nicht geladen werden:', error.message || error);
+    const { rows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const t = rows[0];
+    if (!t) {
+      console.error('Lehrer konnte nicht geladen werden: not found');
       return;
     }
     teacherName = t.name;
   }
 
   // Ensure user exists or upsert
-  const { error: upsertErr } = await supabase
-    .from('users')
-    .upsert({
-      username,
-      password_hash: passwordHash,
-      role: 'teacher',
-      teacher_id: teacherId
-    }, { onConflict: 'username' });
-
-  if (upsertErr) {
-    console.error('Fehler beim Erstellen/Aktualisieren des Users:', upsertErr);
-    return;
-  }
+  await query(
+    `INSERT INTO users (username, password_hash, role, teacher_id)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (username) DO UPDATE
+       SET password_hash = EXCLUDED.password_hash,
+           role = EXCLUDED.role,
+           teacher_id = EXCLUDED.teacher_id`,
+    [username, passwordHash, 'teacher', teacherId]
+  );
 
   console.log('✓ Teacher-User bereit:');
   console.log(`  Username: ${username}`);

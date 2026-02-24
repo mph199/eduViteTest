@@ -1,15 +1,13 @@
 import crypto from 'crypto';
-import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 import { mapBookingRowWithTeacher, mapSlotRow } from '../utils/mappers.js';
 
 export async function listSlotsByTeacherId(teacherId) {
-  const { data, error } = await supabase
-    .from('slots')
-    .select('*')
-    .eq('teacher_id', teacherId)
-    .order('time');
-  if (error) throw error;
-  return data.map(mapSlotRow);
+  const { rows } = await query(
+    'SELECT * FROM slots WHERE teacher_id = $1 ORDER BY time',
+    [teacherId]
+  );
+  return rows.map(mapSlotRow);
 }
 
 export async function reserveBooking({
@@ -87,24 +85,26 @@ export async function reserveBooking({
     updateData.student_name = null;
   }
 
-  const { data, error } = await supabase
-    .from('slots')
-    .update(updateData)
-    .eq('id', slotId)
-    .eq('booked', false)
-    .select()
-    .single();
+  // Build dynamic SET clause from updateData
+  const keys = Object.keys(updateData);
+  const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);
+  const values = keys.map((k) => updateData[k]);
+  const offset = values.length;
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      const err = new Error('Slot already booked or not found');
-      err.statusCode = 409;
-      throw err;
-    }
-    throw error;
+  const { rows } = await query(
+    `UPDATE slots SET ${setClauses.join(', ')}
+     WHERE id = $${offset + 1} AND booked = false
+     RETURNING *`,
+    [...values, slotId]
+  );
+
+  if (rows.length === 0) {
+    const err = new Error('Slot already booked or not found');
+    err.statusCode = 409;
+    throw err;
   }
 
-  return { slotRow: data, verificationToken };
+  return { slotRow: rows[0], verificationToken };
 }
 
 export async function verifyBookingToken(token) {
@@ -115,15 +115,16 @@ export async function verifyBookingToken(token) {
   }
 
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  const { data: slot, error } = await supabase
-    .from('slots')
-    .select('*')
-    .eq('booked', true)
-    // Support both new hashed tokens and legacy plaintext tokens
-    .or(`verification_token_hash.eq.${tokenHash},verification_token.eq.${token}`)
-    .single();
+  const { rows } = await query(
+    `SELECT * FROM slots
+     WHERE booked = true
+       AND (verification_token_hash = $1 OR verification_token = $2)
+     LIMIT 1`,
+    [tokenHash, token]
+  );
+  const slot = rows[0] || null;
 
-  if (error || !slot) {
+  if (!slot) {
     const err = new Error('Ungültiger oder abgelaufener Link');
     err.statusCode = 404;
     throw err;
@@ -137,10 +138,10 @@ export async function verifyBookingToken(token) {
   if (slot.verified_at) {
     // Also invalidate any remaining token fields.
     try {
-      await supabase
-        .from('slots')
-        .update({ verification_token: null, verification_token_hash: null, updated_at: new Date().toISOString() })
-        .eq('id', slot.id);
+      await query(
+        'UPDATE slots SET verification_token = NULL, verification_token_hash = NULL, updated_at = $1 WHERE id = $2',
+        [new Date().toISOString(), slot.id]
+      );
     } catch {}
     return { slotRow: slot, verifiedAt: slot.verified_at };
   }
@@ -159,85 +160,66 @@ export async function verifyBookingToken(token) {
   }
 
   const now = new Date().toISOString();
-  await supabase
-    .from('slots')
-    .update({
-      verified_at: now,
-      // Invalidate token after use
-      verification_token: null,
-      verification_token_hash: null,
-      updated_at: now,
-    })
-    .eq('id', slot.id);
+  await query(
+    `UPDATE slots
+     SET verified_at = $1, verification_token = NULL, verification_token_hash = NULL, updated_at = $1
+     WHERE id = $2`,
+    [now, slot.id]
+  );
 
   return { slotRow: slot, verifiedAt: now };
 }
 
 export async function listAdminBookings() {
-  const { data, error } = await supabase
-    .from('slots')
-    .select(`*, teacher:teachers(name, subject)`)
-    .eq('booked', true)
-    .order('date')
-    .order('time');
-
-  if (error) throw error;
-  return data.map(mapBookingRowWithTeacher);
+  const { rows } = await query(
+    `SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
+     FROM slots s
+     LEFT JOIN teachers t ON s.teacher_id = t.id
+     WHERE s.booked = true
+     ORDER BY s.date, s.time`
+  );
+  // Re-shape rows so mapBookingRowWithTeacher can read slot.teacher.subject
+  return rows.map((r) => {
+    const { teacher_name, teacher_subject, ...slot } = r;
+    slot.teacher = { name: teacher_name, subject: teacher_subject };
+    return mapBookingRowWithTeacher(slot);
+  });
 }
 
 export async function cancelBookingAdmin(slotId) {
-  const { data: current, error: curErr } = await supabase
-    .from('slots')
-    .select('*')
-    .eq('id', slotId)
-    .eq('booked', true)
-    .single();
+  const { rows: curRows } = await query(
+    'SELECT * FROM slots WHERE id = $1 AND booked = true',
+    [slotId]
+  );
+  const current = curRows[0] || null;
 
-  if (curErr || !current) {
-    if (curErr?.code === 'PGRST116') {
-      const err = new Error('Slot not found or not booked');
-      err.statusCode = 404;
-      throw err;
-    }
-    throw curErr;
+  if (!current) {
+    const err = new Error('Slot not found or not booked');
+    err.statusCode = 404;
+    throw err;
   }
 
   const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('slots')
-    .update({
-      booked: false,
-      status: null,
-      visitor_type: null,
-      parent_name: null,
-      company_name: null,
-      student_name: null,
-      trainee_name: null,
-      representative_name: null,
-      class_name: null,
-      email: null,
-      message: null,
-      verification_token: null,
-      verification_token_hash: null,
-      verification_sent_at: null,
-      verified_at: null,
-      confirmation_sent_at: null,
-      // cancellation_sent_at is written after mail send (best-effort)
-      updated_at: now,
-    })
-    .eq('id', slotId)
-    .eq('booked', true)
-    .select()
-    .single();
+  const { rows } = await query(
+    `UPDATE slots SET
+       booked = false, status = NULL, visitor_type = NULL,
+       parent_name = NULL, company_name = NULL, student_name = NULL,
+       trainee_name = NULL, representative_name = NULL, class_name = NULL,
+       email = NULL, message = NULL,
+       verification_token = NULL, verification_token_hash = NULL,
+       verification_sent_at = NULL, verified_at = NULL,
+       confirmation_sent_at = NULL,
+       updated_at = $1
+     WHERE id = $2 AND booked = true
+     RETURNING *`,
+    [now, slotId]
+  );
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      const err = new Error('Slot not found or not booked');
-      err.statusCode = 404;
-      throw err;
-    }
-    throw error;
+  if (rows.length === 0) {
+    const err = new Error('Slot not found or not booked');
+    err.statusCode = 404;
+    throw err;
   }
 
-  return { cleared: data, previous: current };
+  return { cleared: rows[0], previous: current };
 }

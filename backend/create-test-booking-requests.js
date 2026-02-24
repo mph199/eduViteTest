@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import crypto from 'crypto';
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 
 function getArgValue(name) {
   const idx = process.argv.indexOf(name);
@@ -40,28 +40,26 @@ function getRequestedTimeWindowsForSystem(system) {
 }
 
 async function resolveTeacherIdByUsername(username) {
-  const { data, error } = await supabase
-    .from('users')
-    .select('teacher_id')
-    .eq('username', username)
-    .limit(1)
-    .single();
-  if (error) throw error;
-  return data?.teacher_id ? Number(data.teacher_id) : undefined;
+  const { rows } = await query(
+    'SELECT teacher_id FROM users WHERE username = $1 LIMIT 1',
+    [username]
+  );
+  if (!rows.length) throw new Error(`User "${username}" not found`);
+  return rows[0]?.teacher_id ? Number(rows[0].teacher_id) : undefined;
 }
 
 async function resolveActiveEvent() {
   const nowIso = new Date().toISOString();
-  const { data: activeEvents, error: activeErr } = await supabase
-    .from('events')
-    .select('id, starts_at')
-    .eq('status', 'published')
-    .or(`booking_opens_at.is.null,booking_opens_at.lte.${nowIso}`)
-    .or(`booking_closes_at.is.null,booking_closes_at.gte.${nowIso}`)
-    .order('starts_at', { ascending: false })
-    .limit(1);
-  if (activeErr) throw activeErr;
-  return activeEvents && activeEvents.length ? activeEvents[0] : null;
+  const { rows } = await query(
+    `SELECT id, starts_at FROM events
+     WHERE status = 'published'
+       AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
+       AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
+     ORDER BY starts_at DESC
+     LIMIT 1`,
+    [nowIso]
+  );
+  return rows.length ? rows[0] : null;
 }
 
 function parseSlotRangeStartMinutes(range) {
@@ -81,28 +79,24 @@ function toHalfHourWindow(startMinutes) {
 }
 
 async function resolveSeedContextFromSlots(teacherId) {
-  const { data: firstFreeSlots, error: firstErr } = await supabase
-    .from('slots')
-    .select('id, date, time, event_id')
-    .eq('teacher_id', teacherId)
-    .eq('booked', false)
-    .order('date', { ascending: true })
-    .order('time', { ascending: true })
-    .limit(1);
-  if (firstErr) throw firstErr;
+  const { rows: firstFreeSlots } = await query(
+    `SELECT id, date, time, event_id FROM slots
+     WHERE teacher_id = $1 AND booked = false
+     ORDER BY date ASC, time ASC
+     LIMIT 1`,
+    [teacherId]
+  );
 
-  const first = firstFreeSlots && firstFreeSlots.length ? firstFreeSlots[0] : null;
+  const first = firstFreeSlots.length ? firstFreeSlots[0] : null;
   if (!first?.date) return { date: null, windows: [], slotEventId: null };
 
-  const { data: sameDay, error: dayErr } = await supabase
-    .from('slots')
-    .select('time, event_id')
-    .eq('teacher_id', teacherId)
-    .eq('booked', false)
-    .eq('date', first.date)
-    .order('time', { ascending: true })
-    .limit(500);
-  if (dayErr) throw dayErr;
+  const { rows: sameDay } = await query(
+    `SELECT time, event_id FROM slots
+     WHERE teacher_id = $1 AND booked = false AND date = $2
+     ORDER BY time ASC
+     LIMIT 500`,
+    [teacherId, first.date]
+  );
 
   const windows = [];
   for (const row of sameDay || []) {
@@ -237,12 +231,12 @@ async function main() {
 
   const activeEvent = await resolveActiveEvent();
 
-  const { data: teacherRow, error: teacherErr } = await supabase
-    .from('teachers')
-    .select('id, system, name')
-    .eq('id', teacherId)
-    .single();
-  if (teacherErr) throw teacherErr;
+  const { rows: teacherRows } = await query(
+    'SELECT id, system, name FROM teachers WHERE id = $1',
+    [teacherId]
+  );
+  const teacherRow = teacherRows[0];
+  if (!teacherRow) throw new Error(`Teacher with id=${teacherId} not found`);
 
   const nowIso = new Date().toISOString();
   const slotContext = await resolveSeedContextFromSlots(teacherId);
@@ -265,11 +259,29 @@ async function main() {
     seedTag,
   });
 
-  const { data: created, error: insErr } = await supabase
-    .from('booking_requests')
-    .insert(rows)
-    .select('id, event_id, teacher_id, date, requested_time, visitor_type, email, verified_at, created_at');
-  if (insErr) throw insErr;
+  // Build parameterized bulk insert
+  const columns = [
+    'event_id', 'teacher_id', 'requested_time', 'date', 'status',
+    'visitor_type', 'parent_name', 'company_name', 'student_name',
+    'trainee_name', 'representative_name', 'class_name', 'email',
+    'message', 'verification_token_hash', 'verification_sent_at',
+    'verified_at', 'confirmation_sent_at', 'assigned_slot_id', 'updated_at',
+  ];
+  const valuePlaceholders = [];
+  const allVals = [];
+  let paramIdx = 1;
+  for (const row of rows) {
+    const rowPlaceholders = columns.map((col) => {
+      allVals.push(row[col] ?? null);
+      return `$${paramIdx++}`;
+    });
+    valuePlaceholders.push(`(${rowPlaceholders.join(', ')})`);
+  }
+
+  const insertSql = `INSERT INTO booking_requests (${columns.join(', ')})
+    VALUES ${valuePlaceholders.join(', ')}
+    RETURNING id, event_id, teacher_id, date, requested_time, visitor_type, email, verified_at, created_at`;
+  const { rows: created } = await query(insertSql, allVals);
 
   console.log('✅ Seeded demo booking requests');
   console.log(`- teacher:   ${teacherRow?.name || username} (teacher_id=${teacherId}, system=${teacherRow?.system || 'dual'})`);

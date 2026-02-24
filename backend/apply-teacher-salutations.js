@@ -1,4 +1,4 @@
-import { supabase } from './config/supabase.js';
+import { query } from './config/db.js';
 
 function normalizeSpaces(s) {
   return String(s || '')
@@ -106,8 +106,9 @@ function salutationForFirstName(firstName) {
 
 async function main() {
   // Ensure column exists
-  const { error: schemaErr } = await supabase.from('teachers').select('salutation').limit(1);
-  if (schemaErr) {
+  try {
+    await query('SELECT salutation FROM teachers LIMIT 1');
+  } catch (schemaErr) {
     console.error('❌ Datenbank-Schema fehlt: Spalte teachers.salutation.');
     console.error('Bitte zuerst die Migration ausführen: backend/migrations/add_teacher_salutation.sql');
     process.exit(1);
@@ -152,14 +153,7 @@ async function main() {
 
   console.log(`Setze Anrede für ${updates.length} Lehrkräfte...`);
   for (const u of updates) {
-    const { error } = await supabase
-      .from('teachers')
-      .update({ salutation: u.salutation })
-      .eq('email', u.email);
-    if (error) {
-      console.error('Update fehlgeschlagen:', u.email, error);
-      process.exit(1);
-    }
+    await query('UPDATE teachers SET salutation = $1 WHERE email = $2', [u.salutation, u.email]);
   }
   console.log('✅ Fertig.');
 }
