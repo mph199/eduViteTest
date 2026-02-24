@@ -483,9 +483,139 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
 });
 
 /**
+ * Assign an additional slot for the same booking request (multi-slot).
+ * Unlike assignRequestToSlot, this does NOT update the booking_requests row — only books the slot.
+ */
+async function assignExtraSlot(requestRow, teacherId, preferredTime) {
+  const normalizedTime = typeof preferredTime === 'string' ? preferredTime.trim() : '';
+  if (!normalizedTime || !isValidSlotTimeRange(normalizedTime)) {
+    return { ok: false, code: 'INVALID_TIME_SELECTION' };
+  }
+
+  const { data: slotRows, error: slotErr } = await supabase
+    .from('slots')
+    .select('*')
+    .eq('teacher_id', teacherId)
+    .eq('date', requestRow.date)
+    .eq('booked', false)
+    .eq('time', normalizedTime)
+    .limit(10);
+  if (slotErr) throw slotErr;
+
+  const slot = pickPreferredSlot(slotRows, [normalizedTime], requestRow.event_id ?? null);
+  if (!slot) {
+    return { ok: false, code: 'NO_SLOT_AVAILABLE' };
+  }
+
+  const now = new Date().toISOString();
+  const slotUpdate = {
+    event_id: requestRow.event_id ?? slot.event_id ?? null,
+    booked: true,
+    status: 'confirmed',
+    visitor_type: requestRow.visitor_type,
+    class_name: requestRow.class_name,
+    email: requestRow.email,
+    message: requestRow.message || null,
+    parent_name: requestRow.parent_name,
+    student_name: requestRow.student_name,
+    company_name: requestRow.company_name,
+    trainee_name: requestRow.trainee_name,
+    representative_name: requestRow.representative_name,
+    verified_at: requestRow.verified_at,
+    verification_token: null,
+    verification_token_hash: null,
+    verification_sent_at: null,
+    updated_at: now,
+  };
+
+  const { data: updatedSlot, error: updErr } = await supabase
+    .from('slots')
+    .update(slotUpdate)
+    .eq('id', slot.id)
+    .eq('teacher_id', teacherId)
+    .eq('booked', false)
+    .select('*')
+    .single();
+
+  if (updErr) {
+    if (updErr.code === 'PGRST116') {
+      return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
+    }
+    throw updErr;
+  }
+
+  return { ok: true, updatedSlot };
+}
+
+/**
+ * Send a single confirmation email listing all assigned slot times (multi-slot).
+ * Replaces the individual email that was already sent for the first slot.
+ */
+async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId, teacherMessage = '') {
+  if (!allSlots?.length || !allSlots[0]?.email || !isEmailConfigured()) return;
+
+  try {
+    const teacherRes = await supabase.from('teachers').select('*').eq('id', teacherId).single();
+    const teacher = teacherRes.data || {};
+    const safeTeacherMessage = String(teacherMessage || '').trim();
+    const teacherMessagePlain = safeTeacherMessage
+      ? `\n\nNachricht der Lehrkraft:\n${safeTeacherMessage}`
+      : '';
+    const teacherMessageHtml = safeTeacherMessage
+      ? `<p><strong>Nachricht der Lehrkraft:</strong><br/>${escapeHtml(safeTeacherMessage).replace(/\n/g, '<br/>')}</p>`
+      : '';
+
+    const timesFormatted = allSlots.map((s) => s.time).join(', ');
+    const timesListPlain = allSlots.map((s, i) => `  ${i + 1}. ${s.time}`).join('\n');
+    const timesListHtml = allSlots.map((s) => `<li>${s.time}</li>`).join('');
+
+    const subject = `BKSB Elternsprechtag – ${allSlots.length} Termine bestätigt am ${allSlots[0].date} (${timesFormatted})`;
+    const plain = `Guten Tag,
+
+Ihre Terminanfrage wurde durch die Lehrkraft angenommen.
+
+Es wurden ${allSlots.length} Termine für Sie vergeben:
+${timesListPlain}
+
+Datum: ${allSlots[0].date}
+Lehrkraft: ${teacher.name || '—'}
+Raum: ${teacher.room || '—'}
+${teacherMessagePlain}
+
+Mit freundlichen Grüßen
+
+Ihr BKSB-Team`;
+
+    const html = `<p>Guten Tag,</p>
+<p>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.</p>
+<p>Es wurden <strong>${allSlots.length} Termine</strong> für Sie vergeben:</p>
+<ul>${timesListHtml}</ul>
+<p><strong>Datum:</strong> ${allSlots[0].date}<br/>
+<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
+<strong>Raum:</strong> ${teacher.room || '—'}</p>
+${teacherMessageHtml}
+<p>Mit freundlichen Grüßen</p>
+<p>Ihr BKSB-Team</p>`;
+
+    const now = new Date().toISOString();
+    await sendMail({ to: allSlots[0].email, subject, text: plain, html });
+
+    // Mark all slots as confirmation sent
+    for (const slot of allSlots) {
+      await supabase.from('slots').update({ confirmation_sent_at: now }).eq('id', slot.id);
+    }
+    await supabase.from('booking_requests').update({ confirmation_sent_at: now, updated_at: now }).eq('id', requestRow.id);
+  } catch (e) {
+    console.warn('Sending multi-slot confirmation email failed:', e?.message || e);
+  }
+}
+
+/**
  * PUT /api/teacher/requests/:id/accept
- * Accept a verified booking request and assign it to a slot
- * Body (optional): { time?: string, teacherMessage?: string }
+ * Accept a verified booking request and assign it to one or more slots
+ * Body (optional): { time?: string, times?: string[], teacherMessage?: string }
+ * - 'times' is an array of slot times to assign (multi-slot booking)
+ * - 'time' is kept for backward compatibility (single slot)
  */
 router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res) => {
   const requestId = parseInt(req.params.id, 10);
@@ -527,13 +657,22 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       });
     }
 
-    const rawTime = typeof req.body?.time === 'string' ? req.body.time.trim() : '';
+    // Support both 'times' (array) and 'time' (single string) for backward compat
+    let rawTimes = [];
+    if (Array.isArray(req.body?.times) && req.body.times.length > 0) {
+      rawTimes = req.body.times.map((t) => (typeof t === 'string' ? t.trim() : '')).filter(Boolean);
+    } else if (typeof req.body?.time === 'string' && req.body.time.trim()) {
+      rawTimes = [req.body.time.trim()];
+    }
+
     const rawTeacherMessage = typeof req.body?.teacherMessage === 'string' ? req.body.teacherMessage.trim() : '';
     if (rawTeacherMessage.length > 1000) {
       return res.status(400).json({ error: 'Nachricht der Lehrkraft darf maximal 1000 Zeichen lang sein' });
     }
 
-    const assignment = await assignRequestToSlot(current, teacherId, rawTime || null, rawTeacherMessage || '');
+    // Assign first slot using the original assignRequestToSlot (updates booking_requests status)
+    const firstTime = rawTimes[0] || null;
+    const assignment = await assignRequestToSlot(current, teacherId, firstTime, rawTeacherMessage || '');
     if (!assignment.ok) {
       if (assignment.code === 'INVALID_TIME_SELECTION') {
         return res.status(400).json({ error: 'Ungültige Zeit-Auswahl', assignableTimes: assignment.candidateTimes || [] });
@@ -556,10 +695,35 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       return res.status(409).json({ error: 'Anfrage konnte nicht angenommen werden' });
     }
 
+    const allSlots = [assignment.updatedSlot];
+
+    // Assign additional slots if multiple times were requested
+    if (rawTimes.length > 1) {
+      for (let i = 1; i < rawTimes.length; i++) {
+        const additionalTime = rawTimes[i];
+        try {
+          const extraAssignment = await assignExtraSlot(current, teacherId, additionalTime);
+          if (extraAssignment.ok) {
+            allSlots.push(extraAssignment.updatedSlot);
+          } else {
+            console.warn(`Multi-slot assignment: could not assign additional slot for time ${additionalTime}:`, extraAssignment.code);
+          }
+        } catch (e) {
+          console.warn(`Multi-slot assignment: error assigning time ${additionalTime}:`, e?.message || e);
+        }
+      }
+    }
+
+    // If multiple slots were assigned, send a combined confirmation email
+    if (allSlots.length > 1) {
+      await sendMultiSlotConfirmation(allSlots, assignment.updatedReq, teacherId, rawTeacherMessage);
+    }
+
     return res.json({
       success: true,
       request: mapBookingRequestRow(assignment.updatedReq),
       slot: mapSlotRow(assignment.updatedSlot),
+      slots: allSlots.map(mapSlotRow),
     });
   } catch (error) {
     console.error('Error accepting booking request:', error);

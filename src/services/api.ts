@@ -268,7 +268,7 @@ const api = {
       return (res && (res as any).requests) || [];
     },
 
-    async acceptRequest(requestId: number, payload?: { time?: string; teacherMessage?: string }) {
+    async acceptRequest(requestId: number, payload?: { times?: string[]; teacherMessage?: string }) {
       const safeId = encodeURIComponent(String(requestId));
       return requestJSON(`/teacher/requests/${safeId}/accept`, {
         method: 'PUT',

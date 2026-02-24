@@ -12,7 +12,7 @@ export function GlobalTopHeader() {
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
-  const inAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
+  const inAdmin = pathname === '/admin' || pathname.startsWith('/admin/') || pathname === '/superadmin' || pathname.startsWith('/superadmin/');
   const inTeacher = pathname === '/teacher' || pathname.startsWith('/teacher/');
   const showAreaMenu = Boolean(isAuthenticated && (inAdmin || inTeacher));
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
@@ -40,6 +40,7 @@ export function GlobalTopHeader() {
     if (pathname.includes('/admin/slots')) return 'Admin · Slots verwalten';
     if (pathname.includes('/admin/users')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/feedback')) return 'Admin · Feedback einsehen';
+    if (pathname === '/superadmin' || pathname.startsWith('/superadmin')) return 'Superadmin · Tenant-Branding';
     return 'Admin';
   }, [inTeacher, pathname, showAreaMenu]);
 
@@ -219,6 +220,22 @@ export function GlobalTopHeader() {
                         <span>Feedback einsehen</span>
                         {pathname === '/admin/feedback' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
+                      {user?.username === 'marc.huhn' && (
+                        <>
+                          <div className="dropdown__divider" role="separator" />
+                          <button
+                            type="button"
+                            className={pathname === '/superadmin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                            onClick={() => {
+                              navigate('/superadmin');
+                              close();
+                            }}
+                          >
+                            <span>⚡ Superadmin</span>
+                            {pathname === '/superadmin' && <span className="dropdown__hint">Aktiv</span>}
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
 

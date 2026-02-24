@@ -19,6 +19,7 @@ import { Impressum } from './pages/Impressum';
 import { Datenschutz } from './pages/Datenschutz';
 import { VerifyEmail } from './pages/VerifyEmail';
 import { MaintenancePage } from './pages/MaintenancePage';
+import { SuperadminPage } from './pages/SuperadminPage';
 import { Footer } from './components/Footer';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { GlobalTopHeader } from './components/GlobalTopHeader';
@@ -112,6 +113,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminFeedback />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/superadmin" 
+                element={
+                  <ProtectedRoute>
+                    <SuperadminPage />
                   </ProtectedRoute>
                 } 
               />

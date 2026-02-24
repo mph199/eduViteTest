@@ -103,11 +103,11 @@ function formatCreatedAt(createdAt?: string): string {
 
 type TeacherRequestsTableSandboxProps = {
   requests: BookingRequest[];
-  selectedAssignTimes: Record<number, string>;
+  selectedAssignTimes: Record<number, string[]>;
   teacherMessages: Record<number, string>;
-  onAssignTimeChange: (requestId: number, value: string) => void;
+  onAssignTimeChange: (requestId: number, values: string[]) => void;
   onTeacherMessageChange: (requestId: number, value: string) => void;
-  onAcceptRequest: (requestId: number, assignedTime?: string) => void;
+  onAcceptRequest: (requestId: number, assignedTimes?: string[]) => void;
   onDeclineRequest: (requestId: number) => void;
 };
 
@@ -312,7 +312,7 @@ export function TeacherRequestsTableSandbox({
         ) : requests.map((request, index) => {
           const assignableSlots = getAssignableTimes(request);
           const groupedTimes = splitTimesByRequestedWindow(assignableSlots, request.requestedTime);
-          const selectedAssignable = selectedAssignTimes[request.id] || '';
+          const selectedTimes = selectedAssignTimes[request.id] || [];
           const teacherMessage = teacherMessages[request.id] || '';
           const isParent = request.visitorType === 'parent';
           const accentClass = CARD_ACCENT_CLASSES[index % CARD_ACCENT_CLASSES.length];
@@ -341,45 +341,87 @@ export function TeacherRequestsTableSandbox({
             <div className="sandbox-card__content">
               <dl className="sandbox-card__dl">
                 <div className="sandbox-card__row">
-                  <dt>Terminzeit</dt>
+                  <dt>Terminzeit{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</dt>
                   <dd>
                     <div className="sandbox-assign-group">
-                      <select
-                        className="sandbox-select"
-                        value={selectedAssignable}
-                        onChange={(event) => onAssignTimeChange(request.id, event.target.value)}
-                        disabled={assignableSlots.length === 0}
-                      >
-                        <option value="" disabled>
-                          Bitte Zeitslot auswählen, der vergeben werden soll.
-                        </option>
-                        <optgroup label="Innerhalb des angefragten Zeitraums">
-                          {groupedTimes.inside.length > 0 ? (
-                            groupedTimes.inside.map((slot) => (
-                              <option key={slot} value={slot}>
-                                {slot}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="__inside-empty" disabled>
-                              Keine Zeiten
-                            </option>
-                          )}
-                        </optgroup>
-                        <optgroup label="Außerhalb des angefragten Zeitraums">
-                          {groupedTimes.outside.length > 0 ? (
-                            groupedTimes.outside.map((slot) => (
-                              <option key={slot} value={slot}>
-                                {slot}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="__outside-empty" disabled>
-                              Keine Zeiten
-                            </option>
-                          )}
-                        </optgroup>
-                      </select>
+                      <div className="sandbox-multi-select" role="listbox" aria-multiselectable="true" aria-label="Zeitslots auswählen">
+                        {assignableSlots.length === 0 && (
+                          <p className="sandbox-multi-select__empty">Keine freien Slots</p>
+                        )}
+                        {groupedTimes.inside.length > 0 && (
+                          <>
+                            <div className="sandbox-multi-select__group-label">Innerhalb des angefragten Zeitraums</div>
+                            {groupedTimes.inside.map((slot) => {
+                              const isChecked = selectedTimes.includes(slot);
+                              return (
+                                <label
+                                  key={slot}
+                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
+                                  onPointerDown={(e) => {
+                                    // Start drag-select: toggle this slot, then let pointerenter handle the rest 
+                                    e.preventDefault();
+                                    const next = isChecked
+                                      ? selectedTimes.filter((s) => s !== slot)
+                                      : [...selectedTimes, slot];
+                                    onAssignTimeChange(request.id, next);
+                                  }}
+                                  onPointerEnter={(e) => {
+                                    if (e.buttons !== 1) return;
+                                    if (!selectedTimes.includes(slot)) {
+                                      onAssignTimeChange(request.id, [...selectedTimes, slot]);
+                                    }
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    readOnly
+                                    tabIndex={-1}
+                                    className="sandbox-multi-select__checkbox"
+                                  />
+                                  <span className="sandbox-multi-select__label">{slot}</span>
+                                </label>
+                              );
+                            })}
+                          </>
+                        )}
+                        {groupedTimes.outside.length > 0 && (
+                          <>
+                            <div className="sandbox-multi-select__group-label">Außerhalb des angefragten Zeitraums</div>
+                            {groupedTimes.outside.map((slot) => {
+                              const isChecked = selectedTimes.includes(slot);
+                              return (
+                                <label
+                                  key={slot}
+                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
+                                  onPointerDown={(e) => {
+                                    e.preventDefault();
+                                    const next = isChecked
+                                      ? selectedTimes.filter((s) => s !== slot)
+                                      : [...selectedTimes, slot];
+                                    onAssignTimeChange(request.id, next);
+                                  }}
+                                  onPointerEnter={(e) => {
+                                    if (e.buttons !== 1) return;
+                                    if (!selectedTimes.includes(slot)) {
+                                      onAssignTimeChange(request.id, [...selectedTimes, slot]);
+                                    }
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    readOnly
+                                    tabIndex={-1}
+                                    className="sandbox-multi-select__checkbox"
+                                  />
+                                  <span className="sandbox-multi-select__label">{slot}</span>
+                                </label>
+                              );
+                            })}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </dd>
                 </div>
@@ -446,17 +488,21 @@ export function TeacherRequestsTableSandbox({
                 <button
                   type="button"
                   className="sandbox-action-btn"
-                  onClick={() => onAcceptRequest(request.id, selectedAssignable || undefined)}
-                  disabled={!request.verifiedAt || (assignableSlots.length > 0 && !selectedAssignable)}
+                  onClick={() => onAcceptRequest(request.id, selectedTimes.length > 0 ? selectedTimes : undefined)}
+                  disabled={!request.verifiedAt || (assignableSlots.length > 0 && selectedTimes.length === 0)}
                   title={
                     !request.verifiedAt
                       ? 'Erst möglich, wenn die E-Mail-Adresse bestätigt wurde'
-                      : assignableSlots.length > 0 && !selectedAssignable
-                        ? 'Bitte zuerst einen Zeitslot auswählen'
-                        : undefined
+                      : assignableSlots.length > 0 && selectedTimes.length === 0
+                        ? 'Bitte zuerst mindestens einen Zeitslot auswählen'
+                        : selectedTimes.length > 1
+                          ? `${selectedTimes.length} Termine vergeben`
+                          : undefined
                   }
                 >
-                  Termin vergeben
+                  {selectedTimes.length > 1
+                    ? `${selectedTimes.length} Termine vergeben`
+                    : 'Termin vergeben'}
                 </button>
               </div>
             </div>

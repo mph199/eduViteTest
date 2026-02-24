@@ -8,7 +8,7 @@ export function TeacherRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<string>('');
-  const [selectedAssignTimes, setSelectedAssignTimes] = useState<Record<number, string>>({});
+  const [selectedAssignTimes, setSelectedAssignTimes] = useState<Record<number, string[]>>({});
   const [teacherMessages, setTeacherMessages] = useState<Record<number, string>>({});
 
   const loadRequests = async () => {
@@ -41,13 +41,13 @@ export function TeacherRequests() {
     }
   };
 
-  const handleAcceptRequest = async (requestId: number, assignedTime?: string) => {
+  const handleAcceptRequest = async (requestId: number, assignedTimes?: string[]) => {
     setError('');
     setNotice('');
     try {
       const teacherMessage = teacherMessages[requestId]?.trim();
       await api.teacher.acceptRequest(requestId, {
-        ...(assignedTime ? { time: assignedTime } : {}),
+        ...(assignedTimes && assignedTimes.length ? { times: assignedTimes } : {}),
         ...(teacherMessage ? { teacherMessage } : {}),
       });
       await loadRequests();
@@ -104,8 +104,8 @@ export function TeacherRequests() {
           requests={requests}
           selectedAssignTimes={selectedAssignTimes}
           teacherMessages={teacherMessages}
-          onAssignTimeChange={(requestId, value) => {
-            setSelectedAssignTimes((prev) => ({ ...prev, [requestId]: value }));
+          onAssignTimeChange={(requestId, values) => {
+            setSelectedAssignTimes((prev) => ({ ...prev, [requestId]: values }));
           }}
           onTeacherMessageChange={(requestId, value) => {
             setTeacherMessages((prev) => ({ ...prev, [requestId]: value }));
