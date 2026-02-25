@@ -159,7 +159,8 @@ app.use(cors({
       const isLocalhost = host === 'localhost' || host.startsWith('127.');
       const isVercel = host.endsWith('.vercel.app');
       const isRender = host.endsWith('.onrender.com');
-      if (isAllowedList || isLocalhost || isVercel || isRender) {
+      const isIONOS = host.endsWith('.app-ionos.space') || host.endsWith('.eduvite.de') || host === 'eduvite.de';
+      if (isAllowedList || isLocalhost || isVercel || isRender || isIONOS) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));
