@@ -788,13 +788,28 @@
 }
 
 @media (max-width: 520px) {
+  .teacher-table-section {
+    padding: 0.5rem !important;
+  }
+
+  .sandbox-table {
+    padding: 8px 0;
+  }
+
   .sandbox-carousel {
-    --sandbox-side-pad: 10px;
+    --sandbox-side-pad: 0px;
     --sandbox-card-width: 100%;
+    scroll-padding-inline: 0;
+  }
+
+  .sandbox-carousel::before,
+  .sandbox-carousel::after {
+    display: none;
   }
 
   .sandbox-slide {
     flex-basis: 100%;
+    scroll-snap-align: start;
     opacity: 1;
     filter: none;
     transform: none;
