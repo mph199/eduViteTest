@@ -281,7 +281,6 @@ async function autoAssignOverdueRequestsForTeacher(teacherId) {
      ORDER BY created_at ASC LIMIT 200`,
     [teacherId, cutoff]
   );
-  if (error) throw error;
 
   for (const reqRow of overdueRequests || []) {
     try {
