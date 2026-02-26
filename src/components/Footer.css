@@ -50,6 +50,18 @@
   background: rgba(var(--brand-primary-rgb), 0.10);
 }
 
+.footer-link-disabled {
+  color: rgba(17, 24, 39, 0.38);
+  font-weight: 650;
+  line-height: 1.05;
+  padding: 0.38rem 0.55rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  cursor: default;
+  user-select: none;
+}
+
 .footer-links .separator {
   color: rgba(var(--brand-ink-rgb), 0.35);
   padding: 0 0.15rem;

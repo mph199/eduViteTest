@@ -5,11 +5,11 @@ export const Footer = () => {
     <footer className="app-footer">
       <div className="footer-content">
         <div className="footer-links">
-          <a href="/impressum">Impressum</a>
+          <span className="footer-link-disabled">Impressum</span>
           <span className="separator">|</span>
-          <a href="/datenschutz">Datenschutz</a>
+          <span className="footer-link-disabled">Datenschutz</span>
           <span className="separator">|</span>
-          <a href="/kontakt">Kontakt</a>
+          <span className="footer-link-disabled">Kontakt</span>
         </div>
         <div className="footer-copyright">
           © {new Date().getFullYear()}
