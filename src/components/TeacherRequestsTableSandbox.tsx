@@ -134,6 +134,7 @@ export function TeacherRequestsTableSandbox({
     return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
   });
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
+  const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
 
   const total = requests.length;
   const safeActiveIndex = total > 0 ? Math.min(activeIndex, total - 1) : 0;
@@ -327,17 +328,30 @@ export function TeacherRequestsTableSandbox({
           const isMessageExpanded = !!expandedMessageIds[request.id];
 
           return (
-          <article key={request.id} className={`sandbox-card sandbox-slide ${accentClass} ${index === safeActiveIndex ? 'is-active' : ''}`}>
-            <header className="sandbox-card__head">
-              <div>
+          <article key={request.id} className={`sandbox-card sandbox-slide ${accentClass} ${index === safeActiveIndex ? 'is-active' : ''} ${expandedCardId === request.id ? 'is-expanded' : ''}`}>
+            {/* ── Preview (always visible, tap to expand) ──────── */}
+            <header
+              className="sandbox-card__head sandbox-card__head--preview"
+              onClick={() => setExpandedCardId((prev) => (prev === request.id ? null : request.id))}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedCardId((prev) => (prev === request.id ? null : request.id)); } }}
+              aria-expanded={expandedCardId === request.id}
+            >
+              <div className="sandbox-card__preview-info">
                   <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
                   <h3 className="sandbox-card__name">{contactName}</h3>
-                <p className="sandbox-card__datetime">{request.date}</p>
-                <p className="sandbox-card__window">{request.requestedTime}</p>
+                <div className="sandbox-card__preview-row">
+                  <span className="sandbox-card__preview-detail">{personLabel} · {request.className}</span>
+                  <span className="sandbox-card__preview-time">{request.date} · {request.requestedTime}</span>
+                </div>
                 <p className="sandbox-card__meta">Eingegangen {formatCreatedAt(request.createdAt)}</p>
               </div>
+              <span className={`sandbox-card__chevron ${expandedCardId === request.id ? 'is-open' : ''}`} aria-hidden="true">›</span>
             </header>
 
+            {/* ── Detail (shown when expanded) ─────────────────── */}
+            <div className="sandbox-card__detail-wrapper">
             <div className="sandbox-card__content">
               <dl className="sandbox-card__dl">
                 <div className="sandbox-card__row">
@@ -505,6 +519,7 @@ export function TeacherRequestsTableSandbox({
                     : 'Termin vergeben'}
                 </button>
               </div>
+            </div>
             </div>
           </article>
           );

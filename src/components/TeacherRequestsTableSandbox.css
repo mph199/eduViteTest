@@ -482,7 +482,75 @@
   margin-bottom: 12px;
   display: flex;
   flex-direction: column;
-  min-height: 440px;
+  min-height: 0;
+}
+
+/* ── Preview header (always visible) ───────────────────── */
+
+.sandbox-card__head--preview {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sandbox-card__preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sandbox-card__preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 2px 0;
+}
+
+.sandbox-card__preview-detail {
+  font-size: 0.88rem;
+  color: #374151;
+}
+
+.sandbox-card__preview-time {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.sandbox-card__chevron {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #94a3b8;
+  transition: transform 0.25s ease;
+  transform: rotate(0deg);
+  align-self: center;
+}
+
+.sandbox-card__chevron.is-open {
+  transform: rotate(90deg);
+}
+
+/* ── Detail wrapper (collapsed by default) ─────────────── */
+
+.sandbox-card__detail-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+  overflow: hidden;
+}
+
+.sandbox-card__detail-wrapper > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sandbox-card.is-expanded .sandbox-card__detail-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.sandbox-card.is-expanded .sandbox-card__content {
+  overflow: auto;
 }
 
 .sandbox-card.is-accent-1 {
@@ -530,7 +598,6 @@
   border-bottom: 1px dashed #e5e7eb;
 }
 
-.sandbox-card__datetime,
 .sandbox-card__meta {
   margin: 0;
   color: #6b7280;
@@ -542,13 +609,6 @@
   font-size: 1.02rem;
   line-height: 1.25;
   color: #111827;
-}
-
-.sandbox-card__window {
-  margin: 2px 0 4px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #1f2937;
 }
 
 .sandbox-card__dl {
@@ -772,14 +832,6 @@
   .sandbox-card__actions {
     width: auto;
     justify-content: flex-end;
-  }
-
-  .sandbox-card {
-    min-height: 0;
-  }
-
-  .sandbox-card__content {
-    overflow: visible;
   }
 
   .sandbox-card__footer .sandbox-action-btn {
