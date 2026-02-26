@@ -92,7 +92,7 @@ export function TeacherRequests() {
         </div>
       </div>
 
-      <section className="teacher-table-section" style={{ marginBottom: '1.5rem' }}>
+      <section className="stat-card teacher-table-section" style={{ padding: '1.1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0 }}>Anfragen verwalten</h3>
           <button type="button" className="btn-secondary" onClick={loadRequests}>

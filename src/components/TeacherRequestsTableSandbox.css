@@ -838,6 +838,13 @@
 }
 
 @media (max-width: 520px) {
+  .teacher-table-section.stat-card {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0 !important;
+  }
+
   .sandbox-carousel {
     --sandbox-side-pad: 0px;
     --sandbox-card-width: 100%;
