@@ -351,7 +351,11 @@ export function TeacherRequestsTableSandbox({
             </header>
 
             {/* ── Detail (shown when expanded) ─────────────────── */}
-            <div className="sandbox-card__detail-wrapper">
+            <div
+              className="sandbox-card__detail-wrapper"
+              onTouchStart={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
             <div className="sandbox-card__content">
               <dl className="sandbox-card__dl">
                 <div className="sandbox-card__row">

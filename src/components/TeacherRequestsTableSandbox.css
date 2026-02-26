@@ -110,13 +110,11 @@
   align-items: stretch;
   gap: 12px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-snap-stop: always;
+  scroll-snap-type: x proximity;
   scroll-padding-inline: var(--sandbox-edge-space);
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 6px 0;
-  touch-action: pan-x;
   overscroll-behavior-x: contain;
 }
 
@@ -552,7 +550,8 @@
 }
 
 .sandbox-card.is-expanded .sandbox-card__content {
-  overflow: auto;
+  overflow: visible;
+  touch-action: pan-y;
 }
 
 .sandbox-card.is-accent-1 {
