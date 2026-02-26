@@ -1,5 +1,17 @@
 import type { TimeSlot } from '../types';
 
+const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
+/** Turn "DD.MM.YYYY" into "Freitag, 27.02.2027" */
+function formatDateWithWeekday(dateStr: string): string {
+  if (!dateStr) return 'Datum folgt';
+  const parts = dateStr.split('.');
+  if (parts.length !== 3) return dateStr;
+  const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return `${WEEKDAYS[d.getDay()]}, ${dateStr}`;
+}
+
 interface SlotListProps {
   slots: TimeSlot[];
   selectedSlotId: number | null;
@@ -51,8 +63,7 @@ export const SlotList = ({
                 {slot.time || 'Uhrzeit folgt'}
               </div>
               <div className="slot-meta" aria-label="Datum">
-                <span className="slot-meta-label">Datum</span>
-                <span className="slot-date">{slot.date || 'Datum folgt'}</span>
+                <span className="slot-date">{formatDateWithWeekday(slot.date)}</span>
               </div>
             </button>
           ))
