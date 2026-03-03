@@ -215,6 +215,8 @@ export function TeacherRequestsTableSandbox({
    * so their scroll events are completely ignored.
    */
   const handleCarouselScroll = useCallback(() => {
+    // Skip on mobile vertical list
+    if (window.matchMedia('(max-width: 520px)').matches) return;
     if (!userDraggingRef.current) return;
     const nearest = getNearestIndex();
     setActiveIndex((prev) => (prev === nearest ? prev : nearest));
@@ -260,7 +262,9 @@ export function TeacherRequestsTableSandbox({
     const el = carouselRef.current;
     if (!el) return;
 
+    const mql = window.matchMedia('(max-width: 520px)');
     const onScrollEnd = () => {
+      if (mql.matches) return; // vertical list — no carousel logic
       if (!userDraggingRef.current) return;
       userDraggingRef.current = false;
       const nearest = getNearestIndex();
@@ -292,9 +296,13 @@ export function TeacherRequestsTableSandbox({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total]);
 
-  /** Re-center current slide on window resize */
+  /** Re-center current slide on window resize (desktop carousel only) */
   useEffect(() => {
+    const mql = window.matchMedia('(max-width: 520px)');
     const onResize = () => {
+      // Skip on mobile — vertical list doesn't need re-centering and
+      // the keyboard open/close triggers resize which resets scroll.
+      if (mql.matches) return;
       const el = carouselRef.current;
       if (!el || !total) return;
       requestAnimationFrame(() => {
