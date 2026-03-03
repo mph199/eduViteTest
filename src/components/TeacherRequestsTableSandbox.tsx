@@ -86,6 +86,43 @@ function getAssignableTimes(request: BookingRequest): string[] {
   return buildAssignableSlots(request.requestedTime);
 }
 
+/**
+ * Enforce that selected slots are always consecutive.
+ * When toggling a slot, only allow it if the resulting selection forms a contiguous block
+ * within the ordered list of all slots.
+ */
+function toggleConsecutiveSlot(allSlots: string[], currentSelection: string[], slot: string): string[] {
+  const isChecked = currentSelection.includes(slot);
+
+  if (isChecked) {
+    // Always allow removal — unless it would break consecutiveness (middle slot removal).
+    // For simplicity, allow removal from edges only.
+    const indices = currentSelection.map((s) => allSlots.indexOf(s)).sort((a, b) => a - b);
+    const slotIndex = allSlots.indexOf(slot);
+    if (indices.length <= 1) return [];
+    if (slotIndex === indices[0] || slotIndex === indices[indices.length - 1]) {
+      return currentSelection.filter((s) => s !== slot);
+    }
+    // Middle removal — strip down to just this slot (restart)
+    return [slot];
+  }
+
+  // Adding a slot — must be adjacent to current selection
+  if (currentSelection.length === 0) return [slot];
+
+  const slotIndex = allSlots.indexOf(slot);
+  const indices = currentSelection.map((s) => allSlots.indexOf(s)).sort((a, b) => a - b);
+  const minIdx = indices[0];
+  const maxIdx = indices[indices.length - 1];
+
+  if (slotIndex === minIdx - 1 || slotIndex === maxIdx + 1) {
+    return [...currentSelection, slot];
+  }
+
+  // Not adjacent — restart with just this slot
+  return [slot];
+}
+
 function formatCreatedAt(createdAt?: string): string {
   if (!createdAt) return '-';
   const time = new Date(createdAt).getTime();
@@ -135,6 +172,7 @@ export function TeacherRequestsTableSandbox({
   });
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
   const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
+  const [slotPickerOpenIds, setSlotPickerOpenIds] = useState<Record<number, boolean>>({});
 
   const total = requests.length;
   const safeActiveIndex = total > 0 ? Math.min(activeIndex, total - 1) : 0;
@@ -359,91 +397,6 @@ export function TeacherRequestsTableSandbox({
             <div className="sandbox-card__content">
               <dl className="sandbox-card__dl">
                 <div className="sandbox-card__row">
-                  <dt>Terminzeit{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</dt>
-                  <dd>
-                    <div className="sandbox-assign-group">
-                      <div className="sandbox-multi-select" role="listbox" aria-multiselectable="true" aria-label="Zeitslots auswählen">
-                        {assignableSlots.length === 0 && (
-                          <p className="sandbox-multi-select__empty">Keine freien Slots</p>
-                        )}
-                        {groupedTimes.inside.length > 0 && (
-                          <>
-                            <div className="sandbox-multi-select__group-label">Innerhalb des angefragten Zeitraums</div>
-                            {groupedTimes.inside.map((slot) => {
-                              const isChecked = selectedTimes.includes(slot);
-                              return (
-                                <label
-                                  key={slot}
-                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
-                                  onPointerDown={(e) => {
-                                    // Start drag-select: toggle this slot, then let pointerenter handle the rest 
-                                    e.preventDefault();
-                                    const next = isChecked
-                                      ? selectedTimes.filter((s) => s !== slot)
-                                      : [...selectedTimes, slot];
-                                    onAssignTimeChange(request.id, next);
-                                  }}
-                                  onPointerEnter={(e) => {
-                                    if (e.buttons !== 1) return;
-                                    if (!selectedTimes.includes(slot)) {
-                                      onAssignTimeChange(request.id, [...selectedTimes, slot]);
-                                    }
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    readOnly
-                                    tabIndex={-1}
-                                    className="sandbox-multi-select__checkbox"
-                                  />
-                                  <span className="sandbox-multi-select__label">{slot}</span>
-                                </label>
-                              );
-                            })}
-                          </>
-                        )}
-                        {groupedTimes.outside.length > 0 && (
-                          <>
-                            <div className="sandbox-multi-select__group-label">Außerhalb des angefragten Zeitraums</div>
-                            {groupedTimes.outside.map((slot) => {
-                              const isChecked = selectedTimes.includes(slot);
-                              return (
-                                <label
-                                  key={slot}
-                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
-                                  onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    const next = isChecked
-                                      ? selectedTimes.filter((s) => s !== slot)
-                                      : [...selectedTimes, slot];
-                                    onAssignTimeChange(request.id, next);
-                                  }}
-                                  onPointerEnter={(e) => {
-                                    if (e.buttons !== 1) return;
-                                    if (!selectedTimes.includes(slot)) {
-                                      onAssignTimeChange(request.id, [...selectedTimes, slot]);
-                                    }
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    readOnly
-                                    tabIndex={-1}
-                                    className="sandbox-multi-select__checkbox"
-                                  />
-                                  <span className="sandbox-multi-select__label">{slot}</span>
-                                </label>
-                              );
-                            })}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </dd>
-                </div>
-                <div className="sandbox-card__row">
                   <dt>Schüler*in/Azubi</dt>
                   <dd>{personLabel}</dd>
                 </div>
@@ -493,6 +446,72 @@ export function TeacherRequestsTableSandbox({
                   />
                 </div>
               </div>
+
+              {/* ── Termine vergeben (collapsible, at bottom) ── */}
+              {assignableSlots.length > 0 && (
+                <div className="sandbox-card__assign-section">
+                  <button
+                    type="button"
+                    className="sandbox-card__assign-toggle"
+                    onClick={() => setSlotPickerOpenIds((prev) => ({ ...prev, [request.id]: !prev[request.id] }))}
+                    aria-expanded={!!slotPickerOpenIds[request.id]}
+                  >
+                    <span>Termine vergeben{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</span>
+                    <span className={`sandbox-card__chevron ${slotPickerOpenIds[request.id] ? 'is-open' : ''}`} aria-hidden="true">›</span>
+                  </button>
+                  {slotPickerOpenIds[request.id] && (
+                    <div className="sandbox-card__assign-picker">
+                      <div className="sandbox-multi-select" role="listbox" aria-multiselectable="true" aria-label="Zeitslots auswählen">
+                        {groupedTimes.inside.length > 0 && (
+                          <>
+                            <div className="sandbox-multi-select__group-label">Innerhalb des angefragten Zeitraums</div>
+                            {groupedTimes.inside.map((slot) => {
+                              const isChecked = selectedTimes.includes(slot);
+                              return (
+                                <label
+                                  key={slot}
+                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
+                                  onPointerDown={(e) => {
+                                    e.preventDefault();
+                                    const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
+                                    onAssignTimeChange(request.id, next);
+                                  }}
+                                >
+                                  <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
+                                  <span className="sandbox-multi-select__label">{slot}</span>
+                                </label>
+                              );
+                            })}
+                          </>
+                        )}
+                        {groupedTimes.outside.length > 0 && (
+                          <>
+                            <div className="sandbox-multi-select__group-label">Außerhalb des angefragten Zeitraums</div>
+                            {groupedTimes.outside.map((slot) => {
+                              const isChecked = selectedTimes.includes(slot);
+                              return (
+                                <label
+                                  key={slot}
+                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
+                                  onPointerDown={(e) => {
+                                    e.preventDefault();
+                                    const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
+                                    onAssignTimeChange(request.id, next);
+                                  }}
+                                >
+                                  <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
+                                  <span className="sandbox-multi-select__label">{slot}</span>
+                                </label>
+                              );
+                            })}
+                          </>
+                        )}
+                      </div>
+                      <p className="sandbox-card__assign-hint">Nur zusammenhängende Zeitslots können ausgewählt werden.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="sandbox-card__footer">
               <div className="sandbox-card__actions">

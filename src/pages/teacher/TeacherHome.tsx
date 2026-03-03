@@ -95,7 +95,9 @@ export function TeacherHome() {
             </p>
             <div className="teacher-home__active-event" aria-label="Aktiver Sprechtag">
               <span className="teacher-home__active-dot" aria-hidden="true" />
-              <span>Eltern- und Ausbildersprechtag – {activeEventLabel}</span>
+              <button type="button" className="teacher-home__event-link" onClick={() => navigate('/teacher/bookings')}>
+                Eltern- und Ausbildersprechtag – {activeEventLabel}
+              </button>
             </div>
             {upcomingEventDates.length > 0 ? (
               <ul className="teacher-home__next-list" role="list">

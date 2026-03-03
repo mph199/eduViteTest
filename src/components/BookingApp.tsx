@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { SlotList } from './SlotList';
 import { BookingForm } from './BookingForm';
 import { TeacherCombobox } from './TeacherCombobox';
@@ -32,6 +32,14 @@ export const BookingApp = () => {
   const [eventLoading, setEventLoading] = useState<boolean>(true);
   const [eventError, setEventError] = useState<string>('');
 
+  const slotListRef = useRef<HTMLDivElement>(null);
+  const bookingFormRef = useRef<HTMLDivElement>(null);
+
+  const scrollToRef = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
   const formattedEventBanner = useMemo<ReactNode>(() => {
     if (!activeEvent) return '';
 
@@ -120,6 +128,7 @@ export const BookingApp = () => {
   const handleTeacherSelect = (teacherId: number) => {
     setSelectedTeacherId(teacherId);
     resetSelection();
+    scrollToRef(slotListRef);
   };
 
   const handleClearTeacher = () => {
@@ -211,23 +220,30 @@ export const BookingApp = () => {
           {slotsLoading && <p className="loading-message">Lade Termine...</p>}
           {slotsError && <p className="error-message">{slotsError}</p>}
           {!slotsLoading && !slotsError && (
-            <SlotList
-              slots={slots}
-              selectedSlotId={selectedSlotId}
-              selectedTeacherId={selectedTeacherId}
-              selectedTeacherName={selectedTeacherAccusativeName}
-              eventId={activeEvent?.id ?? null}
-              onSelectSlot={handleSelectSlot}
-            />
+            <div ref={slotListRef}>
+              <SlotList
+                slots={slots}
+                selectedSlotId={selectedSlotId}
+                selectedTeacherId={selectedTeacherId}
+                selectedTeacherName={selectedTeacherAccusativeName}
+                eventId={activeEvent?.id ?? null}
+                onSelectSlot={(slotId) => {
+                  handleSelectSlot(slotId);
+                  scrollToRef(bookingFormRef);
+                }}
+              />
+            </div>
           )}
 
-          <BookingForm
-            key={selectedTeacherId ?? 'no-teacher'}
-            selectedSlotId={selectedSlotId}
-            onSubmit={handleBooking}
-            onCancel={resetSelection}
-            message={message}
-          />
+          <div ref={bookingFormRef}>
+            <BookingForm
+              key={selectedTeacherId ?? 'no-teacher'}
+              selectedSlotId={selectedSlotId}
+              onSubmit={handleBooking}
+              onCancel={resetSelection}
+              message={message}
+            />
+          </div>
         </main>
       </div>
     </div>

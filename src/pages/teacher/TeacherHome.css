@@ -78,6 +78,26 @@
   flex: 0 0 auto;
 }
 
+.teacher-home__event-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--brand-primary-rgb), 0.35);
+  text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.teacher-home__event-link:hover {
+  color: var(--brand-primary);
+  text-decoration-color: var(--brand-primary);
+}
+
 .teacher-home__next-list {
   margin: 0.35rem 0 0;
   padding-left: 1.1rem;

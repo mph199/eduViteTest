@@ -691,6 +691,55 @@
   margin-bottom: 6px;
 }
 
+/* ── Collapsible assign section ── */
+.sandbox-card__assign-section {
+  margin-top: 14px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+}
+
+.sandbox-card__assign-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.sandbox-card__assign-toggle:hover {
+  background: #f1f5f9;
+}
+
+.sandbox-card__chevron {
+  font-size: 1.1rem;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  color: #64748b;
+}
+
+.sandbox-card__chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.sandbox-card__assign-picker {
+  padding: 8px 0 0;
+}
+
+.sandbox-card__assign-hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
 .sandbox-card__footer {
   position: sticky;
   bottom: 0;
@@ -844,10 +893,19 @@
     padding: 0 !important;
   }
 
+  /* Switch from horizontal carousel to vertical list on mobile */
+  .sandbox-carousel-frame {
+    display: block;
+  }
+
   .sandbox-carousel {
-    --sandbox-side-pad: 0px;
-    --sandbox-card-width: 100%;
-    scroll-padding-inline: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-x: visible;
+    overflow-y: visible;
+    scroll-snap-type: none;
+    padding: 0;
   }
 
   .sandbox-carousel::before,
@@ -856,13 +914,15 @@
   }
 
   .sandbox-slide {
-    flex-basis: 100%;
-    scroll-snap-align: start;
+    flex: none;
+    width: 100%;
     opacity: 1;
     filter: none;
     transform: none;
   }
 
+  .sandbox-carousel-dots,
+  .sandbox-carousel-progress,
   .sandbox-nav-arrow {
     display: none;
   }
