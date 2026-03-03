@@ -92,8 +92,8 @@ export function TeacherCombobox({
     setQuery('');
     setOpen(false);
     setActiveIndex(-1);
-    // Keep focus in input for fast subsequent use
-    inputRef.current?.focus();
+    // Blur input so the mobile keyboard dismisses
+    inputRef.current?.blur();
   };
 
   return (
