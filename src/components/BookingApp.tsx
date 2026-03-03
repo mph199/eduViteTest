@@ -40,6 +40,7 @@ export const BookingApp = () => {
       ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
+
   const formattedEventBanner = useMemo<ReactNode>(() => {
     if (!activeEvent) return '';
 
@@ -94,6 +95,27 @@ export const BookingApp = () => {
     selectedTeacher?.system
   );
 
+  // Auto-scroll to slot list once slots have loaded after teacher selection
+  const prevTeacherIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      selectedTeacherId !== null &&
+      selectedTeacherId !== prevTeacherIdRef.current &&
+      !slotsLoading &&
+      slotListRef.current
+    ) {
+      scrollToRef(slotListRef);
+    }
+    prevTeacherIdRef.current = selectedTeacherId;
+  }, [selectedTeacherId, slotsLoading, scrollToRef]);
+
+  // Auto-scroll to booking form when a slot is selected
+  useEffect(() => {
+    if (selectedSlotId && bookingFormRef.current) {
+      scrollToRef(bookingFormRef);
+    }
+  }, [selectedSlotId, scrollToRef]);
+
   // Lade Lehrkräfte beim Mount
   useEffect(() => {
     const loadActiveEvent = async () => {
@@ -128,7 +150,6 @@ export const BookingApp = () => {
   const handleTeacherSelect = (teacherId: number) => {
     setSelectedTeacherId(teacherId);
     resetSelection();
-    scrollToRef(slotListRef);
   };
 
   const handleClearTeacher = () => {
@@ -227,10 +248,7 @@ export const BookingApp = () => {
                 selectedTeacherId={selectedTeacherId}
                 selectedTeacherName={selectedTeacherAccusativeName}
                 eventId={activeEvent?.id ?? null}
-                onSelectSlot={(slotId) => {
-                  handleSelectSlot(slotId);
-                  scrollToRef(bookingFormRef);
-                }}
+                onSelectSlot={handleSelectSlot}
               />
             </div>
           )}
