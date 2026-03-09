@@ -743,8 +743,6 @@
 }
 
 .sandbox-card__footer {
-  position: sticky;
-  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -872,7 +870,6 @@
   }
 
   .sandbox-card__footer {
-    position: static;
     align-items: stretch;
     justify-content: flex-end;
   }
@@ -1212,6 +1209,8 @@
   overflow-y: auto;
   border-radius: 14px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* In modal the card is always "expanded" — show all content directly */
@@ -1224,7 +1223,7 @@
 }
 
 .sandbox-modal__card .sandbox-card__footer {
-  position: static;
+  margin-top: auto;
 }
 
 .sandbox-modal__card .sandbox-multi-select {
@@ -1272,7 +1271,7 @@
   }
 
   .sandbox-modal__card .sandbox-card__footer {
-    position: static;
+    margin-top: auto;
   }
 
   .sandbox-modal__card .sandbox-card__actions {

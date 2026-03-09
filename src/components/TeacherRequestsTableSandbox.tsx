@@ -270,18 +270,16 @@ export function TeacherRequestsTableSandbox({
                         {groupedTimes.inside.map((slot) => {
                           const isChecked = selectedTimes.includes(slot);
                           return (
-                            <label
+                            <div
                               key={slot}
                               className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
-                              onPointerDown={(e) => {
-                                e.preventDefault();
+                            >
+                              <input type="checkbox" checked={isChecked} tabIndex={-1} className="sandbox-multi-select__checkbox" onChange={() => {
                                 const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
                                 onAssignTimeChange(request.id, next);
-                              }}
-                            >
-                              <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
+                              }} />
                               <span className="sandbox-multi-select__label">{slot}</span>
-                            </label>
+                            </div>
                           );
                         })}
                       </>
@@ -292,18 +290,16 @@ export function TeacherRequestsTableSandbox({
                         {groupedTimes.outside.map((slot) => {
                           const isChecked = selectedTimes.includes(slot);
                           return (
-                            <label
+                            <div
                               key={slot}
                               className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
-                              onPointerDown={(e) => {
-                                e.preventDefault();
+                            >
+                              <input type="checkbox" checked={isChecked} tabIndex={-1} className="sandbox-multi-select__checkbox" onChange={() => {
                                 const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
                                 onAssignTimeChange(request.id, next);
-                              }}
-                            >
-                              <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
+                              }} />
                               <span className="sandbox-multi-select__label">{slot}</span>
-                            </label>
+                            </div>
                           );
                         })}
                       </>
