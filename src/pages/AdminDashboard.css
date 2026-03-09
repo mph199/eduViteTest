@@ -850,10 +850,23 @@
 
 .teacher-card__actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  flex-wrap: wrap;
   padding: 10px 16px 14px;
   border-top: 1px solid #f1f5f9;
+}
+
+.teacher-card__actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.teacher-card__actions-row > * {
+  flex: 1;
+}
+
+.teacher-card__actions-full {
+  width: 100%;
 }
 
 .action-buttons {
@@ -1367,12 +1380,6 @@
 
   .teacher-card__actions {
     padding: 8px 12px 12px;
-    flex-direction: column;
-  }
-
-  .teacher-card__actions .edit-button,
-  .teacher-card__actions .cancel-button {
-    width: 100%;
   }
 }
 

@@ -544,32 +544,32 @@ export function AdminTeachers() {
                         </div>
                       </dl>
                       <div className="teacher-card__actions">
-                        <div className="action-buttons">
+                        <div className="teacher-card__actions-row">
                           <button onClick={() => handleEdit(teacher)} className="edit-button">
                             <span aria-hidden="true">✎</span> Bearbeiten
                           </button>
                           <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">
                             <span aria-hidden="true">✕</span> Löschen
                           </button>
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await api.admin.resetTeacherLogin(teacher.id);
-                                const typed = res as TeacherLoginResponse;
-                                if (typed?.user) {
-                                  alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
-                                } else {
-                                  alert('Login zurückgesetzt.');
-                                }
-                              } catch (err) {
-                                alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
-                              }
-                            }}
-                            className="reset-button"
-                          >
-                            <span aria-hidden="true">↺</span> Login zurücksetzen
-                          </button>
                         </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await api.admin.resetTeacherLogin(teacher.id);
+                              const typed = res as TeacherLoginResponse;
+                              if (typed?.user) {
+                                alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
+                              } else {
+                                alert('Login zurückgesetzt.');
+                              }
+                            } catch (err) {
+                              alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
+                            }
+                          }}
+                          className="reset-button teacher-card__actions-full"
+                        >
+                          <span aria-hidden="true">↺</span> Login zurücksetzen
+                        </button>
                       </div>
                     </div>
                   </article>
