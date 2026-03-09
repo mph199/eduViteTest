@@ -5,7 +5,7 @@ export type ActiveView = 'admin' | 'teacher';
 export interface User {
   username: string;
   fullName?: string;
-  role: 'admin' | 'teacher';
+  role: 'admin' | 'teacher' | 'superadmin';
   teacherId?: number; // Nur für Lehrer
 }
 

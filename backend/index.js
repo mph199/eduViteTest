@@ -3,7 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import teacherRoutes from './routes/teacher.js';
-import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { requireAuth, requireAdmin, requireSuperadmin } from './middleware/auth.js';
+import { buildEmail, getEmailBranding } from './emails/template.js';
 import { query } from './config/db.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
@@ -331,33 +332,13 @@ app.post('/api/bookings', async (req, res) => {
       const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
       const { rows: teacherLookupRows } = await query('SELECT * FROM teachers WHERE id = $1', [slotRow.teacher_id]);
       const teacher = teacherLookupRows[0] || {};
-      const subject = `BKSB Elternsprechtag – E-Mail-Adresse bestätigen (Terminreservierung)`;
-      const plain = `Guten Tag,
-
-    bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung im BKSB-Elternsprechtag-System abzuschließen.
-
-    Termin: ${slotRow.date} ${slotRow.time}
-    Lehrkraft: ${teacher.name || '—'}
-    Raum: ${teacher.room || '—'}
-
-    Bestätigungslink: ${verifyUrl}
-
-    Hinweis: Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.
-
-    Mit freundlichen Grüßen
-
-    Ihr BKSB-Team`;
-      const html = `<p>Guten Tag,</p>
-    <p>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung im BKSB-Elternsprechtag-System abzuschließen.</p>
-    <p><strong>Termin:</strong> ${slotRow.date} ${slotRow.time}<br/>
-    <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-    <strong>Raum:</strong> ${teacher.room || '—'}</p>
-    <p><a href="${verifyUrl}">E-Mail-Adresse jetzt bestätigen</a></p>
-    <p><strong>Hinweis:</strong> Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.</p>
-    <p>Mit freundlichen Grüßen</p>
-    <p>Ihr BKSB-Team</p>`;
       try {
-        await sendMail({ to: payload.email, subject, text: plain, html });
+        const branding = await getEmailBranding();
+        const { subject, text, html } = buildEmail('verify-slot', {
+          date: slotRow.date, time: slotRow.time,
+          teacherName: teacher.name, teacherRoom: teacher.room, verifyUrl,
+        }, branding);
+        await sendMail({ to: payload.email, subject, text, html });
       } catch (e) {
         console.warn('Sending verification email failed:', e?.message || e);
       }
@@ -485,33 +466,13 @@ app.post('/api/booking-requests', async (req, res) => {
       const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
       const { rows: teacherEmailRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherIdNum]);
       const teacher = teacherEmailRows[0] || {};
-      const subject = `BKSB Elternsprechtag – E-Mail-Adresse bestätigen (Terminanfrage)`;
-      const plain = `Guten Tag,
-
-bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage im BKSB-Elternsprechtag-System abzuschließen.
-
-Gewünschter Zeitraum: ${created.date} ${created.requested_time}
-Lehrkraft: ${teacher.name || '—'}
-Raum: ${teacher.room || '—'}
-
-Bestätigungslink: ${verifyUrl}
-
-Hinweis: Die Lehrkraft vergibt die Termine. Nach Bestätigung Ihrer E-Mail-Adresse kann die Lehrkraft die Anfrage annehmen.
-
-Mit freundlichen Grüßen
-
-Ihr BKSB-Team`;
-      const html = `<p>Guten Tag,</p>
-<p>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage im BKSB-Elternsprechtag-System abzuschließen.</p>
-<p><strong>Gewünschter Zeitraum:</strong> ${created.date} ${created.requested_time}<br/>
-<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-<strong>Raum:</strong> ${teacher.room || '—'}</p>
-<p><a href="${verifyUrl}">E-Mail-Adresse jetzt bestätigen</a></p>
-<p><strong>Hinweis:</strong> Die Lehrkraft vergibt die Termine. Nach Bestätigung Ihrer E-Mail-Adresse kann die Lehrkraft die Anfrage annehmen.</p>
-<p>Mit freundlichen Grüßen</p>
-<p>Ihr BKSB-Team</p>`;
       try {
-        await sendMail({ to: email, subject, text: plain, html });
+        const branding = await getEmailBranding();
+        const { subject, text, html } = buildEmail('verify-request', {
+          date: created.date, requestedTime: created.requested_time,
+          teacherName: teacher.name, teacherRoom: teacher.room, verifyUrl,
+        }, branding);
+        await sendMail({ to: email, subject, text, html });
       } catch (e) {
         console.warn('Sending verification email (request) failed:', e?.message || e);
       }
@@ -551,26 +512,13 @@ app.get('/api/bookings/verify/:token', async (req, res) => {
         try {
           const { rows: tRows } = await query('SELECT * FROM teachers WHERE id = $1', [slot.teacher_id]);
           const teacher = tRows[0] || {};
-          const subject = `BKSB Elternsprechtag – Termin bestätigt am ${slot.date} (${slot.time})`;
-          const plain = `Guten Tag,
-
-Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.
-
-Termin: ${slot.date} ${slot.time}
-Lehrkraft: ${teacher.name || '—'}
-Raum: ${teacher.room || '—'}
-
-Mit freundlichen Grüßen
-
-Ihr BKSB-Team`;
-          const html = `<p>Guten Tag,</p>
-<p>Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.</p>
-<p><strong>Termin:</strong> ${slot.date} ${slot.time}<br/>
-<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-<strong>Raum:</strong> ${teacher.room || '—'}</p>
-<p>Mit freundlichen Grüßen</p>
-<p>Ihr BKSB-Team</p>`;
-          await sendMail({ to: slot.email, subject, text: plain, html });
+          const branding = await getEmailBranding();
+          const { subject, text, html } = buildEmail('confirmation', {
+            date: slot.date, time: slot.time,
+            teacherName: teacher.name, teacherRoom: teacher.room,
+            label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
+          }, branding);
+          await sendMail({ to: slot.email, subject, text, html });
           await query('UPDATE slots SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, slot.id]);
         } catch (e) {
           console.warn('Sending confirmation after verify failed:', e?.message || e);
@@ -589,26 +537,13 @@ Ihr BKSB-Team`;
           const { rows: tRows2 } = await query('SELECT * FROM teachers WHERE id = $1', [request.teacher_id]);
           const teacher = tRows2[0] || {};
           const when = slotRow ? `${slotRow.date} ${slotRow.time}` : `${request.date} ${request.requested_time}`;
-          const subject = `BKSB Elternsprechtag – Termin bestätigt (${when})`;
-          const plain = `Guten Tag,
-
-Ihre Terminanfrage wurde durch die Lehrkraft angenommen.
-
-Termin: ${when}
-Lehrkraft: ${teacher.name || '—'}
-Raum: ${teacher.room || '—'}
-
-Mit freundlichen Grüßen
-
-Ihr BKSB-Team`;
-          const html = `<p>Guten Tag,</p>
-<p>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.</p>
-<p><strong>Termin:</strong> ${when}<br/>
-<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-<strong>Raum:</strong> ${teacher.room || '—'}</p>
-<p>Mit freundlichen Grüßen</p>
-<p>Ihr BKSB-Team</p>`;
-          await sendMail({ to: request.email, subject, text: plain, html });
+          const branding4 = await getEmailBranding();
+          const whenParts = when.split(' ');
+          const { subject, text, html } = buildEmail('confirmation', {
+            date: whenParts[0] || when, time: whenParts.slice(1).join(' ') || '',
+            teacherName: teacher.name, teacherRoom: teacher.room,
+          }, branding4);
+          await sendMail({ to: request.email, subject, text, html });
           await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, request.id]);
         } catch (e) {
           console.warn('Sending confirmation after request verify failed:', e?.message || e);
@@ -655,30 +590,12 @@ app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
         const { rows: tRows3 } = await query('SELECT * FROM teachers WHERE id = $1', [previous.teacher_id]);
         const teacher = tRows3[0] || {};
 
-        const subject = `BKSB Elternsprechtag – Termin storniert am ${previous.date} (${previous.time})`;
-        const plain = `Guten Tag,
-
-      wir bestätigen Ihnen die Stornierung Ihres Termins.
-
-      Termin: ${previous.date} ${previous.time}
-      Lehrkraft: ${teacher.name || '—'}
-      Raum: ${teacher.room || '—'}
-
-      Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.
-
-      Mit freundlichen Grüßen
-
-      Ihr BKSB-Team`;
-        const html = `<p>Guten Tag,</p>
-      <p>wir bestätigen Ihnen die Stornierung Ihres Termins.</p>
-      <p><strong>Termin:</strong> ${previous.date} ${previous.time}<br/>
-      <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-      <strong>Raum:</strong> ${teacher.room || '—'}</p>
-      <p>Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.</p>
-      <p>Mit freundlichen Grüßen</p>
-      <p>Ihr BKSB-Team</p>`;
-
-        await sendMail({ to: previous.email, subject, text: plain, html });
+        const branding = await getEmailBranding();
+        const { subject, text, html } = buildEmail('cancellation', {
+          date: previous.date, time: previous.time,
+          teacherName: teacher.name, teacherRoom: teacher.room,
+        }, branding);
+        await sendMail({ to: previous.email, subject, text, html });
         await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
       } catch (e) {
         console.warn('Sending cancellation email (admin) failed:', e?.message || e);
@@ -717,8 +634,8 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
 
   const { role } = req.body || {};
   const roleStr = String(role || '').trim();
-  if (roleStr !== 'admin' && roleStr !== 'teacher') {
-    return res.status(400).json({ error: 'role must be "admin" or "teacher"' });
+  if (!['admin', 'teacher', 'superadmin'].includes(roleStr)) {
+    return res.status(400).json({ error: 'role must be "admin", "teacher" or "superadmin"' });
   }
 
   // Best-effort safety: prevent an admin from demoting themselves.
@@ -1047,6 +964,74 @@ app.delete('/api/admin/teachers/:id', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error deleting teacher:', error);
     res.status(500).json({ error: 'Failed to delete teacher' });
+  }
+});
+
+// ── Superadmin: Email Branding ─────────────────────────────────────────
+
+// GET /api/superadmin/email-branding
+app.get('/api/superadmin/email-branding', requireSuperadmin, async (_req, res) => {
+  try {
+    const { rows } = await query('SELECT * FROM email_branding WHERE id = 1 LIMIT 1');
+    const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team' };
+    return res.json(data);
+  } catch (error) {
+    console.error('Error fetching email branding:', error);
+    return res.status(500).json({ error: 'Failed to fetch email branding' });
+  }
+});
+
+// PUT /api/superadmin/email-branding
+app.put('/api/superadmin/email-branding', requireSuperadmin, async (req, res) => {
+  const { school_name, logo_url, primary_color, footer_text } = req.body || {};
+  if (!school_name || typeof school_name !== 'string') {
+    return res.status(400).json({ error: 'school_name is required' });
+  }
+  try {
+    const now = new Date().toISOString();
+    const { rows } = await query(
+      `INSERT INTO email_branding (id, school_name, logo_url, primary_color, footer_text, updated_at)
+       VALUES (1, $1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET school_name = $1, logo_url = $2, primary_color = $3, footer_text = $4, updated_at = $5
+       RETURNING *`,
+      [
+        String(school_name).trim().slice(0, 255),
+        String(logo_url || '').trim(),
+        String(primary_color || '#2d5016').trim().slice(0, 9),
+        String(footer_text || '').trim(),
+        now,
+      ]
+    );
+    return res.json({ success: true, branding: rows[0] });
+  } catch (error) {
+    console.error('Error updating email branding:', error);
+    return res.status(500).json({ error: 'Failed to update email branding' });
+  }
+});
+
+// POST /api/superadmin/email-branding/preview - Send a preview email
+app.post('/api/superadmin/email-branding/preview', requireSuperadmin, async (req, res) => {
+  if (!isEmailConfigured()) {
+    return res.status(503).json({ error: 'Email ist nicht konfiguriert' });
+  }
+  const { to } = req.body || {};
+  if (!to || typeof to !== 'string') {
+    return res.status(400).json({ error: 'Empfänger-Adresse (to) fehlt' });
+  }
+  try {
+    const branding = await getEmailBranding();
+    const { subject, text, html } = buildEmail('confirmation', {
+      date: new Date().toISOString().split('T')[0],
+      time: '14:00 - 14:15',
+      teacherName: 'Max Mustermann',
+      teacherRoom: 'A 204',
+      label: 'Dies ist eine Vorschau-Email mit Ihrem aktuellen Branding.',
+    }, branding);
+    const result = await sendMail({ to: to.trim(), subject: `[VORSCHAU] ${subject}`, text, html });
+    return res.json({ success: true, messageId: result.messageId });
+  } catch (error) {
+    console.error('Error sending preview email:', error);
+    return res.status(500).json({ error: error?.message || 'Fehler beim Senden' });
   }
 });
 

@@ -1,0 +1,249 @@
+import { query } from '../config/db.js';
+
+// Cache branding for 60s to avoid DB hit on every email
+let cachedBranding = null;
+let cacheExpiry = 0;
+
+export async function getEmailBranding() {
+  const now = Date.now();
+  if (cachedBranding && now < cacheExpiry) return cachedBranding;
+
+  try {
+    const { rows } = await query('SELECT * FROM email_branding WHERE id = 1 LIMIT 1');
+    cachedBranding = rows[0] || null;
+  } catch {
+    cachedBranding = null;
+  }
+  cacheExpiry = now + 60_000;
+  return cachedBranding;
+}
+
+const DEFAULTS = {
+  school_name: 'BKSB',
+  logo_url: '',
+  primary_color: '#2d5016',
+  footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team',
+};
+
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Wrap email body content in a professional HTML template.
+ * @param {object} opts
+ * @param {string} opts.body       - inner HTML content (the email-specific part)
+ * @param {object} [opts.branding] - email_branding row (fetched, or null for defaults)
+ * @returns {string} full HTML email
+ */
+export function wrapEmailHtml({ body, branding }) {
+  const b = { ...DEFAULTS, ...branding };
+  const logoHtml = b.logo_url
+    ? `<img src="${esc(b.logo_url)}" alt="${esc(b.school_name)}" style="max-height:60px;max-width:220px;display:block;margin:0 auto 8px;" />`
+    : '';
+  const footerHtml = esc(b.footer_text).replace(/\n/g, '<br/>');
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1f2937;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;">
+<tr><td align="center" style="padding:24px 16px;">
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+    <!-- Header -->
+    <tr>
+      <td style="background:${esc(b.primary_color)};padding:20px 24px;text-align:center;">
+        ${logoHtml}
+        <span style="color:#ffffff;font-size:18px;font-weight:600;">${esc(b.school_name)} — Elternsprechtag</span>
+      </td>
+    </tr>
+    <!-- Body -->
+    <tr>
+      <td style="padding:28px 24px 24px;">
+        ${body}
+      </td>
+    </tr>
+    <!-- Footer -->
+    <tr>
+      <td style="padding:16px 24px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280;text-align:center;">
+        ${footerHtml}
+      </td>
+    </tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+/**
+ * Build both plain text and HTML for a specific email type.
+ * Returns { subject, text, html }.
+ */
+export function buildEmail(type, data, branding) {
+  const builders = {
+    'verify-slot': buildVerifySlotEmail,
+    'verify-request': buildVerifyRequestEmail,
+    'confirmation': buildConfirmationEmail,
+    'confirmation-multi': buildMultiConfirmationEmail,
+    'cancellation': buildCancellationEmail,
+  };
+
+  const builder = builders[type];
+  if (!builder) throw new Error(`Unknown email type: ${type}`);
+  return builder(data, branding);
+}
+
+// ── Individual email builders ──────────────────────────────────────
+
+function buildVerifySlotEmail(data, branding) {
+  const { date, time, teacherName, teacherRoom, verifyUrl } = data;
+  const subject = `${(branding || DEFAULTS).school_name} Elternsprechtag – E-Mail-Adresse bestätigen (Terminreservierung)`;
+
+  const text = `Guten Tag,
+
+bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung abzuschließen.
+
+Termin: ${date} ${time}
+Lehrkraft: ${teacherName || '—'}
+Raum: ${teacherRoom || '—'}
+
+Bestätigungslink: ${verifyUrl}
+
+Hinweis: Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.`;
+
+  const body = `<p>Guten Tag,</p>
+<p>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung abzuschließen.</p>
+<p><strong>Termin:</strong> ${esc(date)} ${esc(time)}<br/>
+<strong>Lehrkraft:</strong> ${esc(teacherName || '—')}<br/>
+<strong>Raum:</strong> ${esc(teacherRoom || '—')}</p>
+<p style="margin:20px 0;"><a href="${esc(verifyUrl)}" style="display:inline-block;padding:12px 28px;background:${esc((branding || DEFAULTS).primary_color)};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">E-Mail-Adresse jetzt bestätigen</a></p>
+<p style="font-size:13px;color:#6b7280;"><strong>Hinweis:</strong> Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.</p>`;
+
+  const html = wrapEmailHtml({ body, branding });
+  return { subject, text, html };
+}
+
+function buildVerifyRequestEmail(data, branding) {
+  const { date, requestedTime, teacherName, teacherRoom, verifyUrl } = data;
+  const subject = `${(branding || DEFAULTS).school_name} Elternsprechtag – E-Mail-Adresse bestätigen (Terminanfrage)`;
+
+  const text = `Guten Tag,
+
+bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage abzuschließen.
+
+Gewünschter Zeitraum: ${date} ${requestedTime}
+Lehrkraft: ${teacherName || '—'}
+Raum: ${teacherRoom || '—'}
+
+Bestätigungslink: ${verifyUrl}
+
+Hinweis: Die Lehrkraft vergibt die Termine. Nach Bestätigung Ihrer E-Mail-Adresse kann die Lehrkraft die Anfrage annehmen.`;
+
+  const body = `<p>Guten Tag,</p>
+<p>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage abzuschließen.</p>
+<p><strong>Gewünschter Zeitraum:</strong> ${esc(date)} ${esc(requestedTime)}<br/>
+<strong>Lehrkraft:</strong> ${esc(teacherName || '—')}<br/>
+<strong>Raum:</strong> ${esc(teacherRoom || '—')}</p>
+<p style="margin:20px 0;"><a href="${esc(verifyUrl)}" style="display:inline-block;padding:12px 28px;background:${esc((branding || DEFAULTS).primary_color)};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">E-Mail-Adresse jetzt bestätigen</a></p>
+<p style="font-size:13px;color:#6b7280;"><strong>Hinweis:</strong> Die Lehrkraft vergibt die Termine. Nach Bestätigung Ihrer E-Mail-Adresse kann die Lehrkraft die Anfrage annehmen.</p>`;
+
+  const html = wrapEmailHtml({ body, branding });
+  return { subject, text, html };
+}
+
+function buildConfirmationEmail(data, branding) {
+  const { date, time, teacherName, teacherRoom, teacherMessage, label } = data;
+  const msgLabel = label || 'Ihre Terminanfrage wurde durch die Lehrkraft angenommen.';
+  const subject = `${(branding || DEFAULTS).school_name} Elternsprechtag – Termin bestätigt am ${date} (${time})`;
+
+  const teacherMsgPlain = teacherMessage ? `\n\nNachricht der Lehrkraft:\n${teacherMessage}` : '';
+  const teacherMsgHtml = teacherMessage
+    ? `<p><strong>Nachricht der Lehrkraft:</strong><br/>${esc(teacherMessage).replace(/\n/g, '<br/>')}</p>`
+    : '';
+
+  const text = `Guten Tag,
+
+${msgLabel}
+
+Termin: ${date} ${time}
+Lehrkraft: ${teacherName || '—'}
+Raum: ${teacherRoom || '—'}
+${teacherMsgPlain}`;
+
+  const body = `<p>Guten Tag,</p>
+<p>${esc(msgLabel)}</p>
+<p><strong>Termin:</strong> ${esc(date)} ${esc(time)}<br/>
+<strong>Lehrkraft:</strong> ${esc(teacherName || '—')}<br/>
+<strong>Raum:</strong> ${esc(teacherRoom || '—')}</p>
+${teacherMsgHtml}`;
+
+  const html = wrapEmailHtml({ body, branding });
+  return { subject, text, html };
+}
+
+function buildMultiConfirmationEmail(data, branding) {
+  const { date, slots, teacherName, teacherRoom, teacherMessage } = data;
+  const timesFormatted = slots.map((s) => s.time).join(', ');
+  const subject = `${(branding || DEFAULTS).school_name} Elternsprechtag – ${slots.length} Termine bestätigt am ${date} (${timesFormatted})`;
+
+  const teacherMsgPlain = teacherMessage ? `\n\nNachricht der Lehrkraft:\n${teacherMessage}` : '';
+  const teacherMsgHtml = teacherMessage
+    ? `<p><strong>Nachricht der Lehrkraft:</strong><br/>${esc(teacherMessage).replace(/\n/g, '<br/>')}</p>`
+    : '';
+  const timesListPlain = slots.map((s, i) => `  ${i + 1}. ${s.time}`).join('\n');
+  const timesListHtml = slots.map((s) => `<li>${esc(s.time)}</li>`).join('');
+
+  const text = `Guten Tag,
+
+Ihre Terminanfrage wurde durch die Lehrkraft angenommen.
+
+Es wurden ${slots.length} Termine für Sie vergeben:
+${timesListPlain}
+
+Datum: ${date}
+Lehrkraft: ${teacherName || '—'}
+Raum: ${teacherRoom || '—'}
+${teacherMsgPlain}`;
+
+  const body = `<p>Guten Tag,</p>
+<p>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.</p>
+<p>Es wurden <strong>${slots.length} Termine</strong> für Sie vergeben:</p>
+<ul>${timesListHtml}</ul>
+<p><strong>Datum:</strong> ${esc(date)}<br/>
+<strong>Lehrkraft:</strong> ${esc(teacherName || '—')}<br/>
+<strong>Raum:</strong> ${esc(teacherRoom || '—')}</p>
+${teacherMsgHtml}`;
+
+  const html = wrapEmailHtml({ body, branding });
+  return { subject, text, html };
+}
+
+function buildCancellationEmail(data, branding) {
+  const { date, time, teacherName, teacherRoom } = data;
+  const subject = `${(branding || DEFAULTS).school_name} Elternsprechtag – Termin storniert am ${date} (${time})`;
+
+  const text = `Guten Tag,
+
+wir bestätigen Ihnen die Stornierung Ihres Termins.
+
+Termin: ${date} ${time}
+Lehrkraft: ${teacherName || '—'}
+Raum: ${teacherRoom || '—'}
+
+Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.`;
+
+  const body = `<p>Guten Tag,</p>
+<p>wir bestätigen Ihnen die Stornierung Ihres Termins.</p>
+<p><strong>Termin:</strong> ${esc(date)} ${esc(time)}<br/>
+<strong>Lehrkraft:</strong> ${esc(teacherName || '—')}<br/>
+<strong>Raum:</strong> ${esc(teacherRoom || '—')}</p>
+<p>Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.</p>`;
+
+  const html = wrapEmailHtml({ body, branding });
+  return { subject, text, html };
+}

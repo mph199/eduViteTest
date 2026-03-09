@@ -58,7 +58,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Nur bekannte Rollen erlauben
-    const role = dbUser.role === 'teacher' ? 'teacher' : (dbUser.role === 'admin' ? 'admin' : 'user');
+    const role = ['admin', 'teacher', 'superadmin'].includes(dbUser.role) ? dbUser.role : 'user';
 
     const user = {
       username: dbUser.username,

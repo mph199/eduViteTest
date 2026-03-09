@@ -49,7 +49,50 @@
 .superadmin__subtitle {
   color: #64748b;
   font-size: 0.88rem;
-  margin: 0 0 1.75rem;
+  margin: 0 0 1rem;
+}
+
+/* ── Tabs ───────────────────────────────────────────────── */
+
+.superadmin__tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding-bottom: 0;
+}
+
+.superadmin__tab {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 8px 18px 10px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.superadmin__tab:hover {
+  color: #cbd5e1;
+}
+
+.superadmin__tab--active {
+  color: #f1f5f9;
+  border-bottom-color: #3b82f6;
+}
+
+/* ── Email preview frame ────────────────────────────────── */
+
+.superadmin__preview-frame--email {
+  padding: 0;
+  background: #f4f4f5;
+}
+
+.superadmin__hint--error {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
 }
 
 /* ── Section cards ──────────────────────────────────────── */

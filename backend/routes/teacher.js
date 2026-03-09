@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
+import { buildEmail, getEmailBranding } from '../emails/template.js';
 import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../utils/mappers.js';
 
@@ -131,30 +132,13 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
     const teacherMessageHtml = safeTeacherMessage
       ? `<p><strong>Nachricht der Lehrkraft:</strong><br/>${escapeHtml(safeTeacherMessage).replace(/\n/g, '<br/>')}</p>`
       : '';
-    const subject = `BKSB Elternsprechtag – Termin bestätigt am ${updatedSlot.date} (${updatedSlot.time})`;
-    const plain = `Guten Tag,
-
-Ihre Terminanfrage wurde durch die Lehrkraft angenommen.
-
-Termin: ${updatedSlot.date} ${updatedSlot.time}
-Lehrkraft: ${teacher.name || '—'}
-Raum: ${teacher.room || '—'}
-
-${teacherMessagePlain}
-
-Mit freundlichen Grüßen
-
-Ihr BKSB-Team`;
-    const html = `<p>Guten Tag,</p>
-<p>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.</p>
-<p><strong>Termin:</strong> ${updatedSlot.date} ${updatedSlot.time}<br/>
-<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-<strong>Raum:</strong> ${teacher.room || '—'}</p>
-${teacherMessageHtml}
-<p>Mit freundlichen Grüßen</p>
-<p>Ihr BKSB-Team</p>`;
-
-    await sendMail({ to: updatedSlot.email, subject, text: plain, html });
+    const branding = await getEmailBranding();
+    const { subject, text, html } = buildEmail('confirmation', {
+      date: updatedSlot.date, time: updatedSlot.time,
+      teacherName: teacher.name, teacherRoom: teacher.room,
+      teacherMessage: safeTeacherMessage,
+    }, branding);
+    await sendMail({ to: updatedSlot.email, subject, text, html });
     await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [now, updatedSlot.id]);
     await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
   } catch (e) {
@@ -538,36 +522,14 @@ async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId, teache
     const timesListPlain = allSlots.map((s, i) => `  ${i + 1}. ${s.time}`).join('\n');
     const timesListHtml = allSlots.map((s) => `<li>${s.time}</li>`).join('');
 
-    const subject = `BKSB Elternsprechtag – ${allSlots.length} Termine bestätigt am ${allSlots[0].date} (${timesFormatted})`;
-    const plain = `Guten Tag,
-
-Ihre Terminanfrage wurde durch die Lehrkraft angenommen.
-
-Es wurden ${allSlots.length} Termine für Sie vergeben:
-${timesListPlain}
-
-Datum: ${allSlots[0].date}
-Lehrkraft: ${teacher.name || '—'}
-Raum: ${teacher.room || '—'}
-${teacherMessagePlain}
-
-Mit freundlichen Grüßen
-
-Ihr BKSB-Team`;
-
-    const html = `<p>Guten Tag,</p>
-<p>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.</p>
-<p>Es wurden <strong>${allSlots.length} Termine</strong> für Sie vergeben:</p>
-<ul>${timesListHtml}</ul>
-<p><strong>Datum:</strong> ${allSlots[0].date}<br/>
-<strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-<strong>Raum:</strong> ${teacher.room || '—'}</p>
-${teacherMessageHtml}
-<p>Mit freundlichen Grüßen</p>
-<p>Ihr BKSB-Team</p>`;
-
-    const now = new Date().toISOString();
-    await sendMail({ to: allSlots[0].email, subject, text: plain, html });
+    const branding = await getEmailBranding();
+    const { subject, text, html } = buildEmail('confirmation-multi', {
+      date: allSlots[0].date,
+      slots: allSlots.map(s => ({ time: s.time })),
+      teacherName: teacher.name, teacherRoom: teacher.room,
+      teacherMessage: safeTeacherMessage,
+    }, branding);
+    await sendMail({ to: allSlots[0].email, subject, text, html });
 
     // Mark all slots as confirmation sent
     for (const slot of allSlots) {
@@ -901,29 +863,12 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
       try {
         const { rows: tcRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
         const teacher = tcRows[0] || {};
-        const subject = `BKSB Elternsprechtag – Termin storniert am ${current.date} (${current.time})`;
-        const plain = `Guten Tag,
-
-      wir bestätigen Ihnen die Stornierung Ihres Termins.
-
-      Termin: ${current.date} ${current.time}
-      Lehrkraft: ${teacher.name || '—'}
-      Raum: ${teacher.room || '—'}
-
-      Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.
-
-      Mit freundlichen Grüßen
-
-      Ihr BKSB-Team`;
-        const html = `<p>Guten Tag,</p>
-      <p>wir bestätigen Ihnen die Stornierung Ihres Termins.</p>
-      <p><strong>Termin:</strong> ${current.date} ${current.time}<br/>
-      <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-      <strong>Raum:</strong> ${teacher.room || '—'}</p>
-      <p>Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.</p>
-      <p>Mit freundlichen Grüßen</p>
-      <p>Ihr BKSB-Team</p>`;
-        await sendMail({ to: current.email, subject, text: plain, html });
+        const branding = await getEmailBranding();
+        const { subject, text, html } = buildEmail('cancellation', {
+          date: current.date, time: current.time,
+          teacherName: teacher.name, teacherRoom: teacher.room,
+        }, branding);
+        await sendMail({ to: current.email, subject, text, html });
         await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
       } catch (e) {
         console.warn('Sending cancellation email (teacher) failed:', e?.message || e);
@@ -995,26 +940,13 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
       try {
         const { rows: teachConfirmRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
         const teacher = teachConfirmRows[0] || {};
-        const subject = `BKSB Elternsprechtag – Termin bestätigt am ${data.date} (${data.time})`;
-        const plain = `Guten Tag,
-
-      Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.
-
-      Termin: ${data.date} ${data.time}
-      Lehrkraft: ${teacher.name || '—'}
-      Raum: ${teacher.room || '—'}
-
-      Mit freundlichen Grüßen
-
-      Ihr BKSB-Team`;
-        const html = `<p>Guten Tag,</p>
-      <p>Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.</p>
-      <p><strong>Termin:</strong> ${data.date} ${data.time}<br/>
-      <strong>Lehrkraft:</strong> ${teacher.name || '—'}<br/>
-      <strong>Raum:</strong> ${teacher.room || '—'}</p>
-      <p>Mit freundlichen Grüßen</p>
-      <p>Ihr BKSB-Team</p>`;
-        await sendMail({ to: data.email, subject, text: plain, html });
+        const branding = await getEmailBranding();
+        const { subject, text, html } = buildEmail('confirmation', {
+          date: data.date, time: data.time,
+          teacherName: teacher.name, teacherRoom: teacher.room,
+          label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
+        }, branding);
+        await sendMail({ to: data.email, subject, text, html });
         await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), data.id]);
       } catch (e) {
         console.warn('Sending confirmation email failed:', e?.message || e);

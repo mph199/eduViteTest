@@ -301,6 +301,32 @@ const api = {
       });
     },
   },
+
+  // Superadmin endpoints
+  superadmin: {
+    async getEmailBranding() {
+      return requestJSON('/superadmin/email-branding', { auth: true });
+    },
+    async updateEmailBranding(payload: {
+      school_name: string;
+      logo_url: string;
+      primary_color: string;
+      footer_text: string;
+    }) {
+      return requestJSON('/superadmin/email-branding', {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async sendPreviewEmail(to: string) {
+      return requestJSON('/superadmin/email-branding/preview', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify({ to }),
+      });
+    },
+  },
 };
 
 export { API_BASE };

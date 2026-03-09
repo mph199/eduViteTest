@@ -84,13 +84,38 @@ export function requireAdmin(req, res, next) {
     });
   }
   
-  if (decoded.role !== 'admin') {
+  if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
     return res.status(403).json({ 
       error: 'Forbidden', 
       message: 'Admin access required' 
     });
   }
   
+  req.user = decoded;
+  return next();
+}
+
+/**
+ * Middleware: Requires superadmin role
+ */
+export function requireSuperadmin(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  const decoded = verifyToken(token);
+
+  if (!decoded) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
+  }
+
+  if (decoded.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Forbidden', message: 'Superadmin access required' });
+  }
+
   req.user = decoded;
   return next();
 }
