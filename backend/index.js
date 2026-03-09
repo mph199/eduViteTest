@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import multer from 'multer';
 import authRoutes from './routes/auth.js';
 import teacherRoutes from './routes/teacher.js';
 import { requireAuth, requireAdmin, requireSuperadmin } from './middleware/auth.js';
@@ -171,6 +174,30 @@ app.use(cors({
   }
 }));
 app.use(express.json());
+
+// Serve uploaded files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Multer config for logo uploads
+const logoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, path.join(__dirname, 'uploads', 'logos')),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `logo-${Date.now()}${ext}`);
+  },
+});
+const logoUpload = multer({
+  storage: logoStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) return cb(null, true);
+    cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
+  },
+});
 
 // Simple request logging (can be replaced by morgan later)
 app.use((req, _res, next) => {
@@ -1007,6 +1034,29 @@ app.put('/api/superadmin/email-branding', requireSuperadmin, async (req, res) =>
     console.error('Error updating email branding:', error);
     return res.status(500).json({ error: 'Failed to update email branding' });
   }
+});
+
+// POST /api/superadmin/logo - Upload logo
+app.post('/api/superadmin/logo', requireSuperadmin, (req, res) => {
+  logoUpload.single('logo')(req, res, async (err) => {
+    if (err) {
+      const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+        ? 'Datei zu groß (max. 2 MB)'
+        : err.message || 'Upload fehlgeschlagen';
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+    const logoUrl = `${req.protocol}://${req.get('host')}/uploads/logos/${req.file.filename}`;
+    try {
+      await query(
+        `UPDATE email_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
+        [logoUrl]
+      );
+    } catch (e) {
+      console.error('Error saving logo URL:', e);
+    }
+    return res.json({ success: true, logo_url: logoUrl });
+  });
 });
 
 // POST /api/superadmin/email-branding/preview - Send a preview email

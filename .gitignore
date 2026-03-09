@@ -36,3 +36,5 @@ backend/.last-ethereal-email.json
 *.sw?
 
 .vercel
+backend/uploads/*
+!backend/uploads/logos/.gitkeep

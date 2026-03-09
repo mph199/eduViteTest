@@ -326,6 +326,21 @@ const api = {
         body: JSON.stringify({ to }),
       });
     },
+    async uploadLogo(file: File) {
+      const form = new FormData();
+      form.append('logo', file);
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API_BASE}/superadmin/logo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
+        throw new Error(err.error || 'Upload fehlgeschlagen');
+      }
+      return res.json();
+    },
   },
 };
 

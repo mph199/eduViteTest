@@ -241,18 +241,27 @@ export function SuperadminPage() {
               </div>
             </section>
 
-            {/* ── Logo-URL ────────────────────────────── */}
+            {/* ── Logo-Upload ────────────────────────────── */}
             <section className="superadmin__section">
               <h2 className="superadmin__section-title">Logo</h2>
               <div className="superadmin__grid">
                 <div className="superadmin__field superadmin__field--wide">
-                  <span className="superadmin__label">Logo-URL (wird über dem Schulnamen angezeigt)</span>
+                  <span className="superadmin__label">Logo hochladen (max. 2 MB, PNG/JPG/SVG/WebP)</span>
                   <input
-                    type="text"
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
                     className="superadmin__input"
-                    value={emailBranding.logo_url}
-                    onChange={(e) => setEb('logo_url', e.target.value)}
-                    placeholder="https://example.com/logo.png"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const result = await api.superadmin.uploadLogo(file);
+                        setEb('logo_url', result.logo_url);
+                        setStatus('Logo hochgeladen!');
+                      } catch (err: any) {
+                        setStatus(err.message || 'Upload fehlgeschlagen');
+                      }
+                    }}
                   />
                   {emailBranding.logo_url && (
                     <div style={{ marginTop: 8 }}>
@@ -262,6 +271,12 @@ export function SuperadminPage() {
                         style={{ maxHeight: 60, maxWidth: 220, borderRadius: 4, background: '#fff', padding: 4 }}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
+                      <button
+                        type="button"
+                        className="superadmin__btn superadmin__btn--secondary"
+                        style={{ marginTop: 6, fontSize: '0.85rem' }}
+                        onClick={() => setEb('logo_url', '')}
+                      >Logo entfernen</button>
                     </div>
                   )}
                 </div>
