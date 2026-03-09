@@ -18,7 +18,7 @@ export function AdminTeachers() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<ApiTeacher | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', system: 'dual' as 'dual' | 'vollzeit', room: '', username: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', system: 'dual' as 'dual' | 'vollzeit', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [systemSaving, setSystemSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
@@ -69,7 +69,7 @@ export function AdminTeachers() {
         salutation: formData.salutation,
         subject: 'Sprechstunde',
         system: formData.system,
-        room: formData.room,
+        room: '',
         username: formData.username || undefined,
         password: formData.password || undefined,
       };
@@ -86,7 +86,7 @@ export function AdminTeachers() {
       await loadTeachers();
       setShowForm(false);
       setEditingTeacher(null);
-      setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', room: '', username: '', password: '' });
+      setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', username: '', password: '' });
     } catch (err) {
       console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -99,8 +99,7 @@ export function AdminTeachers() {
       name: teacher.name,
       email: teacher.email || '',
       salutation: (teacher.salutation || 'Herr') as 'Herr' | 'Frau' | 'Divers',
-      system: teacher.system || 'dual', // Fallback falls system undefined ist
-      room: teacher.room || '',
+      system: teacher.system || 'dual',
       username: '',
       password: '',
     });
@@ -124,7 +123,7 @@ export function AdminTeachers() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingTeacher(null);
-    setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', room: '', username: '', password: '' });
+    setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', username: '', password: '' });
   };
 
   const handleInlineSystemChange = async (teacher: ApiTeacher, nextSystem: 'dual' | 'vollzeit') => {
@@ -147,7 +146,7 @@ export function AdminTeachers() {
         salutation: teacher.salutation,
         subject: teacher.subject || 'Sprechstunde',
         system: nextSystem,
-        room: teacher.room || '',
+        room: '',
       });
     } catch (err) {
       // Revert optimistic update
@@ -201,7 +200,7 @@ export function AdminTeachers() {
                 id="teacherAdminSearch"
                 className="admin-teacher-search-input"
                 type="text"
-                placeholder="Name, E-Mail oder Raum…"
+                placeholder="Name oder E-Mail…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -275,16 +274,6 @@ export function AdminTeachers() {
                   <option value="vollzeit">Vollzeit System (17:00 - 19:00 Uhr)</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label htmlFor="room">Raum</label>
-                <input
-                  id="room"
-                  type="text"
-                  value={formData.room}
-                  onChange={(e) => setFormData({ ...formData, room: e.target.value })}
-                  placeholder="z.B. Raum 101"
-                />
-              </div>
               {!editingTeacher && (
                 <>
                   <div className="form-group">
@@ -353,8 +342,7 @@ export function AdminTeachers() {
           if (!q) return true;
           const name = (t.name || '').toLowerCase();
           const email = (t.email || '').toLowerCase();
-          const room = (t.room || '').toLowerCase();
-          return name.includes(q) || email.includes(q) || room.includes(q);
+          return name.includes(q) || email.includes(q);
         }).length === 0 ? (
           <div className="no-teachers">
             <p>Keine Lehrkräfte vorhanden.</p>
@@ -367,8 +355,7 @@ export function AdminTeachers() {
                 if (!q) return true;
                 const name = (t.name || '').toLowerCase();
                 const email = (t.email || '').toLowerCase();
-                const room = (t.room || '').toLowerCase();
-                return name.includes(q) || email.includes(q) || room.includes(q);
+                return name.includes(q) || email.includes(q);
               })
               .map((teacher) => {
                 const isExpanded = expandedIds.has(teacher.id);
@@ -389,7 +376,6 @@ export function AdminTeachers() {
                         <div className="teacher-card__tags">
                           <span className={`teacher-card__tag teacher-card__tag--${teacher.system || 'dual'}`}>{systemLabel}</span>
                           <span className="teacher-card__tag teacher-card__tag--time">{timeLabel}</span>
-                          {teacher.room && <span className="teacher-card__tag teacher-card__tag--room">{teacher.room}</span>}
                         </div>
                       </div>
                       <span className={`teacher-card__chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">›</span>
@@ -420,35 +406,37 @@ export function AdminTeachers() {
                           </dd>
                         </div>
                         <div className="teacher-card__row">
-                          <dt>Raum</dt>
-                          <dd>{teacher.room || '–'}</dd>
-                        </div>
-                        <div className="teacher-card__row">
                           <dt>ID</dt>
                           <dd>{teacher.id}</dd>
                         </div>
                       </dl>
                       <div className="teacher-card__actions">
-                        <button onClick={() => handleEdit(teacher)} className="edit-button">Bearbeiten</button>
-                        <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">Löschen</button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await api.admin.resetTeacherLogin(teacher.id);
-                              const typed = res as TeacherLoginResponse;
-                              if (typed?.user) {
-                                alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
-                              } else {
-                                alert('Login zurückgesetzt.');
+                        <div className="action-buttons">
+                          <button onClick={() => handleEdit(teacher)} className="edit-button">
+                            <span aria-hidden="true">✎</span> Bearbeiten
+                          </button>
+                          <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">
+                            <span aria-hidden="true">✕</span> Löschen
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await api.admin.resetTeacherLogin(teacher.id);
+                                const typed = res as TeacherLoginResponse;
+                                if (typed?.user) {
+                                  alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
+                                } else {
+                                  alert('Login zurückgesetzt.');
+                                }
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
                               }
-                            } catch (err) {
-                              alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
-                            }
-                          }}
-                          className="edit-button"
-                        >
-                          Login zurücksetzen
-                        </button>
+                            }}
+                            className="reset-button"
+                          >
+                            <span aria-hidden="true">↺</span> Login zurücksetzen
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </article>
