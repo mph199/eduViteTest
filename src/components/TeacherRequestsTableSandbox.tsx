@@ -341,7 +341,7 @@ export function TeacherRequestsTableSandbox({
   }, [safeActiveIndex]);
 
   /* ── helper: render full card content (reused in carousel & modal) ── */
-  const renderFullCard = (request: BookingRequest, index: number) => {
+  const renderFullCard = (request: BookingRequest) => {
     const assignableSlots = getAssignableTimes(request);
     const groupedTimes = splitTimesByRequestedWindow(assignableSlots, request.requestedTime);
     const selectedTimes = selectedAssignTimes[request.id] || [];
@@ -554,7 +554,7 @@ export function TeacherRequestsTableSandbox({
             aria-label="Vorherige Anfrage"
           >{'<'}</button>
           <div className={`sandbox-modal__card sandbox-card ${CARD_ACCENT_CLASSES[modalOpenIndex % CARD_ACCENT_CLASSES.length]} is-expanded`}>
-            {renderFullCard(modalRequest, modalOpenIndex)}
+            {renderFullCard(modalRequest)}
           </div>
           <button
             type="button"
@@ -661,7 +661,7 @@ export function TeacherRequestsTableSandbox({
             </header>
 
             <div className="sandbox-card__detail-wrapper">
-              {renderFullCard(request, index)}
+              {renderFullCard(request)}
             </div>
           </article>
           );
