@@ -407,7 +407,6 @@ export function TeacherRequestsTableSandbox({
               <table className="admin-resp-table">
                 <thead>
                   <tr>
-                    <th>Typ</th>
                     <th>Kontakt</th>
                     <th>Schüler*in / Azubi</th>
                     <th>Klasse</th>
@@ -428,11 +427,6 @@ export function TeacherRequestsTableSandbox({
 
                     return (
                       <tr key={request.id}>
-                        <td>
-                          <span className="sandbox-request-indicator">
-                            {isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}
-                          </span>
-                        </td>
                         <td>
                           <div className="admin-cell-main">{contactName}</div>
                           <div className="admin-cell-id">{request.email}</div>

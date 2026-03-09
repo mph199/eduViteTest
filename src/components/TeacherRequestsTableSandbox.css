@@ -1224,21 +1224,65 @@
 
 @media (max-width: 600px) {
   .sandbox-modal-backdrop {
-    padding: 10px;
+    padding: 6px;
+  }
+
+  .sandbox-modal {
+    max-width: 100%;
+    max-height: calc(100dvh - 12px);
   }
 
   .sandbox-modal__nav {
-    gap: 6px;
+    gap: 4px;
   }
 
   .sandbox-modal__nav > .sandbox-nav-arrow {
-    width: 32px;
-    height: 32px;
-    font-size: 0.85rem;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+    padding: 0;
   }
 
   .sandbox-modal__card {
-    padding: 12px;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .sandbox-modal__card .sandbox-card__head {
+    gap: 6px;
+  }
+
+  .sandbox-modal__card .sandbox-card__name {
+    font-size: 0.92rem;
+  }
+
+  .sandbox-modal__card .sandbox-card__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .sandbox-modal__card .sandbox-card__footer {
+    position: static;
+  }
+
+  .sandbox-modal__card .sandbox-card__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .sandbox-modal__card .sandbox-action-btn,
+  .sandbox-modal__card .sandbox-decline-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sandbox-modal__card .sandbox-textarea {
+    min-height: 50px;
+  }
+
+  .sandbox-modal__card .sandbox-multi-select {
+    max-height: 150px;
   }
 
   .sandbox-popup-grid {
