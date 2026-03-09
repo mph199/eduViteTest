@@ -368,7 +368,7 @@ export function TeacherRequestsTableSandbox({
     >
       <div className="sandbox-modal">
         <div className="sandbox-modal__header">
-          <span className="sandbox-modal__progress">Anfrage {modalOpenIndex + 1} von {total}</span>
+          <span className="sandbox-modal__progress">Anfrage #{modalOpenIndex + 1} von {total}</span>
           <button type="button" className="sandbox-modal__close" onClick={() => setModalOpenIndex(null)} aria-label="Schließen">✕</button>
         </div>
         <div className="sandbox-modal__nav">
@@ -407,6 +407,7 @@ export function TeacherRequestsTableSandbox({
               <table className="admin-resp-table">
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>Kontakt</th>
                     <th>Schüler*in / Azubi</th>
                     <th>Klasse</th>
@@ -427,6 +428,7 @@ export function TeacherRequestsTableSandbox({
 
                     return (
                       <tr key={request.id}>
+                        <td><strong>#{index + 1}</strong></td>
                         <td>
                           <div className="admin-cell-main">{contactName}</div>
                           <div className="admin-cell-id">{request.email}</div>
@@ -472,7 +474,7 @@ export function TeacherRequestsTableSandbox({
                 return (
                   <article key={request.id} className={`sandbox-popup-card ${accentClass}`}>
                     <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
-                    <h3 className="sandbox-popup-card__name">{contactName}</h3>
+                    <h3 className="sandbox-popup-card__name"><span className="sandbox-popup-card__number">#{index + 1}</span> {contactName}</h3>
                     <div className="sandbox-popup-card__info">
                       <span>{personLabel} · {request.className}</span>
                       <span className="sandbox-popup-card__time">{request.date} · {request.requestedTime}</span>

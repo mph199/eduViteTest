@@ -500,7 +500,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.35em;
-  background: transparent;
+  background: #fff;
   color: var(--brand-primary-dark, #15803d);
   border: 1.5px solid rgba(var(--brand-primary-rgb), 0.45);
   padding: 0.75rem 1.5rem;
@@ -519,7 +519,7 @@
 
 .btn-primary:disabled,
 .btn-primary[disabled] {
-  background: transparent;
+  background: #fff;
   color: rgba(var(--brand-primary-rgb), 0.4);
   border-color: rgba(var(--brand-primary-rgb), 0.2);
   cursor: not-allowed;
@@ -1681,10 +1681,11 @@
   color: #555;
   line-height: 1.35;
   vertical-align: top;
+  background: #fff;
 }
 
-.admin-resp-table tbody tr:hover {
-  background: #f9fafb;
+.admin-resp-table tbody tr:hover td {
+  background: rgba(var(--brand-primary-rgb), 0.06);
 }
 
 .admin-resp-table tbody tr:last-child td {
