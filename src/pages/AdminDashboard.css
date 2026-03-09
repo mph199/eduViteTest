@@ -686,6 +686,8 @@
   border-radius: 10px;
   overflow: hidden;
   transition: box-shadow 0.2s ease;
+  width: 100%;
+  min-width: 0;
 }
 
 .teacher-card:hover {
@@ -869,6 +871,29 @@
   width: 100%;
 }
 
+/* Button styles inside teacher card actions */
+.teacher-card__actions .edit-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--brand-primary-dark, #15803d);
+  border: 1.5px solid rgba(var(--brand-primary-rgb), 0.45);
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.teacher-card__actions .edit-button:hover {
+  background: rgba(var(--brand-primary-rgb), 0.07);
+  border-color: var(--brand-primary);
+}
+
+.teacher-card__actions .cancel-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
 .action-buttons {
   display: flex;
   gap: 0.5rem;
@@ -928,15 +953,17 @@
   display: flex;
   gap: 0.75rem;
   align-items: stretch;
+  width: 100%;
 }
 
 .admin-users-stat {
+  flex: 1;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(229, 231, 235, 0.9);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  min-width: 104px;
+  min-width: 0;
 }
 
 .admin-users-stat__label {
