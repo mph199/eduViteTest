@@ -21,6 +21,7 @@ export function AdminTeachers() {
   const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', system: 'dual' as 'dual' | 'vollzeit', room: '', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [systemSaving, setSystemSaving] = useState<Record<number, boolean>>({});
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const { user, setActiveView } = useAuth();
 
   const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
@@ -155,6 +156,15 @@ export function AdminTeachers() {
     } finally {
       setSystemSaving((prev) => ({ ...prev, [teacher.id]: false }));
     }
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   if (loading) {
@@ -350,65 +360,77 @@ export function AdminTeachers() {
             <p>Keine Lehrkräfte vorhanden.</p>
           </div>
         ) : (
-          <div className="teachers-table-container">
-            <table className="bookings-table">
-              <thead>
-                <tr>
-                  <th className="col-id">ID</th>
-                  <th className="col-name">Name</th>
-                  <th className="col-salutation">Anrede</th>
-                  <th className="col-email">E-Mail</th>
-                  <th className="col-system">System</th>
-                  <th className="col-officehours">Sprechstunde</th>
-                  <th className="col-room">Raum</th>
-                  <th className="col-actions">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teachers
-                  .filter((t) => {
-                    const q = search.trim().toLowerCase();
-                    if (!q) return true;
-                    const name = (t.name || '').toLowerCase();
-                    const email = (t.email || '').toLowerCase();
-                    const room = (t.room || '').toLowerCase();
-                    return name.includes(q) || email.includes(q) || room.includes(q);
-                  })
-                  .map((teacher) => (
-                  <tr key={teacher.id}>
-                    <td className="col-id">{teacher.id}</td>
-                    <td className="teacher-name col-name">{teacher.name}</td>
-                    <td className="col-salutation">{teacher.salutation || '-'}</td>
-                    <td className="col-email">{teacher.email || '-'}</td>
-                    <td className="col-system">
-                      <select
-                        className="admin-table-select"
-                        value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
-                        onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
-                        disabled={!!systemSaving[teacher.id]}
-                        aria-label={`System für ${teacher.name}`}
-                        title={systemSaving[teacher.id] ? 'Speichere…' : undefined}
-                      >
-                        <option value="dual">Dual</option>
-                        <option value="vollzeit">Vollzeit</option>
-                      </select>
-                    </td>
-                    <td className="col-officehours">{teacher.system === 'vollzeit' ? '17:00 - 19:00 Uhr' : '16:00 - 18:00 Uhr'}</td>
-                    <td className="col-room">{teacher.room || '-'}</td>
-                    <td className="col-actions">
-                      <div className="action-buttons action-buttons--compact">
-                        <button
-                          onClick={() => handleEdit(teacher)}
-                          className="edit-button"
-                        >
-                          Bearbeiten
-                        </button>
-                        <button
-                          onClick={() => handleDelete(teacher.id, teacher.name)}
-                          className="cancel-button"
-                        >
-                          Löschen
-                        </button>
+          <div className="teachers-card-list">
+            {teachers
+              .filter((t) => {
+                const q = search.trim().toLowerCase();
+                if (!q) return true;
+                const name = (t.name || '').toLowerCase();
+                const email = (t.email || '').toLowerCase();
+                const room = (t.room || '').toLowerCase();
+                return name.includes(q) || email.includes(q) || room.includes(q);
+              })
+              .map((teacher) => {
+                const isExpanded = expandedIds.has(teacher.id);
+                const systemLabel = teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual';
+                const timeLabel = teacher.system === 'vollzeit' ? '17:00–19:00' : '16:00–18:00';
+                return (
+                  <article key={teacher.id} className={`teacher-card${isExpanded ? ' is-expanded' : ''}`}>
+                    <header
+                      className="teacher-card__header"
+                      onClick={() => toggleExpand(teacher.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(teacher.id); } }}
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="teacher-card__summary">
+                        <span className="teacher-card__name">{teacher.salutation || ''} {teacher.name}</span>
+                        <div className="teacher-card__tags">
+                          <span className={`teacher-card__tag teacher-card__tag--${teacher.system || 'dual'}`}>{systemLabel}</span>
+                          <span className="teacher-card__tag teacher-card__tag--time">{timeLabel}</span>
+                          {teacher.room && <span className="teacher-card__tag teacher-card__tag--room">{teacher.room}</span>}
+                        </div>
+                      </div>
+                      <span className={`teacher-card__chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">›</span>
+                    </header>
+                    <div className="teacher-card__body">
+                      <dl className="teacher-card__dl">
+                        <div className="teacher-card__row">
+                          <dt>E-Mail</dt>
+                          <dd>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</dd>
+                        </div>
+                        <div className="teacher-card__row">
+                          <dt>Anrede</dt>
+                          <dd>{teacher.salutation || '–'}</dd>
+                        </div>
+                        <div className="teacher-card__row">
+                          <dt>System</dt>
+                          <dd>
+                            <select
+                              className="admin-table-select"
+                              value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
+                              onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
+                              disabled={!!systemSaving[teacher.id]}
+                              aria-label={`System für ${teacher.name}`}
+                            >
+                              <option value="dual">Dual (16:00–18:00)</option>
+                              <option value="vollzeit">Vollzeit (17:00–19:00)</option>
+                            </select>
+                          </dd>
+                        </div>
+                        <div className="teacher-card__row">
+                          <dt>Raum</dt>
+                          <dd>{teacher.room || '–'}</dd>
+                        </div>
+                        <div className="teacher-card__row">
+                          <dt>ID</dt>
+                          <dd>{teacher.id}</dd>
+                        </div>
+                      </dl>
+                      <div className="teacher-card__actions">
+                        <button onClick={() => handleEdit(teacher)} className="edit-button">Bearbeiten</button>
+                        <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">Löschen</button>
                         <button
                           onClick={async () => {
                             try {
@@ -428,11 +450,10 @@ export function AdminTeachers() {
                           Login zurücksetzen
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </article>
+                );
+              })}
           </div>
         )}
       </main>

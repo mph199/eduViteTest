@@ -1,0 +1,183 @@
+# Website-Konzept: eduVite — Final
+
+**Slogan:** *Planen Sie mit uns.*
+**Design-Referenzen:** linear.app, vercel.com
+
+---
+
+## 1. Markenidentität
+
+| Element | Beschreibung |
+|---|---|
+| **Name** | eduVite (edu = Bildung, Vite = schnell/lebendig) |
+| **Tonalität** | Modern, nahbar, professionell |
+| **Zielgruppe** | Schulverwaltungen, Schulträger, Lehrkräfte, IT-Verantwortliche an Schulen |
+| **Farbwelt** | Weiß-dominiert, ein Akzent (z. B. Indigo `#6366F1`), subtile Grautöne |
+| **Typografie** | Geometrische Sans-Serif (Inter, Satoshi), große Headlines, viel Weißraum |
+
+---
+
+## 2. Seitenstruktur
+
+```
+Startseite (Single-Page mit Sektionen)
+├── Funktionen
+├── Preise
+├── Über uns
+├── Kontakt / Demo anfragen
+├── Blog (Phase 2)
+├── Impressum
+├── Datenschutz
+└── AGB
+```
+
+---
+
+## 3. Startseite — Aufbau
+
+### Sektion 1: Animated Hero
+
+```
+┌──────────────────────────────────────────────┐
+│                                              │
+│              [Navigation: minimal]           │
+│                                              │
+│         Sprechtage digital                   │  ← Staggered fade-in-up
+│            organisieren.                     │     (Wort für Wort, 60ms Versatz)
+│                                              │
+│         Planen Sie mit uns.                  │  ← Delayed fade-in, Akzentfarbe
+│                                              │
+│   Das Buchungstool für Ihre Schule.          │  ← Fade-in nach 0.8s
+│                                              │
+│   [Demo anfragen]  [Funktionen ↓]           │  ← Fade-in nach 1.2s
+│                                              │
+│              ↓                               │  ← Breathing pulse
+└──────────────────────────────────────────────┘
+```
+
+**Animationen:** Staggered word reveal, subtiler Gradient-Glow (Mausverfolgung), Scroll-Indikator-Pulse
+
+---
+
+### Sektion 2: Problem → Lösung (Scroll Reveal)
+
+> **Zettelwirtschaft war gestern.**
+>
+> Elternsprechtage bedeuten für viele Schulen: ausgedruckte Listen, verlorene Zettel, doppelte Buchungen und genervte Eltern. eduVite ersetzt das Chaos durch ein einfaches Online-System.
+
+**Animation:** Links `slide-in-left`, rechts `slide-in-right` (IntersectionObserver)
+
+---
+
+### Sektion 3: „So funktioniert's" — Sticky-Scroll (à la linear.app)
+
+> **1. Sprechtag anlegen**
+> Termin, Zeitfenster und Lehrkräfte konfigurieren — in unter 5 Minuten.
+>
+> **2. Link teilen**
+> Eltern erhalten den Zugang zur Buchungsseite.
+>
+> **3. Zurücklehnen**
+> Anfragen kommen rein, Lehrkräfte bestätigen, alle bekommen eine E-Mail.
+
+**Animation:** Sticky left text, Cross-Fade Mockups rechts, Progress-Linie, Schrittnummer-Morphing
+
+---
+
+### Sektion 4: Feature Showcase — Bento-Grid (Scroll Reveal)
+
+| Feature | Beschreibung |
+|---|---|
+| **24/7 Online-Buchung** | Eltern buchen bequem von zu Hause — kein Anruf, kein Zettel. |
+| **Lehrer-Dashboard** | Anfragen annehmen, Zeitfenster zuweisen, persönliche Nachrichten senden. |
+| **Admin-Zentrale** | Sprechtage anlegen, Lehrkräfte verwalten, Echtzeit-Statistiken. |
+| **Sofort einsatzbereit** | Sprechtag anlegen, Lehrkräfte importieren, freischalten — fertig. |
+| **Auf jedem Gerät** | Desktop, Tablet, Smartphone — kein App-Download nötig. |
+| **DSGVO-konform** | Hosting in Deutschland, verschlüsselte Daten, keine Tracker. |
+
+**Animation:** Staggered `fade-in-up` (100ms pro Karte), Hover: `scale(1.02)` + Glow
+
+---
+
+### Sektion 5: Zahlen (Counter-Animation)
+
+```
+   500+            12              < 5 Min
+ Buchungen       Schulen      bis zum Start
+```
+
+**Animation:** CountUp von 0 → Zielwert bei Scroll-Einblendung
+
+---
+
+### Sektion 6: CTA
+
+> **Bereit für stressfreie Sprechtage?**
+>
+> Testen Sie eduVite unverbindlich.
+>
+> **[Demo anfragen]**
+
+**Animation:** Fade-in-up, Glow-Pulse auf CTA-Button
+
+---
+
+## 4. Page Transitions
+
+```
+Page Exit:   opacity 1→0, translateY 0→-10px  (200ms)
+Page Enter:  opacity 0→1, translateY 10px→0   (300ms, 100ms delay)
+```
+
+Framer Motion `AnimatePresence`, Navigation bleibt statisch.
+
+---
+
+## 5. Design-System
+
+```
+--bg-primary:     #FFFFFF
+--bg-secondary:   #FAFAFA
+--bg-tertiary:    #F5F5F5
+--text-primary:   #0A0A0A
+--text-secondary: #6B7280
+--border:         #E5E5E5
+--accent:         #6366F1
+--accent-glow:    rgba(99, 102, 241, 0.15)
+--nav-bg:         rgba(255, 255, 255, 0.8) + backdrop-blur: 12px
+```
+
+---
+
+## 6. Mobile Responsive
+
+| Breakpoint | Verhalten |
+|---|---|
+| `≥ 1280px` | Desktop, Bento-Grid 3 Spalten, Sticky-Scroll |
+| `≥ 768px` | Tablet, 2 Spalten |
+| `< 768px` | Einspaltiges Layout, kein Sticky-Scroll, Hamburger-Menü, 48px Tap-Targets |
+
+---
+
+## 7. Footer
+
+| Produkt | Unternehmen | Rechtliches | Kontakt |
+|---|---|---|---|
+| Funktionen | Über uns | Impressum | info@eduvite.de |
+| Preise | Blog | Datenschutz | LinkedIn |
+| Demo anfragen | | AGB | |
+| Technologie & Sicherheit | | Cookie-Einstellungen | |
+
+---
+
+## 8. Tech-Stack
+
+| Zweck | Empfehlung |
+|---|---|
+| Framework | Next.js 15 (App Router, Static Export) oder Astro 5 |
+| Animationen | Framer Motion 12 |
+| Styling | Tailwind CSS 4 |
+| Hosting | IONOS (Deploy Now oder Webhosting) |
+| Analytics | Plausible (cookieless, DSGVO-konform) |
+| Kontaktformular | Formspree oder eigener API-Endpunkt |
+| Fonts | Self-hosted Inter via `next/font` |

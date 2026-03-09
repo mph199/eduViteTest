@@ -538,6 +538,7 @@
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.3s ease;
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .sandbox-card__detail-wrapper > * {
@@ -893,38 +894,33 @@
     padding: 0 !important;
   }
 
-  /* Switch from horizontal carousel to vertical list on mobile */
-  .sandbox-carousel-frame {
-    display: block;
-  }
-
+  /* Keep horizontal carousel on mobile with full-width swipeable cards */
   .sandbox-carousel {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    overflow-x: visible;
-    overflow-y: visible;
-    scroll-snap-type: none;
-    padding: 0;
-  }
-
-  .sandbox-carousel::before,
-  .sandbox-carousel::after {
-    display: none;
+    --sandbox-side-pad: 4px;
+    --sandbox-card-width: calc(100% - 8px);
+    gap: 6px;
   }
 
   .sandbox-slide {
-    flex: none;
-    width: 100%;
+    flex-basis: calc(100% - 8px);
     opacity: 1;
     filter: none;
     transform: none;
   }
 
-  .sandbox-carousel-dots,
-  .sandbox-carousel-progress,
+  .sandbox-slide.is-active {
+    opacity: 1;
+  }
+
   .sandbox-nav-arrow {
-    display: none;
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .sandbox-carousel-frame {
+    gap: 4px;
   }
 
   .sandbox-card {
