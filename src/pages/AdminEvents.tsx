@@ -401,133 +401,272 @@ export function AdminEvents() {
             </div>
           ) : (
             <>
-              {events.map((ev) => {
-                const isExpanded = expandedEventId === ev.id;
-                return (
-                  <div key={ev.id} className={`ev-card${isExpanded ? ' ev-card--expanded' : ''}`}>
-                    {/* Clickable summary row */}
-                    <button
-                      type="button"
-                      className="ev-card__header"
-                      onClick={() => toggleExpand(ev.id)}
-                      aria-expanded={isExpanded}
-                    >
-                      <div className="ev-card__steps-hint">
-                        <span className="ev-workflow__num ev-workflow__num--sm" title="Slots generieren">2</span>
-                        <span className="ev-workflow__num ev-workflow__num--sm" title="Veröffentlichen">3</span>
-                      </div>
-                      <div className="ev-card__info">
-                        <span className="ev-card__name">{ev.name}</span>
-                        <span className="ev-card__meta">
-                          {ev.school_year} · {formatEventDateTime(ev.starts_at)}
+              {/* ── Desktop: Table ─────────────────────────── */}
+              <div className="events-table-desktop">
+                <div className="admin-resp-table-container">
+                  <table className="admin-resp-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Schuljahr</th>
+                        <th>Zeitraum</th>
+                        <th>Status</th>
+                        <th className="admin-actions-header">Aktion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.map((ev) => {
+                        const isExpanded = expandedEventId === ev.id;
+                        return (
+                          <tr key={ev.id} className={isExpanded ? 'ev-row--expanded' : ''} style={{ cursor: 'pointer' }} onClick={() => toggleExpand(ev.id)}>
+                            <td>
+                              <span className="admin-cell-main">{ev.name}</span>
+                            </td>
+                            <td>{ev.school_year}</td>
+                            <td>
+                              <span className="ev-cell-date">{formatEventDateTime(ev.starts_at)}</span>
+                              <span className="ev-cell-date-sep"> – </span>
+                              <span className="ev-cell-date">{formatEventDateTime(ev.ends_at)}</span>
+                            </td>
+                            <td>
+                              <span className={`admin-status-pill admin-status-pill--${STATUS_VARIANT[ev.status] || 'neutral'}`}>
+                                {STATUS_LABELS[ev.status] || ev.status}
+                              </span>
+                            </td>
+                            <td className="admin-actions-cell" onClick={(e) => e.stopPropagation()}>
+                              <div className="action-buttons">
+                                <button type="button" className="btn-secondary btn-sm" onClick={() => toggleExpand(ev.id)}>
+                                  {isExpanded ? 'Schließen' : 'Details'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Expanded detail panel (desktop) */}
+                {expandedEvent && (
+                  <div className="ev-detail-panel" ref={detailPanelRef}>
+                    <div className="ev-detail-panel__header">
+                      <h3 className="ev-detail-panel__title">{expandedEvent.name}</h3>
+                      <button type="button" className="ev-detail-panel__close" onClick={() => setExpandedEventId(null)} aria-label="Schließen">✕</button>
+                    </div>
+
+                    <div className="ev-detail-grid">
+                      <div className="ev-detail-item">
+                        <span className="ev-detail-label">Zeitraum</span>
+                        <span className="ev-detail-value">
+                          {formatEventDateTime(expandedEvent.starts_at)}
+                          <br />
+                          bis {formatEventDateTime(expandedEvent.ends_at)}
                         </span>
                       </div>
-                      <div className="ev-card__right">
-                        <span className={`admin-status-pill admin-status-pill--${STATUS_VARIANT[ev.status] || 'neutral'}`}>
-                          {STATUS_LABELS[ev.status] || ev.status}
+                      <div className="ev-detail-item">
+                        <span className="ev-detail-label">Buchungsfenster</span>
+                        <span className="ev-detail-value">
+                          {expandedEvent.booking_opens_at
+                            ? formatEventDateTime(expandedEvent.booking_opens_at)
+                            : 'Ab Veröffentlichung'}
+                          <br />
+                          bis {expandedEvent.booking_closes_at
+                            ? formatEventDateTime(expandedEvent.booking_closes_at)
+                            : 'Unbegrenzt'}
                         </span>
-                        <span className="ev-card__chevron" aria-hidden="true">{isExpanded ? '▾' : '▸'}</span>
                       </div>
-                    </button>
+                    </div>
 
-                    {/* Expanded detail panel */}
-                    {isExpanded && expandedEvent && (
-                      <div className="ev-card__detail" ref={detailPanelRef}>
-                        {/* Event info */}
-                        <div className="ev-detail-grid">
-                          <div className="ev-detail-item">
-                            <span className="ev-detail-label">Zeitraum</span>
-                            <span className="ev-detail-value">
-                              {formatEventDateTime(expandedEvent.starts_at)}
-                              <br />
-                              bis {formatEventDateTime(expandedEvent.ends_at)}
-                            </span>
-                          </div>
-                          <div className="ev-detail-item">
-                            <span className="ev-detail-label">Buchungsfenster</span>
-                            <span className="ev-detail-value">
-                              {expandedEvent.booking_opens_at
-                                ? formatEventDateTime(expandedEvent.booking_opens_at)
-                                : 'Ab Veröffentlichung'}
-                              <br />
-                              bis {expandedEvent.booking_closes_at
-                                ? formatEventDateTime(expandedEvent.booking_closes_at)
-                                : 'Unbegrenzt'}
-                            </span>
-                          </div>
+                    {/* Slot generation */}
+                    <div className="ev-detail-section">
+                      <h4 className="ev-detail-section__title">
+                        <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>2</span>
+                        Slots generieren
+                      </h4>
+                      <div className="ev-slot-controls">
+                        <div className="form-group" style={{ flex: '0 0 auto', minWidth: 120 }}>
+                          <label htmlFor={`slotMin_${expandedEvent.id}`}>Slot-Länge</label>
+                          <select
+                            id={`slotMin_${expandedEvent.id}`}
+                            value={slotMinutes}
+                            onChange={(e) => setSlotMinutes(Number(e.target.value))}
+                          >
+                            <option value={10}>10 Min.</option>
+                            <option value={15}>15 Min.</option>
+                            <option value={20}>20 Min.</option>
+                            <option value={30}>30 Min.</option>
+                          </select>
                         </div>
-
-                        {/* Slot generation */}
-                        <div className="ev-detail-section">
-                          <h4 className="ev-detail-section__title">
-                            <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>2</span>
-                            Slots generieren
-                          </h4>
-                          <div className="ev-slot-controls">
-                            <div className="form-group" style={{ flex: '0 0 auto', minWidth: 120 }}>
-                              <label htmlFor={`slotMin_${ev.id}`}>Slot-Länge</label>
-                              <select
-                                id={`slotMin_${ev.id}`}
-                                value={slotMinutes}
-                                onChange={(e) => setSlotMinutes(Number(e.target.value))}
-                              >
-                                <option value={10}>10 Min.</option>
-                                <option value={15}>15 Min.</option>
-                                <option value={20}>20 Min.</option>
-                                <option value={30}>30 Min.</option>
-                              </select>
-                            </div>
-                            <label className="ev-checkbox-label">
-                              <input
-                                type="checkbox"
-                                checked={replaceExisting}
-                                onChange={(e) => setReplaceExisting(e.target.checked)}
-                              />
-                              Vorhandene Slots ersetzen
-                            </label>
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              onClick={() => handleGenerateSlots(ev.id)}
-                              disabled={generating}
-                            >
-                              {generating ? 'Generiere…' : 'Slots generieren'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Status & Actions */}
-                        <div className="ev-detail-section">
-                          <h4 className="ev-detail-section__title">
-                            <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>3</span>
-                            Status & Aktionen
-                          </h4>
-                          <div className="ev-detail-actions">
-                            {ev.status !== 'published' && (
-                              <button type="button" className="btn-primary" onClick={() => handleSetStatus(ev.id, 'published')}>
-                                ✓ Veröffentlichen
-                              </button>
-                            )}
-                            {ev.status === 'published' && (
-                              <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'closed')}>
-                                Event schließen
-                              </button>
-                            )}
-                            {ev.status !== 'draft' && (
-                              <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'draft')}>
-                                Zurück auf Entwurf
-                              </button>
-                            )}
-                            <button type="button" className="cancel-button" onClick={() => handleDelete(ev.id)}>
-                              <span aria-hidden="true">✕</span> Event löschen
-                            </button>
-                          </div>
-                        </div>
+                        <label className="ev-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={replaceExisting}
+                            onChange={(e) => setReplaceExisting(e.target.checked)}
+                          />
+                          Vorhandene Slots ersetzen
+                        </label>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={() => handleGenerateSlots(expandedEvent.id)}
+                          disabled={generating}
+                        >
+                          {generating ? 'Generiere…' : 'Slots generieren'}
+                        </button>
                       </div>
-                    )}
+                    </div>
+
+                    {/* Status & Actions */}
+                    <div className="ev-detail-section">
+                      <h4 className="ev-detail-section__title">
+                        <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>3</span>
+                        Status & Aktionen
+                      </h4>
+                      <div className="ev-detail-actions">
+                        {expandedEvent.status !== 'published' && (
+                          <button type="button" className="btn-primary" onClick={() => handleSetStatus(expandedEvent.id, 'published')}>
+                            ✓ Veröffentlichen
+                          </button>
+                        )}
+                        {expandedEvent.status === 'published' && (
+                          <button type="button" className="btn-secondary" onClick={() => handleSetStatus(expandedEvent.id, 'closed')}>
+                            Event schließen
+                          </button>
+                        )}
+                        {expandedEvent.status !== 'draft' && (
+                          <button type="button" className="btn-secondary" onClick={() => handleSetStatus(expandedEvent.id, 'draft')}>
+                            Zurück auf Entwurf
+                          </button>
+                        )}
+                        <button type="button" className="cancel-button" onClick={() => handleDelete(expandedEvent.id)}>
+                          <span aria-hidden="true">✕</span> Event löschen
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
+                )}
+              </div>
+
+              {/* ── Mobile: Cards ──────────────────────────── */}
+              <div className="events-cards-mobile">
+                <div className="events-card-list">
+                  {events.map((ev) => {
+                    const isExpanded = expandedEventId === ev.id;
+                    return (
+                      <article key={ev.id} className={`event-card${isExpanded ? ' is-expanded' : ''}`}>
+                        <button
+                          type="button"
+                          className="event-card__header"
+                          onClick={() => toggleExpand(ev.id)}
+                          aria-expanded={isExpanded}
+                        >
+                          <div className="event-card__summary">
+                            <span className="event-card__name">{ev.name}</span>
+                            <span className={`admin-status-pill admin-status-pill--${STATUS_VARIANT[ev.status] || 'neutral'}`} style={{ alignSelf: 'flex-start' }}>
+                              {STATUS_LABELS[ev.status] || ev.status}
+                            </span>
+                          </div>
+                          <span className="event-card__chevron" aria-hidden="true">{isExpanded ? '▾' : '▸'}</span>
+                        </button>
+                        <div className="event-card__body">
+                          <div className="event-card__inner">
+                            <dl className="event-card__dl">
+                              <div className="event-card__row">
+                                <dt>Schuljahr</dt>
+                                <dd>{ev.school_year}</dd>
+                              </div>
+                              <div className="event-card__row">
+                                <dt>Beginn</dt>
+                                <dd>{formatEventDateTime(ev.starts_at)}</dd>
+                              </div>
+                              <div className="event-card__row">
+                                <dt>Ende</dt>
+                                <dd>{formatEventDateTime(ev.ends_at)}</dd>
+                              </div>
+                              <div className="event-card__row">
+                                <dt>Buchung öffnet</dt>
+                                <dd>{ev.booking_opens_at ? formatEventDateTime(ev.booking_opens_at) : 'Ab Veröffentlichung'}</dd>
+                              </div>
+                              <div className="event-card__row">
+                                <dt>Buchung schließt</dt>
+                                <dd>{ev.booking_closes_at ? formatEventDateTime(ev.booking_closes_at) : 'Unbegrenzt'}</dd>
+                              </div>
+                            </dl>
+
+                            {/* Slot generation */}
+                            <div className="ev-detail-section">
+                              <h4 className="ev-detail-section__title">
+                                <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>2</span>
+                                Slots generieren
+                              </h4>
+                              <div className="ev-slot-controls">
+                                <div className="form-group" style={{ flex: '0 0 auto', minWidth: 120 }}>
+                                  <label htmlFor={`slotMin_m_${ev.id}`}>Slot-Länge</label>
+                                  <select
+                                    id={`slotMin_m_${ev.id}`}
+                                    value={slotMinutes}
+                                    onChange={(e) => setSlotMinutes(Number(e.target.value))}
+                                  >
+                                    <option value={10}>10 Min.</option>
+                                    <option value={15}>15 Min.</option>
+                                    <option value={20}>20 Min.</option>
+                                    <option value={30}>30 Min.</option>
+                                  </select>
+                                </div>
+                                <label className="ev-checkbox-label">
+                                  <input
+                                    type="checkbox"
+                                    checked={replaceExisting}
+                                    onChange={(e) => setReplaceExisting(e.target.checked)}
+                                  />
+                                  Vorhandene ersetzen
+                                </label>
+                                <button
+                                  type="button"
+                                  className="btn-primary"
+                                  onClick={() => handleGenerateSlots(ev.id)}
+                                  disabled={generating}
+                                >
+                                  {generating ? 'Generiere…' : 'Slots generieren'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Status & Actions */}
+                            <div className="ev-detail-section">
+                              <h4 className="ev-detail-section__title">
+                                <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>3</span>
+                                Status & Aktionen
+                              </h4>
+                              <div className="ev-detail-actions">
+                                {ev.status !== 'published' && (
+                                  <button type="button" className="btn-primary" onClick={() => handleSetStatus(ev.id, 'published')}>
+                                    ✓ Veröffentlichen
+                                  </button>
+                                )}
+                                {ev.status === 'published' && (
+                                  <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'closed')}>
+                                    Event schließen
+                                  </button>
+                                )}
+                                {ev.status !== 'draft' && (
+                                  <button type="button" className="btn-secondary" onClick={() => handleSetStatus(ev.id, 'draft')}>
+                                    Zurück auf Entwurf
+                                  </button>
+                                )}
+                                <button type="button" className="cancel-button" onClick={() => handleDelete(ev.id)}>
+                                  <span aria-hidden="true">✕</span> Event löschen
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
             </>
           )}
         </div>
