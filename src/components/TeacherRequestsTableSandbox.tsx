@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { BookingRequest } from '../types';
 import './TeacherRequestsTableSandbox.css';
 
@@ -174,6 +175,21 @@ export function TeacherRequestsTableSandbox({
   const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
   const [slotPickerOpenIds, setSlotPickerOpenIds] = useState<Record<number, boolean>>({});
 
+  // Popup-Ansicht state
+  type ViewMode = 'carousel' | 'popup';
+  const VIEW_MODE_STORAGE_KEY = 'teacher-requests-view-mode';
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === 'undefined') return 'carousel';
+    return (window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'carousel';
+  });
+  const [modalOpenIndex, setModalOpenIndex] = useState<number | null>(null);
+
+  const toggleViewMode = () => {
+    const next: ViewMode = viewMode === 'carousel' ? 'popup' : 'carousel';
+    setViewMode(next);
+    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, next);
+  };
+
   const total = requests.length;
   const safeActiveIndex = total > 0 ? Math.min(activeIndex, total - 1) : 0;
 
@@ -324,8 +340,261 @@ export function TeacherRequestsTableSandbox({
     window.sessionStorage.setItem(CAROUSEL_INDEX_STORAGE_KEY, String(safeActiveIndex));
   }, [safeActiveIndex]);
 
+  /* ── helper: render full card content (reused in carousel & modal) ── */
+  const renderFullCard = (request: BookingRequest, index: number) => {
+    const assignableSlots = getAssignableTimes(request);
+    const groupedTimes = splitTimesByRequestedWindow(assignableSlots, request.requestedTime);
+    const selectedTimes = selectedAssignTimes[request.id] || [];
+    const teacherMessage = teacherMessages[request.id] || '';
+    const isParent = request.visitorType === 'parent';
+    const contactName = isParent
+      ? (request.parentName || '-')
+      : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
+          .filter(Boolean)
+          .join(' ');
+    const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
+    const requestMessage = request.message || '-';
+    const isExpandableMessage = requestMessage !== '-' && (requestMessage.length > 170 || requestMessage.includes('\n'));
+    const isMessageExpanded = !!expandedMessageIds[request.id];
+
+    return (
+      <>
+        <header className="sandbox-card__head">
+          <div className="sandbox-card__preview-info">
+            <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
+            <h3 className="sandbox-card__name">{contactName}</h3>
+            <div className="sandbox-card__preview-row">
+              <span className="sandbox-card__preview-detail">{personLabel} · {request.className}</span>
+              <span className="sandbox-card__preview-time">{request.date} · {request.requestedTime}</span>
+            </div>
+            <p className="sandbox-card__meta">Eingegangen {formatCreatedAt(request.createdAt)}</p>
+          </div>
+        </header>
+
+        <div className="sandbox-card__content">
+          <dl className="sandbox-card__dl">
+            <div className="sandbox-card__row">
+              <dt>Schüler*in/Azubi</dt>
+              <dd>{personLabel}</dd>
+            </div>
+            <div className="sandbox-card__row">
+              <dt>Klasse</dt>
+              <dd>{request.className}</dd>
+            </div>
+            <div className="sandbox-card__row">
+              <dt>Kontaktkanal</dt>
+              <dd>Mail</dd>
+            </div>
+            <div className="sandbox-card__row">
+              <dt>E-Mail</dt>
+              <dd>
+                <a className="sandbox-mail-link" href={`mailto:${request.email}`}>{request.email}</a>
+              </dd>
+            </div>
+          </dl>
+
+          <div className="sandbox-card__message">
+            <span>Eingegangene Nachricht</span>
+            <p className={isMessageExpanded ? 'is-expanded' : ''}>{requestMessage}</p>
+            {isExpandableMessage && (
+              <button
+                type="button"
+                className="sandbox-more"
+                onClick={() => {
+                  setExpandedMessageIds((prev) => ({
+                    ...prev,
+                    [request.id]: !prev[request.id],
+                  }));
+                }}
+              >
+                {isMessageExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+              </button>
+            )}
+
+            <div className="sandbox-card__teacher-note">
+              <span>Nachricht an den Ausbildungsbetrieb/Erziehungsberechtigten</span>
+              <textarea
+                className="sandbox-textarea"
+                value={teacherMessage}
+                onChange={(event) => onTeacherMessageChange(request.id, event.target.value)}
+                placeholder="Wird in der Bestätigungs-E-Mail angezeigt"
+                maxLength={1000}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          {assignableSlots.length > 0 && (
+            <div className="sandbox-card__assign-section">
+              <button
+                type="button"
+                className="sandbox-card__assign-toggle"
+                onClick={() => setSlotPickerOpenIds((prev) => ({ ...prev, [request.id]: !prev[request.id] }))}
+                aria-expanded={!!slotPickerOpenIds[request.id]}
+              >
+                <span>Termine vergeben{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</span>
+                <span className={`sandbox-card__chevron ${slotPickerOpenIds[request.id] ? 'is-open' : ''}`} aria-hidden="true">›</span>
+              </button>
+              {slotPickerOpenIds[request.id] && (
+                <div className="sandbox-card__assign-picker">
+                  <div className="sandbox-multi-select" role="listbox" aria-multiselectable="true" aria-label="Zeitslots auswählen">
+                    {groupedTimes.inside.length > 0 && (
+                      <>
+                        <div className="sandbox-multi-select__group-label">Innerhalb des angefragten Zeitraums</div>
+                        {groupedTimes.inside.map((slot) => {
+                          const isChecked = selectedTimes.includes(slot);
+                          return (
+                            <label
+                              key={slot}
+                              className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
+                              onPointerDown={(e) => {
+                                e.preventDefault();
+                                const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
+                                onAssignTimeChange(request.id, next);
+                              }}
+                            >
+                              <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
+                              <span className="sandbox-multi-select__label">{slot}</span>
+                            </label>
+                          );
+                        })}
+                      </>
+                    )}
+                    {groupedTimes.outside.length > 0 && (
+                      <>
+                        <div className="sandbox-multi-select__group-label">Außerhalb des angefragten Zeitraums</div>
+                        {groupedTimes.outside.map((slot) => {
+                          const isChecked = selectedTimes.includes(slot);
+                          return (
+                            <label
+                              key={slot}
+                              className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
+                              onPointerDown={(e) => {
+                                e.preventDefault();
+                                const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
+                                onAssignTimeChange(request.id, next);
+                              }}
+                            >
+                              <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
+                              <span className="sandbox-multi-select__label">{slot}</span>
+                            </label>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                  <p className="sandbox-card__assign-hint">Nur zusammenhängende Zeitslots können ausgewählt werden.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="sandbox-card__footer">
+          <div className="sandbox-card__actions">
+            <button
+              type="button"
+              className="sandbox-decline-btn"
+              onClick={() => onDeclineRequest(request.id)}
+            >
+              Ablehnen
+            </button>
+            <button
+              type="button"
+              className="sandbox-action-btn"
+              onClick={() => onAcceptRequest(request.id, selectedTimes.length > 0 ? selectedTimes : undefined)}
+              disabled={!request.verifiedAt || (assignableSlots.length > 0 && selectedTimes.length === 0)}
+              title={
+                !request.verifiedAt
+                  ? 'Erst möglich, wenn die E-Mail-Adresse bestätigt wurde'
+                  : assignableSlots.length > 0 && selectedTimes.length === 0
+                    ? 'Bitte zuerst mindestens einen Zeitslot auswählen'
+                    : selectedTimes.length > 1
+                      ? `${selectedTimes.length} Termine vergeben`
+                      : undefined
+              }
+            >
+              {selectedTimes.length > 1
+                ? `${selectedTimes.length} Termine vergeben`
+                : 'Termin vergeben'}
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  /* ── Modal portal ────────────────────────────────────── */
+  const modalRequest = modalOpenIndex !== null ? requests[modalOpenIndex] : null;
+  const modalContent = modalOpenIndex !== null && modalRequest ? createPortal(
+    <div
+      className="sandbox-modal-backdrop"
+      onClick={(e) => { if (e.target === e.currentTarget) setModalOpenIndex(null); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') setModalOpenIndex(null);
+        if (e.key === 'ArrowLeft' && modalOpenIndex > 0) setModalOpenIndex(modalOpenIndex - 1);
+        if (e.key === 'ArrowRight' && modalOpenIndex < total - 1) setModalOpenIndex(modalOpenIndex + 1);
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Anfrage ${modalOpenIndex + 1} von ${total}`}
+      tabIndex={-1}
+      ref={(el) => el?.focus()}
+    >
+      <div className="sandbox-modal">
+        <div className="sandbox-modal__header">
+          <span className="sandbox-modal__progress">Anfrage {modalOpenIndex + 1} von {total}</span>
+          <button type="button" className="sandbox-modal__close" onClick={() => setModalOpenIndex(null)} aria-label="Schließen">✕</button>
+        </div>
+        <div className="sandbox-modal__nav">
+          <button
+            type="button"
+            className="sandbox-nav-btn sandbox-nav-arrow"
+            onClick={() => setModalOpenIndex(Math.max(0, modalOpenIndex - 1))}
+            disabled={modalOpenIndex <= 0}
+            aria-label="Vorherige Anfrage"
+          >{'<'}</button>
+          <div className={`sandbox-modal__card sandbox-card ${CARD_ACCENT_CLASSES[modalOpenIndex % CARD_ACCENT_CLASSES.length]} is-expanded`}>
+            {renderFullCard(modalRequest, modalOpenIndex)}
+          </div>
+          <button
+            type="button"
+            className="sandbox-nav-btn sandbox-nav-arrow"
+            onClick={() => setModalOpenIndex(Math.min(total - 1, modalOpenIndex + 1))}
+            disabled={modalOpenIndex >= total - 1}
+            aria-label="Nächste Anfrage"
+          >{'>'}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <section className="sandbox-table" aria-label="Anfragen-Kartenansicht">
+      {/* ── View mode toggle ── */}
+      {total > 0 && (
+        <div className="sandbox-view-toggle">
+          <button
+            type="button"
+            className={`sandbox-view-toggle__btn${viewMode === 'carousel' ? ' is-active' : ''}`}
+            onClick={viewMode !== 'carousel' ? toggleViewMode : undefined}
+          >
+            📋 Galerie
+          </button>
+          <button
+            type="button"
+            className={`sandbox-view-toggle__btn${viewMode === 'popup' ? ' is-active' : ''}`}
+            onClick={viewMode !== 'popup' ? toggleViewMode : undefined}
+          >
+            🔍 Popup-Ansicht
+          </button>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* ── CAROUSEL VIEW (original) ──────────────────── */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {viewMode === 'carousel' && (
       <div className="sandbox-table__views">
       {total > 0 && (
         <p className="sandbox-carousel-progress">
@@ -360,25 +629,17 @@ export function TeacherRequestsTableSandbox({
         {requests.length === 0 ? (
           <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
         ) : requests.map((request, index) => {
-          const assignableSlots = getAssignableTimes(request);
-          const groupedTimes = splitTimesByRequestedWindow(assignableSlots, request.requestedTime);
-          const selectedTimes = selectedAssignTimes[request.id] || [];
-          const teacherMessage = teacherMessages[request.id] || '';
-          const isParent = request.visitorType === 'parent';
           const accentClass = CARD_ACCENT_CLASSES[index % CARD_ACCENT_CLASSES.length];
+          const isParent = request.visitorType === 'parent';
           const contactName = isParent
             ? (request.parentName || '-')
             : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
                 .filter(Boolean)
                 .join(' ');
           const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
-          const requestMessage = request.message || '-';
-          const isExpandableMessage = requestMessage !== '-' && (requestMessage.length > 170 || requestMessage.includes('\n'));
-          const isMessageExpanded = !!expandedMessageIds[request.id];
 
           return (
           <article key={request.id} className={`sandbox-card sandbox-slide ${accentClass} ${index === safeActiveIndex ? 'is-active' : ''} ${expandedCardId === request.id ? 'is-expanded' : ''}`}>
-            {/* ── Preview (always visible, tap to expand) ──────── */}
             <header
               className="sandbox-card__head sandbox-card__head--preview"
               onClick={() => setExpandedCardId((prev) => (prev === request.id ? null : request.id))}
@@ -399,157 +660,8 @@ export function TeacherRequestsTableSandbox({
               <span className={`sandbox-card__chevron ${expandedCardId === request.id ? 'is-open' : ''}`} aria-hidden="true">›</span>
             </header>
 
-            {/* ── Detail (shown when expanded) ─────────────────── */}
             <div className="sandbox-card__detail-wrapper">
-            <div className="sandbox-card__content">
-              <dl className="sandbox-card__dl">
-                <div className="sandbox-card__row">
-                  <dt>Schüler*in/Azubi</dt>
-                  <dd>{personLabel}</dd>
-                </div>
-                <div className="sandbox-card__row">
-                  <dt>Klasse</dt>
-                  <dd>{request.className}</dd>
-                </div>
-                <div className="sandbox-card__row">
-                  <dt>Kontaktkanal</dt>
-                  <dd>Mail</dd>
-                </div>
-                <div className="sandbox-card__row">
-                  <dt>E-Mail</dt>
-                  <dd>
-                    <a className="sandbox-mail-link" href={`mailto:${request.email}`}>{request.email}</a>
-                  </dd>
-                </div>
-              </dl>
-
-              <div className="sandbox-card__message">
-                <span>Eingegangene Nachricht</span>
-                <p className={isMessageExpanded ? 'is-expanded' : ''}>{requestMessage}</p>
-                {isExpandableMessage && (
-                  <button
-                    type="button"
-                    className="sandbox-more"
-                    onClick={() => {
-                      setExpandedMessageIds((prev) => ({
-                        ...prev,
-                        [request.id]: !prev[request.id],
-                      }));
-                    }}
-                  >
-                    {isMessageExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
-                  </button>
-                )}
-
-                <div className="sandbox-card__teacher-note">
-                  <span>Nachricht an den Ausbildungsbetrieb/Erziehungsberechtigten</span>
-                  <textarea
-                    className="sandbox-textarea"
-                    value={teacherMessage}
-                    onChange={(event) => onTeacherMessageChange(request.id, event.target.value)}
-                    placeholder="Wird in der Bestätigungs-E-Mail angezeigt"
-                    maxLength={1000}
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              {/* ── Termine vergeben (collapsible, at bottom) ── */}
-              {assignableSlots.length > 0 && (
-                <div className="sandbox-card__assign-section">
-                  <button
-                    type="button"
-                    className="sandbox-card__assign-toggle"
-                    onClick={() => setSlotPickerOpenIds((prev) => ({ ...prev, [request.id]: !prev[request.id] }))}
-                    aria-expanded={!!slotPickerOpenIds[request.id]}
-                  >
-                    <span>Termine vergeben{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</span>
-                    <span className={`sandbox-card__chevron ${slotPickerOpenIds[request.id] ? 'is-open' : ''}`} aria-hidden="true">›</span>
-                  </button>
-                  {slotPickerOpenIds[request.id] && (
-                    <div className="sandbox-card__assign-picker">
-                      <div className="sandbox-multi-select" role="listbox" aria-multiselectable="true" aria-label="Zeitslots auswählen">
-                        {groupedTimes.inside.length > 0 && (
-                          <>
-                            <div className="sandbox-multi-select__group-label">Innerhalb des angefragten Zeitraums</div>
-                            {groupedTimes.inside.map((slot) => {
-                              const isChecked = selectedTimes.includes(slot);
-                              return (
-                                <label
-                                  key={slot}
-                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
-                                  onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
-                                    onAssignTimeChange(request.id, next);
-                                  }}
-                                >
-                                  <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
-                                  <span className="sandbox-multi-select__label">{slot}</span>
-                                </label>
-                              );
-                            })}
-                          </>
-                        )}
-                        {groupedTimes.outside.length > 0 && (
-                          <>
-                            <div className="sandbox-multi-select__group-label">Außerhalb des angefragten Zeitraums</div>
-                            {groupedTimes.outside.map((slot) => {
-                              const isChecked = selectedTimes.includes(slot);
-                              return (
-                                <label
-                                  key={slot}
-                                  className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
-                                  onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    const next = toggleConsecutiveSlot(assignableSlots, selectedTimes, slot);
-                                    onAssignTimeChange(request.id, next);
-                                  }}
-                                >
-                                  <input type="checkbox" checked={isChecked} readOnly tabIndex={-1} className="sandbox-multi-select__checkbox" />
-                                  <span className="sandbox-multi-select__label">{slot}</span>
-                                </label>
-                              );
-                            })}
-                          </>
-                        )}
-                      </div>
-                      <p className="sandbox-card__assign-hint">Nur zusammenhängende Zeitslots können ausgewählt werden.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="sandbox-card__footer">
-              <div className="sandbox-card__actions">
-                <button
-                  type="button"
-                  className="sandbox-decline-btn"
-                  onClick={() => onDeclineRequest(request.id)}
-                >
-                  Ablehnen
-                </button>
-                <button
-                  type="button"
-                  className="sandbox-action-btn"
-                  onClick={() => onAcceptRequest(request.id, selectedTimes.length > 0 ? selectedTimes : undefined)}
-                  disabled={!request.verifiedAt || (assignableSlots.length > 0 && selectedTimes.length === 0)}
-                  title={
-                    !request.verifiedAt
-                      ? 'Erst möglich, wenn die E-Mail-Adresse bestätigt wurde'
-                      : assignableSlots.length > 0 && selectedTimes.length === 0
-                        ? 'Bitte zuerst mindestens einen Zeitslot auswählen'
-                        : selectedTimes.length > 1
-                          ? `${selectedTimes.length} Termine vergeben`
-                          : undefined
-                  }
-                >
-                  {selectedTimes.length > 1
-                    ? `${selectedTimes.length} Termine vergeben`
-                    : 'Termin vergeben'}
-                </button>
-              </div>
-            </div>
+              {renderFullCard(request, index)}
             </div>
           </article>
           );
@@ -588,7 +700,54 @@ export function TeacherRequestsTableSandbox({
           <div key={idx} className="sandbox-skeleton-row" />
         ))}
       </div>
-    </div>
+      </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* ── POPUP VIEW (compact cards + modal) ─────────── */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {viewMode === 'popup' && (
+      <div className="sandbox-popup-view">
+        {requests.length === 0 ? (
+          <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
+        ) : (
+          <div className="sandbox-popup-grid">
+            {requests.map((request, index) => {
+              const isParent = request.visitorType === 'parent';
+              const accentClass = CARD_ACCENT_CLASSES[index % CARD_ACCENT_CLASSES.length];
+              const contactName = isParent
+                ? (request.parentName || '-')
+                : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
+                    .filter(Boolean)
+                    .join(' ');
+              const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
+
+              return (
+                <article key={request.id} className={`sandbox-popup-card ${accentClass}`}>
+                  <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
+                  <h3 className="sandbox-popup-card__name">{contactName}</h3>
+                  <div className="sandbox-popup-card__info">
+                    <span>{personLabel} · {request.className}</span>
+                    <span className="sandbox-popup-card__time">{request.date} · {request.requestedTime}</span>
+                  </div>
+                  <p className="sandbox-popup-card__meta">Eingegangen {formatCreatedAt(request.createdAt)}</p>
+                  <button
+                    type="button"
+                    className="sandbox-popup-card__open-btn"
+                    onClick={() => setModalOpenIndex(index)}
+                  >
+                    Anfrage anzeigen
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* ── Modal (rendered via portal) ── */}
+      {modalContent}
     </section>
   );
 }
