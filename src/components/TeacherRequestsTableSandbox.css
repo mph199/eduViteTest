@@ -1218,6 +1218,10 @@
   overflow: hidden;
 }
 
+.sandbox-modal__card .sandbox-card__footer {
+  position: static;
+}
+
 .sandbox-modal__card .sandbox-multi-select {
   max-height: 180px;
 }
