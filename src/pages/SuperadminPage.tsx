@@ -257,9 +257,9 @@ export function SuperadminPage() {
                       try {
                         const result = await api.superadmin.uploadLogo(file);
                         setEb('logo_url', result.logo_url);
-                        setStatus('Logo hochgeladen!');
+                        setEmailMsg('Logo hochgeladen!');
                       } catch (err: any) {
-                        setStatus(err.message || 'Upload fehlgeschlagen');
+                        setEmailMsg(err.message || 'Upload fehlgeschlagen');
                       }
                     }}
                   />
