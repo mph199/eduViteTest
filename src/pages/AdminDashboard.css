@@ -676,6 +676,47 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── Desktop table / Mobile cards toggle ──────────────── */
+.teachers-table-desktop {
+  display: block;
+}
+.teachers-cards-mobile {
+  display: none;
+}
+
+.teachers-table-desktop .admin-resp-table td .admin-cell-main {
+  font-weight: 600;
+}
+.teachers-table-desktop .admin-resp-table td .admin-cell-id {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+.teachers-table-desktop .admin-actions-cell .action-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.teachers-table-desktop .admin-actions-cell .action-buttons button {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+}
+.admin-actions-header {
+  text-align: center;
+}
+.admin-actions-cell {
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .teachers-table-desktop {
+    display: none;
+  }
+  .teachers-cards-mobile {
+    display: block;
+    width: 100%;
+  }
+}
+
 /* ── Expandable teacher cards ─────────────────────────── */
 
 .teachers-card-list {

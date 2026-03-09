@@ -424,155 +424,260 @@ export function AdminTeachers() {
           </div>
         )}
 
-        {teachers.filter((t) => {
-          const q = search.trim().toLowerCase();
-          if (!q) return true;
-          const name = (t.name || '').toLowerCase();
-          const email = (t.email || '').toLowerCase();
-          const acct = userByTeacherId.get(t.id);
-          const username = acct ? (acct.username || '').toLowerCase() : '';
-          return name.includes(q) || email.includes(q) || username.includes(q);
-        }).length === 0 ? (
-          <div className="no-teachers">
-            <p>Keine Lehrkräfte vorhanden.</p>
-          </div>
-        ) : (
-          <div className="teachers-card-list">
-            {teachers
-              .filter((t) => {
-                const q = search.trim().toLowerCase();
-                if (!q) return true;
-                const name = (t.name || '').toLowerCase();
-                const email = (t.email || '').toLowerCase();
-                const acct = userByTeacherId.get(t.id);
-                const username = acct ? (acct.username || '').toLowerCase() : '';
-                return name.includes(q) || email.includes(q) || username.includes(q);
-              })
-              .map((teacher) => {
-                const isExpanded = expandedIds.has(teacher.id);
-                const acct = userByTeacherId.get(teacher.id);
-                const isAdmin = acct?.role === 'admin';
-                return (
-                  <article key={teacher.id} className={`teacher-card${isExpanded ? ' is-expanded' : ''}`}>
-                    <header
-                      className="teacher-card__header"
-                      onClick={() => toggleExpand(teacher.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(teacher.id); } }}
-                      aria-expanded={isExpanded}
-                    >
-                      <div className="teacher-card__summary">
-                        <span className="teacher-card__name">{teacher.salutation || ''} {teacher.name}</span>
-                        <div className="teacher-card__tags">
-                          {acct && (
-                            <span className={`teacher-card__tag ${isAdmin ? 'teacher-card__tag--admin' : 'teacher-card__tag--teacher'}`}>
-                              {isAdmin ? 'Admin' : 'Lehrkraft'}
-                            </span>
-                          )}
-                          {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
-                        </div>
-                      </div>
-                      <span className={`teacher-card__chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">›</span>
-                    </header>
-                    <div className="teacher-card__body">
-                      <dl className="teacher-card__dl">
-                        <div className="teacher-card__row">
-                          <dt>E-Mail</dt>
-                          <dd>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</dd>
-                        </div>
-                        <div className="teacher-card__row">
-                          <dt>Anrede</dt>
-                          <dd>{teacher.salutation || '–'}</dd>
-                        </div>
-                        <div className="teacher-card__row">
-                          <dt>System</dt>
-                          <dd>
-                            <select
-                              className="admin-table-select"
-                              value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
-                              onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
-                              disabled={!!systemSaving[teacher.id]}
-                              aria-label={`System für ${teacher.name}`}
-                            >
-                              <option value="dual">Dual (16:00–18:00)</option>
-                              <option value="vollzeit">Vollzeit (17:00–19:00)</option>
-                            </select>
-                          </dd>
-                        </div>
-                        <div className="teacher-card__row">
-                          <dt>Username</dt>
-                          <dd>
-                            {acct ? (
-                              <span className="admin-users-username">
-                                {acct.username}
-                                {user?.username === acct.username && <span className="admin-users-badge" title="Das bist du">Du</span>}
-                              </span>
-                            ) : (
-                              <span style={{ color: '#9ca3af' }}>Kein Login vorhanden</span>
-                            )}
-                          </dd>
-                        </div>
-                        {acct && (
-                          <div className="teacher-card__row">
-                            <dt>Rolle</dt>
-                            <dd>
-                              <div className="admin-users-action">
+        {(() => {
+          const filtered = teachers.filter((t) => {
+            const q = search.trim().toLowerCase();
+            if (!q) return true;
+            const name = (t.name || '').toLowerCase();
+            const email = (t.email || '').toLowerCase();
+            const acct = userByTeacherId.get(t.id);
+            const username = acct ? (acct.username || '').toLowerCase() : '';
+            return name.includes(q) || email.includes(q) || username.includes(q);
+          });
+
+          if (filtered.length === 0) {
+            return (
+              <div className="no-teachers">
+                <p>Keine Lehrkräfte vorhanden.</p>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              {/* Desktop: Table */}
+              <div className="teachers-table-desktop">
+                <div className="admin-resp-table-container">
+                  <table className="admin-resp-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>E-Mail</th>
+                        <th>System</th>
+                        <th>Username</th>
+                        <th>Rolle</th>
+                        <th className="admin-actions-header">Aktionen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((teacher) => {
+                        const acct = userByTeacherId.get(teacher.id);
+                        const isSelf = !!user?.username && acct?.username === user.username;
+                        return (
+                          <tr key={teacher.id}>
+                            <td>
+                              <div className="admin-cell-main">{teacher.salutation || ''} {teacher.name}</div>
+                              <div className="admin-cell-id">#{teacher.id}</div>
+                            </td>
+                            <td>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</td>
+                            <td>
+                              <select
+                                className="admin-table-select"
+                                value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
+                                onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
+                                disabled={!!systemSaving[teacher.id]}
+                                aria-label={`System für ${teacher.name}`}
+                              >
+                                <option value="dual">Dual</option>
+                                <option value="vollzeit">Vollzeit</option>
+                              </select>
+                            </td>
+                            <td>
+                              {acct ? (
+                                <span className="admin-users-username">
+                                  {acct.username}
+                                  {isSelf && <span className="admin-users-badge" title="Das bist du">Du</span>}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#9ca3af' }}>–</span>
+                              )}
+                            </td>
+                            <td>
+                              {acct ? (
+                                <div className="admin-users-action">
+                                  <select
+                                    className="admin-table-select"
+                                    value={acct.role === 'admin' ? 'admin' : 'teacher'}
+                                    disabled={!!roleSaving[acct.id] || (isSelf && acct.role === 'admin')}
+                                    onChange={(e) => updateRole(acct, e.target.value === 'admin' ? 'admin' : 'teacher')}
+                                    aria-label={`Rolle für ${acct.username}`}
+                                  >
+                                    <option value="teacher">Lehrkraft</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                  {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                </div>
+                              ) : (
+                                <span className="teacher-card__tag teacher-card__tag--nologin" style={{ fontSize: '0.78rem' }}>Kein Login</span>
+                              )}
+                            </td>
+                            <td className="admin-actions-cell">
+                              <div className="action-buttons">
+                                <button onClick={() => handleEdit(teacher)} className="edit-button">
+                                  <span aria-hidden="true">✎</span> Bearbeiten
+                                </button>
+                                <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">
+                                  <span aria-hidden="true">✕</span> Löschen
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await api.admin.resetTeacherLogin(teacher.id);
+                                      const typed = res as TeacherLoginResponse;
+                                      if (typed?.user) {
+                                        alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
+                                      } else {
+                                        alert('Login zurückgesetzt.');
+                                      }
+                                    } catch (err) {
+                                      alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
+                                    }
+                                  }}
+                                  className="reset-button"
+                                >
+                                  <span aria-hidden="true">↺</span> Login zurücksetzen
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile: Expandable cards */}
+              <div className="teachers-cards-mobile">
+                <div className="teachers-card-list">
+                  {filtered.map((teacher) => {
+                    const isExpanded = expandedIds.has(teacher.id);
+                    const acct = userByTeacherId.get(teacher.id);
+                    const isAdmin = acct?.role === 'admin';
+                    return (
+                      <article key={teacher.id} className={`teacher-card${isExpanded ? ' is-expanded' : ''}`}>
+                        <header
+                          className="teacher-card__header"
+                          onClick={() => toggleExpand(teacher.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(teacher.id); } }}
+                          aria-expanded={isExpanded}
+                        >
+                          <div className="teacher-card__summary">
+                            <span className="teacher-card__name">{teacher.salutation || ''} {teacher.name}</span>
+                            <div className="teacher-card__tags">
+                              {acct && (
+                                <span className={`teacher-card__tag ${isAdmin ? 'teacher-card__tag--admin' : 'teacher-card__tag--teacher'}`}>
+                                  {isAdmin ? 'Admin' : 'Lehrkraft'}
+                                </span>
+                              )}
+                              {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
+                            </div>
+                          </div>
+                          <span className={`teacher-card__chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">›</span>
+                        </header>
+                        <div className="teacher-card__body">
+                          <dl className="teacher-card__dl">
+                            <div className="teacher-card__row">
+                              <dt>E-Mail</dt>
+                              <dd>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</dd>
+                            </div>
+                            <div className="teacher-card__row">
+                              <dt>Anrede</dt>
+                              <dd>{teacher.salutation || '–'}</dd>
+                            </div>
+                            <div className="teacher-card__row">
+                              <dt>System</dt>
+                              <dd>
                                 <select
                                   className="admin-table-select"
-                                  value={acct.role === 'admin' ? 'admin' : 'teacher'}
-                                  disabled={!!roleSaving[acct.id] || (!!user?.username && acct.username === user.username && acct.role === 'admin')}
-                                  onChange={(e) => updateRole(acct, e.target.value === 'admin' ? 'admin' : 'teacher')}
-                                  aria-label={`Rolle für ${acct.username}`}
-                                  title={user?.username === acct.username && acct.role === 'admin' ? 'Eigene Adminrolle kann nicht entfernt werden.' : 'Rolle ändern'}
+                                  value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
+                                  onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
+                                  disabled={!!systemSaving[teacher.id]}
+                                  aria-label={`System für ${teacher.name}`}
                                 >
-                                  <option value="teacher">Lehrkraft</option>
-                                  <option value="admin">Admin</option>
+                                  <option value="dual">Dual (16:00–18:00)</option>
+                                  <option value="vollzeit">Vollzeit (17:00–19:00)</option>
                                 </select>
-                                {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                              </dd>
+                            </div>
+                            <div className="teacher-card__row">
+                              <dt>Username</dt>
+                              <dd>
+                                {acct ? (
+                                  <span className="admin-users-username">
+                                    {acct.username}
+                                    {user?.username === acct.username && <span className="admin-users-badge" title="Das bist du">Du</span>}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>Kein Login vorhanden</span>
+                                )}
+                              </dd>
+                            </div>
+                            {acct && (
+                              <div className="teacher-card__row">
+                                <dt>Rolle</dt>
+                                <dd>
+                                  <div className="admin-users-action">
+                                    <select
+                                      className="admin-table-select"
+                                      value={acct.role === 'admin' ? 'admin' : 'teacher'}
+                                      disabled={!!roleSaving[acct.id] || (!!user?.username && acct.username === user.username && acct.role === 'admin')}
+                                      onChange={(e) => updateRole(acct, e.target.value === 'admin' ? 'admin' : 'teacher')}
+                                      aria-label={`Rolle für ${acct.username}`}
+                                      title={user?.username === acct.username && acct.role === 'admin' ? 'Eigene Adminrolle kann nicht entfernt werden.' : 'Rolle ändern'}
+                                    >
+                                      <option value="teacher">Lehrkraft</option>
+                                      <option value="admin">Admin</option>
+                                    </select>
+                                    {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                  </div>
+                                </dd>
                               </div>
-                            </dd>
+                            )}
+                            <div className="teacher-card__row">
+                              <dt>ID</dt>
+                              <dd>{teacher.id}</dd>
+                            </div>
+                          </dl>
+                          <div className="teacher-card__actions">
+                            <div className="teacher-card__actions-row">
+                              <button onClick={() => handleEdit(teacher)} className="edit-button">
+                                <span aria-hidden="true">✎</span> Bearbeiten
+                              </button>
+                              <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">
+                                <span aria-hidden="true">✕</span> Löschen
+                              </button>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await api.admin.resetTeacherLogin(teacher.id);
+                                  const typed = res as TeacherLoginResponse;
+                                  if (typed?.user) {
+                                    alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
+                                  } else {
+                                    alert('Login zurückgesetzt.');
+                                  }
+                                } catch (err) {
+                                  alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
+                                }
+                              }}
+                              className="reset-button teacher-card__actions-full"
+                            >
+                              <span aria-hidden="true">↺</span> Login zurücksetzen
+                            </button>
                           </div>
-                        )}
-                        <div className="teacher-card__row">
-                          <dt>ID</dt>
-                          <dd>{teacher.id}</dd>
                         </div>
-                      </dl>
-                      <div className="teacher-card__actions">
-                        <div className="teacher-card__actions-row">
-                          <button onClick={() => handleEdit(teacher)} className="edit-button">
-                            <span aria-hidden="true">✎</span> Bearbeiten
-                          </button>
-                          <button onClick={() => handleDelete(teacher.id, teacher.name)} className="cancel-button">
-                            <span aria-hidden="true">✕</span> Löschen
-                          </button>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await api.admin.resetTeacherLogin(teacher.id);
-                              const typed = res as TeacherLoginResponse;
-                              if (typed?.user) {
-                                alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
-                              } else {
-                                alert('Login zurückgesetzt.');
-                              }
-                            } catch (err) {
-                              alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
-                            }
-                          }}
-                          className="reset-button teacher-card__actions-full"
-                        >
-                          <span aria-hidden="true">↺</span> Login zurücksetzen
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-          </div>
-        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </main>
     </div>
   );
