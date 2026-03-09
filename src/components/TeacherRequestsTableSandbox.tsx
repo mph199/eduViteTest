@@ -396,44 +396,108 @@ export function TeacherRequestsTableSandbox({
   ) : null;
 
   return (
-    <section className="sandbox-table" aria-label="Anfragen-Kartenansicht">
-      <div className="sandbox-popup-view">
-        {requests.length === 0 ? (
-          <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
-        ) : (
-          <div className="sandbox-popup-grid">
-            {requests.map((request, index) => {
-              const isParent = request.visitorType === 'parent';
-              const accentClass = CARD_ACCENT_CLASSES[index % CARD_ACCENT_CLASSES.length];
-              const contactName = isParent
-                ? (request.parentName || '-')
-                : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
-                    .filter(Boolean)
-                    .join(' ');
-              const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
+    <section className="sandbox-table" aria-label="Anfragen-Übersicht">
+      {requests.length === 0 ? (
+        <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
+      ) : (
+        <>
+          {/* ── Desktop: Table ─────────────────────────────── */}
+          <div className="sandbox-requests-desktop">
+            <div className="admin-resp-table-container">
+              <table className="admin-resp-table">
+                <thead>
+                  <tr>
+                    <th>Typ</th>
+                    <th>Kontakt</th>
+                    <th>Schüler*in / Azubi</th>
+                    <th>Klasse</th>
+                    <th>Zeitfenster</th>
+                    <th>Eingegangen</th>
+                    <th className="admin-actions-header">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((request, index) => {
+                    const isParent = request.visitorType === 'parent';
+                    const contactName = isParent
+                      ? (request.parentName || '-')
+                      : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
+                          .filter(Boolean)
+                          .join(' ');
+                    const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
 
-              return (
-                <article key={request.id} className={`sandbox-popup-card ${accentClass}`}>
-                  <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
-                  <h3 className="sandbox-popup-card__name">{contactName}</h3>
-                  <div className="sandbox-popup-card__info">
-                    <span>{personLabel} · {request.className}</span>
-                    <span className="sandbox-popup-card__time">{request.date} · {request.requestedTime}</span>
-                  </div>
-                  <p className="sandbox-popup-card__meta">Eingegangen {formatCreatedAt(request.createdAt)}</p>
-                  <button
-                    type="button"
-                    className="sandbox-popup-card__open-btn"
-                    onClick={() => setModalOpenIndex(index)}
-                  >
-                    Anfrage anzeigen
-                  </button>
-                </article>
-              );
-            })}
+                    return (
+                      <tr key={request.id}>
+                        <td>
+                          <span className="sandbox-request-indicator">
+                            {isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="admin-cell-main">{contactName}</div>
+                          <div className="admin-cell-id">{request.email}</div>
+                        </td>
+                        <td>{personLabel}</td>
+                        <td>{request.className}</td>
+                        <td>
+                          <span className="sandbox-popup-card__time">{request.date}</span>
+                          <br />
+                          <span>{request.requestedTime}</span>
+                        </td>
+                        <td>{formatCreatedAt(request.createdAt)}</td>
+                        <td className="admin-actions-cell">
+                          <button
+                            type="button"
+                            className="sandbox-popup-card__open-btn"
+                            onClick={() => setModalOpenIndex(index)}
+                          >
+                            Anfrage anzeigen
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* ── Mobile: Compact cards ──────────────────────── */}
+          <div className="sandbox-requests-mobile">
+            <div className="sandbox-popup-grid">
+              {requests.map((request, index) => {
+                const isParent = request.visitorType === 'parent';
+                const accentClass = CARD_ACCENT_CLASSES[index % CARD_ACCENT_CLASSES.length];
+                const contactName = isParent
+                  ? (request.parentName || '-')
+                  : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
+                      .filter(Boolean)
+                      .join(' ');
+                const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
+
+                return (
+                  <article key={request.id} className={`sandbox-popup-card ${accentClass}`}>
+                    <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
+                    <h3 className="sandbox-popup-card__name">{contactName}</h3>
+                    <div className="sandbox-popup-card__info">
+                      <span>{personLabel} · {request.className}</span>
+                      <span className="sandbox-popup-card__time">{request.date} · {request.requestedTime}</span>
+                    </div>
+                    <p className="sandbox-popup-card__meta">Eingegangen {formatCreatedAt(request.createdAt)}</p>
+                    <button
+                      type="button"
+                      className="sandbox-popup-card__open-btn"
+                      onClick={() => setModalOpenIndex(index)}
+                    >
+                      Anfrage anzeigen
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
       {modalContent}
     </section>
