@@ -450,8 +450,6 @@ export function AdminTeachers() {
               })
               .map((teacher) => {
                 const isExpanded = expandedIds.has(teacher.id);
-                const systemLabel = teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual';
-                const timeLabel = teacher.system === 'vollzeit' ? '17:00–19:00' : '16:00–18:00';
                 const acct = userByTeacherId.get(teacher.id);
                 const isAdmin = acct?.role === 'admin';
                 return (
@@ -467,8 +465,6 @@ export function AdminTeachers() {
                       <div className="teacher-card__summary">
                         <span className="teacher-card__name">{teacher.salutation || ''} {teacher.name}</span>
                         <div className="teacher-card__tags">
-                          <span className={`teacher-card__tag teacher-card__tag--${teacher.system || 'dual'}`}>{systemLabel}</span>
-                          <span className="teacher-card__tag teacher-card__tag--time">{timeLabel}</span>
                           {acct && (
                             <span className={`teacher-card__tag ${isAdmin ? 'teacher-card__tag--admin' : 'teacher-card__tag--teacher'}`}>
                               {isAdmin ? 'Admin' : 'Lehrkraft'}

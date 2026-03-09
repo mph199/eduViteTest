@@ -18,6 +18,14 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('notifBell_read');
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  });
   const panelRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -44,7 +52,7 @@ export function NotificationBell() {
 
       if (openCount > 0) {
         items.push({
-          id: 'open-requests',
+          id: `open-requests-${openCount}`,
           type: 'requests',
           text: `${openCount} ${openCount === 1 ? 'Anfrage wartet' : 'Anfragen warten'} auf Terminzuweisung`,
           path: '/teacher/requests',
@@ -55,7 +63,7 @@ export function NotificationBell() {
 
       if (confirmedCount > 0) {
         items.push({
-          id: 'confirmed',
+          id: `confirmed-${confirmedCount}`,
           type: 'confirmed',
           text: `${confirmedCount} ${confirmedCount === 1 ? 'Termin' : 'Termine'} bestätigt`,
           path: '/teacher/bookings',
@@ -119,7 +127,16 @@ export function NotificationBell() {
 
   if (!isAuthenticated || !isTeacher) return null;
 
-  const badgeCount = notifications.reduce((sum, n) => sum + (n.type === 'requests' ? (n.count || 0) : 0), 0);
+  const markRead = (id: string) => {
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem('notifBell_read', JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const badgeCount = notifications.reduce((sum, n) => sum + (n.type === 'requests' && !readIds.has(n.id) ? (n.count || 0) : 0), 0);
 
   return (
     <div className="notifBell">
@@ -158,13 +175,14 @@ export function NotificationBell() {
               {n.path ? (
                 <button
                   type="button"
-                  className="notifBell__itemButton"
+                  className={`notifBell__itemButton${readIds.has(n.id) ? ' is-read' : ''}`}
                   onClick={() => {
+                    markRead(n.id);
                     navigate(n.path);
                     setOpen(false);
                   }}
                 >
-                  <span className={`notifBell__dot notifBell__dot--${n.dot}`} aria-hidden="true" />
+                  <span className={`notifBell__dot notifBell__dot--${readIds.has(n.id) ? 'muted' : n.dot}`} aria-hidden="true" />
                   <span className="notifBell__itemText">{n.text}</span>
                   <span className="notifBell__itemArrow" aria-hidden="true">›</span>
                 </button>

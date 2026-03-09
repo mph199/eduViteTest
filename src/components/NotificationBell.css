@@ -182,6 +182,17 @@
 .notifBell__dot--red { background: #ef4444; }
 .notifBell__dot--green { background: #22c55e; }
 .notifBell__dot--blue { background: #94a3b8; }
+.notifBell__dot--muted { background: #d1d5db; }
+
+/* Read state */
+.notifBell__itemButton.is-read {
+  opacity: 0.55;
+}
+
+.notifBell__itemButton.is-read .notifBell__itemText {
+  text-decoration: line-through;
+  text-decoration-color: rgba(0, 0, 0, 0.2);
+}
 
 /* ── Text + Arrow ── */
 
