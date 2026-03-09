@@ -173,7 +173,7 @@ export function SuperadminPage() {
       <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <div style="background:${esc(emailBranding.primary_color)};padding:14px 18px;text-align:center;color:#fff;">
           ${logoHtml}
-          <span style="font-size:15px;font-weight:600;">${esc(emailBranding.school_name)} — Elternsprechtag</span>
+          <span style="font-size:15px;font-weight:600;">${esc(emailBranding.school_name)}</span>
         </div>
         <div style="padding:20px 18px 16px;">
           <p>Guten Tag,</p>

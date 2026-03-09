@@ -79,7 +79,7 @@ export function wrapEmailHtml({ body, branding }) {
     <tr>
       <td style="background:${esc(b.primary_color)};padding:20px 24px;text-align:center;">
         ${logoHtml}
-        <span style="color:#ffffff;font-size:18px;font-weight:600;">${esc(b.school_name)} — Elternsprechtag</span>
+        <span style="color:#ffffff;font-size:18px;font-weight:600;">${esc(b.school_name)}</span>
       </td>
     </tr>
     <!-- Body -->
