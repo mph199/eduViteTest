@@ -40,7 +40,7 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-container" role="main" aria-label="Login">
         <div className="login-header">
-          <h1 className="login-title">Login</h1>
+          <h1 className="login-title">Login für Beschäftigte der Schule</h1>
           <div className="login-subtitle">Für Lehrkräfte und Administration</div>
         </div>
 
