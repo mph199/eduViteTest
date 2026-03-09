@@ -80,10 +80,10 @@
 - [x] **3.3 Environment-Variablen** ✅
   - `.env` auf dem VPS konfiguriert (Backend läuft)
 
-- [ ] **3.4 E-Mail-Konfiguration**
-  - IONOS bietet eigene SMTP-Server → Zugangsdaten in IONOS Hosting-Panel
-  - Alternativ: Bestehende SMTP-Config beibehalten
-  - Absender-Adresse auf die Domain setzen (SPF/DKIM in DNS konfigurieren)
+- [x] **3.4 E-Mail-Konfiguration** ✅
+  - SMTP über IONOS konfiguriert: `smtp.ionos.de:587` (STARTTLS)
+  - `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL` in `.env` auf VPS gesetzt
+  - Testmail erfolgreich versendet am 09.03.2026
 
 ---
 

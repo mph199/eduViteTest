@@ -270,7 +270,7 @@ export function TeacherRequestsTableSandbox({
                         {groupedTimes.inside.map((slot) => {
                           const isChecked = selectedTimes.includes(slot);
                           return (
-                            <div
+                            <label
                               key={slot}
                               className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-inside`}
                             >
@@ -279,7 +279,7 @@ export function TeacherRequestsTableSandbox({
                                 onAssignTimeChange(request.id, next);
                               }} />
                               <span className="sandbox-multi-select__label">{slot}</span>
-                            </div>
+                            </label>
                           );
                         })}
                       </>
@@ -290,7 +290,7 @@ export function TeacherRequestsTableSandbox({
                         {groupedTimes.outside.map((slot) => {
                           const isChecked = selectedTimes.includes(slot);
                           return (
-                            <div
+                            <label
                               key={slot}
                               className={`sandbox-multi-select__item${isChecked ? ' is-selected' : ''} is-outside`}
                             >
@@ -299,7 +299,7 @@ export function TeacherRequestsTableSandbox({
                                 onAssignTimeChange(request.id, next);
                               }} />
                               <span className="sandbox-multi-select__label">{slot}</span>
-                            </div>
+                            </label>
                           );
                         })}
                       </>
@@ -331,13 +331,13 @@ export function TeacherRequestsTableSandbox({
                   : assignableSlots.length > 0 && selectedTimes.length === 0
                     ? 'Bitte zuerst mindestens einen Zeitslot auswählen'
                     : selectedTimes.length > 1
-                      ? `${selectedTimes.length} Zeiträume festlegen`
+                      ? `${selectedTimes.length} Buchungen bestätigen`
                       : undefined
               }
             >
               {selectedTimes.length > 1
-                ? `${selectedTimes.length} Zeiträume festlegen`
-                : 'Zeitraum festlegen'}
+                ? `${selectedTimes.length} Buchungen bestätigen`
+                : 'Buchung bestätigen'}
             </button>
           </div>
         </div>
