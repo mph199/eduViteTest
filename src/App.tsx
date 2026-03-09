@@ -7,7 +7,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
 import { AdminSlots } from './pages/AdminSlots';
 import { AdminEvents } from './pages/AdminEvents';
-import { AdminUsers } from './pages/AdminUsers';
+// AdminUsers merged into AdminTeachers
 import { AdminFeedback } from './pages/AdminFeedback';
 import { TeacherLayout } from './pages/teacher/TeacherLayout';
 import { TeacherBookings } from './pages/teacher/TeacherBookings';
@@ -102,11 +102,7 @@ function App() {
               />
               <Route 
                 path="/admin/users" 
-                element={
-                  <ProtectedRoute>
-                    <AdminUsers />
-                  </ProtectedRoute>
-                } 
+                element={<Navigate to="/admin/teachers" replace />} 
               />
               <Route 
                 path="/admin/feedback" 

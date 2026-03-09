@@ -289,7 +289,7 @@ export function AdminDashboard() {
       <main className="admin-main">
         <div className="teacher-form-container">
           <div className="admin-section-header">
-            <h3>Aktiver Eltern- und Ausbildersprechtag</h3>
+            <h3>Aktive Events</h3>
           </div>
           {activeEvent ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -317,7 +317,7 @@ export function AdminDashboard() {
             </div>
           ) : (
             <div style={{ color: '#4b5563' }}>
-              Kein aktiver Eltern- und Ausbildersprechtag gefunden (nicht veröffentlicht oder außerhalb des Buchungsfensters).
+              Kein aktives Event gefunden (nicht veröffentlicht oder außerhalb des Buchungsfensters).
             </div>
           )}
         </div>

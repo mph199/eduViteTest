@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
-import type { Teacher as ApiTeacher } from '../types';
+import type { Teacher as ApiTeacher, UserAccount } from '../types';
 import './AdminDashboard.css';
 
 type TeacherLoginResponse = {
@@ -13,6 +13,7 @@ type TeacherLoginResponse = {
 
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
+  const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -21,7 +22,9 @@ export function AdminTeachers() {
   const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', system: 'dual' as 'dual' | 'vollzeit', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [systemSaving, setSystemSaving] = useState<Record<number, boolean>>({});
+  const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [flash, setFlash] = useState('');
   const { user, setActiveView } = useAuth();
 
   const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
@@ -34,14 +37,27 @@ export function AdminTeachers() {
     try {
       setLoading(true);
       setError('');
-      const data = await api.admin.getTeachers();
-      setTeachers(data);
+      const [teacherData, userData] = await Promise.all([
+        api.admin.getTeachers(),
+        api.admin.getUsers().catch(() => [] as UserAccount[]),
+      ]);
+      setTeachers(teacherData);
+      setUsers((userData || []) as UserAccount[]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden der Lehrkräfte');
     } finally {
       setLoading(false);
     }
   };
+
+  const loadUsers = useCallback(async () => {
+    try {
+      const data = await api.admin.getUsers();
+      setUsers((data || []) as UserAccount[]);
+    } catch {
+      // users are supplementary, don't block on failure
+    }
+  }, []);
 
   useEffect(() => {
     loadTeachers();
@@ -166,6 +182,58 @@ export function AdminTeachers() {
     });
   };
 
+  // Map teacher_id → UserAccount for inline display
+  const userByTeacherId = useMemo(() => {
+    const map = new Map<number, UserAccount>();
+    for (const u of users) {
+      if (u.teacher_id != null) map.set(u.teacher_id, u);
+    }
+    return map;
+  }, [users]);
+
+  const stats = useMemo(() => {
+    const total = users.length;
+    const adminCount = users.filter((u) => u.role === 'admin').length;
+    const teacherCount = users.filter((u) => u.role === 'teacher').length;
+    return { total, adminCount, teacherCount };
+  }, [users]);
+
+  const updateRole = async (target: UserAccount, nextRole: 'admin' | 'teacher') => {
+    const currentRole = target.role;
+    if (currentRole === nextRole) return;
+
+    const isSelf = !!user?.username && target.username === user.username;
+    if (isSelf && nextRole !== 'admin') {
+      alert('Du kannst deine eigenen Adminrechte nicht entfernen.');
+      return;
+    }
+
+    const prompt = nextRole === 'admin'
+      ? `Soll „${target.username}" Adminrechte bekommen?`
+      : `Soll „${target.username}" die Adminrechte verlieren?`;
+
+    if (!confirm(prompt)) return;
+
+    setRoleSaving((prev) => ({ ...prev, [target.id]: true }));
+    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: nextRole } : u)));
+
+    try {
+      const updated = await api.admin.updateUserRole(target.id, nextRole);
+      if (updated) {
+        setUsers((prev) => prev.map((u) => (u.id === target.id ? (updated as UserAccount) : u)));
+      } else {
+        await loadUsers();
+      }
+      setFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
+      window.setTimeout(() => setFlash(''), 6500);
+    } catch (e) {
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: currentRole } : u)));
+      alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
+    } finally {
+      setRoleSaving((prev) => ({ ...prev, [target.id]: false }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-loading">
@@ -179,7 +247,7 @@ export function AdminTeachers() {
     <div className="admin-dashboard">
       <main className="admin-main">
         <div className="admin-section-header">
-          <h2>Lehrkräfte verwalten</h2>
+          <h2>Benutzer & Rechte verwalten</h2>
           {!showForm && (
             <button 
               onClick={() => setShowForm(true)} 
@@ -200,7 +268,7 @@ export function AdminTeachers() {
                 id="teacherAdminSearch"
                 className="admin-teacher-search-input"
                 type="text"
-                placeholder="Name oder E-Mail…"
+                placeholder="Name, E-Mail oder Username…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -216,6 +284,25 @@ export function AdminTeachers() {
             </div>
           </div>
         )}
+
+        {!showForm && users.length > 0 && (
+          <div className="admin-users-stats" style={{ marginBottom: '1rem' }}>
+            <div className="admin-users-stat">
+              <div className="admin-users-stat__label">Logins</div>
+              <div className="admin-users-stat__value">{stats.total}</div>
+            </div>
+            <div className="admin-users-stat">
+              <div className="admin-users-stat__label">Admins</div>
+              <div className="admin-users-stat__value">{stats.adminCount}</div>
+            </div>
+            <div className="admin-users-stat">
+              <div className="admin-users-stat__label">Lehrkräfte</div>
+              <div className="admin-users-stat__value">{stats.teacherCount}</div>
+            </div>
+          </div>
+        )}
+
+        {flash && <div className="admin-success">{flash}</div>}
 
         {error && (
           <div className="admin-error">
@@ -342,7 +429,9 @@ export function AdminTeachers() {
           if (!q) return true;
           const name = (t.name || '').toLowerCase();
           const email = (t.email || '').toLowerCase();
-          return name.includes(q) || email.includes(q);
+          const acct = userByTeacherId.get(t.id);
+          const username = acct ? (acct.username || '').toLowerCase() : '';
+          return name.includes(q) || email.includes(q) || username.includes(q);
         }).length === 0 ? (
           <div className="no-teachers">
             <p>Keine Lehrkräfte vorhanden.</p>
@@ -355,12 +444,16 @@ export function AdminTeachers() {
                 if (!q) return true;
                 const name = (t.name || '').toLowerCase();
                 const email = (t.email || '').toLowerCase();
-                return name.includes(q) || email.includes(q);
+                const acct = userByTeacherId.get(t.id);
+                const username = acct ? (acct.username || '').toLowerCase() : '';
+                return name.includes(q) || email.includes(q) || username.includes(q);
               })
               .map((teacher) => {
                 const isExpanded = expandedIds.has(teacher.id);
                 const systemLabel = teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual';
                 const timeLabel = teacher.system === 'vollzeit' ? '17:00–19:00' : '16:00–18:00';
+                const acct = userByTeacherId.get(teacher.id);
+                const isAdmin = acct?.role === 'admin';
                 return (
                   <article key={teacher.id} className={`teacher-card${isExpanded ? ' is-expanded' : ''}`}>
                     <header
@@ -376,6 +469,12 @@ export function AdminTeachers() {
                         <div className="teacher-card__tags">
                           <span className={`teacher-card__tag teacher-card__tag--${teacher.system || 'dual'}`}>{systemLabel}</span>
                           <span className="teacher-card__tag teacher-card__tag--time">{timeLabel}</span>
+                          {acct && (
+                            <span className={`teacher-card__tag ${isAdmin ? 'teacher-card__tag--admin' : 'teacher-card__tag--teacher'}`}>
+                              {isAdmin ? 'Admin' : 'Lehrkraft'}
+                            </span>
+                          )}
+                          {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
                         </div>
                       </div>
                       <span className={`teacher-card__chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">›</span>
@@ -405,6 +504,40 @@ export function AdminTeachers() {
                             </select>
                           </dd>
                         </div>
+                        <div className="teacher-card__row">
+                          <dt>Username</dt>
+                          <dd>
+                            {acct ? (
+                              <span className="admin-users-username">
+                                {acct.username}
+                                {user?.username === acct.username && <span className="admin-users-badge" title="Das bist du">Du</span>}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#9ca3af' }}>Kein Login vorhanden</span>
+                            )}
+                          </dd>
+                        </div>
+                        {acct && (
+                          <div className="teacher-card__row">
+                            <dt>Rolle</dt>
+                            <dd>
+                              <div className="admin-users-action">
+                                <select
+                                  className="admin-table-select"
+                                  value={acct.role === 'admin' ? 'admin' : 'teacher'}
+                                  disabled={!!roleSaving[acct.id] || (!!user?.username && acct.username === user.username && acct.role === 'admin')}
+                                  onChange={(e) => updateRole(acct, e.target.value === 'admin' ? 'admin' : 'teacher')}
+                                  aria-label={`Rolle für ${acct.username}`}
+                                  title={user?.username === acct.username && acct.role === 'admin' ? 'Eigene Adminrolle kann nicht entfernt werden.' : 'Rolle ändern'}
+                                >
+                                  <option value="teacher">Lehrkraft</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                                {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                              </div>
+                            </dd>
+                          </div>
+                        )}
                         <div className="teacher-card__row">
                           <dt>ID</dt>
                           <dd>{teacher.id}</dd>

@@ -36,7 +36,7 @@ export function GlobalTopHeader() {
     }
 
     if (pathname === '/admin' || pathname === '/admin/') return 'Admin · Übersicht';
-    if (pathname.includes('/admin/teachers')) return 'Admin · Lehrkräfte verwalten';
+    if (pathname.includes('/admin/teachers')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/events')) return 'Admin · Eltern- und Ausbildersprechtage verwalten';
     if (pathname.includes('/admin/slots')) return 'Admin · Slots verwalten';
     if (pathname.includes('/admin/users')) return 'Admin · Benutzer & Rechte verwalten';
@@ -174,7 +174,7 @@ export function GlobalTopHeader() {
                           close();
                         }}
                       >
-                        <span>Lehrkräfte verwalten</span>
+                        <span>Benutzer & Rechte verwalten</span>
                         {pathname === '/admin/teachers' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
                       <button
@@ -199,17 +199,7 @@ export function GlobalTopHeader() {
                         <span>Slots verwalten</span>
                         {pathname === '/admin/slots' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
-                      <button
-                        type="button"
-                        className={pathname === '/admin/users' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/admin/users');
-                          close();
-                        }}
-                      >
-                        <span>Benutzer & Rechte verwalten</span>
-                        {pathname === '/admin/users' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
+
                       <button
                         type="button"
                         className={pathname === '/admin/feedback' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
