@@ -1,8 +1,10 @@
 # Migration auf IONOS – ToDo-Liste
 
 ## Ausgangslage
-- **Aktuell:** Frontend auf Vercel (Static SPA), Backend auf Render (Node.js), Datenbank auf Supabase (PostgreSQL).
+- **Vorher:** Frontend auf Vercel (Static SPA), Backend auf Render (Node.js), Datenbank auf Supabase (PostgreSQL).
 - **Ziel:** Frontend über **IONOS Deploy Now** (statisches SPA), Backend + PostgreSQL auf **IONOS VPS**.
+- **VPS-IP:** `217.154.146.101`
+- **Backend-Pfad auf VPS:** `/var/www/eduViteTest/backend`
 
 ## Entscheidungen
 - **Frontend:** IONOS Deploy Now (Git-basiertes Deployment für Static Sites)
@@ -13,12 +15,11 @@
 
 ## Phase 1: IONOS-Umgebung vorbereiten
 
-- [ ] **1.1 IONOS VPS buchen**
-  - Mindestens 2 GB RAM, Ubuntu 22/24
-  - Node.js 20+ installieren (`nvm` oder Distro-Pakete)
-  - PostgreSQL installieren
+- [x] **1.1 IONOS VPS eingerichtet** ✅
+  - Ubuntu 24.04, Node.js v20.20.0, PostgreSQL 16.13 installiert
+  - PM2 als Prozessmanager aktiv
 
-- [x] ~~**1.2 Datenbank-Typ klären**~~
+- [x] ~~**1.2 Datenbank-Typ klären**~~ ✅
   - **Entscheidung:** PostgreSQL beibehalten → VPS
   - Schema + Queries sind bereits darauf ausgelegt
 
@@ -34,42 +35,28 @@
 
 ## Phase 2: Datenbank migrieren (Supabase → IONOS VPS)
 
-- [ ] **2.1 Schema exportieren**
-  - Alle Tabellen aus Supabase exportieren: `teachers`, `slots`, `booking_requests`, `events`, `users`, `feedback`, `settings`
-  - Migrations aus `backend/migrations/` in korrekter Reihenfolge anwenden
-  - RLS-Policies entfallen (die laufen nur auf Supabase; unser Backend nutzt Service-Role-Key)
+- [x] **2.1 Schema auf VPS angelegt** ✅
+  - Datenbank `sprechtag` existiert (Owner: `sprechtag`)
+  - Tabellen: `teachers`, `slots`, `booking_requests`, `events`, `users`, `feedback`, `settings`
 
-- [ ] **2.2 Daten exportieren**
-  - `pg_dump` von Supabase (Connection-String aus Supabase Dashboard → Settings → Database)
+- [ ] **2.2 Daten importieren**
+  - Falls noch Produktivdaten auf Supabase liegen → `pg_dump` + Import auf VPS
   - ```bash
     pg_dump "postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres" \
       --data-only --inserts > supabase_data.sql
+    # Auf VPS:
+    sudo -u sprechtag psql sprechtag < supabase_data.sql
     ```
 
-- [ ] **2.3 Datenbank auf IONOS VPS anlegen**
-  - PostgreSQL installieren + DB erstellen:
-    ```bash
-    sudo apt install postgresql postgresql-contrib
-    sudo -u postgres createdb sprechtag
-    sudo -u postgres psql sprechtag < backend/schema.sql
-    # Migrations anwenden:
-    for f in backend/migrations/*.sql; do sudo -u postgres psql sprechtag < "$f"; done
-    # Daten importieren:
-    sudo -u postgres psql sprechtag < supabase_data.sql
-    ```
-  - Testabfrage: `SELECT count(*) FROM teachers;`
+- [x] **2.3 Datenbank auf IONOS VPS läuft** ✅
+  - PostgreSQL 16.13 aktiv seit 24.02.2026
+  - DB-Benutzer: `sprechtag`
+  - Verbindung über `localhost:5432`
 
 - [x] **2.4 DB-Client im Backend austauschen** ✅ ERLEDIGT
   - ~~Supabase-JS-Client durch direkten `pg`-Client ersetzt~~
   - Neuer DB-Pool: `backend/config/db.js` (nutzt `DATABASE_URL` oder einzelne `DB_*`-Variablen)
-  - **93 Supabase-Aufrufe** in **12 Dateien** zu native SQL migriert:
-    - `backend/index.js` (48 Queries)
-    - `backend/routes/teacher.js` (22 Queries)
-    - `backend/services/slotsService.js` (10 Queries)
-    - `backend/seed-teachers-from-stdin.js` (10 Queries)
-    - `backend/routes/auth.js` (1 Query)
-    - `backend/services/teachersService.js` (2 Queries)
-    - + 6 weitere Utility-Scripts
+  - **93 Supabase-Aufrufe** in **12 Dateien** zu native SQL migriert
 
 - [x] **2.5 Supabase-spezifische Logik entfernt** ✅ ERLEDIGT
   - ~~`backend/config/supabase.js`~~ → ersetzt durch `backend/config/db.js`
@@ -81,45 +68,17 @@
 
 ## Phase 3: Backend auf IONOS VPS deployen
 
-- [ ] **3.1 Node.js-Laufzeit**
-  - Node 20+ installieren (`nvm` oder Distro-Pakete)
-  - Prozessmanager einrichten: `pm2`
-  - ```bash
-    npm install -g pm2
-    cd /var/www/backend
-    npm install
-    pm2 start index.js --name sprechtag-api
-    pm2 save && pm2 startup
-    ```
+- [x] **3.1 Node.js-Laufzeit** ✅
+  - Node.js v20.20.0, npm 10.8.2
+  - PM2 aktiv: `sprechtag-api` → Status `online` (61.7 MB)
+  - Backend-Pfad: `/var/www/eduViteTest/backend`
 
-- [ ] **3.2 Reverse Proxy (Nginx)**
-  - Nginx als Reverse Proxy vor die Node-App:
-    ```nginx
-    server {
-        listen 443 ssl;
-        server_name api.sprechtag.meineschule.de;
+- [x] **3.2 Reverse Proxy (Nginx)** ✅
+  - Nginx aktiv seit 24.02.2026 (4 Worker-Prozesse)
+  - Reverse Proxy konfiguriert für Backend
 
-        ssl_certificate /etc/letsencrypt/live/api.sprechtag.meineschule.de/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/api.sprechtag.meineschule.de/privkey.pem;
-
-        location / {
-            proxy_pass http://127.0.0.1:4000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-    ```
-
-- [ ] **3.3 Environment-Variablen**
-  - `.env` auf dem Server anlegen (siehe `backend/.env.example`):
-    - `DATABASE_URL=postgresql://user:pass@localhost:5432/sprechtag`
-    - `SESSION_SECRET` / `JWT_SECRET`
-    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (IONOS SMTP)
-    - `PUBLIC_BASE_URL=https://sprechtag.meineschule.de`
-    - `FRONTEND_URL=https://sprechtag.meineschule.de`
-    - `PORT=4000`
+- [x] **3.3 Environment-Variablen** ✅
+  - `.env` auf dem VPS konfiguriert (Backend läuft)
 
 - [ ] **3.4 E-Mail-Konfiguration**
   - IONOS bietet eigene SMTP-Server → Zugangsdaten in IONOS Hosting-Panel
@@ -178,12 +137,16 @@
 | Aufgabe | Geschätzter Aufwand | Status |
 |---|---|---|
 | DB-Client austauschen (Supabase → pg) | 4–8h | ✅ Erledigt |
-| Schema-Migration + Datenimport | 1–2h | ⬜ Offen |
-| VPS-Setup (Node, Nginx, PM2, PostgreSQL) | 2–3h | ⬜ Offen |
+| VPS-Setup (Node, Nginx, PM2, PostgreSQL) | 2–3h | ✅ Erledigt |
+| Schema-Migration + DB auf VPS | 1–2h | ✅ Erledigt |
+| Backend-Deployment auf VPS | 1–2h | ✅ Erledigt |
+| Datenimport (Supabase → VPS) | 0.5–1h | ⬜ Offen (falls noch Altdaten benötigt) |
+| Domain + SSL einrichten | 1–2h | ⬜ Offen |
+| E-Mail-Konfiguration (SMTP) | 0.5–1h | ⬜ Offen |
 | Frontend-Deploy (IONOS Deploy Now) | 0.5–1h | ⬜ Offen |
-| E-Mail + DNS + SSL | 1–2h | ⬜ Offen |
 | Testing | 2–3h | ⬜ Offen |
-| **Gesamt** | **~10–19h** | **~6–8h verbleibend** |
+| Alte Services abschalten | 0.5h | ⬜ Offen |
+| **Gesamt** | **~14–24h** | **~5–8h verbleibend** |
 
 ---
 
