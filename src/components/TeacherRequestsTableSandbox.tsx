@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { BookingRequest } from '../types';
 import './TeacherRequestsTableSandbox.css';
@@ -158,189 +158,15 @@ export function TeacherRequestsTableSandbox({
   onAcceptRequest,
   onDeclineRequest,
 }: TeacherRequestsTableSandboxProps) {
-  const CAROUSEL_INDEX_STORAGE_KEY = 'teacher-requests-carousel-active-index';
   const CARD_ACCENT_CLASSES = ['is-accent-1', 'is-accent-2', 'is-accent-3', 'is-accent-4'];
 
-  const carouselRef = useRef<HTMLDivElement | null>(null);
-  /** true while the user is physically swiping / dragging / wheeling */
-  const userDraggingRef = useRef(false);
-
-  const [activeIndex, setActiveIndex] = useState(() => {
-    if (typeof window === 'undefined') return 0;
-    const raw = window.sessionStorage.getItem(CAROUSEL_INDEX_STORAGE_KEY);
-    const parsed = Number.parseInt(String(raw || ''), 10);
-    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-  });
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
-  const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
   const [slotPickerOpenIds, setSlotPickerOpenIds] = useState<Record<number, boolean>>({});
-
-  // Popup-Ansicht state
-  type ViewMode = 'carousel' | 'popup';
-  const VIEW_MODE_STORAGE_KEY = 'teacher-requests-view-mode';
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === 'undefined') return 'carousel';
-    return (window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode) || 'carousel';
-  });
   const [modalOpenIndex, setModalOpenIndex] = useState<number | null>(null);
 
-  const toggleViewMode = () => {
-    const next: ViewMode = viewMode === 'carousel' ? 'popup' : 'carousel';
-    setViewMode(next);
-    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, next);
-  };
-
   const total = requests.length;
-  const safeActiveIndex = total > 0 ? Math.min(activeIndex, total - 1) : 0;
 
-  /* ── helpers ──────────────────────────────────────────────── */
-
-  const getSlides = useCallback(() => {
-    const el = carouselRef.current;
-    if (!el) return [] as HTMLElement[];
-    return Array.from(el.querySelectorAll<HTMLElement>('.sandbox-slide'));
-  }, []);
-
-  /** Index of the slide whose center is nearest the viewport center */
-  const getNearestIndex = useCallback(() => {
-    const el = carouselRef.current;
-    const slides = getSlides();
-    if (!el || !slides.length) return 0;
-
-    const viewportCenter = el.scrollLeft + el.clientWidth / 2;
-    let bestIndex = 0;
-    let minDistance = Number.POSITIVE_INFINITY;
-
-    slides.forEach((slide, index) => {
-      const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
-      const distance = Math.abs(slideCenter - viewportCenter);
-      if (distance < minDistance) {
-        minDistance = distance;
-        bestIndex = index;
-      }
-    });
-
-    return bestIndex;
-  }, [getSlides]);
-
-  /* ── scroll handling ─────────────────────────────────────── */
-
-  /**
-   * onScroll: update activeIndex ONLY while the user is physically
-   * dragging / swiping. Button-driven scrolls never set this flag,
-   * so their scroll events are completely ignored.
-   */
-  const handleCarouselScroll = useCallback(() => {
-    if (!userDraggingRef.current) return;
-    const nearest = getNearestIndex();
-    setActiveIndex((prev) => (prev === nearest ? prev : nearest));
-  }, [getNearestIndex]);
-
-  /**
-   * Navigate to a specific slide via button / dot click.
-   * Sets activeIndex immediately. The resulting scroll events
-   * are ignored because userDraggingRef is false.
-   */
-  const scrollToIndex = useCallback((nextIndex: number) => {
-    const el = carouselRef.current;
-    if (!el || !total) return;
-    const clamped = Math.max(0, Math.min(total - 1, nextIndex));
-
-    // Instant visual update
-    setActiveIndex(clamped);
-
-    // Scroll the target slide into view – CSS snap handles exact centering
-    const slides = getSlides();
-    const targetSlide = slides[clamped];
-    if (targetSlide) {
-      targetSlide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  }, [total, getSlides]);
-
-  /**
-   * User starts a physical interaction on the carousel.
-   * Mark dragging so scroll events will track position.
-   */
-  const handleDragStart = useCallback(() => {
-    userDraggingRef.current = true;
-  }, []);
-
-  /** Reset drag flag when touch/pointer ends without triggering a scroll. */
-  const handleDragEnd = useCallback(() => {
-    setTimeout(() => { userDraggingRef.current = false; }, 300);
-  }, []);
-
-  /* ── effects ────────────────────────────────────────────── */
-
-  /**
-   * scrollend on the carousel: finalize activeIndex after a user swipe
-   * snap completes. Only acts when the user was physically dragging.
-   * Button-driven scrolls are excluded — their activeIndex is already set.
-   */
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-
-    const onScrollEnd = () => {
-      if (!userDraggingRef.current) return;
-      userDraggingRef.current = false;
-      const nearest = getNearestIndex();
-      setActiveIndex((prev) => (prev === nearest ? prev : nearest));
-    };
-
-    el.addEventListener('scrollend', onScrollEnd);
-    return () => el.removeEventListener('scrollend', onScrollEnd);
-  }, [getNearestIndex]);
-
-  /** On mount / data change: clamp index and center the active slide */
-  useEffect(() => {
-    if (!total) return;
-    const el = carouselRef.current;
-    if (!el) return;
-
-    const clamped = Math.min(activeIndex, total - 1);
-    if (clamped !== activeIndex) setActiveIndex(clamped);
-
-    // Use scrollIntoView for centering so CSS snap stays consistent
-    requestAnimationFrame(() => {
-      const slides = getSlides();
-      const targetSlide = slides[clamped];
-      if (targetSlide) {
-        targetSlide.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-      }
-    });
-    // Intentionally only triggered by total (data load / card removal)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total]);
-
-  /** Re-center current slide on window resize (desktop carousel only) */
-  useEffect(() => {
-    const mql = window.matchMedia('(max-width: 520px)');
-    const onResize = () => {
-      // Skip on mobile — keyboard open/close triggers resize
-      // which would reset scroll position unexpectedly.
-      if (mql.matches) return;
-      const el = carouselRef.current;
-      if (!el || !total) return;
-      requestAnimationFrame(() => {
-        const slides = getSlides();
-        const targetSlide = slides[safeActiveIndex];
-        if (targetSlide) {
-          targetSlide.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-        }
-      });
-    };
-
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [getSlides, safeActiveIndex, total]);
-
-  /** Persist active index to sessionStorage */
-  useEffect(() => {
-    window.sessionStorage.setItem(CAROUSEL_INDEX_STORAGE_KEY, String(safeActiveIndex));
-  }, [safeActiveIndex]);
-
-  /* ── helper: render full card content (reused in carousel & modal) ── */
+  /* ── helper: render full card content (reused in modal) ── */
   const renderFullCard = (request: BookingRequest) => {
     const assignableSlots = getAssignableTimes(request);
     const groupedTimes = splitTimesByRequestedWindow(assignableSlots, request.requestedTime);
@@ -432,7 +258,7 @@ export function TeacherRequestsTableSandbox({
                 onClick={() => setSlotPickerOpenIds((prev) => ({ ...prev, [request.id]: !prev[request.id] }))}
                 aria-expanded={!!slotPickerOpenIds[request.id]}
               >
-                <span>Termine vergeben{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</span>
+                <span>Zeitraum festlegen{selectedTimes.length > 0 && <span className="sandbox-slot-count"> ({selectedTimes.length} gewählt)</span>}</span>
                 <span className={`sandbox-card__chevron ${slotPickerOpenIds[request.id] ? 'is-open' : ''}`} aria-hidden="true">›</span>
               </button>
               {slotPickerOpenIds[request.id] && (
@@ -509,13 +335,13 @@ export function TeacherRequestsTableSandbox({
                   : assignableSlots.length > 0 && selectedTimes.length === 0
                     ? 'Bitte zuerst mindestens einen Zeitslot auswählen'
                     : selectedTimes.length > 1
-                      ? `${selectedTimes.length} Termine vergeben`
+                      ? `${selectedTimes.length} Zeiträume festlegen`
                       : undefined
               }
             >
               {selectedTimes.length > 1
-                ? `${selectedTimes.length} Termine vergeben`
-                : 'Termin vergeben'}
+                ? `${selectedTimes.length} Zeiträume festlegen`
+                : 'Zeitraum festlegen'}
             </button>
           </div>
         </div>
@@ -571,142 +397,6 @@ export function TeacherRequestsTableSandbox({
 
   return (
     <section className="sandbox-table" aria-label="Anfragen-Kartenansicht">
-      {/* ── View mode toggle ── */}
-      {total > 0 && (
-        <div className="sandbox-view-toggle">
-          <button
-            type="button"
-            className={`sandbox-view-toggle__btn${viewMode === 'carousel' ? ' is-active' : ''}`}
-            onClick={viewMode !== 'carousel' ? toggleViewMode : undefined}
-          >
-            📋 Galerie
-          </button>
-          <button
-            type="button"
-            className={`sandbox-view-toggle__btn${viewMode === 'popup' ? ' is-active' : ''}`}
-            onClick={viewMode !== 'popup' ? toggleViewMode : undefined}
-          >
-            🔍 Popup-Ansicht
-          </button>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* ── CAROUSEL VIEW (original) ──────────────────── */}
-      {/* ═══════════════════════════════════════════════════ */}
-      {viewMode === 'carousel' && (
-      <div className="sandbox-table__views">
-      {total > 0 && (
-        <p className="sandbox-carousel-progress">
-          Anfrage {Math.min(safeActiveIndex + 1, total)} von {total}
-        </p>
-      )}
-
-      <div className="sandbox-carousel-frame" aria-label="Karten-Navigation">
-        {total > 0 && (
-          <button
-            type="button"
-            className="sandbox-nav-btn sandbox-nav-arrow"
-            aria-label="Vorherige Anfrage"
-            onClick={() => scrollToIndex(safeActiveIndex - 1)}
-            disabled={safeActiveIndex <= 0}
-          >
-            {'<'}
-          </button>
-        )}
-
-        <div
-          ref={carouselRef}
-          className="sandbox-carousel"
-          aria-label="Kartenansicht der Anfragen"
-          onPointerDown={handleDragStart}
-          onPointerUp={handleDragEnd}
-          onTouchStart={handleDragStart}
-          onTouchEnd={handleDragEnd}
-          onWheel={handleDragStart}
-          onScroll={handleCarouselScroll}
-        >
-        {requests.length === 0 ? (
-          <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
-        ) : requests.map((request, index) => {
-          const accentClass = CARD_ACCENT_CLASSES[index % CARD_ACCENT_CLASSES.length];
-          const isParent = request.visitorType === 'parent';
-          const contactName = isParent
-            ? (request.parentName || '-')
-            : [request.companyName || '-', request.representativeName ? `(${request.representativeName})` : '']
-                .filter(Boolean)
-                .join(' ');
-          const personLabel = isParent ? (request.studentName || '-') : (request.traineeName || '-');
-
-          return (
-          <article key={request.id} className={`sandbox-card sandbox-slide ${accentClass} ${index === safeActiveIndex ? 'is-active' : ''} ${expandedCardId === request.id ? 'is-expanded' : ''}`}>
-            <header
-              className="sandbox-card__head sandbox-card__head--preview"
-              onClick={() => setExpandedCardId((prev) => (prev === request.id ? null : request.id))}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedCardId((prev) => (prev === request.id ? null : request.id)); } }}
-              aria-expanded={expandedCardId === request.id}
-            >
-              <div className="sandbox-card__preview-info">
-                  <span className="sandbox-request-indicator">{isParent ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}</span>
-                  <h3 className="sandbox-card__name">{contactName}</h3>
-                <div className="sandbox-card__preview-row">
-                  <span className="sandbox-card__preview-detail">{personLabel} · {request.className}</span>
-                  <span className="sandbox-card__preview-time">{request.date} · {request.requestedTime}</span>
-                </div>
-                <p className="sandbox-card__meta">Eingegangen {formatCreatedAt(request.createdAt)}</p>
-              </div>
-              <span className={`sandbox-card__chevron ${expandedCardId === request.id ? 'is-open' : ''}`} aria-hidden="true">›</span>
-            </header>
-
-            <div className="sandbox-card__detail-wrapper">
-              {renderFullCard(request)}
-            </div>
-          </article>
-          );
-        })}
-        </div>
-
-        {total > 0 && (
-          <button
-            type="button"
-            className="sandbox-nav-btn sandbox-nav-arrow"
-            aria-label="Nächste Anfrage"
-            onClick={() => scrollToIndex(safeActiveIndex + 1)}
-            disabled={safeActiveIndex >= total - 1}
-          >
-            {'>'}
-          </button>
-        )}
-      </div>
-
-      {total > 0 && (
-        <div className="sandbox-carousel-dots" aria-hidden="true">
-          {requests.map((request, index) => (
-            <button
-              key={request.id}
-              type="button"
-              className={`sandbox-dot ${index === safeActiveIndex ? 'is-active' : ''}`}
-              onClick={() => scrollToIndex(index)}
-              tabIndex={-1}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="sandbox-table__skeleton" aria-hidden="true">
-        {[1, 2, 3].map((idx) => (
-          <div key={idx} className="sandbox-skeleton-row" />
-        ))}
-      </div>
-      </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* ── POPUP VIEW (compact cards + modal) ─────────── */}
-      {/* ═══════════════════════════════════════════════════ */}
-      {viewMode === 'popup' && (
       <div className="sandbox-popup-view">
         {requests.length === 0 ? (
           <div className="sandbox-empty-state">Keine Anfragen vorhanden</div>
@@ -744,9 +434,7 @@ export function TeacherRequestsTableSandbox({
           </div>
         )}
       </div>
-      )}
 
-      {/* ── Modal (rendered via portal) ── */}
       {modalContent}
     </section>
   );

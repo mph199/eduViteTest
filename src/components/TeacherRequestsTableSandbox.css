@@ -998,6 +998,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .sandbox-popup-card {
@@ -1169,6 +1171,7 @@
 .sandbox-modal__card {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   border-radius: 14px;
   padding: 16px;
@@ -1180,7 +1183,11 @@
 }
 
 .sandbox-modal__card .sandbox-card__content {
-  overflow: visible;
+  overflow: hidden;
+}
+
+.sandbox-modal__card .sandbox-multi-select {
+  max-height: 180px;
 }
 
 @media (max-width: 600px) {
