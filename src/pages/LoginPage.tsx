@@ -21,7 +21,9 @@ export function LoginPage() {
       const u = await login(username, password);
       // Reine Admins (ohne teacherId) → Admin-Dashboard
       // Admins mit teacherId und Teacher → Lehrkräfte-Bereich
-      if (u?.role === 'admin' && !u.teacherId) {
+      if (u?.role === 'superadmin') {
+        navigate('/admin', { replace: true });
+      } else if (u?.role === 'admin' && !u.teacherId) {
         navigate('/admin', { replace: true });
       } else if (u?.role === 'admin' || u?.role === 'teacher') {
         navigate('/teacher', { replace: true });

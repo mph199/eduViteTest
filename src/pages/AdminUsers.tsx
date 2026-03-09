@@ -15,7 +15,7 @@ export function AdminUsers() {
 
   const { user, setActiveView } = useAuth();
 
-  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
 
   useEffect(() => {
     if (canSwitchView) setActiveView('admin');

@@ -19,7 +19,7 @@ export function GlobalTopHeader() {
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
   const isPublic = showModuleTitle;
   const isArea = showAreaMenu;
-  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
 
   const userLabel = user?.fullName || user?.username;
 

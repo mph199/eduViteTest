@@ -21,7 +21,7 @@ export function TeacherLayout() {
   const { user, setActiveView } = useAuth();
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
 
-  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
 
   useEffect(() => {
     if (!canSwitchView) return;

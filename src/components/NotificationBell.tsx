@@ -30,7 +30,7 @@ export function NotificationBell() {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const isTeacher = Boolean(
-    user && (user.role === 'teacher' || (user.role === 'admin' && user.teacherId))
+    user && (user.role === 'teacher' || ((user.role === 'admin' || user.role === 'superadmin') && user.teacherId))
   );
 
   const fetchNotifications = useCallback(async () => {

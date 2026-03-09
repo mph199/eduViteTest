@@ -21,9 +21,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
+  const isAdminLike = (role: string) => role === 'admin' || role === 'superadmin';
+
   const computeInitialView = useCallback((u: User): ActiveView => {
     if (u.role === 'teacher') return 'teacher';
-    if (u.role === 'admin' && u.teacherId) {
+    if (isAdminLike(u.role) && u.teacherId) {
       return readStoredView() ?? 'admin';
     }
     return 'admin';
@@ -33,9 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If not authenticated yet, just persist (for later) and set state.
     // Once user is known, we restrict teacher view to accounts with teacherId.
     if (user) {
-      const canTeacher = Boolean(user.teacherId) && (user.role === 'teacher' || user.role === 'admin');
+      const canTeacher = Boolean(user.teacherId) && (user.role === 'teacher' || isAdminLike(user.role));
       if (next === 'teacher' && !canTeacher) return;
-      if (next === 'admin' && user.role !== 'admin') return;
+      if (next === 'admin' && !isAdminLike(user.role)) return;
     }
 
     setActiveViewState(next);

@@ -76,7 +76,7 @@ export function AdminDashboard() {
   const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
   const { user, setActiveView } = useAuth();
 
-  const canSwitchView = Boolean(user?.role === 'admin' && user.teacherId);
+  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
 
   useEffect(() => {
     if (canSwitchView) setActiveView('admin');
@@ -257,7 +257,7 @@ export function AdminDashboard() {
     if (!bookings.length) return;
 
     // Add rooms to LOCATION when possible (Admin has access to teachers with rooms).
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'superadmin') {
       try {
         const teachers = await api.admin.getTeachers();
         const teacherRoomById: Record<number, string | undefined> = {};
@@ -301,7 +301,7 @@ export function AdminDashboard() {
                 Buchungsfenster: {formatDateTime(activeEvent.booking_opens_at) || 'sofort'} – {formatDateTime(activeEvent.booking_closes_at) || 'offen'}
               </div>
 
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || user?.role === 'superadmin') && (
                 <div style={{ color: '#4b5563' }}>
                   {activeEventStats ? (
                     <>
