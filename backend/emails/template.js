@@ -1,4 +1,11 @@
 import { query } from '../config/db.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads', 'logos');
 
 // Cache branding for 60s to avoid DB hit on every email
 let cachedBranding = null;
@@ -42,9 +49,23 @@ function esc(str) {
  */
 export function wrapEmailHtml({ body, branding }) {
   const b = { ...DEFAULTS, ...branding };
-  const logoHtml = b.logo_url
-    ? `<img src="${esc(b.logo_url)}" alt="${esc(b.school_name)}" style="max-height:60px;max-width:220px;display:block;margin:0 auto 8px;" />`
-    : '';
+
+  // Resolve logo: read file from disk and embed as base64 data URI
+  let logoHtml = '';
+  if (b.logo_url) {
+    try {
+      // logo_url may be a full URL (legacy) or just a filename
+      const filename = b.logo_url.includes('/') ? b.logo_url.split('/').pop() : b.logo_url;
+      const filePath = path.join(UPLOADS_DIR, filename);
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase().replace('.', '');
+        const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', webp: 'image/webp', gif: 'image/gif' }[ext] || 'image/png';
+        const dataUri = `data:${mime};base64,${buf.toString('base64')}`;
+        logoHtml = `<img src="${dataUri}" alt="${esc(b.school_name)}" style="max-height:60px;max-width:220px;display:block;margin:0 auto 8px;" />`;
+      }
+    } catch { /* ignore – send without logo */ }
+  }
   const footerHtml = esc(b.footer_text).replace(/\n/g, '<br/>');
 
   return `<!DOCTYPE html>

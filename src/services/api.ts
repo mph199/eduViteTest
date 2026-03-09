@@ -4,6 +4,7 @@ const RAW_API_BASE =
   (import.meta as any).env?.VITE_API_URL ||
   ((import.meta as any).env?.DEV ? '/api' : 'http://localhost:4000/api');
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
+const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('auth_token');
@@ -340,6 +341,13 @@ const api = {
         throw new Error(err.error || 'Upload fehlgeschlagen');
       }
       return res.json();
+    },
+    /** Resolve a relative upload path to a full URL for preview */
+    resolveLogoUrl(logoUrl: string): string {
+      if (!logoUrl) return '';
+      if (logoUrl.startsWith('http')) return logoUrl;
+      if (logoUrl.startsWith('/')) return `${BACKEND_BASE}${logoUrl}`;
+      return `${BACKEND_BASE}/uploads/logos/${logoUrl}`;
     },
   },
 };

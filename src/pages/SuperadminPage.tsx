@@ -164,8 +164,9 @@ export function SuperadminPage() {
 
   // Build inline email preview HTML
   const footerHtml = esc(emailBranding.footer_text).replace(/\n/g, '<br/>');
-  const logoHtml = emailBranding.logo_url
-    ? `<img src="${esc(emailBranding.logo_url)}" alt="" style="max-height:50px;max-width:180px;display:block;margin:0 auto 6px;" />`
+  const logoPreviewSrc = api.superadmin.resolveLogoUrl(emailBranding.logo_url);
+  const logoHtml = logoPreviewSrc
+    ? `<img src="${esc(logoPreviewSrc)}" alt="" style="max-height:50px;max-width:180px;display:block;margin:0 auto 6px;" />`
     : '';
   const previewHtmlContent = `
     <div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;background:#f4f4f5;padding:16px;">
@@ -266,7 +267,7 @@ export function SuperadminPage() {
                   {emailBranding.logo_url && (
                     <div style={{ marginTop: 8 }}>
                       <img
-                        src={emailBranding.logo_url}
+                        src={api.superadmin.resolveLogoUrl(emailBranding.logo_url)}
                         alt="Logo-Vorschau"
                         style={{ maxHeight: 60, maxWidth: 220, borderRadius: 4, background: '#fff', padding: 4 }}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

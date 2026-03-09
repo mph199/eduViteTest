@@ -1046,11 +1046,12 @@ app.post('/api/superadmin/logo', requireSuperadmin, (req, res) => {
       return res.status(400).json({ error: msg });
     }
     if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
-    const logoUrl = `${req.protocol}://${req.get('host')}/uploads/logos/${req.file.filename}`;
+    const logoFilename = req.file.filename;
+    const logoUrl = `/uploads/logos/${logoFilename}`;
     try {
       await query(
         `UPDATE email_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
-        [logoUrl]
+        [logoFilename]
       );
     } catch (e) {
       console.error('Error saving logo URL:', e);
