@@ -65,8 +65,11 @@
 
 .globalTopHeader__right {
   min-width: 0;
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
-
 .globalTopHeader__brand {
   min-width: 0;
   display: inline-flex;
@@ -183,12 +186,6 @@
   margin-top: -2px;
 }
 
-.globalTopHeader__right {
-  display: inline-flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-}
-
 .globalTopHeader__user {
   max-width: min(42vw, 520px);
   overflow: hidden;
@@ -293,7 +290,8 @@
     display: none;
   }
 
-  .globalTopHeader--area .globalTopHeader__right {
+  /* Hide user label but keep bell visible */
+  .globalTopHeader--area .globalTopHeader__user {
     display: none;
   }
 

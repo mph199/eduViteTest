@@ -128,31 +128,7 @@ export function TeacherHome() {
         </article>
       </section>
 
-      <section className="teacher-home__notifications" aria-label="Benachrichtigungen">
-        <h3 className="teacher-home__panel-title teacher-home__panel-title--with-icon">
-          <svg
-            className="teacher-home__panel-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path d="M15 17H9M18 17V11C18 7.68629 15.3137 5 12 5C8.68629 5 6 7.68629 6 11V17L4 19H20L18 17Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M10 19C10 20.1046 10.8954 21 12 21C13.1046 21 14 20.1046 14 19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Benachrichtigungen</span>
-        </h3>
-        <div className="teacher-home__action-list">
-          <button className="teacher-home__action-row" type="button" onClick={() => navigate('/teacher/requests')}>
-            <span className="teacher-home__action-dot is-red" aria-hidden="true" />
-            <span>{openRequestsCount} Anfragen warten auf Terminzuweisung</span>
-          </button>
-          <button className="teacher-home__action-row" type="button" onClick={() => navigate('/teacher/bookings')}>
-            <span className="teacher-home__action-dot is-green" aria-hidden="true" />
-            <span>{confirmedCount} Termine sind bereits bestätigt</span>
-          </button>
-        </div>
-      </section>
+
     </div>
   );
 }

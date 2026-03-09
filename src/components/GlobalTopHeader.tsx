@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './Sidebar';
+import { NotificationBell } from './NotificationBell';
 import { useAuth } from '../contexts/useAuth';
 import './GlobalTopHeader.css';
 
@@ -311,13 +312,16 @@ export function GlobalTopHeader() {
 
         <div className="globalTopHeader__right">
           {showAreaMenu ? (
-            <div className="globalTopHeader__user" aria-label="Angemeldeter Benutzer">
-              Angemeldet als{userLabel ? (
-                <>
-                  : <strong>{userLabel}</strong>
-                </>
-              ) : null}
-            </div>
+            <>
+              <NotificationBell />
+              <div className="globalTopHeader__user" aria-label="Angemeldeter Benutzer">
+                Angemeldet als{userLabel ? (
+                  <>
+                    : <strong>{userLabel}</strong>
+                  </>
+                ) : null}
+              </div>
+            </>
           ) : !onLogin ? (
             <Link className="globalTopHeader__login" to="/login">
               Login
