@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import './AdminDashboard.css';
@@ -98,7 +97,6 @@ export function AdminEvents() {
   const [replaceExisting, setReplaceExisting] = useState<boolean>(true);
   const [generating, setGenerating] = useState(false);
 
-  const { user } = useAuth();
   useActiveView('admin');
 
   const loadEvents = async () => {

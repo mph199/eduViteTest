@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
 import api from '../../services/api';
 import '../AdminDashboard.css';
@@ -19,7 +18,6 @@ export type TeacherOutletContext = {
 };
 
 export function TeacherLayout() {
-  const { user } = useAuth();
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
   useActiveView('teacher');
 
