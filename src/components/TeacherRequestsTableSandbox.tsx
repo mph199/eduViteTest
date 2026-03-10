@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { BookingRequest } from '../types';
 import './TeacherRequestsTableSandbox.css';
@@ -163,6 +163,10 @@ export function TeacherRequestsTableSandbox({
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
   const [slotPickerOpenIds, setSlotPickerOpenIds] = useState<Record<number, boolean>>({});
   const [modalOpenIndex, setModalOpenIndex] = useState<number | null>(null);
+
+  const backdropRef = useCallback((el: HTMLDivElement | null) => {
+    if (el) el.focus();
+  }, []);
 
   const total = requests.length;
 
@@ -345,6 +349,8 @@ export function TeacherRequestsTableSandbox({
       onClick={(e) => { if (e.target === e.currentTarget) setModalOpenIndex(null); }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') setModalOpenIndex(null);
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag === 'TEXTAREA' || tag === 'INPUT') return;
         if (e.key === 'ArrowLeft' && modalOpenIndex > 0) setModalOpenIndex(modalOpenIndex - 1);
         if (e.key === 'ArrowRight' && modalOpenIndex < total - 1) setModalOpenIndex(modalOpenIndex + 1);
       }}
@@ -352,7 +358,7 @@ export function TeacherRequestsTableSandbox({
       aria-modal="true"
       aria-label={`Anfrage ${modalOpenIndex + 1} von ${total}`}
       tabIndex={-1}
-      ref={(el) => el?.focus()}
+      ref={backdropRef}
     >
       <div className="sandbox-modal">
         <div className="sandbox-modal__header">
