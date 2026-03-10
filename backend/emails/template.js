@@ -78,10 +78,11 @@ export function wrapEmailHtml({ body, branding }) {
     <!-- Header -->
     <tr>
       <td style="background:${esc(b.primary_color)};padding:20px 24px;text-align:center;">
-        ${logoHtml}
         <span style="color:#ffffff;font-size:18px;font-weight:600;">${esc(b.school_name)}</span>
       </td>
     </tr>
+    <!-- Logo -->
+    ${logoHtml ? `<tr><td style="padding:16px 24px 0;text-align:center;">${logoHtml}</td></tr>` : ''}
     <!-- Body -->
     <tr>
       <td style="padding:28px 24px 24px;">
