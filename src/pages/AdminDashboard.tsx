@@ -241,12 +241,15 @@ export function AdminDashboard() {
   const hasActiveFilters = query !== '' || typeFilter !== 'all' || teacherFilter !== 'all' || sort.key !== null;
 
   const handleCancelBooking = async (slotId: number) => {
-    if (!confirm('Möchten Sie diese Buchung wirklich stornieren?')) {
+    const reason = prompt(
+      'Bitte geben Sie einen Grund für die Stornierung ein.\nDiese Nachricht wird dem/der Buchenden per E-Mail mitgeteilt.'
+    );
+    if (!reason || !reason.trim()) {
       return;
     }
 
     try {
-      await api.admin.cancelBooking(slotId);
+      await api.admin.cancelBooking(slotId, reason.trim());
       await loadBookings(); // Reload bookings after cancellation
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler beim Stornieren');

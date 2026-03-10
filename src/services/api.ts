@@ -123,9 +123,12 @@ const api = {
       const res = await requestJSON('/admin/bookings', { auth: true });
       return (res && (res as any).bookings) || [];
     },
-    async cancelBooking(bookingId: number) {
-      // Backend erwartet DELETE /api/admin/bookings/:slotId
-      return requestJSON(`/admin/bookings/${bookingId}`, { method: 'DELETE', auth: true });
+    async cancelBooking(bookingId: number, cancellationMessage: string) {
+      return requestJSON(`/admin/bookings/${bookingId}`, {
+        method: 'DELETE',
+        auth: true,
+        body: JSON.stringify({ cancellationMessage }),
+      });
     },
     async getTeachers() {
       const res = await requestJSON('/admin/teachers', { auth: true });
@@ -257,8 +260,12 @@ const api = {
       });
       return (res && (res as any).teacher) || null;
     },
-    async cancelBooking(bookingId: number) {
-      return requestJSON(`/teacher/bookings/${bookingId}`, { method: 'DELETE', auth: true });
+    async cancelBooking(bookingId: number, cancellationMessage: string) {
+      return requestJSON(`/teacher/bookings/${bookingId}`, {
+        method: 'DELETE',
+        auth: true,
+        body: JSON.stringify({ cancellationMessage }),
+      });
     },
     async acceptBooking(bookingId: number) {
       return requestJSON(`/teacher/bookings/${bookingId}/accept`, { method: 'PUT', auth: true });

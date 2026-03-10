@@ -145,20 +145,16 @@ export function TeacherBookings() {
     setError('');
     setNotice('');
 
-    if (booking.status === 'confirmed') {
-      const typed = prompt(
-        'Dieser Termin wurde bereits bestätigt.\n\nSind Sie sicher, dass Sie den Termin stornieren möchten? Die/der Besuchende wird darüber informiert.\n\nBitte geben Sie zur Bestätigung exakt "Stornieren" ein:'
-      );
-      if (typed !== 'Stornieren') {
-        setNotice('Stornierung nicht bestätigt.');
-        return;
-      }
-    } else {
-      if (!confirm('Möchten Sie diese Buchung wirklich stornieren?')) return;
+    const reason = prompt(
+      'Bitte geben Sie einen Grund für die Stornierung ein.\nDiese Nachricht wird dem/der Buchenden per E-Mail mitgeteilt.'
+    );
+    if (!reason || !reason.trim()) {
+      setNotice('Stornierung abgebrochen – ein Grund ist erforderlich.');
+      return;
     }
 
     try {
-      await api.teacher.cancelBooking(slotId);
+      await api.teacher.cancelBooking(slotId, reason.trim());
       await loadBookings();
       setNotice('Buchung erfolgreich storniert');
     } catch (err) {

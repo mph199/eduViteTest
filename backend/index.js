@@ -607,6 +607,13 @@ app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid slotId' });
   }
 
+  const cancellationMessage = typeof req.body?.cancellationMessage === 'string'
+    ? req.body.cancellationMessage.trim()
+    : '';
+  if (!cancellationMessage) {
+    return res.status(400).json({ error: 'cancellationMessage is required' });
+  }
+
   // Clear booking data
   try {
     const { previous } = await cancelBookingAdmin(slotId);
@@ -621,6 +628,7 @@ app.delete('/api/admin/bookings/:slotId', requireAdmin, async (req, res) => {
         const { subject, text, html } = buildEmail('cancellation', {
           date: previous.date, time: previous.time,
           teacherName: teacher.name, teacherRoom: teacher.room,
+          cancellationMessage,
         }, branding);
         await sendMail({ to: previous.email, subject, text, html });
         await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);

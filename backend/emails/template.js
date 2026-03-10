@@ -246,21 +246,26 @@ ${teacherMsgHtml}`;
 }
 
 function buildCancellationEmail(data, branding) {
-  const { date, time, teacherName, teacherRoom } = data;
+  const { date, time, teacherName, teacherRoom, cancellationMessage } = data;
   const subject = `${(branding || DEFAULTS).school_name} Elternsprechtag – Termin storniert am ${date} (${time})`;
 
+  const msgLine = cancellationMessage ? `\nBegründung:\n${cancellationMessage}\n` : '';
   const text = `Guten Tag,
 
-wir bestätigen Ihnen die Stornierung Ihres Termins.
-
+wir müssen Ihnen leider mitteilen, dass Ihr Termin storniert wurde.
+${msgLine}
 Termin: ${date} ${time}
 Lehrkraft: ${teacherName || '—'}
 Raum: ${teacherRoom || '—'}
 
 Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.`;
 
+  const msgHtml = cancellationMessage
+    ? `<p><strong>Begründung:</strong><br/>${esc(cancellationMessage).replace(/\n/g, '<br/>')}</p>`
+    : '';
   const body = `<p>Guten Tag,</p>
-<p>wir bestätigen Ihnen die Stornierung Ihres Termins.</p>
+<p>wir müssen Ihnen leider mitteilen, dass Ihr Termin storniert wurde.</p>
+${msgHtml}
 <p><strong>Termin:</strong> ${esc(date)} ${esc(time)}<br/>
 <strong>Lehrkraft:</strong> ${esc(teacherName || '—')}<br/>
 <strong>Raum:</strong> ${esc(teacherRoom || '—')}</p>
