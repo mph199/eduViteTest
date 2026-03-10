@@ -198,58 +198,6 @@ export function TeacherRequestsTableSandbox({
         </header>
 
         <div className="sandbox-card__content">
-          <dl className="sandbox-card__dl">
-            <div className="sandbox-card__row">
-              <dt>Schüler*in/Azubi</dt>
-              <dd>{personLabel}</dd>
-            </div>
-            <div className="sandbox-card__row">
-              <dt>Klasse</dt>
-              <dd>{request.className}</dd>
-            </div>
-            <div className="sandbox-card__row">
-              <dt>Kontaktkanal</dt>
-              <dd>Mail</dd>
-            </div>
-            <div className="sandbox-card__row">
-              <dt>E-Mail</dt>
-              <dd>
-                <a className="sandbox-mail-link" href={`mailto:${request.email}`}>{request.email}</a>
-              </dd>
-            </div>
-          </dl>
-
-          <div className="sandbox-card__message">
-            <span>Eingegangene Nachricht</span>
-            <p className={isMessageExpanded ? 'is-expanded' : ''}>{requestMessage}</p>
-            {isExpandableMessage && (
-              <button
-                type="button"
-                className="sandbox-more"
-                onClick={() => {
-                  setExpandedMessageIds((prev) => ({
-                    ...prev,
-                    [request.id]: !prev[request.id],
-                  }));
-                }}
-              >
-                {isMessageExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
-              </button>
-            )}
-
-            <div className="sandbox-card__teacher-note">
-              <span>Nachricht an den Ausbildungsbetrieb/Erziehungsberechtigten</span>
-              <textarea
-                className="sandbox-textarea"
-                value={teacherMessage}
-                onChange={(event) => onTeacherMessageChange(request.id, event.target.value)}
-                placeholder="Wird in der Bestätigungs-E-Mail angezeigt"
-                maxLength={1000}
-                rows={3}
-              />
-            </div>
-          </div>
-
           {assignableSlots.length > 0 && (
             <div className="sandbox-card__assign-section">
               <button
@@ -310,6 +258,50 @@ export function TeacherRequestsTableSandbox({
               )}
             </div>
           )}
+
+          <dl className="sandbox-card__dl">
+            <div className="sandbox-card__row">
+              <dt>Kontaktkanal</dt>
+              <dd>Mail</dd>
+            </div>
+            <div className="sandbox-card__row">
+              <dt>E-Mail</dt>
+              <dd>
+                <a className="sandbox-mail-link" href={`mailto:${request.email}`}>{request.email}</a>
+              </dd>
+            </div>
+          </dl>
+
+          <div className="sandbox-card__message">
+            <span>Eingegangene Nachricht</span>
+            <p className={isMessageExpanded ? 'is-expanded' : ''}>{requestMessage}</p>
+            {isExpandableMessage && (
+              <button
+                type="button"
+                className="sandbox-more"
+                onClick={() => {
+                  setExpandedMessageIds((prev) => ({
+                    ...prev,
+                    [request.id]: !prev[request.id],
+                  }));
+                }}
+              >
+                {isMessageExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+              </button>
+            )}
+
+            <div className="sandbox-card__teacher-note">
+              <span>Nachricht an den Ausbildungsbetrieb/Erziehungsberechtigten</span>
+              <textarea
+                className="sandbox-textarea"
+                value={teacherMessage}
+                onChange={(event) => onTeacherMessageChange(request.id, event.target.value)}
+                placeholder="Wird in der Bestätigungs-E-Mail angezeigt"
+                maxLength={1000}
+                rows={3}
+              />
+            </div>
+          </div>
         </div>
         <div className="sandbox-card__footer">
           <div className="sandbox-card__actions">

@@ -1134,6 +1134,7 @@
   max-height: calc(100dvh - 40px);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   animation: sandboxSlideUp 0.25s ease;
 }
 
@@ -1224,6 +1225,7 @@
 
 .sandbox-modal__card .sandbox-card__content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0 16px;
 }
