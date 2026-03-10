@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import type { FeedbackItem } from '../types';
 import './AdminDashboard.css';
@@ -10,13 +11,8 @@ export function AdminFeedback() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const { user, setActiveView } = useAuth();
-
-  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
-
-  useEffect(() => {
-    if (canSwitchView) setActiveView('admin');
-  }, [canSwitchView, setActiveView]);
+  const { user } = useAuth();
+  useActiveView('admin');
 
   const formatDateTime = useCallback((iso?: string | null) => {
     if (!iso) return null;

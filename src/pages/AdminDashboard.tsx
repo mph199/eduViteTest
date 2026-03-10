@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import type { TimeSlot as ApiBooking } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
@@ -74,13 +75,8 @@ export function AdminDashboard() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'parent' | 'company'>('all');
   const [teacherFilter, setTeacherFilter] = useState<string>('all');
   const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
-  const { user, setActiveView } = useAuth();
-
-  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
-
-  useEffect(() => {
-    if (canSwitchView) setActiveView('admin');
-  }, [canSwitchView, setActiveView]);
+  const { user } = useAuth();
+  useActiveView('admin');
 
   const formatDateTime = (iso?: string | null) => {
     if (!iso) return null;

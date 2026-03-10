@@ -34,6 +34,13 @@ export function getRequestedTimeWindowsForSystem(system) {
   return buildHalfHourWindows(16, 18);
 }
 
+export function generateTimeSlots(system, slotMinutes = 15) {
+  if (system === 'vollzeit') {
+    return buildQuarterHourWindows(17, 19, slotMinutes);
+  }
+  return buildQuarterHourWindows(16, 18, slotMinutes);
+}
+
 export function formatDateDE(isoOrDate) {
   const d = new Date(isoOrDate);
   if (Number.isNaN(d.getTime())) return null;

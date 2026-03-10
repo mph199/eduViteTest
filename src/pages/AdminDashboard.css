@@ -147,56 +147,7 @@
   overflow-x: hidden;
 }
 
-/* Breadcrumb positioning & theming in header */
-.admin-header .breadcrumbs {
-  margin: 0;
-}
-
-/* Breadcrumb spacing in content areas */
-.admin-main .breadcrumbs {
-  margin-bottom: 1rem;
-}
-
-/* Breadcrumbs base styles for admin pages */
-.breadcrumbs {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.9rem;
-  color: #6b7280;
-  margin-bottom: 0.75rem;
-  padding: 0.4rem 0.6rem;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  border-radius: 9999px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.breadcrumbs .crumb-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-.breadcrumbs .crumb {
-  color: #374151;
-  text-decoration: none;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  transition: background 120ms ease;
-}
-.breadcrumbs .crumb:hover {
-  background: #f3f4f6;
-}
-.breadcrumbs .crumb.home { font-weight: 600; }
-.breadcrumbs .sep {
-  color: #9ca3af;
-  margin: 0 0.25rem;
-}
-.breadcrumbs .current {
-  color: #111827;
-  font-weight: 600;
-  background: #f3f4f6;
-}
+/* Table Styles */
 
 .admin-actions {
   display: flex;
@@ -981,20 +932,6 @@
 }
 
 /* AdminUsers page polish */
-.admin-users-header-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.admin-users-toolbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
 .admin-users-stats {
   display: flex;
   gap: 0.75rem;
@@ -1027,21 +964,6 @@
   margin-top: 2px;
 }
 
-.admin-users-controls {
-  display: grid;
-  grid-template-columns: 1fr 220px;
-  gap: 0.9rem;
-  align-items: end;
-  flex: 1;
-  min-width: 320px;
-}
-
-.admin-users-filter {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
 .admin-users-username {
   display: inline-flex;
   align-items: center;
@@ -1063,29 +985,6 @@
   border: 1px solid rgba(var(--brand-primary-rgb), 0.25);
 }
 
-.admin-role-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.18rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.85rem;
-  font-weight: 800;
-  border: 1px solid transparent;
-}
-
-.admin-role-pill--admin {
-  color: #7c2d12;
-  background: rgba(251, 146, 60, 0.18);
-  border-color: rgba(251, 146, 60, 0.35);
-}
-
-.admin-role-pill--teacher {
-  color: #1d4ed8;
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.28);
-}
-
 .admin-users-action {
   display: flex;
   align-items: center;
@@ -1096,10 +995,6 @@
   font-size: 0.85rem;
   font-weight: 700;
   color: #6b7280;
-}
-
-.admin-users-row--self td {
-  background: rgba(var(--brand-primary-rgb), 0.05);
 }
 
 /* Teacher bookings table polish */
@@ -1318,17 +1213,6 @@
 .admin-dashboard--teacher .teacher-request-select {
   min-width: 152px;
   max-width: 100%;
-}
-
-@media (max-width: 980px) {
-  .admin-users-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .admin-users-controls {
-    grid-template-columns: 1fr;
-    min-width: 0;
-  }
 }
 
 /* Ensure inline action buttons align nicely inside table cells */
@@ -1607,7 +1491,6 @@
 
 /* Additional mobile refinements */
 @media (max-width: 768px) {
-  .breadcrumbs { flex-wrap: wrap; }
   .action-buttons { flex-wrap: wrap; }
 
   .admin-grid-2 {
@@ -1898,7 +1781,6 @@
 
 @media (max-width: 480px) {
   .admin-header h1 { font-size: 1.35rem; }
-  .breadcrumbs { font-size: 0.85rem; padding: 0.3rem 0.5rem; }
   .back-button, .logout-button, .btn-primary, .btn-secondary { font-size: 0.9rem; padding: 0.55rem 0.9rem; }
 
   .admin-header-content {

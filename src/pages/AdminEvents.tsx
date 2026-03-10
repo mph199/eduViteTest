@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import './AdminDashboard.css';
 
@@ -97,12 +98,8 @@ export function AdminEvents() {
   const [replaceExisting, setReplaceExisting] = useState<boolean>(true);
   const [generating, setGenerating] = useState(false);
 
-  const { user, setActiveView } = useAuth();
-  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
-
-  useEffect(() => {
-    if (canSwitchView) setActiveView('admin');
-  }, [canSwitchView, setActiveView]);
+  const { user } = useAuth();
+  useActiveView('admin');
 
   const loadEvents = async () => {
     try {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import type { Teacher as ApiTeacher, UserAccount } from '../types';
 import './AdminDashboard.css';
@@ -25,13 +26,8 @@ export function AdminTeachers() {
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
-  const { user, setActiveView } = useAuth();
-
-  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
-
-  useEffect(() => {
-    if (canSwitchView) setActiveView('admin');
-  }, [canSwitchView, setActiveView]);
+  const { user } = useAuth();
+  useActiveView('admin');
 
   const loadTeachers = async () => {
     try {

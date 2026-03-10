@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import type { TimeSlot as ApiSlot, Teacher as ApiTeacher } from '../types';
 import { exportTeacherSlotsToICal } from '../utils/icalExport';
@@ -16,13 +17,8 @@ export function AdminSlots() {
   const [editingSlot, setEditingSlot] = useState<ApiSlot | null>(null);
   const [formData, setFormData] = useState({ time: '', date: '' });
   const [bulkCreating, setBulkCreating] = useState(false);
-  const { user, setActiveView } = useAuth();
-
-  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
-
-  useEffect(() => {
-    if (canSwitchView) setActiveView('admin');
-  }, [canSwitchView, setActiveView]);
+  const { user } = useAuth();
+  useActiveView('admin');
 
   const loadTeachers = useCallback(async () => {
     try {
