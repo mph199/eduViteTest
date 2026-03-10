@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { query } from './config/db.js';
+import { formatDateDE } from './utils/timeWindows.js';
 
 function parseArgs(argv) {
   const args = {
@@ -185,15 +186,6 @@ function generateTimeSlots(system) {
 }
 
 async function resolveActiveEventIdAndDate() {
-  const formatDateDE = (isoOrDate) => {
-    const d = new Date(isoOrDate);
-    if (Number.isNaN(d.getTime())) return null;
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = String(d.getFullYear());
-    return `${dd}.${mm}.${yyyy}`;
-  };
-
   const nowIso = new Date().toISOString();
   const { rows } = await query(
     `SELECT id, starts_at FROM events

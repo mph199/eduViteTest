@@ -1,18 +1,12 @@
 #!/usr/bin/env node
 
 import { query } from './config/db.js';
+import { formatDateDE } from './utils/timeWindows.js';
 
 function getArgValue(name) {
   const idx = process.argv.indexOf(name);
   if (idx === -1) return undefined;
   return process.argv[idx + 1];
-}
-
-function formatDateDE(input) {
-  const d = input instanceof Date ? input : new Date(input);
-  if (Number.isNaN(d.getTime())) return undefined;
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
 async function resolveTeacherId() {

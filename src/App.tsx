@@ -7,7 +7,6 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
 import { AdminSlots } from './pages/AdminSlots';
 import { AdminEvents } from './pages/AdminEvents';
-// AdminUsers merged into AdminTeachers
 import { AdminFeedback } from './pages/AdminFeedback';
 import { TeacherLayout } from './pages/teacher/TeacherLayout';
 import { TeacherBookings } from './pages/teacher/TeacherBookings';

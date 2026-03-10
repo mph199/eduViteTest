@@ -2,41 +2,12 @@
 
 import crypto from 'crypto';
 import { query } from './config/db.js';
+import { formatDateDE, getRequestedTimeWindowsForSystem } from './utils/timeWindows.js';
 
 function getArgValue(name) {
   const idx = process.argv.indexOf(name);
   if (idx === -1) return undefined;
   return process.argv[idx + 1];
-}
-
-function formatDateDE(isoOrDate) {
-  const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
-  if (Number.isNaN(d.getTime())) return null;
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = String(d.getFullYear());
-  return `${dd}.${mm}.${yyyy}`;
-}
-
-function buildHalfHourWindows(startHour, endHour) {
-  const windows = [];
-  const pad2 = (n) => String(n).padStart(2, '0');
-  const toMins = (h, m) => h * 60 + m;
-  const fmt = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
-
-  const start = toMins(startHour, 0);
-  const end = toMins(endHour, 0);
-  for (let m = start; m + 30 <= end; m += 30) {
-    windows.push(`${fmt(m)} - ${fmt(m + 30)}`);
-  }
-  return windows;
-}
-
-function getRequestedTimeWindowsForSystem(system) {
-  if (system === 'vollzeit') {
-    return buildHalfHourWindows(17, 19);
-  }
-  return buildHalfHourWindows(16, 18);
 }
 
 async function resolveTeacherIdByUsername(username) {

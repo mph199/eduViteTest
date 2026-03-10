@@ -5,27 +5,7 @@ import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
 import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../utils/mappers.js';
-
-function buildHalfHourWindows(startHour, endHour) {
-  const windows = [];
-  const pad2 = (n) => String(n).padStart(2, '0');
-  const toMins = (h, m) => h * 60 + m;
-  const fmt = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
-
-  const start = toMins(startHour, 0);
-  const end = toMins(endHour, 0);
-  for (let m = start; m + 30 <= end; m += 30) {
-    windows.push(`${fmt(m)} - ${fmt(m + 30)}`);
-  }
-  return windows;
-}
-
-function getRequestedTimeWindowsForSystem(system) {
-  if (system === 'vollzeit') {
-    return buildHalfHourWindows(17, 19);
-  }
-  return buildHalfHourWindows(16, 18);
-}
+import { buildHalfHourWindows, getRequestedTimeWindowsForSystem } from '../utils/timeWindows.js';
 
 function parseTimeWindow(timeWindow) {
   if (typeof timeWindow !== 'string') return null;

@@ -14,6 +14,7 @@
 
 import crypto from 'crypto';
 import { query } from './config/db.js';
+import { formatDateDE } from './utils/timeWindows.js';
 
 function getArgValue(name) {
   const idx = process.argv.indexOf(name);
@@ -23,15 +24,6 @@ function getArgValue(name) {
 
 function sha256Hex(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
-}
-
-function formatDateDE(isoOrDate) {
-  const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
-  if (Number.isNaN(d.getTime())) return null;
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = String(d.getFullYear());
-  return `${dd}.${mm}.${yyyy}`;
 }
 
 function parseSlotRangeStartMinutes(range) {

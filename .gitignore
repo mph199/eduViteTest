@@ -38,3 +38,9 @@ backend/.last-ethereal-email.json
 .vercel
 backend/uploads/*
 !backend/uploads/logos/.gitkeep
+
+# Runtime files
+backend/server.pid
+
+# Sensitive data
+backend/teachers.txt
