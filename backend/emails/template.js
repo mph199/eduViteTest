@@ -62,7 +62,7 @@ export function wrapEmailHtml({ body, branding }) {
         const ext = path.extname(filename).toLowerCase().replace('.', '');
         const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', webp: 'image/webp', gif: 'image/gif' }[ext] || 'image/png';
         const dataUri = `data:${mime};base64,${buf.toString('base64')}`;
-        logoHtml = `<img src="${dataUri}" alt="${esc(b.school_name)}" style="max-height:60px;max-width:220px;display:block;margin:0 auto 8px;" />`;
+        logoHtml = `<div style="background:#ffffff;border-radius:6px;padding:6px;display:inline-block;margin:0 auto 8px;"><img src="${dataUri}" alt="${esc(b.school_name)}" style="max-height:60px;max-width:220px;display:block;" /></div>`;
       }
     } catch { /* ignore – send without logo */ }
   }

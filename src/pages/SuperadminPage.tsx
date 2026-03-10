@@ -166,7 +166,7 @@ export function SuperadminPage() {
   const footerHtml = esc(emailBranding.footer_text).replace(/\n/g, '<br/>');
   const logoPreviewSrc = api.superadmin.resolveLogoUrl(emailBranding.logo_url);
   const logoHtml = logoPreviewSrc
-    ? `<img src="${esc(logoPreviewSrc)}" alt="" style="max-height:50px;max-width:180px;display:block;margin:0 auto 6px;" />`
+    ? `<div style="background:#fff;border-radius:6px;padding:6px;display:inline-block;margin:0 auto 6px;"><img src="${esc(logoPreviewSrc)}" alt="" style="max-height:50px;max-width:180px;display:block;" /></div>`
     : '';
   const previewHtmlContent = `
     <div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;background:#f4f4f5;padding:16px;">
