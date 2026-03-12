@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
   padding: 2rem;
 }
 
@@ -13,7 +13,7 @@
 }
 
 .maintenance-content {
-  background: white;
+  background: var(--color-white);
   border-radius: 20px;
   padding: 3rem 2rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -33,7 +33,7 @@
 
 .maintenance-content h1 {
   font-size: 2.5rem;
-  color: #10b981;
+  color: var(--brand-primary);
   margin: 0;
   font-weight: 700;
 }
@@ -41,13 +41,13 @@
 .maintenance-icon {
   width: 80px;
   height: 80px;
-  color: #10b981;
+  color: var(--brand-primary);
   animation: float 3s ease-in-out infinite;
 }
 
 .maintenance-message {
   font-size: 1.25rem;
-  color: #374151;
+  color: var(--color-gray-700);
   line-height: 1.8;
   margin: 0;
   max-width: 500px;
@@ -55,15 +55,15 @@
 
 .maintenance-submessage {
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0;
 }
 
 .maintenance-info {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 2px solid #e5e7eb;
-  color: #6b7280;
+  border-top: 2px solid var(--color-gray-200);
+  color: var(--color-gray-500);
 }
 
 .maintenance-info p {
@@ -72,7 +72,7 @@
 }
 
 .maintenance-info strong {
-  color: #10b981;
+  color: var(--brand-primary);
   font-size: 1.1rem;
 }
 
@@ -80,7 +80,7 @@
   margin-top: 1rem;
   padding: 0.5rem 1rem;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   text-decoration: none;
   border-radius: 8px;
   transition: all 0.2s ease;
@@ -89,8 +89,8 @@
 
 .maintenance-admin-link:hover {
   opacity: 1;
-  color: #10b981;
-  background: #f3f4f6;
+  color: var(--brand-primary);
+  background: var(--color-gray-100);
 }
 
 @keyframes float {

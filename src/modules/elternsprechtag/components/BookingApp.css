@@ -6,7 +6,7 @@
 .booking-app {
   min-height: 100vh;
   /* Subtle background styling (white base with green accents) */
-  background-color: #ffffff;
+  background-color: var(--color-white);
   background-image:
     repeating-linear-gradient(
       135deg,
@@ -17,7 +17,7 @@
     ),
     radial-gradient(circle at 12% 10%, rgba(var(--brand-primary-rgb), 0.18) 0%, rgba(var(--brand-primary-rgb), 0) 55%),
     radial-gradient(circle at 88% 82%, rgba(var(--brand-primary-dark-rgb), 0.14) 0%, rgba(var(--brand-primary-dark-rgb), 0) 55%),
-    linear-gradient(135deg, var(--brand-surface-1) 0%, #ffffff 55%, var(--brand-surface-2) 100%);
+    linear-gradient(135deg, var(--brand-surface-1) 0%, var(--color-white) 55%, var(--brand-surface-2) 100%);
   background-attachment: fixed;
   padding-top: 1.25rem;
   padding-left: var(--page-gutter, 1.25rem);
@@ -159,7 +159,7 @@
 .welcomeWindow__notice.is-error {
   background: rgba(254, 226, 226, 0.90);
   border-color: rgba(252, 165, 165, 0.90);
-  color: #991b1b;
+  color: var(--color-error);
 }
 
 .welcomeWindow__side {
@@ -301,7 +301,7 @@
 
 .app-header p {
   font-size: 1.1rem;
-  color: #000000;
+  color: var(--color-black);
   margin: 0;
   padding-top: 0.25rem;
 }
@@ -321,7 +321,7 @@
 .header-notice-error {
   background: rgba(254, 226, 226, 0.90);
   border-color: rgba(252, 165, 165, 0.90);
-  color: #991b1b;
+  color: var(--color-error);
 }
 
 .admin-button {
@@ -329,7 +329,7 @@
   display: inline-block;
   padding: 0.5rem 1.2rem;
   background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
-  color: #ffffff;
+  color: var(--color-white);
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
@@ -380,7 +380,7 @@
 .teacher-combobox-input {
   flex: 1;
   padding: 0.55rem 0.6rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-gray-200);
   border-radius: 8px;
   font-size: 0.9rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -454,7 +454,7 @@
   padding: 0;
   border-radius: 999px;
   border: 1px solid rgba(var(--brand-ink-rgb), 0.18);
-  background: #ffffff;
+  background: var(--color-white);
   color: rgba(var(--brand-ink-rgb), 0.9);
   font-size: 18px;
   line-height: 1;
@@ -548,7 +548,7 @@
   padding: 0.6rem 0.65rem;
   border-radius: 10px;
   cursor: pointer;
-  color: #111827;
+  color: var(--color-gray-900);
   font-weight: 600;
 }
 
@@ -568,7 +568,7 @@
 
 .teacher-combobox-empty {
   padding: 0.75rem;
-  color: #111827;
+  color: var(--color-gray-900);
   font-weight: 600;
 }
 
@@ -647,7 +647,7 @@
   font-size: 1.3rem;
   margin: 0 0 0.6rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-gray-800);
 }
 
 .slots-container {
@@ -658,7 +658,7 @@
 
 .no-slots {
   text-align: center;
-  color: #9ca3af;
+  color: var(--color-gray-400);
   padding: 2rem;
   font-size: 1rem;
 }
@@ -708,8 +708,8 @@
 }
 
 .slot-card.booked {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-300);
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -717,12 +717,12 @@
 .slot-time {
   font-weight: 600;
   font-size: 1rem;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .slot-date {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 500;
 }
 
@@ -742,18 +742,18 @@
 }
 
 .available-status .status-badge {
-  background: #d1fae5;
+  background: var(--color-success-light);
   color: var(--brand-ink);
 }
 
 .booked-status .status-badge {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--color-error-light);
+  color: var(--color-error);
 }
 
 .reserved-status .status-badge {
-  background: #fef3c7; /* amber-100 */
-  color: #92400e;      /* amber-800 */
+  background: var(--color-warning-light); /* amber-100 */
+  color: var(--color-warning);      /* amber-800 */
 }
 
 .booking-info {
@@ -765,7 +765,7 @@
 
 .booking-info small {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 /* Booking Form */
@@ -773,7 +773,7 @@
   font-size: 1.3rem;
   margin: 0 0 0.75rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-gray-800);
 }
 
 .booking-form {
@@ -787,7 +787,7 @@
   border-radius: 10px;
   background: rgba(var(--brand-primary-rgb), 0.08);
   border: 1px solid rgba(var(--brand-primary-rgb), 0.22);
-  color: #374151;
+  color: var(--color-gray-700);
   font-size: 0.95rem;
   line-height: 1.35;
 }
@@ -800,7 +800,7 @@
 
 .form-group label {
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   font-size: 0.95rem;
 }
 
@@ -892,7 +892,7 @@
 .btn-secondary {
   background: rgba(243, 244, 246, 0.8);
   backdrop-filter: blur(8px);
-  color: #374151;
+  color: var(--color-gray-700);
   border: 1px solid rgba(229, 231, 235, 0.6);
 }
 
@@ -915,15 +915,15 @@
 }
 
 .message.success {
-  background: #d1fae5;
+  background: var(--color-success-light);
   color: var(--brand-ink);
   border: 1px solid var(--brand-secondary);
 }
 
 .message.error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
 }
 
 /* Booking notice (popup after reservation) */
@@ -953,12 +953,12 @@
 .booking-notice h3 {
   margin: 0 0 0.5rem;
   font-size: 1.15rem;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .booking-notice p {
   margin: 0 0 0.9rem;
-  color: #374151;
+  color: var(--color-gray-700);
   line-height: 1.45;
 }
 
@@ -1183,15 +1183,15 @@
 }
 
 .loading-message {
-  background-color: #dbeafe;
-  color: #1e40af;
-  border-left: 4px solid #3b82f6;
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+  border-left: 4px solid var(--color-info-accent);
 }
 
 .error-message {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border-left: 4px solid #ef4444;
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+  border-left: 4px solid var(--color-error-accent);
 }
 
 /* Focus States for Accessibility */

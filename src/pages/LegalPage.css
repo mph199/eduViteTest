@@ -1,35 +1,35 @@
 .legal-page {
   min-height: 100vh;
-  background: linear-gradient(to bottom, #f9fafb, #ffffff);
+  background: linear-gradient(to bottom, var(--color-gray-50), var(--color-white));
   padding: 2rem 1rem;
 }
 
 .legal-container {
   max-width: 900px;
   margin: 0 auto;
-  background: white;
+  background: var(--color-white);
   border-radius: 12px;
   padding: 3rem 2rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .legal-container h1 {
-  color: #10b981;
+  color: var(--brand-primary);
   font-size: 2.5rem;
   margin-bottom: 2rem;
-  border-bottom: 3px solid #10b981;
+  border-bottom: 3px solid var(--brand-primary);
   padding-bottom: 1rem;
 }
 
 .legal-container h2 {
-  color: #059669;
+  color: var(--brand-primary-dark);
   font-size: 1.75rem;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
 }
 
 .legal-container h3 {
-  color: #047857;
+  color: var(--brand-primary-darker);
   font-size: 1.25rem;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
@@ -41,13 +41,13 @@
 
 .legal-container p {
   line-height: 1.8;
-  color: #374151;
+  color: var(--color-gray-700);
   margin-bottom: 1rem;
 }
 
 .legal-container ul {
   line-height: 1.8;
-  color: #374151;
+  color: var(--color-gray-700);
   margin-left: 2rem;
   margin-bottom: 1rem;
 }
@@ -57,30 +57,30 @@
 }
 
 .legal-container a {
-  color: #10b981;
+  color: var(--brand-primary);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .legal-container a:hover {
-  color: #059669;
+  color: var(--brand-primary-dark);
   text-decoration: underline;
 }
 
-.back-link {
+.legal-page .back-link {
   display: inline-block;
   margin-top: 2rem;
   padding: 0.75rem 1.5rem;
-  background: #10b981;
-  color: white !important;
+  background: var(--brand-primary);
+  color: var(--color-white) !important;
   border-radius: 8px;
   font-weight: 500;
   text-decoration: none !important;
   transition: background 0.2s;
 }
 
-.back-link:hover {
-  background: #059669;
+.legal-page .back-link:hover {
+  background: var(--brand-primary-dark);
   text-decoration: none !important;
 }
 

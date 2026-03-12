@@ -3,12 +3,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, var(--color-gray-50) 0%, #c3cfe2 100%);
   padding: 1rem;
 }
 
 .login-container {
-  background: white;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
   padding: 2.5rem;
@@ -22,14 +22,14 @@
 }
 
 .login-header h1 {
-  color: #2d5016;
+  color: var(--brand-login);
   font-size: 1.8rem;
   margin: 0 0 0.5rem 0;
   font-weight: 700;
 }
 
 .login-header h2 {
-  color: #666;
+  color: var(--color-gray-500);
   font-size: 1.2rem;
   margin: 0;
   font-weight: 400;
@@ -42,9 +42,9 @@
 }
 
 .login-error {
-  background: #fee;
-  border: 1px solid #fcc;
-  color: #c33;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error);
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 0.95rem;
@@ -57,14 +57,14 @@
 }
 
 .form-group label {
-  color: #333;
+  color: var(--color-gray-700);
   font-weight: 500;
   font-size: 0.95rem;
 }
 
 .form-group input {
   padding: 0.75rem;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.2s;
@@ -72,17 +72,17 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #2d5016;
+  border-color: var(--brand-login);
 }
 
 .form-group input:disabled {
-  background: #f5f5f5;
+  background: var(--color-gray-50);
   cursor: not-allowed;
 }
 
 .login-button {
-  background: #2d5016;
-  color: white;
+  background: var(--brand-login);
+  color: var(--color-white);
   border: none;
   padding: 0.875rem;
   border-radius: 6px;
@@ -94,11 +94,11 @@
 }
 
 .login-button:hover:not(:disabled) {
-  background: #3d6621;
+  background: var(--brand-login-hover);
 }
 
 .login-button:disabled {
-  background: #999;
+  background: var(--color-gray-400);
   cursor: not-allowed;
 }
 
@@ -106,18 +106,18 @@
   text-align: center;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-gray-200);
 }
 
 .back-link {
-  color: #2d5016;
+  color: var(--brand-login);
   text-decoration: none;
   font-size: 0.95rem;
   transition: color 0.2s;
 }
 
 .back-link:hover {
-  color: #3d6621;
+  color: var(--brand-login-hover);
   text-decoration: underline;
 }
 

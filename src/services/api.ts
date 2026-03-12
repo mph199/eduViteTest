@@ -350,6 +350,38 @@ const api = {
       if (logoUrl.startsWith('/')) return `${BACKEND_BASE}${logoUrl}`;
       return `${BACKEND_BASE}/uploads/logos/${logoUrl}`;
     },
+    // ── Site Branding ──────────────────────────────────
+    async getSiteBranding() {
+      return requestJSON('/superadmin/site-branding');
+    },
+    async updateSiteBranding(payload: Record<string, unknown>) {
+      return requestJSON('/superadmin/site-branding', {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async uploadTileImage(file: File): Promise<{ tile_url: string }> {
+      const form = new FormData();
+      form.append('tile', file);
+      const res = await fetch(`${API_BASE}/superadmin/tile-image`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
+        throw new Error(err.error || 'Upload fehlgeschlagen');
+      }
+      return res.json();
+    },
+    /** Resolve a tile image path to a full URL */
+    resolveTileUrl(tileUrl: string): string {
+      if (!tileUrl) return '';
+      if (tileUrl.startsWith('http')) return tileUrl;
+      if (tileUrl.startsWith('/')) return `${BACKEND_BASE}${tileUrl}`;
+      return `${BACKEND_BASE}/uploads/tiles/${tileUrl}`;
+    },
   },
 };
 

@@ -1,0 +1,127 @@
+/**
+ * BrandingProvider – Loads site_branding from the API on mount and
+ * applies the values as CSS custom properties on :root.
+ *
+ * Exposes the branding object via React context so that components
+ * (e.g. GlobalTopHeader, LandingPage) can read school name, texts etc.
+ */
+
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import api from '../services/api';
+
+export interface SiteBranding {
+  school_name: string;
+  logo_url: string;
+  primary_color: string;
+  primary_dark: string;
+  primary_darker: string;
+  secondary_color: string;
+  ink_color: string;
+  surface_1: string;
+  surface_2: string;
+  header_font_color: string;
+  hero_title: string;
+  hero_text: string;
+  step_1: string;
+  step_2: string;
+  step_3: string;
+  tile_images: Record<string, string>;
+}
+
+const DEFAULTS: SiteBranding = {
+  school_name: 'BKSB',
+  logo_url: '',
+  primary_color: '#123C73',
+  primary_dark: '#0B2545',
+  primary_darker: '#081D38',
+  secondary_color: '#5B8DEF',
+  ink_color: '#0B2545',
+  surface_1: '#F8FAFC',
+  surface_2: '#D9E4F2',
+  header_font_color: '',
+  hero_title: 'Herzlich willkommen!',
+  hero_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.',
+  step_1: 'Lehrkraft auswählen',
+  step_2: 'Wunsch-Zeitfenster wählen',
+  step_3: 'Daten eingeben und Anfrage absenden',
+  tile_images: {},
+};
+
+/** Convert hex "#rrggbb" → "r, g, b" for rgba() usage */
+function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return '';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+function applyToRoot(b: SiteBranding) {
+  const root = document.documentElement;
+  root.style.setProperty('--brand-primary', b.primary_color);
+  root.style.setProperty('--brand-primary-dark', b.primary_dark);
+  root.style.setProperty('--brand-primary-darker', b.primary_darker);
+  root.style.setProperty('--brand-secondary', b.secondary_color);
+  root.style.setProperty('--brand-ink', b.ink_color);
+  root.style.setProperty('--brand-surface-1', b.surface_1);
+  root.style.setProperty('--brand-surface-2', b.surface_2);
+
+  // RGB helpers
+  root.style.setProperty('--brand-primary-rgb', hexToRgb(b.primary_color));
+  root.style.setProperty('--brand-primary-dark-rgb', hexToRgb(b.primary_dark));
+  root.style.setProperty('--brand-primary-darker-rgb', hexToRgb(b.primary_darker));
+  root.style.setProperty('--brand-ink-rgb', hexToRgb(b.ink_color));
+
+  // Login colors derive from ink
+  root.style.setProperty('--brand-login', b.ink_color);
+}
+
+interface BrandingContextValue {
+  branding: SiteBranding;
+  reload: () => Promise<void>;
+}
+
+const BrandingContext = createContext<BrandingContextValue>({
+  branding: DEFAULTS,
+  reload: async () => {},
+});
+
+export function useBranding() {
+  return useContext(BrandingContext);
+}
+
+export function BrandingProvider({ children }: { children: ReactNode }) {
+  const [branding, setBranding] = useState<SiteBranding>(DEFAULTS);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.superadmin.getSiteBranding();
+      if (data) {
+        const merged: SiteBranding = { ...DEFAULTS };
+        for (const key of Object.keys(DEFAULTS) as (keyof SiteBranding)[]) {
+          if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (merged as any)[key] = data[key];
+          }
+        }
+        // Parse tile_images if stringified
+        if (typeof merged.tile_images === 'string') {
+          try { merged.tile_images = JSON.parse(merged.tile_images); } catch { merged.tile_images = {}; }
+        }
+        setBranding(merged);
+        applyToRoot(merged);
+      }
+    } catch {
+      // keep defaults — CSS variables from index.css remain active
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <BrandingContext.Provider value={{ branding, reload: load }}>
+      {children}
+    </BrandingContext.Provider>
+  );
+}

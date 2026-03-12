@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
 import { useAuth } from '../contexts/useAuth';
+import { useBranding } from '../contexts/BrandingContext';
 import './GlobalTopHeader.css';
 
 export function GlobalTopHeader() {
@@ -10,6 +11,7 @@ export function GlobalTopHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout, activeView, setActiveView } = useAuth();
+  const { branding } = useBranding();
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
@@ -70,7 +72,7 @@ export function GlobalTopHeader() {
     <header
       ref={headerRef}
       className={`globalTopHeader${isPublic ? ' globalTopHeader--public' : ''}${isArea ? ' globalTopHeader--area' : ''}`}
-      aria-label="BKSB Buchungssystem"
+      aria-label={`${branding.school_name} Buchungssystem`}
     >
       <div className="globalTopHeader__inner">
         <div className="globalTopHeader__left">
@@ -211,7 +213,7 @@ export function GlobalTopHeader() {
                         <span>Feedback einsehen</span>
                         {pathname === '/admin/feedback' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
-                      {user?.username === 'marc.huhn' && (
+                      {user?.role === 'superadmin' && (
                         <>
                           <div className="dropdown__divider" role="separator" />
                           <button
@@ -290,8 +292,8 @@ export function GlobalTopHeader() {
             </Sidebar>
           ) : null}
 
-          <div className="globalTopHeader__brand" aria-label="BKSB Buchungssystem">
-            <div className="globalTopHeader__brandTop">BKSB</div>
+          <div className="globalTopHeader__brand" aria-label={`${branding.school_name} Buchungssystem`}>
+            <div className="globalTopHeader__brandTop" style={branding.header_font_color ? { color: branding.header_font_color } : undefined}>{branding.school_name}</div>
             <div className="globalTopHeader__brandBottom">Buchungssystem</div>
           </div>
 

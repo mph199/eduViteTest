@@ -3,22 +3,68 @@
   --font-heading: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
 
-  /* Brand / Theme Tokens (emerald) */
-  --brand-primary: #10b981;
-  --brand-primary-dark: #059669;
-  --brand-primary-darker: #047857;
-  --brand-secondary: #a7f3d0;
-  --brand-ink: #065f46;
+  /* Brand / Theme Tokens (navy – institutionell) */
+  --brand-primary: #123C73;
+  --brand-primary-dark: #0B2545;
+  --brand-primary-darker: #081D38;
+  --brand-secondary: #5B8DEF;
+  --brand-ink: #0B2545;
 
   /* RGB helpers for rgba(var(--token), a) usage */
-  --brand-primary-rgb: 16, 185, 129;
-  --brand-primary-dark-rgb: 5, 150, 105;
-  --brand-primary-darker-rgb: 4, 120, 87;
-  --brand-ink-rgb: 6, 95, 70;
+  --brand-primary-rgb: 18, 60, 115;
+  --brand-primary-dark-rgb: 11, 37, 69;
+  --brand-primary-darker-rgb: 8, 29, 56;
+  --brand-ink-rgb: 11, 37, 69;
 
   /* Background surfaces */
-  --brand-surface-1: #f0fdf4;
-  --brand-surface-2: #dcfce7;
+  --brand-surface-1: #F8FAFC;
+  --brand-surface-2: #D9E4F2;
+
+  /* ── Neutral / UI palette ────────────────────────────── */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Slate shades (for admin UI) */
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  /* ── Semantic status colors ──────────────────────────── */
+  --color-error: #991b1b;
+  --color-error-light: #fee2e2;
+  --color-error-border: #fca5a5;
+  --color-error-accent: #ef4444;
+  --color-error-dark: #b91c1c;
+
+  --color-success-light: #d1fae5;
+  --color-success-accent: #22c55e;
+
+  --color-warning-light: #fef3c7;
+  --color-warning: #92400e;
+  --color-warning-accent: #eab308;
+
+  --color-info-light: #dbeafe;
+  --color-info: #1e40af;
+  --color-info-accent: #3b82f6;
+  --color-info-dark: #1d4ed8;
+
+  /* ── Login page (brand-derived) ──────────────────────── */
+  --brand-login: var(--brand-ink);
+  --brand-login-hover: #123C73;
 
   font-family: var(--font-body);
   line-height: 1.65;

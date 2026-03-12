@@ -69,7 +69,7 @@
 
 .sidebar__title {
   font-weight: 800;
-  color: #111827;
+  color: var(--color-gray-900);
   font-size: 0.95rem;
   letter-spacing: 0.2px;
 }
@@ -83,7 +83,7 @@
   border-radius: 10px;
   border: 1px solid rgba(229, 231, 235, 0.9);
   background: rgba(249, 250, 251, 0.9);
-  color: #111827;
+  color: var(--color-gray-900);
 
   display: inline-flex;
   align-items: center;
@@ -144,7 +144,7 @@
 
   border: 0;
   background: transparent;
-  color: #111827;
+  color: var(--color-gray-900);
   font-weight: 700;
   cursor: pointer;
 }
@@ -158,7 +158,7 @@
 }
 
 .dropdown__item--danger {
-  color: #991b1b;
+  color: var(--color-error);
 }
 
 .dropdown__item--danger:hover {

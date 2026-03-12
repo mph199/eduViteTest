@@ -69,7 +69,37 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [x] **Shared Kernel** – Auth (`routes/auth.js`), User-Verwaltung (`routes/admin.js`), E-Mail-Service (`config/email.js`), Branding (`routes/superadmin.js`) bleiben im `backend/`-Root als gemeinsamer Kern.
 - [x] **Lazy Loading Frontend** – Module per `React.lazy()` + Dynamic Import → separate Chunks (BookingApp, AdminSlots, TeacherLayout etc.)
 
-## Phase 7 – Microsoft 365 Login (Azure AD / Entra ID)
+## Phase 7 – Superadmin & Tenant-Branding
+
+> Ziel: Der Superadmin-Bereich wird vollständig verdrahtet, sodass Schulen/Träger
+> das gesamte Erscheinungsbild ohne Code-Änderungen anpassen können.
+
+### 7a – CSS-Variablen-Standardisierung
+- [ ] **Hardcoded Farben eliminieren** – Alle verbleibenden Hex-Werte in CSS-Dateien (MaintenancePage, LegalPage, AdminDashboard) auf `var(--brand-*)` umstellen
+- [ ] **RGB-Helfer automatisch** – Für jede Brand-Variable auch die RGB-Variante generieren (für `rgba()` Nutzung)
+
+### 7b – Seiten-Branding verdrahten (DB + API)
+- [ ] **Migration: `site_branding`-Tabelle** – Farbschema (`primary`, `primary_dark`, `ink`, `surface_1`, `surface_2`), Schulname, Header-Schriftfarbe, Logo-URL, Landing-Page-Texte
+- [ ] **Backend: CRUD-Endpoints** – `GET/PUT /api/superadmin/site-branding` zum Lesen/Speichern der Konfiguration
+- [ ] **Frontend: Branding laden** – Beim App-Start `site_branding` holen und CSS-Custom-Properties auf `:root` dynamisch setzen
+- [ ] **Fallback** – Wenn keine DB-Konfiguration vorhanden, greifen die Standard-Werte aus `index.css`
+
+### 7c – Superadmin-UI erweitern
+- [ ] **Tab: Erscheinungsbild** – Sandbox-Tab verdrahten: Farbschema-Picker (Primary, Buttons, Ink, Surfaces), Schulname, Header-Schriftfarbe, Logo-Upload, Live-Vorschau → Speichern in `site_branding`
+- [ ] **Tab: Landing Page** – Kachel-Bilder/Icons pro Modul anpassbar (Upload oder Emoji-Auswahl), Hero-Text und Willkommenstext editierbar
+- [ ] **Tab: Texte & Inhalte** – Impressum und Datenschutz als Markdown/HTML-Felder über Superadmin pflegbar (statt statische React-Komponenten)
+- [ ] **Tab: System** – Maintenance-Modus per Toggle (sofort wirksam, kein Rebuild), Superadmin-Rolle an andere User vergeben
+
+### 7d – Header & Landing Page dynamisch
+- [ ] **Schulname im Header** – `GlobalTopHeader` liest Schulname + Schriftfarbe + Logo aus Branding-API statt hardcoded "BKSB"
+- [ ] **Landing-Page-Kacheln** – Icon/Bild pro Modul aus DB laden (Superadmin-Upload), Fallback auf Emoji aus Modul-Manifest
+- [ ] **Superadmin-Link** – Zugriff auf Superadmin über Rolle `superadmin` statt hardcoded Username
+
+### 7e – E-Mail-Branding synchronisieren
+- [ ] **Farben koppeln** – Wenn Seiten-Branding gespeichert wird, `primary_color` automatisch auch in `email_branding` aktualisieren (optional entkoppelbar)
+- [ ] **Schulname koppeln** – Gleiches für `school_name` zwischen Site- und E-Mail-Branding
+
+## Phase 8 – Microsoft 365 Login (Azure AD / Entra ID)
 
 - [ ] **Azure App-Registrierung** – Multi-Tenant-App in Azure Entra ID anlegen (Client-ID + Client-Secret), Redirect-URI konfigurieren
 - [ ] **Backend: OpenID Connect** – OAuth 2.0 Authorization Code Flow implementieren (`/api/auth/microsoft` → Redirect zu Microsoft, `/api/auth/microsoft/callback` → Token-Austausch)
@@ -82,27 +112,27 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [ ] **HTTPS Pflicht** – Microsoft erlaubt nur HTTPS-Redirect-URIs (außer localhost); in INSTALL.md als Voraussetzung dokumentieren
 - [ ] **Fallback** – Klassischer Username/Passwort-Login bleibt parallel bestehen für Schulen ohne Microsoft 365
 
-## Phase 8 – DSGVO & Datenhygiene
+## Phase 9 – DSGVO & Datenhygiene
 
 - [ ] **Automatische Datenlöschung** – Personenbezogene Buchungsdaten nach X Tagen automatisch löschen (konfigurierbar über Admin-Settings)
 - [ ] **Datenexport** – Betroffenenanfragen (Art. 15 DSGVO): Export aller gespeicherten Daten zu einer Person als JSON/CSV
 - [ ] **Datenschutzhinweis** – Hinweis auf der Buchungsseite, welche Daten gespeichert werden und wie lange
 - [ ] **Auftragsverarbeitung** – Hinweise/Vorlage für AV-Vertrag in der Dokumentation (INSTALL.md)
 
-## Phase 9 – Automatische Erinnerungen
+## Phase 10 – Automatische Erinnerungen
 
 - [ ] **E-Mail-Erinnerung Eltern** – Cronjob sendet X Stunden vor dem Termin eine Erinnerung an Eltern (konfigurierbar)
 - [ ] **Tagesübersicht Lehrkräfte** – Optionale Morgen-Mail mit allen Terminen des Tages
 - [ ] **Node-Cron oder externer Cron** – Entscheidung: `node-cron` im Backend-Prozess oder separater Container/Systemd-Timer
 - [ ] **Duplikat-Schutz** – Sicherstellen, dass Erinnerungen nicht doppelt gesendet werden (Sent-Flag in DB)
 
-## Phase 10 – Import/Export
+## Phase 11 – Import/Export
 
 - [ ] **CSV-Import Lehrkräfte** – Upload einer CSV-Datei (Name, E-Mail, Sprechzeiten) → Bulk-Anlage von Nutzern
 - [ ] **CSV/Excel-Export Buchungen** – Alle Buchungen pro Event als Download für die Schulverwaltung
 - [ ] **Validierung** – Fehlerhafte Zeilen überspringen, Zusammenfassung anzeigen (X importiert, Y übersprungen)
 
-## Phase 11 – Barrierefreiheit (WCAG 2.1 AA)
+## Phase 12 – Barrierefreiheit (WCAG 2.1 AA)
 
 - [ ] **Tastaturnavigation** – Alle interaktiven Elemente per Tab/Enter erreichbar
 - [ ] **Screenreader** – ARIA-Labels, Rollen und Live-Regions für dynamische Inhalte
