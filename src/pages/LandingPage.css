@@ -1,0 +1,101 @@
+.landing {
+  min-height: 100vh;
+  background-color: #ffffff;
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(var(--brand-primary-rgb), 0.06) 0px,
+      rgba(var(--brand-primary-rgb), 0.06) 1px,
+      rgba(var(--brand-primary-rgb), 0) 1px,
+      rgba(var(--brand-primary-rgb), 0) 26px
+    ),
+    radial-gradient(circle at 12% 10%, rgba(var(--brand-primary-rgb), 0.18) 0%, rgba(var(--brand-primary-rgb), 0) 55%),
+    radial-gradient(circle at 88% 82%, rgba(var(--brand-primary-dark-rgb), 0.14) 0%, rgba(var(--brand-primary-dark-rgb), 0) 55%),
+    linear-gradient(135deg, var(--brand-surface-1) 0%, #ffffff 55%, var(--brand-surface-2) 100%);
+  background-attachment: fixed;
+  padding: 2.5rem var(--page-gutter, 1.25rem) 3rem;
+}
+
+.landing__inner {
+  max-width: var(--page-max-width, 1280px);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.landing__title {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 700;
+  color: var(--brand-primary-dark, #1a3a0a);
+  margin: 0 0 0.5rem;
+}
+
+.landing__subtitle {
+  font-size: 1.05rem;
+  color: #555;
+  margin: 0 0 2.5rem;
+}
+
+.landing__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.landing__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 52px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.landing__card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.landing__card:active {
+  transform: translateY(-1px);
+}
+
+.landing__card-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.landing__card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--brand-primary-dark, #1a3a0a);
+  margin: 0;
+}
+
+.landing__card-desc {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.landing__card-action {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--brand-primary, #2d5016);
+}

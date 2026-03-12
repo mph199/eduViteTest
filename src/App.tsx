@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BookingApp } from './components/BookingApp'
+import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
@@ -43,8 +44,9 @@ function App() {
               {/* Login ist immer erreichbar, auch im Maintenance-Modus */}
               <Route path="/login" element={<LoginPage />} />
               
-              {/* Hauptseite zeigt entweder Maintenance oder normale App */}
-              <Route path="/" element={MAINTENANCE_MODE ? <MaintenancePage /> : <BookingApp />} />
+              {/* Landing Page mit Modul-Kacheln */}
+              <Route path="/" element={MAINTENANCE_MODE ? <MaintenancePage /> : <LandingPage />} />
+              <Route path="/elternsprechtag" element={MAINTENANCE_MODE ? <MaintenancePage /> : <BookingApp />} />
               <Route path="/impressum" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Impressum />} />
               <Route path="/datenschutz" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Datenschutz />} />
               <Route path="/verify" element={<VerifyEmail />} />
