@@ -92,7 +92,8 @@ export const BookingApp = () => {
     selectedTeacherId,
     activeEvent?.id ?? null,
     activeEvent?.starts_at ?? null,
-    selectedTeacher?.system
+    selectedTeacher?.available_from,
+    selectedTeacher?.available_until
   );
 
   // Auto-scroll to slot list once slots have loaded after teacher selection

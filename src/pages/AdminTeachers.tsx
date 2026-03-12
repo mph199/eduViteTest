@@ -20,9 +20,8 @@ export function AdminTeachers() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<ApiTeacher | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', system: 'dual' as 'dual' | 'vollzeit', username: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
-  const [systemSaving, setSystemSaving] = useState<Record<number, boolean>>({});
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
@@ -80,7 +79,8 @@ export function AdminTeachers() {
         email: normalizedEmail,
         salutation: formData.salutation,
         subject: 'Sprechstunde',
-        system: formData.system,
+        available_from: formData.available_from,
+        available_until: formData.available_until,
         room: '',
         username: formData.username || undefined,
         password: formData.password || undefined,
@@ -98,7 +98,7 @@ export function AdminTeachers() {
       await loadTeachers();
       setShowForm(false);
       setEditingTeacher(null);
-      setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', username: '', password: '' });
+      setFormData({ name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
     } catch (err) {
       console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -111,7 +111,8 @@ export function AdminTeachers() {
       name: teacher.name,
       email: teacher.email || '',
       salutation: (teacher.salutation || 'Herr') as 'Herr' | 'Frau' | 'Divers',
-      system: teacher.system || 'dual',
+      available_from: teacher.available_from || '16:00',
+      available_until: teacher.available_until || '19:00',
       username: '',
       password: '',
     });
@@ -135,38 +136,7 @@ export function AdminTeachers() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingTeacher(null);
-    setFormData({ name: '', email: '', salutation: 'Herr', system: 'dual', username: '', password: '' });
-  };
-
-  const handleInlineSystemChange = async (teacher: ApiTeacher, nextSystem: 'dual' | 'vollzeit') => {
-    const currentSystem: 'dual' | 'vollzeit' = teacher.system || 'dual';
-    if (currentSystem === nextSystem) return;
-
-    // Backend update requires these fields; if missing, fall back to edit form.
-    if (!teacher.email || !teacher.salutation) {
-      alert('Bitte erst über "Bearbeiten" E-Mail und Anrede setzen, bevor das System geändert werden kann.');
-      return;
-    }
-
-    setSystemSaving((prev) => ({ ...prev, [teacher.id]: true }));
-    setTeachers((prev) => prev.map((t) => (t.id === teacher.id ? { ...t, system: nextSystem } : t)));
-
-    try {
-      await api.admin.updateTeacher(teacher.id, {
-        name: teacher.name,
-        email: teacher.email,
-        salutation: teacher.salutation,
-        subject: teacher.subject || 'Sprechstunde',
-        system: nextSystem,
-        room: '',
-      });
-    } catch (err) {
-      // Revert optimistic update
-      setTeachers((prev) => prev.map((t) => (t.id === teacher.id ? { ...t, system: currentSystem } : t)));
-      alert(err instanceof Error ? err.message : 'Fehler beim Aktualisieren des Systems');
-    } finally {
-      setSystemSaving((prev) => ({ ...prev, [teacher.id]: false }));
-    }
+    setFormData({ name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   };
 
   const toggleExpand = (id: number) => {
@@ -311,17 +281,6 @@ export function AdminTeachers() {
             <h3>{editingTeacher ? 'Nutzer bearbeiten' : 'Neuen Nutzer anlegen'}</h3>
             <form onSubmit={handleSubmit} className="teacher-form">
               <div className="form-group">
-                <label htmlFor="name">Name</label>
-                <input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="z.B. Max Mustermann"
-                  required
-                />
-              </div>
-              <div className="form-group">
                 <label htmlFor="salutation">Anrede</label>
                 <select
                   id="salutation"
@@ -335,6 +294,17 @@ export function AdminTeachers() {
                 </select>
               </div>
               <div className="form-group">
+                <label htmlFor="name">Name</label>
+                <input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="z.B. Max Mustermann"
+                  required
+                />
+              </div>
+              <div className="form-group">
                 <label htmlFor="email">E-Mail</label>
                 <input
                   id="email"
@@ -346,16 +316,24 @@ export function AdminTeachers() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="system">System</label>
-                <select
-                  id="system"
-                  value={formData.system}
-                  onChange={(e) => setFormData({ ...formData, system: e.target.value as 'dual' | 'vollzeit' })}
-                  required
-                >
-                  <option value="dual">Duales System</option>
-                  <option value="vollzeit">Vollzeit</option>
-                </select>
+                <label htmlFor="available_from">Sprechzeiten</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    id="available_from"
+                    type="time"
+                    value={formData.available_from}
+                    onChange={(e) => setFormData({ ...formData, available_from: e.target.value })}
+                    required
+                  />
+                  <span>bis</span>
+                  <input
+                    id="available_until"
+                    type="time"
+                    value={formData.available_until}
+                    onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
               {!editingTeacher && (
                 <>
@@ -449,7 +427,7 @@ export function AdminTeachers() {
                       <tr>
                         <th>Name</th>
                         <th>E-Mail</th>
-                        <th>System</th>
+                        <th>Sprechzeiten</th>
                         <th>Username</th>
                         <th>Rolle</th>
                         <th className="admin-actions-header">Aktionen</th>
@@ -467,16 +445,7 @@ export function AdminTeachers() {
                             </td>
                             <td>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</td>
                             <td>
-                              <select
-                                className="admin-table-select"
-                                value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
-                                onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
-                                disabled={!!systemSaving[teacher.id]}
-                                aria-label={`System für ${teacher.name}`}
-                              >
-                                <option value="dual">Dual</option>
-                                <option value="vollzeit">Vollzeit</option>
-                              </select>
+                              <span>{teacher.available_from || '16:00'} – {teacher.available_until || '19:00'}</span>
                             </td>
                             <td>
                               {acct ? (
@@ -584,19 +553,8 @@ export function AdminTeachers() {
                               <dd>{teacher.salutation || '–'}</dd>
                             </div>
                             <div className="teacher-card__row">
-                              <dt>System</dt>
-                              <dd>
-                                <select
-                                  className="admin-table-select"
-                                  value={(teacher.system || 'dual') as 'dual' | 'vollzeit'}
-                                  onChange={(e) => handleInlineSystemChange(teacher, e.target.value as 'dual' | 'vollzeit')}
-                                  disabled={!!systemSaving[teacher.id]}
-                                  aria-label={`System für ${teacher.name}`}
-                                >
-                                  <option value="dual">Dual</option>
-                                  <option value="vollzeit">Vollzeit</option>
-                                </select>
-                              </dd>
+                              <dt>Sprechzeiten</dt>
+                              <dd>{teacher.available_from || '16:00'} – {teacher.available_until || '19:00'}</dd>
                             </div>
                             <div className="teacher-card__row">
                               <dt>Username</dt>

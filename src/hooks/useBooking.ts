@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { TimeSlot, BookingFormData, Teacher } from '../types';
+import type { TimeSlot, BookingFormData } from '../types';
 import api from '../services/api';
 
 type CreateBookingRequestResponse = {
@@ -20,8 +20,14 @@ function buildHalfHourWindows(startHour: number, endHour: number) {
   return windows;
 }
 
-function getRequestedTimeWindowsForSystem(system: Teacher['system'] | undefined) {
-  return system === 'vollzeit' ? buildHalfHourWindows(17, 19) : buildHalfHourWindows(16, 18);
+function getTimeWindowsForTeacher(availableFrom?: string, availableUntil?: string) {
+  const fromStr = availableFrom || '16:00';
+  const untilStr = availableUntil || '19:00';
+  const parseTime = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  return buildHalfHourWindows(parseTime(fromStr), parseTime(untilStr));
 }
 
 function formatDateDE(iso: string | null | undefined) {
@@ -38,7 +44,8 @@ export const useBooking = (
   selectedTeacherId: number | null,
   eventId?: number | null,
   eventStartsAt?: string | null,
-  selectedTeacherSystem?: Teacher['system'],
+  selectedTeacherAvailableFrom?: string,
+  selectedTeacherAvailableUntil?: string,
 ) => {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
@@ -58,7 +65,7 @@ export const useBooking = (
     setError('');
 
     const date = formatDateDE(eventStartsAt);
-    const times = getRequestedTimeWindowsForSystem(selectedTeacherSystem);
+    const times = getTimeWindowsForTeacher(selectedTeacherAvailableFrom, selectedTeacherAvailableUntil);
     const fixedSlots: TimeSlot[] = times.map((time, idx) => ({
       id: idx + 1,
       teacherId: selectedTeacherId,
@@ -67,7 +74,7 @@ export const useBooking = (
       booked: false,
     }));
     setSlots(fixedSlots);
-  }, [selectedTeacherId, eventId, eventStartsAt, selectedTeacherSystem]);
+  }, [selectedTeacherId, eventId, eventStartsAt, selectedTeacherAvailableFrom, selectedTeacherAvailableUntil]);
 
   const handleSelectSlot = useCallback((slotId: number) => {
     setSelectedSlotId(slotId);

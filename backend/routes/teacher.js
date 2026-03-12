@@ -5,7 +5,7 @@ import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
 import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../utils/mappers.js';
-import { buildHalfHourWindows, getRequestedTimeWindowsForSystem } from '../utils/timeWindows.js';
+import { buildHalfHourWindows, getTimeWindowsForTeacher } from '../utils/timeWindows.js';
 
 function parseTimeWindow(timeWindow) {
   if (typeof timeWindow !== 'string') return null;
@@ -45,8 +45,8 @@ function buildAssignableSlotTimesFromRequestedWindow(requestedTime, slotMinutes 
   return times;
 }
 
-function buildAssignableSlotTimesForSystem(system) {
-  const windows = getRequestedTimeWindowsForSystem(system);
+function buildAssignableSlotTimesForTeacher(availableFrom, availableUntil) {
+  const windows = getTimeWindowsForTeacher(availableFrom, availableUntil);
   const result = [];
   for (const window of windows) {
     for (const t of buildAssignableSlotTimesFromRequestedWindow(window)) {
@@ -56,13 +56,13 @@ function buildAssignableSlotTimesForSystem(system) {
   return result;
 }
 
-async function getTeacherSystem(teacherId) {
+async function getTeacherTimeRange(teacherId) {
   const { rows } = await query(
-    'SELECT system FROM teachers WHERE id = $1',
+    'SELECT available_from, available_until FROM teachers WHERE id = $1',
     [teacherId]
   );
   if (rows.length === 0) throw new Error('Teacher not found');
-  return rows[0]?.system === 'vollzeit' ? 'vollzeit' : 'dual';
+  return { availableFrom: rows[0]?.available_from || '16:00', availableUntil: rows[0]?.available_until || '19:00' };
 }
 
 function isValidSlotTimeRange(value) {
@@ -173,10 +173,9 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
       details: {
         requestEventId: current.event_id ?? null,
         teacherId,
-        teacherSystem: resolvedTeacherSystem,
         date: current.date,
         requestedTime: current.requested_time,
-        candidateTimes: systemConformTimes,
+        candidateTimes: orderedTimes,
         matchingSlotsFound: (slotRows || []).length,
         matchingEventIds: eventIds,
       },
@@ -370,7 +369,7 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const teacherSystem = await getTeacherSystem(teacherId);
+    const teacherTimeRange = await getTeacherTimeRange(teacherId);
 
     // Auto-assign verified requests older than 24h to the earliest free slot.
     await autoAssignOverdueRequestsForTeacher(teacherId);
@@ -699,7 +698,8 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
         email: data.email,
         salutation: data.salutation,
         subject: data.subject,
-        system: data.system,
+        available_from: data.available_from,
+        available_until: data.available_until,
         room: data.room
       }
     });
@@ -738,7 +738,7 @@ router.put('/room', requireAuth, requireTeacher, async (req, res) => {
     const roomValue = nextRoom && nextRoom.length ? nextRoom : null;
 
     const { rows: roomRows } = await query(
-      'UPDATE teachers SET room = $1 WHERE id = $2 RETURNING id, name, subject, system, room',
+      'UPDATE teachers SET room = $1 WHERE id = $2 RETURNING id, name, subject, available_from, available_until, room',
       [roomValue, teacherId]
     );
     const data = roomRows[0];
@@ -751,7 +751,8 @@ router.put('/room', requireAuth, requireTeacher, async (req, res) => {
         id: data.id,
         name: data.name,
         subject: data.subject,
-        system: data.system,
+        available_from: data.available_from,
+        available_until: data.available_until,
         room: data.room,
       },
     });

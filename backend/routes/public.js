@@ -6,7 +6,7 @@ import { buildEmail, getEmailBranding } from '../emails/template.js';
 import { listTeachers } from '../services/teachersService.js';
 import { reserveBooking, verifyBookingToken } from '../services/slotsService.js';
 import { mapSlotRow } from '../utils/mappers.js';
-import { getRequestedTimeWindowsForSystem, formatDateDE } from '../utils/timeWindows.js';
+import { getTimeWindowsForTeacher, formatDateDE } from '../utils/timeWindows.js';
 
 const router = express.Router();
 
@@ -101,7 +101,7 @@ router.get('/slots', async (req, res) => {
       return res.status(400).json({ error: 'teacherId must be a number' });
     }
 
-    const { rows: teacherRows } = await query('SELECT id, system FROM teachers WHERE id = $1', [teacherIdNum]);
+    const { rows: teacherRows } = await query('SELECT id, available_from, available_until FROM teachers WHERE id = $1', [teacherIdNum]);
     const teacherRow = teacherRows[0] || null;
     if (!teacherRow) throw new Error('Teacher not found');
 
@@ -131,8 +131,7 @@ router.get('/slots', async (req, res) => {
       resolvedEventStartsAt = activeRows.length ? activeRows[0].starts_at : null;
     }
 
-    const teacherSystem = teacherRow?.system || 'dual';
-    const times = getRequestedTimeWindowsForSystem(teacherSystem);
+    const times = getTimeWindowsForTeacher(teacherRow?.available_from, teacherRow?.available_until);
     const eventDate = formatDateDE(resolvedEventStartsAt || new Date().toISOString()) || '01.01.1970';
 
     // Privacy: do not expose booking occupancy or visitor details on public endpoints.
@@ -225,12 +224,12 @@ router.post('/booking-requests', async (req, res) => {
       return res.status(400).json({ error: 'teacherId required' });
     }
 
-    const { rows: teacherLookupRows2 } = await query('SELECT id, system FROM teachers WHERE id = $1', [teacherIdNum]);
+    const { rows: teacherLookupRows2 } = await query('SELECT id, available_from, available_until FROM teachers WHERE id = $1', [teacherIdNum]);
     const teacherRow = teacherLookupRows2[0] || null;
     if (!teacherRow) throw new Error('Teacher not found');
 
     const requestedTime = typeof payload.requestedTime === 'string' ? payload.requestedTime.trim() : '';
-    const allowedTimes = getRequestedTimeWindowsForSystem(teacherRow?.system || 'dual');
+    const allowedTimes = getTimeWindowsForTeacher(teacherRow?.available_from, teacherRow?.available_until);
     if (!allowedTimes.includes(requestedTime)) {
       return res.status(400).json({ error: 'requestedTime invalid' });
     }

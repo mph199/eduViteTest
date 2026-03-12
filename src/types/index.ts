@@ -5,7 +5,8 @@ export interface Teacher {
   salutation?: 'Herr' | 'Frau' | 'Divers';
   subject: string;
   room?: string;
-  system?: 'dual' | 'vollzeit';
+  available_from?: string;
+  available_until?: string;
 }
 
 export interface TimeSlot {

@@ -8,7 +8,7 @@ import { buildEmail, getEmailBranding } from '../emails/template.js';
 import { listAdminBookings, cancelBookingAdmin } from '../services/slotsService.js';
 import { mapSlotRow } from '../utils/mappers.js';
 import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation } from '../utils/validators.js';
-import { generateTimeSlots, formatDateDE } from '../utils/timeWindows.js';
+import { generateTimeSlotsForTeacher, formatDateDE } from '../utils/timeWindows.js';
 
 const router = express.Router();
 
@@ -159,7 +159,7 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
 // POST /api/admin/teachers
 router.post('/teachers', requireAdmin, async (req, res) => {
   try {
-    const { name, email, salutation, subject, system, room, username: reqUsername, password: reqPassword } = req.body || {};
+    const { name, email, salutation, subject, room, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
 
     if (!name) {
       return res.status(400).json({ error: 'name required' });
@@ -175,20 +175,18 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
     }
 
-    const teacherSystem = system || 'dual';
-    if (teacherSystem !== 'dual' && teacherSystem !== 'vollzeit') {
-      return res.status(400).json({ error: 'system must be "dual" or "vollzeit"' });
-    }
+    const availFrom = available_from || '16:00';
+    const availUntil = available_until || '19:00';
 
     // Create teacher
     const { rows: newTeacherRows } = await query(
-      'INSERT INTO teachers (name, email, salutation, subject, system, room) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', teacherSystem, room ? room.trim() : null]
+      'INSERT INTO teachers (name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null]
     );
     const teacher = newTeacherRows[0];
 
-    // Generate time slots based on system
-    const timeSlots = generateTimeSlots(teacherSystem);
+    // Generate time slots based on teacher's available hours
+    const timeSlots = generateTimeSlotsForTeacher(availFrom, availUntil);
 
     let targetEventId = null;
     let eventDate = null;
@@ -316,7 +314,7 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { name, email, salutation, subject, system, room } = req.body || {};
+    const { name, email, salutation, subject, room, available_from, available_until } = req.body || {};
 
     if (!name) {
       return res.status(400).json({ error: 'name required' });
@@ -332,15 +330,13 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
     }
 
-    const teacherSystem = system || 'dual';
-    if (teacherSystem !== 'dual' && teacherSystem !== 'vollzeit') {
-      return res.status(400).json({ error: 'system must be "dual" or "vollzeit"' });
-    }
+    const availFrom = available_from || '16:00';
+    const availUntil = available_until || '19:00';
 
     const { rows } = await query(
-      `UPDATE teachers SET name = $1, email = $2, salutation = $3, subject = $4, system = $5, room = $6
-       WHERE id = $7 RETURNING *`,
-      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', teacherSystem, room ? room.trim() : null, teacherId]
+      `UPDATE teachers SET name = $1, email = $2, salutation = $3, subject = $4, available_from = $5, available_until = $6, room = $7
+       WHERE id = $8 RETURNING *`,
+      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null, teacherId]
     );
 
     if (rows.length === 0) {
@@ -418,7 +414,7 @@ router.post('/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { rows: teacherRows } = await query('SELECT id, system FROM teachers WHERE id = $1', [teacherId]);
+    const { rows: teacherRows } = await query('SELECT id, available_from, available_until FROM teachers WHERE id = $1', [teacherId]);
     const teacherRow = teacherRows[0];
     if (!teacherRow) return res.status(404).json({ error: 'Teacher not found' });
 
@@ -470,8 +466,7 @@ router.post('/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
       eventDate = formatDateDE(new Date().toISOString()) || '01.01.1970';
     }
 
-    const teacherSystem = teacherRow.system || 'dual';
-    const times = generateTimeSlots(teacherSystem);
+    const times = generateTimeSlotsForTeacher(teacherRow.available_from, teacherRow.available_until);
     const now = new Date().toISOString();
 
     // Avoid duplicates
@@ -835,7 +830,7 @@ router.post('/events/:id/generate-slots', requireAuth, requireAdmin, async (req,
       await query('DELETE FROM slots WHERE event_id = $1 AND date = $2', [eventId, eventDate]);
     }
 
-    const { rows: teachers } = await query('SELECT id, system FROM teachers');
+    const { rows: teachers } = await query('SELECT id, available_from, available_until FROM teachers');
     const teacherRows = teachers || [];
     if (!teacherRows.length) return res.json({ success: true, created: 0, skipped: 0, eventDate });
 
@@ -843,7 +838,7 @@ router.post('/events/:id/generate-slots', requireAuth, requireAdmin, async (req,
     let skipped = 0;
 
     for (const t of teacherRows) {
-      const times = generateTimeSlots(t.system || 'dual', slotMinutes);
+      const times = generateTimeSlotsForTeacher(t.available_from, t.available_until, slotMinutes);
 
       const { rows: existingSlots } = await query(
         'SELECT time FROM slots WHERE teacher_id = $1 AND event_id = $2 AND date = $3',

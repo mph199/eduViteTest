@@ -197,7 +197,7 @@ export function AdminSlots() {
                     <optgroup key={`tg-${key}`} label={key}>
                       {list.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>
-                          {teacherDisplayName(teacher)} - {teacher.system === 'vollzeit' ? 'Vollzeit' : 'Dual'}
+                          {teacherDisplayName(teacher)} - {teacher.available_from || '16:00'}–{teacher.available_until || '19:00'}
                         </option>
                       ))}
                     </optgroup>
@@ -255,7 +255,7 @@ export function AdminSlots() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <h3>Sprechzeiten für {teacherDisplayName(selectedTeacher)}</h3>
-                      <p>System: {selectedTeacher.system === 'vollzeit' ? 'Vollzeit (17:00 - 19:00)' : 'Dual (16:00 - 18:00)'}</p>
+                      <p>Sprechzeiten: {selectedTeacher.available_from || '16:00'} – {selectedTeacher.available_until || '19:00'}</p>
                       <p>Anzahl Sprechzeiten: {slots.length} ({slots.filter(s => s.booked).length} gebucht)</p>
                     </div>
                     {slots.filter(s => s.booked).length > 0 && (
