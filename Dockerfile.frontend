@@ -7,6 +7,10 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
+
+ARG VITE_ENABLED_MODULES
+ENV VITE_ENABLED_MODULES=${VITE_ENABLED_MODULES}
+
 RUN npm run build
 
 # Stage 2: Serve with nginx

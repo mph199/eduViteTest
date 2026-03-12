@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import type { BookingFormData } from '../types';
+import type { BookingFormData } from '../../../types';
 
 interface BookingFormProps {
   selectedSlotId: number | null;

@@ -1,11 +1,11 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
-import { query } from '../config/db.js';
-import { isEmailConfigured, sendMail } from '../config/email.js';
-import { buildEmail, getEmailBranding } from '../emails/template.js';
+import { requireAuth } from '../../../middleware/auth.js';
+import { query } from '../../../config/db.js';
+import { isEmailConfigured, sendMail } from '../../../config/email.js';
+import { buildEmail, getEmailBranding } from '../../../emails/template.js';
 import bcrypt from 'bcryptjs';
-import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../utils/mappers.js';
-import { buildHalfHourWindows, getTimeWindowsForTeacher } from '../utils/timeWindows.js';
+import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../../../utils/mappers.js';
+import { buildHalfHourWindows, getTimeWindowsForTeacher } from '../../../utils/timeWindows.js';
 
 function parseTimeWindow(timeWindow) {
   if (typeof timeWindow !== 'string') return null;

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useActiveView } from '../../hooks/useActiveView';
-import api from '../../services/api';
-import '../AdminDashboard.css';
+import { useActiveView } from '../../../../hooks/useActiveView';
+import api from '../../../../services/api';
+import '../../../../pages/AdminDashboard.css';
 
 export type TeacherInfo = {
   id: number;

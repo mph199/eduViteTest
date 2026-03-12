@@ -7,10 +7,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
-import teacherRoutes from './routes/teacher.js';
-import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
 import superadminRoutes from './routes/superadmin.js';
+import { loadModules } from './moduleLoader.js';
 import { initDatabase } from './migrate.js';
 import logger from './config/logger.js';
 
@@ -72,30 +71,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Routes (with rate limiters)
+// Shared kernel routes
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/teacher', teacherRoutes);
-app.use('/api', publicRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superadminRoutes);
 
-// Apply booking limiter to specific public endpoints
-app.post('/api/bookings', bookingLimiter);
-app.post('/api/booking-requests', bookingLimiter);
-
-// 404 fallback
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
-
-// Error handler – no stack traces in production
-app.use((err, _req, res, _next) => {
-  logger.error({ err }, 'Unhandled error');
-  res.status(500).json({
-    error: 'Internal server error',
-    ...(isProduction ? {} : { detail: err.message }),
-  });
-});
+// 404 + Error handler werden erst nach dem Laden der Module registriert (s.u.)
 
 // Graceful shutdown
 const HOST = process.env.HOST || '0.0.0.0';
@@ -128,7 +109,25 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 initDatabase()
-  .then(() => {
+  .then(async () => {
+    // Module laden (gesteuert über ENABLED_MODULES oder alle verfügbaren)
+    const loaded = await loadModules(app, {
+      rateLimiters: { booking: bookingLimiter },
+    });
+    logger.info({ modules: loaded }, 'Aktive Module');
+
+    // 404 + Error handler NACH dem Laden der Module registrieren
+    app.use((_req, res) => {
+      res.status(404).json({ error: 'Not found' });
+    });
+    app.use((err, _req, res, _next) => {
+      logger.error({ err }, 'Unhandled error');
+      res.status(500).json({
+        error: 'Internal server error',
+        ...(isProduction ? {} : { detail: err.message }),
+      });
+    });
+
     server = app.listen(PORT, HOST, () => {
       const printedHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
       logger.info(`Backend listening on http://${printedHost}:${PORT}`);

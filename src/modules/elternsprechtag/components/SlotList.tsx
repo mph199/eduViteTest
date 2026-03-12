@@ -1,4 +1,4 @@
-import type { TimeSlot } from '../types';
+import type { TimeSlot } from '../../../types';
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 

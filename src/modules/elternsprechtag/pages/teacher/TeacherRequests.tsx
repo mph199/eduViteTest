@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import api from '../../services/api';
-import type { BookingRequest } from '../../types';
-import { TeacherRequestsTableSandbox } from '../../components/TeacherRequestsTableSandbox';
+import api from '../../../../services/api';
+import type { BookingRequest } from '../../../../types';
+import { TeacherRequestsTableSandbox } from '../../../../components/TeacherRequestsTableSandbox';
 
 export function TeacherRequests() {
   const [requests, setRequests] = useState<BookingRequest[]>([]);

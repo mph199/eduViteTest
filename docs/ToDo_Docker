@@ -59,15 +59,15 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [x] **Frontend: localStorage entfernen** – Token nicht mehr in `localStorage` speichern, Cookie-basierte Verify-Route nutzen
 - [x] **CSRF-Schutz** – `SameSite=Lax` reicht für Standard-Formulare; bei Bedarf Double-Submit-Cookie ergänzen
 
-## Zukunftsvision – Modulares Plugin-System
+## Zukunftsvision – Modulares Plugin-System ✅
 
 > Langfristiges Ziel: Das Projekt modular aufbauen, sodass Funktionsmodule
 > einzeln aktiviert werden können. Voraussetzung: Phase 1–5 stehen stabil.
 
-- [ ] **Modul-Architektur definieren** – Jedes Modul = eigener Ordner mit festem Interface (Routes, Migrationen, UI-Komponenten, Sidebar-Einträge, Rollen)
-- [ ] **Modul-Registry** – Env-Variable `ENABLED_MODULES=elternsprechtag,schulsozialarbeit` steuert, welche Module geladen werden
-- [ ] **Shared Kernel** – Auth, User-Verwaltung, E-Mail-Service, Branding als gemeinsamer Kern außerhalb der Module
-- [ ] **Lazy Loading Frontend** – Module per Dynamic Import → kleinere Bundles
+- [x] **Modul-Architektur definieren** – Jedes Modul = eigener Ordner mit festem Interface (Routes, Migrationen, UI-Komponenten, Sidebar-Einträge, Rollen). Elternsprechtag als erstes Modul unter `backend/modules/elternsprechtag/` + `src/modules/elternsprechtag/` umgesetzt.
+- [x] **Modul-Registry** – Backend: `ENABLED_MODULES` Env-Variable + `backend/moduleLoader.js` lädt Module dynamisch. Frontend: `VITE_ENABLED_MODULES` + `src/modules/registry.ts` filtert Module.
+- [x] **Shared Kernel** – Auth (`routes/auth.js`), User-Verwaltung (`routes/admin.js`), E-Mail-Service (`config/email.js`), Branding (`routes/superadmin.js`) bleiben im `backend/`-Root als gemeinsamer Kern.
+- [x] **Lazy Loading Frontend** – Module per `React.lazy()` + Dynamic Import → separate Chunks (BookingApp, AdminSlots, TeacherLayout etc.)
 
 ## Phase 7 – Microsoft 365 Login (Azure AD / Entra ID)
 

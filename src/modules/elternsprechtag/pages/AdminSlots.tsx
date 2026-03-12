@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useActiveView } from '../hooks/useActiveView';
-import api from '../services/api';
-import type { TimeSlot as ApiSlot, Teacher as ApiTeacher } from '../types';
-import { exportTeacherSlotsToICal } from '../utils/icalExport';
-import { teacherDisplayName, teacherGroupKey } from '../utils/teacherDisplayName';
-import './AdminDashboard.css';
+import { useActiveView } from '../../../hooks/useActiveView';
+import api from '../../../services/api';
+import type { TimeSlot as ApiSlot, Teacher as ApiTeacher } from '../../../types';
+import { exportTeacherSlotsToICal } from '../../../utils/icalExport';
+import { teacherDisplayName, teacherGroupKey } from '../../../utils/teacherDisplayName';
+import '../../../pages/AdminDashboard.css';
 
 export function AdminSlots() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);

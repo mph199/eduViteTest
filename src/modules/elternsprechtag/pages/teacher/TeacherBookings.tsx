@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import api from '../../services/api';
-import type { TimeSlot } from '../../types';
-import { exportBookingsToICal } from '../../utils/icalExport';
+import api from '../../../../services/api';
+import type { TimeSlot } from '../../../../types';
+import { exportBookingsToICal } from '../../../../utils/icalExport';
 import type { TeacherOutletContext } from './TeacherLayout';
 
 type SortKey = 'when' | 'visitor';

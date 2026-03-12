@@ -38,6 +38,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
+      ENABLED_MODULES: ${ENABLED_MODULES:-}
     volumes:
       - uploads:/app/uploads
     ports:
@@ -47,6 +48,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_ENABLED_MODULES: ${VITE_ENABLED_MODULES:-}
     restart: unless-stopped
     depends_on:
       - backend

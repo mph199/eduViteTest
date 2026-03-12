@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { query } from '../../../config/db.js';
 
 export async function listTeachers() {
   // Public endpoint: do not expose private fields (e.g. teacher email)

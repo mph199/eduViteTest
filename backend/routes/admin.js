@@ -5,7 +5,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
-import { listAdminBookings, cancelBookingAdmin } from '../services/slotsService.js';
+import { listAdminBookings, cancelBookingAdmin } from '../modules/elternsprechtag/services/slotsService.js';
 import { mapSlotRow } from '../utils/mappers.js';
 import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation } from '../utils/validators.js';
 import { generateTimeSlotsForTeacher, formatDateDE } from '../utils/timeWindows.js';

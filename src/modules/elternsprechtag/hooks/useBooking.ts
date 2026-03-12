@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { TimeSlot, BookingFormData } from '../types';
-import api from '../services/api';
+import type { TimeSlot, BookingFormData } from '../../../types';
+import api from '../../../services/api';
 
 type CreateBookingRequestResponse = {
   success?: boolean;

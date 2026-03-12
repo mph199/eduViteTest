@@ -1,12 +1,12 @@
 import express from 'express';
 import crypto from 'crypto';
-import { query } from '../config/db.js';
-import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from '../config/email.js';
-import { buildEmail, getEmailBranding } from '../emails/template.js';
+import { query } from '../../../config/db.js';
+import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from '../../../config/email.js';
+import { buildEmail, getEmailBranding } from '../../../emails/template.js';
 import { listTeachers } from '../services/teachersService.js';
 import { reserveBooking, verifyBookingToken } from '../services/slotsService.js';
-import { mapSlotRow } from '../utils/mappers.js';
-import { getTimeWindowsForTeacher, formatDateDE } from '../utils/timeWindows.js';
+import { mapSlotRow } from '../../../utils/mappers.js';
+import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
 
 const router = express.Router();
 

@@ -1,20 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { BookingApp } from './components/BookingApp'
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
-import { AdminSlots } from './pages/AdminSlots';
 import { AdminEvents } from './pages/AdminEvents';
 import { AdminFeedback } from './pages/AdminFeedback';
-import { TeacherLayout } from './pages/teacher/TeacherLayout';
-import { TeacherBookings } from './pages/teacher/TeacherBookings';
-import { TeacherRequests } from './pages/teacher/TeacherRequests';
-import { TeacherHome } from './pages/teacher/TeacherHome';
-import { TeacherPassword } from './pages/teacher/TeacherPassword';
-import { TeacherFeedback } from './pages/teacher/TeacherFeedback';
 import { Impressum } from './pages/Impressum';
 import { Datenschutz } from './pages/Datenschutz';
 import { VerifyEmail } from './pages/VerifyEmail';
@@ -23,6 +16,7 @@ import { SuperadminPage } from './pages/SuperadminPage';
 import { Footer } from './components/Footer';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { GlobalTopHeader } from './components/GlobalTopHeader';
+import { modules } from './modules/registry';
 import './App.css'
 
 // Maintenance-Modus via Env: VITE_MAINTENANCE_MODE=true|1|yes
@@ -40,35 +34,54 @@ function App() {
           <GlobalTopHeader />
           <div style={{ flex: 1 }}>
             <AppErrorBoundary>
+            <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Laden…</div>}>
             <Routes>
               {/* Login ist immer erreichbar, auch im Maintenance-Modus */}
               <Route path="/login" element={<LoginPage />} />
               
               {/* Landing Page mit Modul-Kacheln */}
               <Route path="/" element={MAINTENANCE_MODE ? <MaintenancePage /> : <LandingPage />} />
-              <Route path="/elternsprechtag" element={MAINTENANCE_MODE ? <MaintenancePage /> : <BookingApp />} />
               <Route path="/impressum" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Impressum />} />
               <Route path="/datenschutz" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Datenschutz />} />
               <Route path="/verify" element={<VerifyEmail />} />
-              
-              {/* Geschützter Teacher-Bereich */}
-              <Route
-                path="/teacher"
-                element={
-                  <ProtectedRoute>
-                    <TeacherLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<TeacherHome />} />
-                <Route path="requests" element={<TeacherRequests />} />
-                <Route path="bookings" element={<TeacherBookings />} />
-                <Route path="password" element={<TeacherPassword />} />
-                <Route path="feedback" element={<TeacherFeedback />} />
-                <Route path="*" element={<Navigate to="/teacher" replace />} />
-              </Route>
 
-              {/* Admin-Bereich ist immer erreichbar, auch im Maintenance-Modus */}
+              {/* Dynamische Modul-Routen */}
+              {modules.map((mod) => (
+                <Route
+                  key={mod.id}
+                  path={mod.basePath}
+                  element={MAINTENANCE_MODE ? <MaintenancePage /> : <mod.PublicPage />}
+                />
+              ))}
+
+              {/* Geschützter Teacher-Bereich (aus Modulen) */}
+              {modules
+                .filter((mod) => mod.teacherLayout && mod.teacherRoutes)
+                .map((mod) => {
+                  const Layout = mod.teacherLayout!;
+                  return (
+                    <Route
+                      key={`teacher-${mod.id}`}
+                      path="/teacher"
+                      element={
+                        <ProtectedRoute>
+                          <Layout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      {mod.teacherRoutes!.map((tr, i) =>
+                        tr.index ? (
+                          <Route key={i} index element={<tr.Component />} />
+                        ) : (
+                          <Route key={i} path={tr.path} element={<tr.Component />} />
+                        )
+                      )}
+                      <Route path="*" element={<Navigate to="/teacher" replace />} />
+                    </Route>
+                  );
+                })}
+
+              {/* Admin-Bereich – Shared Kernel */}
               <Route 
                 path="/admin" 
                 element={
@@ -85,14 +98,20 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/admin/slots" 
-                element={
-                  <ProtectedRoute>
-                    <AdminSlots />
-                  </ProtectedRoute>
-                } 
-              />
+              {/* Admin-Routen aus Modulen */}
+              {modules.flatMap((mod) =>
+                (mod.adminRoutes ?? []).map((ar) => (
+                  <Route
+                    key={ar.path}
+                    path={ar.path}
+                    element={
+                      <ProtectedRoute>
+                        <ar.Component />
+                      </ProtectedRoute>
+                    }
+                  />
+                ))
+              )}
               <Route 
                 path="/admin/events" 
                 element={
@@ -124,6 +143,7 @@ function App() {
               {/* Catch-All: leite unbekannte Pfade auf die Startseite um */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
             </AppErrorBoundary>
           </div>
           <Footer />

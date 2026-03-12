@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { query } from '../config/db.js';
-import { mapBookingRowWithTeacher, mapSlotRow } from '../utils/mappers.js';
+import { query } from '../../../config/db.js';
+import { mapBookingRowWithTeacher, mapSlotRow } from '../../../utils/mappers.js';
 
 export async function listSlotsByTeacherId(teacherId) {
   const { rows } = await query(

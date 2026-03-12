@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-import type { BookingRequest, TimeSlot } from '../../types';
+import api from '../../../../services/api';
+import type { BookingRequest, TimeSlot } from '../../../../types';
 import './TeacherHome.css';
 
 export function TeacherHome() {

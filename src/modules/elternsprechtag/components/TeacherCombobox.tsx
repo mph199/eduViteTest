@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Teacher } from '../types';
-import { teacherDisplayName, teacherGroupKey } from '../utils/teacherDisplayName';
+import type { Teacher } from '../../../types';
+import { teacherDisplayName, teacherGroupKey } from '../../../utils/teacherDisplayName';
 
 type Props = {
   teachers: Teacher[];

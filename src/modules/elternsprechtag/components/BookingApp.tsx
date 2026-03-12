@@ -3,9 +3,9 @@ import { SlotList } from './SlotList';
 import { BookingForm } from './BookingForm';
 import { TeacherCombobox } from './TeacherCombobox';
 import { useBooking } from '../hooks/useBooking';
-import type { Teacher } from '../types';
-import { teacherDisplayNameAccusative } from '../utils/teacherDisplayName';
-import api from '../services/api';
+import type { Teacher } from '../../../types';
+import { teacherDisplayNameAccusative } from '../../../utils/teacherDisplayName';
+import api from '../../../services/api';
 import './BookingApp.css';
 
 type ActiveEvent = {
