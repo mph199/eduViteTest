@@ -59,25 +59,30 @@ ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE slots ENABLE ROW LEVEL SECURITY;
 
 -- Jeder kann Lehrer lesen
+DROP POLICY IF EXISTS "Teachers are viewable by everyone" ON teachers;
 CREATE POLICY "Teachers are viewable by everyone" 
   ON teachers FOR SELECT 
   USING (true);
 
 -- Jeder kann Slots lesen
+DROP POLICY IF EXISTS "Slots are viewable by everyone" ON slots;
 CREATE POLICY "Slots are viewable by everyone" 
   ON slots FOR SELECT 
   USING (true);
 
 -- Jeder kann Buchungen erstellen (Slots updaten)
+DROP POLICY IF EXISTS "Anyone can book slots" ON slots;
 CREATE POLICY "Anyone can book slots" 
   ON slots FOR UPDATE 
   USING (true);
 
 -- Nur für spätere Admin-Funktionen (optional)
+DROP POLICY IF EXISTS "Anyone can insert slots" ON slots;
 CREATE POLICY "Anyone can insert slots" 
   ON slots FOR INSERT 
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Anyone can delete slots" ON slots;
 CREATE POLICY "Anyone can delete slots" 
   ON slots FOR DELETE 
   USING (true);

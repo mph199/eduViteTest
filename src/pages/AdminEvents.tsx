@@ -193,7 +193,7 @@ export function AdminEvents() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Event und alle zugehörigen Slots wirklich löschen?')) return;
+    if (!confirm('Event und alle zugehörigen Sprechzeiten wirklich löschen?')) return;
     setError('');
     setSuccess('');
     try {
@@ -222,7 +222,7 @@ export function AdminEvents() {
       const skipped = res?.skipped;
       const eventDate = res?.eventDate;
       setSuccess(
-        `Slots generiert${eventDate ? ` (${eventDate})` : ''}: ${created ?? 0} erstellt, ${skipped ?? 0} übersprungen`
+        `Sprechzeiten generiert${eventDate ? ` (${eventDate})` : ''}: ${created ?? 0} erstellt, ${skipped ?? 0} übersprungen`
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler beim Generieren');
@@ -260,7 +260,7 @@ export function AdminEvents() {
           <span className="ev-workflow__arrow" aria-hidden="true">→</span>
           <div className="ev-workflow__step">
             <span className="ev-workflow__num">2</span>
-            <span className="ev-workflow__label">Slots generieren</span>
+            <span className="ev-workflow__label">Sprechzeiten generieren</span>
           </div>
           <span className="ev-workflow__arrow" aria-hidden="true">→</span>
           <div className="ev-workflow__step">
@@ -477,11 +477,11 @@ export function AdminEvents() {
                     <div className="ev-detail-section">
                       <h4 className="ev-detail-section__title">
                         <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>2</span>
-                        Slots generieren
+                        Sprechzeiten generieren
                       </h4>
                       <div className="ev-slot-controls">
                         <div className="form-group" style={{ flex: '0 0 auto', minWidth: 120 }}>
-                          <label htmlFor={`slotMin_${expandedEvent.id}`}>Slot-Länge</label>
+                          <label htmlFor={`slotMin_${expandedEvent.id}`}>Dauer</label>
                           <select
                             id={`slotMin_${expandedEvent.id}`}
                             value={slotMinutes}
@@ -499,7 +499,7 @@ export function AdminEvents() {
                             checked={replaceExisting}
                             onChange={(e) => setReplaceExisting(e.target.checked)}
                           />
-                          Vorhandene Slots ersetzen
+                          Vorhandene Sprechzeiten ersetzen
                         </label>
                         <button
                           type="button"
@@ -507,7 +507,7 @@ export function AdminEvents() {
                           onClick={() => handleGenerateSlots(expandedEvent.id)}
                           disabled={generating}
                         >
-                          {generating ? 'Generiere…' : 'Slots generieren'}
+                          {generating ? 'Generiere…' : 'Sprechzeiten generieren'}
                         </button>
                       </div>
                     </div>
@@ -593,11 +593,11 @@ export function AdminEvents() {
                             <div className="ev-detail-section">
                               <h4 className="ev-detail-section__title">
                                 <span className="ev-workflow__num" style={{ fontSize: '0.7rem', width: 20, height: 20 }}>2</span>
-                                Slots generieren
+                                Sprechzeiten generieren
                               </h4>
                               <div className="ev-slot-controls">
                                 <div className="form-group" style={{ flex: '0 0 auto', minWidth: 120 }}>
-                                  <label htmlFor={`slotMin_m_${ev.id}`}>Slot-Länge</label>
+                                  <label htmlFor={`slotMin_m_${ev.id}`}>Dauer</label>
                                   <select
                                     id={`slotMin_m_${ev.id}`}
                                     value={slotMinutes}
@@ -623,7 +623,7 @@ export function AdminEvents() {
                                   onClick={() => handleGenerateSlots(ev.id)}
                                   disabled={generating}
                                 >
-                                  {generating ? 'Generiere…' : 'Slots generieren'}
+                                  {generating ? 'Generiere…' : 'Sprechzeiten generieren'}
                                 </button>
                               </div>
                             </div>

@@ -121,20 +121,20 @@ export function AdminSlots() {
       <main className="admin-main">
         <div className="teacher-form-container">
           <div className="admin-section-header">
-            <h3>Zeitslots verwalten</h3>
+            <h3>Sprechzeiten verwalten</h3>
             {selectedTeacherId && !showForm && (
               <div className="action-buttons action-buttons--compact">
                 <button 
                   onClick={() => setShowForm(true)} 
                   className="btn-primary"
                 >
-                  + Neuer Slot
+                  + Neue Sprechzeit
                 </button>
                 <button
                   onClick={async () => {
                     if (!selectedTeacherId) return;
                     const name = selectedTeacher ? teacherDisplayName(selectedTeacher) : 'diese Lehrkraft';
-                    if (!confirm(`Alle Slots für ${name} anlegen?`)) return;
+                    if (!confirm(`Alle Sprechzeiten für ${name} anlegen?`)) return;
                     try {
                       setBulkCreating(true);
                       const res = await api.admin.generateTeacherSlots(selectedTeacherId);
@@ -144,9 +144,9 @@ export function AdminSlots() {
                       const skipped = parsed?.skipped ?? 0;
                       const eventDate = parsed?.eventDate ?? null;
                       await loadSlots(selectedTeacherId);
-                      alert(`Slots angelegt${eventDate ? ` (${eventDate})` : ''}: ${created}\nBereits vorhanden: ${skipped}`);
+                      alert(`Sprechzeiten angelegt${eventDate ? ` (${eventDate})` : ''}: ${created}\nBereits vorhanden: ${skipped}`);
                     } catch (err) {
-                      alert(err instanceof Error ? err.message : 'Fehler beim Anlegen der Slots');
+                      alert(err instanceof Error ? err.message : 'Fehler beim Anlegen der Sprechzeiten');
                     } finally {
                       setBulkCreating(false);
                     }
@@ -154,7 +154,7 @@ export function AdminSlots() {
                   className="btn-secondary"
                   disabled={bulkCreating}
                 >
-                  {bulkCreating ? 'Anlegen…' : 'Alle Slots anlegen'}
+                  {bulkCreating ? 'Anlegen…' : 'Alle Sprechzeiten anlegen'}
                 </button>
               </div>
             )}
@@ -254,9 +254,9 @@ export function AdminSlots() {
                 <div className="settings-info" style={{ marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h3>Slots für {teacherDisplayName(selectedTeacher)}</h3>
+                      <h3>Sprechzeiten für {teacherDisplayName(selectedTeacher)}</h3>
                       <p>System: {selectedTeacher.system === 'vollzeit' ? 'Vollzeit (17:00 - 19:00)' : 'Dual (16:00 - 18:00)'}</p>
-                      <p>Anzahl Slots: {slots.length} ({slots.filter(s => s.booked).length} gebucht)</p>
+                      <p>Anzahl Sprechzeiten: {slots.length} ({slots.filter(s => s.booked).length} gebucht)</p>
                     </div>
                     {slots.filter(s => s.booked).length > 0 && (
                       <button
@@ -272,7 +272,7 @@ export function AdminSlots() {
 
               {slots.length === 0 ? (
                 <div className="no-teachers">
-                  <p>Keine Slots vorhanden.</p>
+                  <p>Keine Sprechzeiten vorhanden.</p>
                 </div>
               ) : (
                 <div className="admin-resp-table-container">

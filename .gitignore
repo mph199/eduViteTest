@@ -44,3 +44,4 @@ backend/server.pid
 
 # Sensitive data
 backend/teachers.txt
+backups/

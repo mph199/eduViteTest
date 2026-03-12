@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.local
+.env.production
+backend/.env
+backend/node_modules
+backend/uploads
+backend/server.pid
+*.pid
+.git
+.gitignore
+.vscode
+README.md
+docs/

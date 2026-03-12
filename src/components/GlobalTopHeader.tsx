@@ -38,7 +38,7 @@ export function GlobalTopHeader() {
     if (pathname === '/admin' || pathname === '/admin/') return 'Admin · Übersicht';
     if (pathname.includes('/admin/teachers')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/events')) return 'Admin · Eltern- und Ausbildersprechtage verwalten';
-    if (pathname.includes('/admin/slots')) return 'Admin · Slots verwalten';
+    if (pathname.includes('/admin/slots')) return 'Admin · Sprechzeiten verwalten';
     if (pathname.includes('/admin/users')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/feedback')) return 'Admin · Feedback einsehen';
     if (pathname === '/superadmin' || pathname.startsWith('/superadmin')) return 'Superadmin · Tenant-Branding';
@@ -196,7 +196,7 @@ export function GlobalTopHeader() {
                           close();
                         }}
                       >
-                        <span>Slots verwalten</span>
+                        <span>Sprechzeiten verwalten</span>
                         {pathname === '/admin/slots' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
 

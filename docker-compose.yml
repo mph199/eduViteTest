@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sprechtag}
+      POSTGRES_USER: ${POSTGRES_USER:-sprechtag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sprechtag}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sprechtag}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sprechtag}:${POSTGRES_PASSWORD:-sprechtag}@postgres:5432/${POSTGRES_DB:-sprechtag}
+      PORT: 4000
+      HOST: 0.0.0.0
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      VERIFICATION_TOKEN_TTL_HOURS: ${VERIFICATION_TOKEN_TTL_HOURS:-72}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-ethereal}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  pg_data:
+  uploads:

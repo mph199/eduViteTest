@@ -304,12 +304,12 @@ export function AdminDashboard() {
                 <div style={{ color: '#4b5563' }}>
                   {activeEventStats ? (
                     <>
-                      Slots: {activeEventStats.totalSlots} gesamt • {activeEventStats.availableSlots} verfügbar • {activeEventStats.reservedSlots} reserviert • {activeEventStats.confirmedSlots} bestätigt
+                      Sprechzeiten: {activeEventStats.totalSlots} gesamt • {activeEventStats.availableSlots} verfügbar • {activeEventStats.reservedSlots} reserviert • {activeEventStats.confirmedSlots} bestätigt
                     </>
                   ) : activeEventStatsError ? (
-                    <>Slots: {activeEventStatsError}</>
+                    <>Sprechzeiten: {activeEventStatsError}</>
                   ) : (
-                    <>Slots: Laden…</>
+                    <>Sprechzeiten: Laden…</>
                   )}
                 </div>
               )}

@@ -10,44 +10,44 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ## Phase 1 – Containerisierung (Basis)
 
-- [ ] **Dockerfile Backend** – Node.js 20-Image, `npm ci --omit=dev`, Healthcheck
-- [ ] **Dockerfile Frontend** – Multi-Stage-Build: Vite-Build → nginx zum Ausliefern
-- [ ] **docker-compose.yml** – Services: `frontend`, `backend`, `postgres`
-- [ ] **.dockerignore** – `node_modules`, `dist`, `.env`, `uploads/`, `*.pid` ausschließen
-- [ ] **Volumes** – Persistentes DB-Volume, Upload-Volume (`uploads/logos/`)
-- [ ] **Environment** – `.env.example` existiert bereits → prüfen, ob alle Docker-relevanten Vars enthalten sind
-- [ ] **Migrations automatisch** – Die 17 bestehenden SQL-Dateien in `backend/migrations/` numerisch benennen (z. B. `001_schema.sql`, `002_add_users_table.sql` …) und beim Container-Start der Reihe nach ausführen (z. B. via node-pg-migrate oder eigenes Script mit `applied_migrations`-Tabelle). `backend/schema.sql` dient als Referenz, ist aber nicht die Quelle – die Migrationen sind führend.
+- [x] **Dockerfile Backend** – Node.js 20-Image, `npm ci --omit=dev`, Healthcheck
+- [x] **Dockerfile Frontend** – Multi-Stage-Build: Vite-Build → nginx zum Ausliefern
+- [x] **docker-compose.yml** – Services: `frontend`, `backend`, `postgres`
+- [x] **.dockerignore** – `node_modules`, `dist`, `.env`, `uploads/`, `*.pid` ausschließen
+- [x] **Volumes** – Persistentes DB-Volume (`pg_data`), Upload-Volume (`uploads`)
+- [x] **Environment** – `.env.example` aktualisiert mit Docker-Defaults (`postgres`-Host, `POSTGRES_*`-Vars)
+- [x] **Migrations automatisch** – 17 SQL-Dateien nummeriert (`001_`–`017_`), `backend/migrate.js` führt beim Start alle ausstehenden Migrationen aus (mit `applied_migrations`-Tabelle)
 - [x] **Healthcheck-Endpoint** – `GET /api/health` existiert bereits (DB-Ping)
 
 ## Phase 2 – Konfiguration & Multi-Tenancy-Vorbereitung
 
 - [x] **Zentrale Config** – E-Mail-Branding (Schulname, Logo, Farben) ist bereits über die Superadmin-UI + `email_branding`-Tabelle steuerbar
-- [ ] **Reverse-Proxy-Setup** – Beispiel-Config für Traefik / Caddy / nginx mit automatischem TLS (Let's Encrypt)
-- [ ] **CORS / Trusted Origins** – Aktuell sind mehrere Wildcard-Domains in `index.js` hardcoded → auf eine einzige Env-Variable `CORS_ORIGINS` umstellen
-- [ ] **Secrets-Management** – JWT-Secret, DB-Passwort, SMTP-Credentials über Docker Secrets oder `.env`
+- [x] **Reverse-Proxy-Setup** – Beispiel-Configs für Caddy, Traefik und nginx in `docs/reverse-proxy-examples.md`
+- [x] **CORS / Trusted Origins** – Env-Variable `CORS_ORIGINS` (kommasepariert) statt Hardcode in `index.js`
+- [x] **Secrets-Management** – Alle Secrets über `.env`-Datei, mit Sicherheitshinweisen und Generierungs-Befehl in `.env.example`
 
 ## Phase 3 – Production Hardening
 
-- [ ] **Structured Logging** – Winston oder Pino statt `console.log`, JSON-Format für Docker-Logs
-- [ ] **Rate Limiting** – `express-rate-limit` auf Login-, Booking- und E-Mail-Endpunkte
-- [ ] **Graceful Shutdown** – `SIGTERM`-Handler: offene Requests abschließen, DB-Pool schließen, dann exit
-- [ ] **Error Handling** – Zentrale Error-Middleware verbessern, Stack-Traces nur in Development
-- [ ] **Security Headers** – Helmet.js für CSP, HSTS, X-Frame-Options etc.
+- [x] **Structured Logging** – Pino mit JSON-Output (Production) / Pretty-Print (Development), `console.log` komplett ersetzt
+- [x] **Rate Limiting** – `express-rate-limit` auf Auth-Routen (20/15min) und Booking-Endpunkte (30/15min)
+- [x] **Graceful Shutdown** – `SIGTERM`/`SIGINT`-Handler: HTTP-Server schließen, DB-Pool beenden, Force-Exit nach 10s
+- [x] **Error Handling** – Stack-Traces nur in Development, strukturierte Fehler-Logs via Pino
+- [x] **Security Headers** – Helmet.js aktiv (HSTS, X-Content-Type-Options, X-Frame-Options etc.)
 
 ## Phase 4 – CI/CD & Image-Veröffentlichung
 
-- [ ] **GitHub Actions** – Build + Push des Docker-Images bei Release-Tag
-- [ ] **Container-Registry** – Image auf GitHub Container Registry (ghcr.io) oder Docker Hub veröffentlichen
-- [ ] **Versioning** – Semantic Versioning, Changelog
-- [ ] **Smoke-Tests** – `docker compose up` → Healthcheck → E2E-Test (Playwright) → Teardown
+- [x] **GitHub Actions** – `.github/workflows/docker-publish.yml` – Build + Push bei Release-Tag (`v*`)
+- [x] **Container-Registry** – GitHub Container Registry (`ghcr.io/mph199/eduvitetest-backend`, `-frontend`)
+- [x] **Versioning** – Semantic Versioning via Git-Tags, automatische `major.minor` + `sha`-Tags
+- [x] **Smoke-Tests** – CI startet Stack aus gepushten Images → Healthcheck + Frontend-Check + API-Proxy-Check → Teardown
 
 ## Phase 5 – Betrieb & Dokumentation
 
-- [ ] **Admin-Installationsanleitung** – Schritt-für-Schritt: VPS mieten → Docker installieren → `.env` anpassen → `docker compose up -d`
-- [ ] **Backup-Strategie** – Cron-Job für DB-Dump (`pg_dump`) + explizit das `uploads/`-Volume sichern (Logos etc.)
-- [ ] **Update-Prozess** – `docker compose pull && docker compose up -d` mit Zero-Downtime-Hinweis
-- [ ] **Monitoring** – Vorschlag: Uptime Kuma, Grafana/Loki oder einfacher Log-Output
-- [ ] **Ressourcen-Empfehlung** – Minimum-Hardware (1 vCPU, 1 GB RAM reicht für kleine Schule)
+- [x] **Admin-Installationsanleitung** – `docs/INSTALL.md` – Schritt-für-Schritt: VPS → Docker → `.env` → `docker compose up -d` → HTTPS → Backup → Monitoring → Troubleshooting
+- [x] **Backup-Strategie** – `scripts/backup.sh` – DB-Dump + Uploads-Volume, Retention 30 Tage, Cron-ready
+- [x] **Update-Prozess** – In INSTALL.md dokumentiert: `docker compose pull && docker compose up -d`
+- [x] **Monitoring** – Health-Endpoint-Cron + Uptime Kuma Empfehlung in INSTALL.md
+- [x] **Ressourcen-Empfehlung** – Min. 1 vCPU / 1 GB RAM, empfohlen 2 vCPU / 2 GB RAM
 
 ## Zukunftsvision – Modulares Plugin-System
 
