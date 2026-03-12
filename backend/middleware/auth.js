@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 
 // Admin User Credentials
 export const ADMIN_USER = {
-  username: 'admin',
-  passwordHash: '$2b$10$K7KzIVafYIWYoOIIXB2tTeBmrC16USa2HRzx22cC985UDuRKcDpWS' // bksb2024
+  username: 'Start',
+  passwordHash: '$2b$10$jMMKjGTA.VRvbHHcoWAlhexrOd29f89oVG7wdk..iKtXxMcCWGeYa' // Start
 };
 
 const JWT_SECRET = process.env.JWT_SECRET || 'bksb-jwt-secret-2024-change-in-production';

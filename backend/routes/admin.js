@@ -167,7 +167,7 @@ router.post('/teachers', requireAdmin, async (req, res) => {
 
     const parsedEmail = normalizeAndValidateTeacherEmail(email);
     if (!parsedEmail.ok) {
-      return res.status(400).json({ error: 'Ungültige E-Mail-Adresse. Sie muss auf @bksb.nrw enden.' });
+      return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
     }
 
     const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
@@ -324,7 +324,7 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
 
     const parsedEmail = normalizeAndValidateTeacherEmail(email);
     if (!parsedEmail.ok) {
-      return res.status(400).json({ error: 'Ungültige E-Mail-Adresse. Sie muss auf @bksb.nrw enden.' });
+      return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
     }
 
     const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
@@ -539,7 +539,7 @@ router.get('/settings', requireAuth, async (_req, res) => {
     if (!data) {
       return res.json({
         id: 1,
-        event_name: 'BKSB Elternsprechtag',
+        event_name: 'Elternsprechtag',
         event_date: new Date().toISOString().split('T')[0]
       });
     }

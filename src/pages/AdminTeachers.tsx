@@ -68,9 +68,9 @@ export function AdminTeachers() {
     }
 
     const normalizedEmail = formData.email.trim().toLowerCase();
-    const isValidEmail = /^[a-z0-9._%+-]+@bksb\.nrw$/i.test(normalizedEmail);
+    const isValidEmail = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalizedEmail);
     if (!isValidEmail) {
-      alert('Die E-Mail-Adresse muss auf @bksb.nrw enden.');
+      alert('Bitte eine gültige E-Mail-Adresse eingeben.');
       return;
     }
 
@@ -249,7 +249,7 @@ export function AdminTeachers() {
               onClick={() => setShowForm(true)} 
               className="btn-primary"
             >
-              + Neue Lehrkraft
+              + Neuer Nutzer
             </button>
           )}
         </div>
@@ -308,7 +308,7 @@ export function AdminTeachers() {
 
         {showForm && (
           <div className="teacher-form-container">
-            <h3>{editingTeacher ? 'Lehrkraft bearbeiten' : 'Neue Lehrkraft anlegen'}</h3>
+            <h3>{editingTeacher ? 'Nutzer bearbeiten' : 'Neuen Nutzer anlegen'}</h3>
             <form onSubmit={handleSubmit} className="teacher-form">
               <div className="form-group">
                 <label htmlFor="name">Name</label>
@@ -335,13 +335,13 @@ export function AdminTeachers() {
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="email">E-Mail (muss auf @bksb.nrw enden)</label>
+                <label htmlFor="email">E-Mail</label>
                 <input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="z.B. vorname.nachname@bksb.nrw"
+                  placeholder="z.B. vorname.nachname@schule.nrw"
                   required
                 />
               </div>
@@ -353,8 +353,8 @@ export function AdminTeachers() {
                   onChange={(e) => setFormData({ ...formData, system: e.target.value as 'dual' | 'vollzeit' })}
                   required
                 >
-                  <option value="dual">Duales System (16:00 - 18:00 Uhr)</option>
-                  <option value="vollzeit">Vollzeit System (17:00 - 19:00 Uhr)</option>
+                  <option value="dual">Duales System</option>
+                  <option value="vollzeit">Vollzeit</option>
                 </select>
               </div>
               {!editingTeacher && (
@@ -392,7 +392,7 @@ export function AdminTeachers() {
             </form>
             {!editingTeacher && createdCreds && (
               <div className="admin-success" style={{ marginTop: '1rem' }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Login für Lehrkraft erstellt</div>
+                <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Login erstellt</div>
                 <div><strong>Benutzername:</strong> {createdCreds.username}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span><strong>Temporäres Passwort:</strong> {createdCreds.tempPassword}</span>
@@ -593,8 +593,8 @@ export function AdminTeachers() {
                                   disabled={!!systemSaving[teacher.id]}
                                   aria-label={`System für ${teacher.name}`}
                                 >
-                                  <option value="dual">Dual (16:00–18:00)</option>
-                                  <option value="vollzeit">Vollzeit (17:00–19:00)</option>
+                                  <option value="dual">Dual</option>
+                                  <option value="vollzeit">Vollzeit</option>
                                 </select>
                               </dd>
                             </div>

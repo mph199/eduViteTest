@@ -15,18 +15,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
--- Insert default admin user (password: admin123)
+-- Insert default admin user (password: Start)
 -- Password hash generated with bcrypt rounds=10
 INSERT INTO users (username, password_hash, role, teacher_id) VALUES
-  ('admin', '$2a$10$XqZ9J5vXZKZ5JZt5Z5Z5ZuZt5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5', 'admin', NULL)
+  ('Start', '$2b$10$jMMKjGTA.VRvbHHcoWAlhexrOd29f89oVG7wdk..iKtXxMcCWGeYa', 'admin', NULL)
 ON CONFLICT (username) DO NOTHING;
-
--- Example teacher users (password: teacher123 for all)
--- These should be linked to actual teacher IDs from teachers table
--- INSERT INTO users (username, password_hash, role, teacher_id) VALUES
---   ('mueller', '$2a$10$hash...', 'teacher', 1),
---   ('schmidt', '$2a$10$hash...', 'teacher', 2)
--- ON CONFLICT (username) DO NOTHING;
 
 COMMENT ON TABLE users IS 'User accounts with role-based access (admin or teacher)';
 COMMENT ON COLUMN users.role IS 'admin = full access, teacher = own appointments only';
