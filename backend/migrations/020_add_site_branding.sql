@@ -9,14 +9,14 @@ CREATE TABLE IF NOT EXISTS site_branding (
   school_name       VARCHAR(255) NOT NULL DEFAULT 'BKSB',
   logo_url          TEXT         NOT NULL DEFAULT '',
 
-  -- Theme colors (hex, e.g. "#10b981")
-  primary_color     VARCHAR(9)  NOT NULL DEFAULT '#10b981',
-  primary_dark      VARCHAR(9)  NOT NULL DEFAULT '#059669',
-  primary_darker    VARCHAR(9)  NOT NULL DEFAULT '#047857',
-  secondary_color   VARCHAR(9)  NOT NULL DEFAULT '#a7f3d0',
-  ink_color         VARCHAR(9)  NOT NULL DEFAULT '#065f46',
-  surface_1         VARCHAR(9)  NOT NULL DEFAULT '#f0fdf4',
-  surface_2         VARCHAR(9)  NOT NULL DEFAULT '#dcfce7',
+  -- Theme colors (hex – navy/institutionell)
+  primary_color     VARCHAR(9)  NOT NULL DEFAULT '#123C73',
+  primary_dark      VARCHAR(9)  NOT NULL DEFAULT '#0B2545',
+  primary_darker    VARCHAR(9)  NOT NULL DEFAULT '#081D38',
+  secondary_color   VARCHAR(9)  NOT NULL DEFAULT '#5B8DEF',
+  ink_color         VARCHAR(9)  NOT NULL DEFAULT '#0B2545',
+  surface_1         VARCHAR(9)  NOT NULL DEFAULT '#F8FAFC',
+  surface_2         VARCHAR(9)  NOT NULL DEFAULT '#D9E4F2',
 
   -- Header
   header_font_color VARCHAR(9)  NOT NULL DEFAULT '',

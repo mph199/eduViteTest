@@ -6,6 +6,8 @@ import '../../../../pages/AdminDashboard.css';
 
 export type TeacherInfo = {
   id: number;
+  first_name?: string;
+  last_name?: string;
   name: string;
   subject: string;
   system?: string;

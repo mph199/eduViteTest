@@ -75,29 +75,31 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 > das gesamte Erscheinungsbild ohne Code-Änderungen anpassen können.
 
 ### 7a – CSS-Variablen-Standardisierung
-- [ ] **Hardcoded Farben eliminieren** – Alle verbleibenden Hex-Werte in CSS-Dateien (MaintenancePage, LegalPage, AdminDashboard) auf `var(--brand-*)` umstellen
-- [ ] **RGB-Helfer automatisch** – Für jede Brand-Variable auch die RGB-Variante generieren (für `rgba()` Nutzung)
+- [x] **Hardcoded Farben eliminieren** – Alle Hex-Werte in CSS-Dateien auf `var(--brand-*)` / `var(--color-*)` umgestellt (LoginPage, MaintenancePage, LegalPage, LandingPage, Sidebar, AdminDashboard, BookingApp, TeacherHome, NotificationBell — insgesamt 206 Ersetzungen)
+- [x] **RGB-Helfer** – Für jede Brand-Variable auch die RGB-Variante in `:root` (`--brand-primary-rgb`, `-dark-rgb`, `-darker-rgb`, `-ink-rgb`) für `rgba()` Nutzung
+- [x] **Navy-Farbschema** – Corporate Design (#123C73, #0B2545, #5B8DEF, #D9E4F2, #F8FAFC) als Standard-Defaults eingesetzt
 
 ### 7b – Seiten-Branding verdrahten (DB + API)
-- [ ] **Migration: `site_branding`-Tabelle** – Farbschema (`primary`, `primary_dark`, `ink`, `surface_1`, `surface_2`), Schulname, Header-Schriftfarbe, Logo-URL, Landing-Page-Texte
-- [ ] **Backend: CRUD-Endpoints** – `GET/PUT /api/superadmin/site-branding` zum Lesen/Speichern der Konfiguration
-- [ ] **Frontend: Branding laden** – Beim App-Start `site_branding` holen und CSS-Custom-Properties auf `:root` dynamisch setzen
-- [ ] **Fallback** – Wenn keine DB-Konfiguration vorhanden, greifen die Standard-Werte aus `index.css`
+- [x] **Migration: `site_branding`-Tabelle** – `020_add_site_branding.sql` mit Farbschema (7 Farben), Schulname, Header-Schriftfarbe, Logo-URL, Landing-Page-Texte (hero_title, hero_text, step_1–3), tile_images (JSONB)
+- [x] **Backend: CRUD-Endpoints** – `GET /api/superadmin/site-branding` (public, kein Auth — alle brauchen das Theme), `PUT` (superadmin only) mit Hex-Validierung, `POST /api/superadmin/tile-image` für Kachel-Bild-Upload
+- [x] **Frontend: API-Client** – `getSiteBranding()`, `updateSiteBranding()`, `uploadTileImage()`, `resolveTileUrl()` in `api.ts`
+- [x] **Frontend: BrandingProvider** – `BrandingContext.tsx` lädt Site-Branding beim App-Start, setzt 12 CSS-Custom-Properties auf `:root` (inkl. RGB-Helfer), `useBranding()` Hook für alle Komponenten
+- [x] **Fallback** – Defaults in BrandingContext + Backend-Route greifen wenn keine DB-Konfiguration vorhanden
 
 ### 7c – Superadmin-UI erweitern
-- [ ] **Tab: Erscheinungsbild** – Sandbox-Tab verdrahten: Farbschema-Picker (Primary, Buttons, Ink, Surfaces), Schulname, Header-Schriftfarbe, Logo-Upload, Live-Vorschau → Speichern in `site_branding`
-- [ ] **Tab: Landing Page** – Kachel-Bilder/Icons pro Modul anpassbar (Upload oder Emoji-Auswahl), Hero-Text und Willkommenstext editierbar
+- [x] **Tab: Erscheinungsbild** – Voll verdrahtet: Schulname, Header-Schriftfarbe, 7 Farbfelder (Primary, Dark, Darker, Secondary, Ink, Surface 1/2), Hero-Texte, 3-Schritte-Anleitung, Kachel-Bilder pro Modul, Live-Vorschau → Speichern in `site_branding` → `BrandingProvider.reload()` aktualisiert gesamte App
+- [x] **Tab: Landing Page** – Kachel-Bilder pro Modul per Upload, Hero-Text und Schritte editierbar, Landing Page zeigt dynamisch Branding-Daten + Kachel-Bilder (mit Emoji-Fallback)
 - [ ] **Tab: Texte & Inhalte** – Impressum und Datenschutz als Markdown/HTML-Felder über Superadmin pflegbar (statt statische React-Komponenten)
 - [ ] **Tab: System** – Maintenance-Modus per Toggle (sofort wirksam, kein Rebuild), Superadmin-Rolle an andere User vergeben
 
 ### 7d – Header & Landing Page dynamisch
-- [ ] **Schulname im Header** – `GlobalTopHeader` liest Schulname + Schriftfarbe + Logo aus Branding-API statt hardcoded "BKSB"
-- [ ] **Landing-Page-Kacheln** – Icon/Bild pro Modul aus DB laden (Superadmin-Upload), Fallback auf Emoji aus Modul-Manifest
-- [ ] **Superadmin-Link** – Zugriff auf Superadmin über Rolle `superadmin` statt hardcoded Username
+- [x] **Schulname im Header** – `GlobalTopHeader` liest Schulname + Schriftfarbe aus `useBranding()` statt hardcoded "BKSB", dynamische `aria-label`
+- [x] **Landing-Page-Kacheln** – Kachel-Bilder aus DB laden (via `branding.tile_images`), Fallback auf Emoji. 3-Schritte-Row + Hero-Texte dynamisch aus Branding
+- [x] **Superadmin-Link** – Zugriff über `user.role === 'superadmin'` statt `username === 'marc.huhn'`; Hard-Coded Admin (`Start`) bekommt automatisch Rolle `superadmin`
 
 ### 7e – E-Mail-Branding synchronisieren
-- [ ] **Farben koppeln** – Wenn Seiten-Branding gespeichert wird, `primary_color` automatisch auch in `email_branding` aktualisieren (optional entkoppelbar)
-- [ ] **Schulname koppeln** – Gleiches für `school_name` zwischen Site- und E-Mail-Branding
+- [x] **Farben koppeln** – Beim Speichern von Seiten-Branding wird `primary_color` automatisch in `email_branding` aktualisiert
+- [x] **Schulname koppeln** – `school_name` wird ebenfalls synchronisiert (Backend: `UPDATE email_branding SET school_name, primary_color` nach site_branding-Save)
 
 ## Phase 8 – Microsoft 365 Login (Azure AD / Entra ID)
 

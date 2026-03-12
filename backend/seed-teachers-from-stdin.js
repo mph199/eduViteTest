@@ -281,8 +281,8 @@ async function main() {
   // Validate emails / usernames
   const invalid = [];
   for (const t of teachers) {
-    if (!isValidBksbEmail(t.email)) invalid.push(`E-Mail ungültig (muss @bksb.nrw): ${t.email} (${t.name})`);
-    if (!isValidUsername(t.username)) invalid.push(`Username ungültig: ${t.username} (${t.name})`);
+    if (!isValidBksbEmail(t.email)) invalid.push(`E-Mail ungültig (muss @bksb.nrw): ${t.email} (${t.firstName} ${t.lastName})`);
+    if (!isValidUsername(t.username)) invalid.push(`Username ungültig: ${t.username} (${t.firstName} ${t.lastName})`);
   }
   if (invalid.length) {
     console.error('Validierungsfehler:');
@@ -321,15 +321,15 @@ async function main() {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const { rows: teacherRows } = await query(
-      `INSERT INTO teachers (name, email, salutation, subject, system, room)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO teachers (first_name, last_name, email, salutation, subject, system, room)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [t.name, t.email, salutationForFirstName(t.firstName), 'Sprechstunde', 'dual', null]
+      [t.firstName, t.lastName, t.email, salutationForFirstName(t.firstName), 'Sprechstunde', 'dual', null]
     );
     const teacher = teacherRows[0];
 
     if (!teacher) {
-      console.error('Teacher insert failed:', t.name, 'no row returned');
+      console.error('Teacher insert failed:', t.firstName, t.lastName, 'no row returned');
       process.exit(1);
     }
 
@@ -364,8 +364,8 @@ async function main() {
       );
     }
 
-    credentials.push({ name: t.name, email: t.email, username: t.username, password });
-    console.log(`✓ ${t.name} (${t.email}) -> ${t.username}`);
+    credentials.push({ name: `${t.firstName} ${t.lastName}`, email: t.email, username: t.username, password });
+    console.log(`✓ ${t.firstName} ${t.lastName} (${t.email}) -> ${t.username}`);
   }
 
   console.log('\n✅ Fertig. Zugangsdaten:');

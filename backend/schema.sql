@@ -3,7 +3,9 @@
 -- Teachers Tabelle
 CREATE TABLE IF NOT EXISTS teachers (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
+  first_name VARCHAR(255) NOT NULL DEFAULT '',
+  last_name  VARCHAR(255) NOT NULL DEFAULT '',
+  name VARCHAR(511) GENERATED ALWAYS AS (TRIM(first_name || ' ' || last_name)) STORED,
   subject VARCHAR(255) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

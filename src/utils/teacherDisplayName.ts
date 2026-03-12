@@ -32,21 +32,23 @@ function splitName(rawName: string): { firstName: string; lastName: string } {
   return { firstName, lastName };
 }
 
-export function teacherPersonName(teacher: Pick<Teacher, 'name' | 'salutation'>): string {
-  const rawName = String(teacher?.name || '').trim();
-  if (!rawName) return '';
-  const { firstName, lastName } = splitName(rawName);
+/** Resolve first/last from structured fields or fall back to parsing name */
+function resolveName(teacher: Partial<Teacher>): { firstName: string; lastName: string } {
+  const fn = (teacher?.first_name || '').trim();
+  const ln = (teacher?.last_name || '').trim();
+  if (fn || ln) return { firstName: fn, lastName: ln };
+  return splitName(teacher?.name || '');
+}
+
+export function teacherPersonName(teacher: Pick<Teacher, 'name' | 'salutation'> & Partial<Pick<Teacher, 'first_name' | 'last_name'>>): string {
+  const { firstName, lastName } = resolveName(teacher);
   if (!lastName) return firstName;
   if (!firstName) return lastName;
   return `${firstName} ${lastName}`;
 }
 
 export function teacherDisplayName(teacher: Teacher): string {
-  const rawName = String(teacher?.name || '').trim();
-  if (!rawName) return '';
-
-  // Display in combobox / lists: "Nachname, Vorname" (without salutation)
-  const { firstName, lastName } = splitName(rawName);
+  const { firstName, lastName } = resolveName(teacher);
   if (!lastName) return firstName;
   if (!firstName) return lastName;
   return `${lastName}, ${firstName}`;
@@ -59,14 +61,15 @@ export function teacherGroupKey(teacher: Teacher): string {
 }
 
 export function teacherDisplayNameAccusative(teacher: Teacher): string {
-  const rawName = String(teacher?.name || '').trim();
-  if (!rawName) return '';
+  const { firstName, lastName } = resolveName(teacher);
+  const personName = firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || '';
+  if (!personName) return '';
   const salutationRaw = teacher?.salutation ? String(teacher.salutation).trim() : '';
   const salutationLower = salutationRaw.toLowerCase();
 
-  if (!salutationRaw) return rawName;
-  if (salutationLower === 'herr') return `Herrn ${rawName}`;
-  if (salutationLower === 'frau') return `Frau ${rawName}`;
-  if (salutationLower === 'divers') return `Divers ${rawName}`;
-  return `${salutationRaw} ${rawName}`;
+  if (!salutationRaw) return personName;
+  if (salutationLower === 'herr') return `Herrn ${personName}`;
+  if (salutationLower === 'frau') return `Frau ${personName}`;
+  if (salutationLower === 'divers') return `Divers ${personName}`;
+  return `${salutationRaw} ${personName}`;
 }

@@ -20,7 +20,7 @@ export function AdminTeachers() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<ApiTeacher | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', available_from: '16:00', available_until: '19:00', username: '', password: '' });
+  const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
@@ -61,8 +61,8 @@ export function AdminTeachers() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.email.trim() || !formData.salutation) {
-      alert('Bitte Name, Anrede und E-Mail ausfüllen');
+    if (!formData.last_name.trim() || !formData.email.trim() || !formData.salutation) {
+      alert('Bitte Nachname, Anrede und E-Mail ausfüllen');
       return;
     }
 
@@ -75,7 +75,8 @@ export function AdminTeachers() {
 
     try {
       const teacherData = {
-        name: formData.name,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         email: normalizedEmail,
         salutation: formData.salutation,
         subject: 'Sprechstunde',
@@ -98,7 +99,7 @@ export function AdminTeachers() {
       await loadTeachers();
       setShowForm(false);
       setEditingTeacher(null);
-      setFormData({ name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
+      setFormData({ first_name: '', last_name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
     } catch (err) {
       console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -108,7 +109,8 @@ export function AdminTeachers() {
   const handleEdit = (teacher: ApiTeacher) => {
     setEditingTeacher(teacher);
     setFormData({
-      name: teacher.name,
+      first_name: teacher.first_name || '',
+      last_name: teacher.last_name || teacher.name || '',
       email: teacher.email || '',
       salutation: (teacher.salutation || 'Herr') as 'Herr' | 'Frau' | 'Divers',
       available_from: teacher.available_from || '16:00',
@@ -136,7 +138,7 @@ export function AdminTeachers() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingTeacher(null);
-    setFormData({ name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
+    setFormData({ first_name: '', last_name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   };
 
   const toggleExpand = (id: number) => {
@@ -294,14 +296,24 @@ export function AdminTeachers() {
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="name">Name</label>
+                <label htmlFor="last_name">Nachname</label>
                 <input
-                  id="name"
+                  id="last_name"
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="z.B. Max Mustermann"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  placeholder="z.B. Mustermann"
                   required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="first_name">Vorname</label>
+                <input
+                  id="first_name"
+                  type="text"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  placeholder="z.B. Max"
                 />
               </div>
               <div className="form-group">

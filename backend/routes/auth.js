@@ -32,10 +32,10 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    // 1) Harte Admin-Creds
+    // 1) Harte Admin-Creds (System-Eigentümer → superadmin)
     const isValidAdmin = await verifyCredentials(username, password);
     if (isValidAdmin) {
-      const user = { username: ADMIN_USER.username, role: 'admin' };
+      const user = { username: ADMIN_USER.username, role: 'superadmin' };
       const token = generateToken(user);
       console.log('Admin login successful');
       res.cookie('token', token, cookieOptions());

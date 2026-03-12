@@ -159,10 +159,18 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
 // POST /api/admin/teachers
 router.post('/teachers', requireAdmin, async (req, res) => {
   try {
-    const { name, email, salutation, subject, room, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
+    const { first_name, last_name, name, email, salutation, subject, room, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
 
-    if (!name) {
-      return res.status(400).json({ error: 'name required' });
+    // Support both new (first_name/last_name) and legacy (name) field
+    let firstName = (first_name || '').trim();
+    let lastName  = (last_name  || '').trim();
+    if (!firstName && !lastName && name) {
+      const parts = String(name).trim().split(/\s+/);
+      lastName  = parts.pop() || '';
+      firstName = parts.join(' ');
+    }
+    if (!lastName) {
+      return res.status(400).json({ error: 'Nachname ist erforderlich' });
     }
 
     const parsedEmail = normalizeAndValidateTeacherEmail(email);
@@ -180,8 +188,8 @@ router.post('/teachers', requireAdmin, async (req, res) => {
 
     // Create teacher
     const { rows: newTeacherRows } = await query(
-      'INSERT INTO teachers (name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null]
+      'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null]
     );
     const teacher = newTeacherRows[0];
 
@@ -261,12 +269,10 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       // Admin hat einen Benutzernamen vergeben → direkt verwenden
       username = reqUsername.trim();
     } else {
-      // Automatisch generieren aus dem Namen
-      username = String(teacher.name || `teacher${teacher.id}`)
-        .toLowerCase()
-        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-        .replace(/[^a-z0-9]+/g, '')
-        .slice(0, 20) || `teacher${teacher.id}`;
+      // Automatisch generieren: vorname.nachname
+      const autoFirst = String(teacher.first_name || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
+      const autoLast  = String(teacher.last_name  || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
+      username = (autoFirst && autoLast ? `${autoFirst}.${autoLast}` : autoFirst || autoLast || `teacher${teacher.id}`).slice(0, 30);
     }
 
     const tempPassword = (reqPassword && typeof reqPassword === 'string' && reqPassword.trim())
@@ -317,10 +323,18 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { name, email, salutation, subject, room, available_from, available_until } = req.body || {};
+    const { first_name, last_name, name, email, salutation, subject, room, available_from, available_until } = req.body || {};
 
-    if (!name) {
-      return res.status(400).json({ error: 'name required' });
+    // Support both new (first_name/last_name) and legacy (name) field
+    let firstName = (first_name || '').trim();
+    let lastName  = (last_name  || '').trim();
+    if (!firstName && !lastName && name) {
+      const parts = String(name).trim().split(/\s+/);
+      lastName  = parts.pop() || '';
+      firstName = parts.join(' ');
+    }
+    if (!lastName) {
+      return res.status(400).json({ error: 'Nachname ist erforderlich' });
     }
 
     const parsedEmail = normalizeAndValidateTeacherEmail(email);
@@ -337,9 +351,9 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
     const availUntil = available_until || '19:00';
 
     const { rows } = await query(
-      `UPDATE teachers SET name = $1, email = $2, salutation = $3, subject = $4, available_from = $5, available_until = $6, room = $7
-       WHERE id = $8 RETURNING *`,
-      [name.trim(), parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null, teacherId]
+      `UPDATE teachers SET first_name = $1, last_name = $2, email = $3, salutation = $4, subject = $5, available_from = $6, available_until = $7, room = $8
+       WHERE id = $9 RETURNING *`,
+      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null, teacherId]
     );
 
     if (rows.length === 0) {
