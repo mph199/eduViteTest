@@ -10,39 +10,29 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ## Phase 1 – Containerisierung (Basis)
 
-- [ ] **Dockerfile Backend** – Node.js-Image, `npm ci --omit=dev`, Healthcheck
+- [ ] **Dockerfile Backend** – Node.js 20-Image, `npm ci --omit=dev`, Healthcheck
 - [ ] **Dockerfile Frontend** – Multi-Stage-Build: Vite-Build → nginx zum Ausliefern
 - [ ] **docker-compose.yml** – Services: `frontend`, `backend`, `postgres`
-- [ ] **Volumes** – Persistentes DB-Volume, Upload-Volume (`logos/`)
-- [ ] **Environment** – `.env.example` mit allen Variablen (DB, SMTP, JWT-Secret, PUBLIC_BASE_URL …)
-- [ ] **Migrations automatisch** – Backend führt beim Start ausstehende SQL-Migrationen aus (z. B. via node-pg-migrate oder eigenes Script)
-- [ ] **Healthcheck-Endpoint** – `GET /api/health` → DB-Ping, SMTP-Ping
+- [ ] **.dockerignore** – `node_modules`, `dist`, `.env`, `uploads/`, `*.pid` ausschließen
+- [ ] **Volumes** – Persistentes DB-Volume, Upload-Volume (`uploads/logos/`)
+- [ ] **Environment** – `.env.example` existiert bereits → prüfen, ob alle Docker-relevanten Vars enthalten sind
+- [ ] **Migrations automatisch** – Die 17 bestehenden SQL-Dateien in `backend/migrations/` numerisch benennen (z. B. `001_schema.sql`, `002_add_users_table.sql` …) und beim Container-Start der Reihe nach ausführen (z. B. via node-pg-migrate oder eigenes Script mit `applied_migrations`-Tabelle). `backend/schema.sql` dient als Referenz, ist aber nicht die Quelle – die Migrationen sind führend.
+- [x] **Healthcheck-Endpoint** – `GET /api/health` existiert bereits (DB-Ping)
 
 ## Phase 2 – Konfiguration & Multi-Tenancy-Vorbereitung
 
-- [ ] **Zentrale Config** – Alle mandantenrelevanten Werte (Schulname, Logo, Farben, E-Mail-Branding) über Env-Vars ODER Admin-UI steuerbar
+- [x] **Zentrale Config** – E-Mail-Branding (Schulname, Logo, Farben) ist bereits über die Superadmin-UI + `email_branding`-Tabelle steuerbar
 - [ ] **Reverse-Proxy-Setup** – Beispiel-Config für Traefik / Caddy / nginx mit automatischem TLS (Let's Encrypt)
-- [ ] **CORS / Trusted Origins** – Aus Env-Variable statt Hardcode
+- [ ] **CORS / Trusted Origins** – Aktuell sind mehrere Wildcard-Domains in `index.js` hardcoded → auf eine einzige Env-Variable `CORS_ORIGINS` umstellen
 - [ ] **Secrets-Management** – JWT-Secret, DB-Passwort, SMTP-Credentials über Docker Secrets oder `.env`
 
-## Phase 3 – Modulares Plugin-System
+## Phase 3 – Production Hardening
 
-- [ ] **Modul-Architektur definieren** – Jedes Modul = eigener Ordner mit festem Interface:
-  ```
-  modules/
-    elternsprechtag/       ← aktueller Kern
-    schulsozialarbeit/     ← neues Modul
-    beratungslehrer/       ← neues Modul
-  ```
-- [ ] **Modul-Interface festlegen** – Jedes Modul liefert:
-  - Backend-Routes (Express-Router)
-  - DB-Migrationen
-  - Frontend-Pages / -Komponenten
-  - Navigationseinträge (Sidebar-Items)
-  - Rollen / Berechtigungen
-- [ ] **Modul-Registry** – Zentrale Datei oder Env-Variable (`ENABLED_MODULES=elternsprechtag,schulsozialarbeit`) steuert, welche Module geladen werden
-- [ ] **Shared Kernel** – Auth, User-Verwaltung, E-Mail-Service, Branding als gemeinsamer Kern außerhalb der Module
-- [ ] **Lazy Loading Frontend** – Module werden per Dynamic Import geladen → kleinere Bundles
+- [ ] **Structured Logging** – Winston oder Pino statt `console.log`, JSON-Format für Docker-Logs
+- [ ] **Rate Limiting** – `express-rate-limit` auf Login-, Booking- und E-Mail-Endpunkte
+- [ ] **Graceful Shutdown** – `SIGTERM`-Handler: offene Requests abschließen, DB-Pool schließen, dann exit
+- [ ] **Error Handling** – Zentrale Error-Middleware verbessern, Stack-Traces nur in Development
+- [ ] **Security Headers** – Helmet.js für CSP, HSTS, X-Frame-Options etc.
 
 ## Phase 4 – CI/CD & Image-Veröffentlichung
 
@@ -54,12 +44,22 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 ## Phase 5 – Betrieb & Dokumentation
 
 - [ ] **Admin-Installationsanleitung** – Schritt-für-Schritt: VPS mieten → Docker installieren → `.env` anpassen → `docker compose up -d`
-- [ ] **Backup-Strategie** – Cron-Job für DB-Dump (`pg_dump`) + Upload-Ordner
+- [ ] **Backup-Strategie** – Cron-Job für DB-Dump (`pg_dump`) + explizit das `uploads/`-Volume sichern (Logos etc.)
 - [ ] **Update-Prozess** – `docker compose pull && docker compose up -d` mit Zero-Downtime-Hinweis
 - [ ] **Monitoring** – Vorschlag: Uptime Kuma, Grafana/Loki oder einfacher Log-Output
 - [ ] **Ressourcen-Empfehlung** – Minimum-Hardware (1 vCPU, 1 GB RAM reicht für kleine Schule)
 
-## Phase 6 – Mögliche Module (Ideen)
+## Zukunftsvision – Modulares Plugin-System
+
+> Langfristiges Ziel: Das Projekt modular aufbauen, sodass Funktionsmodule
+> einzeln aktiviert werden können. Voraussetzung: Phase 1–5 stehen stabil.
+
+- [ ] **Modul-Architektur definieren** – Jedes Modul = eigener Ordner mit festem Interface (Routes, Migrationen, UI-Komponenten, Sidebar-Einträge, Rollen)
+- [ ] **Modul-Registry** – Env-Variable `ENABLED_MODULES=elternsprechtag,schulsozialarbeit` steuert, welche Module geladen werden
+- [ ] **Shared Kernel** – Auth, User-Verwaltung, E-Mail-Service, Branding als gemeinsamer Kern außerhalb der Module
+- [ ] **Lazy Loading Frontend** – Module per Dynamic Import → kleinere Bundles
+
+### Mögliche Module (Ideen)
 
 | Modul                  | Beschreibung                                                       |
 |------------------------|--------------------------------------------------------------------|
@@ -72,4 +72,4 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ---
 
-> **Nächster konkreter Schritt:** Phase 1 – Dockerfile + docker-compose.yml erstellen und lokal testen.
+> **Nächster konkreter Schritt:** Phase 1 – `.dockerignore` anlegen, Migrationen nummerieren, Dockerfile + docker-compose.yml erstellen und lokal testen.
