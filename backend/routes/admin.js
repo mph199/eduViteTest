@@ -400,6 +400,9 @@ router.delete('/teachers/:id', requireAdmin, async (req, res) => {
       await query('DELETE FROM slots WHERE teacher_id = $1', [teacherId]);
     }
 
+    // Delete linked user account
+    await query('DELETE FROM users WHERE teacher_id = $1', [teacherId]);
+
     await query('DELETE FROM teachers WHERE id = $1', [teacherId]);
 
     res.json({ success: true, message: 'Teacher deleted successfully' });
