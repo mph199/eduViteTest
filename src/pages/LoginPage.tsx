@@ -54,12 +54,13 @@ export function LoginPage() {
           )}
 
           <div className="form-group">
-            <label htmlFor="username">Benutzername</label>
+            <label htmlFor="username">E-Mail oder Benutzername</label>
             <input
               type="text"
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="name@schule.de oder Benutzername"
               required
               autoFocus
               disabled={loading}

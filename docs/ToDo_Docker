@@ -49,6 +49,16 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [x] **Monitoring** – Health-Endpoint-Cron + Uptime Kuma Empfehlung in INSTALL.md
 - [x] **Ressourcen-Empfehlung** – Min. 1 vCPU / 1 GB RAM, empfohlen 2 vCPU / 2 GB RAM
 
+## Phase 6 – Login-Cookies (httpOnly)
+
+- [ ] **Backend: Cookie setzen** – Beim Login JWT als `httpOnly`, `SameSite=Lax`, `Secure`-Cookie setzen statt nur im JSON-Body zurückgeben
+- [ ] **Backend: Cookie lesen** – `requireAuth`-Middleware liest Token zuerst aus Cookie (`req.cookies`), dann Fallback auf `Authorization`-Header
+- [ ] **Backend: Cookie löschen** – Logout-Endpoint löscht das Cookie (`res.clearCookie`)
+- [ ] **Backend: cookie-parser** – `npm install cookie-parser`, in `index.js` einbinden
+- [ ] **Frontend: credentials** – Alle `fetch`-Aufrufe mit `credentials: 'include'` versehen
+- [ ] **Frontend: localStorage entfernen** – Token nicht mehr in `localStorage` speichern, Cookie-basierte Verify-Route nutzen
+- [ ] **CSRF-Schutz** – `SameSite=Lax` reicht für Standard-Formulare; bei Bedarf Double-Submit-Cookie ergänzen
+
 ## Zukunftsvision – Modulares Plugin-System
 
 > Langfristiges Ziel: Das Projekt modular aufbauen, sodass Funktionsmodule
@@ -59,6 +69,19 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [ ] **Shared Kernel** – Auth, User-Verwaltung, E-Mail-Service, Branding als gemeinsamer Kern außerhalb der Module
 - [ ] **Lazy Loading Frontend** – Module per Dynamic Import → kleinere Bundles
 
+## Phase 7 – Microsoft 365 Login (Azure AD / Entra ID)
+
+- [ ] **Azure App-Registrierung** – Multi-Tenant-App in Azure Entra ID anlegen (Client-ID + Client-Secret), Redirect-URI konfigurieren
+- [ ] **Backend: OpenID Connect** – OAuth 2.0 Authorization Code Flow implementieren (`/api/auth/microsoft` → Redirect zu Microsoft, `/api/auth/microsoft/callback` → Token-Austausch)
+- [ ] **Backend: passport-azure-ad oder msal-node** – `npm install @azure/msal-node` für Token-Handling + ID-Token-Validierung
+- [ ] **Backend: User-Matching** – E-Mail aus Microsoft-Profil mit bestehender `users`-Tabelle abgleichen; optional Auto-Anlage bei erstem Login
+- [ ] **Backend: Env-Variablen** – `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` (oder `common` für Multi-Tenant)
+- [ ] **Frontend: Login-Button** – "Mit Microsoft anmelden"-Button auf der Login-Seite, leitet zu `/api/auth/microsoft` weiter
+- [ ] **Frontend: Callback-Route** – Redirect nach erfolgreichem Microsoft-Login verarbeiten, JWT-Cookie setzen (Phase 6)
+- [ ] **Admin Consent** – Dokumentation für Schul-IT: Welche Berechtigungen die App braucht (`User.Read`, `openid`, `profile`, `email`), wie Admin Consent erteilt wird
+- [ ] **HTTPS Pflicht** – Microsoft erlaubt nur HTTPS-Redirect-URIs (außer localhost); in INSTALL.md als Voraussetzung dokumentieren
+- [ ] **Fallback** – Klassischer Username/Passwort-Login bleibt parallel bestehen für Schulen ohne Microsoft 365
+
 ### Mögliche Module (Ideen)
 
 | Modul                  | Beschreibung                                                       |
@@ -67,9 +90,8 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 | **Schulsozialarbeit**  | Terminbuchung für Beratungsgespräche, vertrauliche Notizen         |
 | **Beratungslehrer**    | Sprechstunden, Themenkategorien, anonyme Anfragen                  |
 | **Berufsorientierung** | Betriebsbesuche, Praktikumsplätze, Matching                       |
-| **Elternabend**        | Einladung, Zu-/Absage, Tagesordnung, Protokoll                    |
-| **Raumverwaltung**     | Raumbelegung schulweit, Konflikt-Erkennung                        |
+| **Fächerwahl** | Fächer/Kurse im Gymnasium wählen, , Matching der Fächer, Ausgabe von Liste            |
 
 ---
 
-> **Nächster konkreter Schritt:** Phase 1 – `.dockerignore` anlegen, Migrationen nummerieren, Dockerfile + docker-compose.yml erstellen und lokal testen.
+> **Nächster konkreter Schritt:** Phase 1 – Dockerfile + docker-compose.yml erstellen und lokal testen.

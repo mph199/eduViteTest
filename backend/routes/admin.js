@@ -276,9 +276,9 @@ router.post('/teachers', requireAdmin, async (req, res) => {
 
     try {
       await query(
-        `INSERT INTO users (username, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4)
-         ON CONFLICT (username) DO UPDATE SET password_hash = $2, role = $3, teacher_id = $4`,
-        [username, passwordHash, 'teacher', teacher.id]
+        `INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4, teacher_id = $5`,
+        [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
       );
     } catch (userErr) {
       console.warn('User creation for teacher failed:', userErr?.message || userErr);
@@ -345,6 +345,12 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
+
+    // Sync email to linked user account
+    await query(
+      'UPDATE users SET email = $1 WHERE teacher_id = $2',
+      [parsedEmail.email, teacherId]
+    );
 
     res.json({ success: true, teacher: rows[0] });
   } catch (error) {

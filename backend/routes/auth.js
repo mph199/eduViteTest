@@ -34,10 +34,13 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 2) DB-User (teacher / user)
+    // 2) DB-User (teacher / user) – match by username or email
+    const isEmail = username.includes('@');
     const { rows: users } = await query(
-      'SELECT id, username, role, password_hash, teacher_id FROM users WHERE username = $1 LIMIT 1',
-      [username]
+      isEmail
+        ? 'SELECT id, username, email, role, password_hash, teacher_id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
+        : 'SELECT id, username, email, role, password_hash, teacher_id FROM users WHERE username = $1 LIMIT 1',
+      [isEmail ? username : username]
     );
 
     if (!users || users.length === 0) {
