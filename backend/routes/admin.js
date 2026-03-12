@@ -256,19 +256,22 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     }
 
     // Create or upsert a linked user account for the teacher
-    const baseUsername = String(reqUsername || teacher.name || `teacher${teacher.id}`)
-      .toLowerCase()
-      .replace(/ä/g, 'ae')
-      .replace(/ö/g, 'oe')
-      .replace(/ü/g, 'ue')
-      .replace(/ß/g, 'ss')
-      .replace(/[^a-z0-9]+/g, '')
-      .slice(0, 20) || `teacher${teacher.id}`;
+    let username;
+    if (reqUsername && typeof reqUsername === 'string' && reqUsername.trim()) {
+      // Admin hat einen Benutzernamen vergeben → direkt verwenden
+      username = reqUsername.trim();
+    } else {
+      // Automatisch generieren aus dem Namen
+      username = String(teacher.name || `teacher${teacher.id}`)
+        .toLowerCase()
+        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9]+/g, '')
+        .slice(0, 20) || `teacher${teacher.id}`;
+    }
 
-    const username = `${baseUsername}${baseUsername.endsWith(String(teacher.id)) ? '' : teacher.id}`;
-    const providedPw = reqPassword && typeof reqPassword === 'string' ? reqPassword.trim() : '';
-    const isStrongEnough = providedPw.length >= 8;
-    const tempPassword = isStrongEnough ? providedPw : crypto.randomBytes(6).toString('base64url');
+    const tempPassword = (reqPassword && typeof reqPassword === 'string' && reqPassword.trim())
+      ? reqPassword.trim()
+      : crypto.randomBytes(6).toString('base64url');
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     try {
