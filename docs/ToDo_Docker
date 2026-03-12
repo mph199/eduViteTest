@@ -51,13 +51,13 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ## Phase 6 – Login-Cookies (httpOnly)
 
-- [ ] **Backend: Cookie setzen** – Beim Login JWT als `httpOnly`, `SameSite=Lax`, `Secure`-Cookie setzen statt nur im JSON-Body zurückgeben
-- [ ] **Backend: Cookie lesen** – `requireAuth`-Middleware liest Token zuerst aus Cookie (`req.cookies`), dann Fallback auf `Authorization`-Header
-- [ ] **Backend: Cookie löschen** – Logout-Endpoint löscht das Cookie (`res.clearCookie`)
-- [ ] **Backend: cookie-parser** – `npm install cookie-parser`, in `index.js` einbinden
-- [ ] **Frontend: credentials** – Alle `fetch`-Aufrufe mit `credentials: 'include'` versehen
-- [ ] **Frontend: localStorage entfernen** – Token nicht mehr in `localStorage` speichern, Cookie-basierte Verify-Route nutzen
-- [ ] **CSRF-Schutz** – `SameSite=Lax` reicht für Standard-Formulare; bei Bedarf Double-Submit-Cookie ergänzen
+- [x] **Backend: cookie-parser** – `npm install cookie-parser`, in `index.js` einbinden
+- [x] **Backend: Cookie setzen** – Beim Login JWT als `httpOnly`, `SameSite=Lax`, `Secure`-Cookie setzen statt nur im JSON-Body zurückgeben
+- [x] **Backend: Cookie lesen** – `requireAuth`-Middleware liest Token zuerst aus Cookie (`req.cookies`), dann Fallback auf `Authorization`-Header
+- [x] **Backend: Cookie löschen** – Logout-Endpoint löscht das Cookie (`res.clearCookie`)
+- [x] **Frontend: credentials** – Alle `fetch`-Aufrufe mit `credentials: 'include'` versehen
+- [x] **Frontend: localStorage entfernen** – Token nicht mehr in `localStorage` speichern, Cookie-basierte Verify-Route nutzen
+- [x] **CSRF-Schutz** – `SameSite=Lax` reicht für Standard-Formulare; bei Bedarf Double-Submit-Cookie ergänzen
 
 ## Zukunftsvision – Modulares Plugin-System
 

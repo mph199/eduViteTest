@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const RAW_API_BASE =
-  (import.meta as any).env?.VITE_API_URL ||
-  ((import.meta as any).env?.DEV ? '/api' : 'http://localhost:4000/api');
+  (import.meta as any).env?.VITE_API_URL || '/api';
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
 const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 
