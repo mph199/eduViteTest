@@ -33,20 +33,33 @@ export function verifyToken(token) {
 }
 
 /**
+ * Extract token from Authorization header or cookie.
+ */
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  if (req.cookies?.token) {
+    return req.cookies.token;
+  }
+  return null;
+}
+
+/**
  * Middleware: Requires authenticated token
- * Checks Authorization header for valid JWT token
+ * Checks Authorization header or cookie for valid JWT token
  */
 export function requireAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = extractToken(req);
+
+  if (!token) {
     return res.status(401).json({ 
       error: 'Unauthorized', 
       message: 'Authentication required' 
     });
   }
 
-  const token = authHeader.substring(7);
   const decoded = verifyToken(token);
   
   if (!decoded) {
@@ -65,16 +78,15 @@ export function requireAuth(req, res, next) {
  * Checks if user is authenticated AND has admin role
  */
 export function requireAdmin(req, res, next) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = extractToken(req);
+
+  if (!token) {
     return res.status(401).json({ 
       error: 'Unauthorized', 
       message: 'Authentication required' 
     });
   }
 
-  const token = authHeader.substring(7);
   const decoded = verifyToken(token);
   
   if (!decoded) {
@@ -99,13 +111,12 @@ export function requireAdmin(req, res, next) {
  * Middleware: Requires superadmin role
  */
 export function requireSuperadmin(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const token = extractToken(req);
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
   }
 
-  const token = authHeader.substring(7);
   const decoded = verifyToken(token);
 
   if (!decoded) {

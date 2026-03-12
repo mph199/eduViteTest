@@ -82,6 +82,33 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [ ] **HTTPS Pflicht** – Microsoft erlaubt nur HTTPS-Redirect-URIs (außer localhost); in INSTALL.md als Voraussetzung dokumentieren
 - [ ] **Fallback** – Klassischer Username/Passwort-Login bleibt parallel bestehen für Schulen ohne Microsoft 365
 
+## Phase 8 – DSGVO & Datenhygiene
+
+- [ ] **Automatische Datenlöschung** – Personenbezogene Buchungsdaten nach X Tagen automatisch löschen (konfigurierbar über Admin-Settings)
+- [ ] **Datenexport** – Betroffenenanfragen (Art. 15 DSGVO): Export aller gespeicherten Daten zu einer Person als JSON/CSV
+- [ ] **Datenschutzhinweis** – Hinweis auf der Buchungsseite, welche Daten gespeichert werden und wie lange
+- [ ] **Auftragsverarbeitung** – Hinweise/Vorlage für AV-Vertrag in der Dokumentation (INSTALL.md)
+
+## Phase 9 – Automatische Erinnerungen
+
+- [ ] **E-Mail-Erinnerung Eltern** – Cronjob sendet X Stunden vor dem Termin eine Erinnerung an Eltern (konfigurierbar)
+- [ ] **Tagesübersicht Lehrkräfte** – Optionale Morgen-Mail mit allen Terminen des Tages
+- [ ] **Node-Cron oder externer Cron** – Entscheidung: `node-cron` im Backend-Prozess oder separater Container/Systemd-Timer
+- [ ] **Duplikat-Schutz** – Sicherstellen, dass Erinnerungen nicht doppelt gesendet werden (Sent-Flag in DB)
+
+## Phase 10 – Import/Export
+
+- [ ] **CSV-Import Lehrkräfte** – Upload einer CSV-Datei (Name, E-Mail, Sprechzeiten) → Bulk-Anlage von Nutzern
+- [ ] **CSV/Excel-Export Buchungen** – Alle Buchungen pro Event als Download für die Schulverwaltung
+- [ ] **Validierung** – Fehlerhafte Zeilen überspringen, Zusammenfassung anzeigen (X importiert, Y übersprungen)
+
+## Phase 11 – Barrierefreiheit (WCAG 2.1 AA)
+
+- [ ] **Tastaturnavigation** – Alle interaktiven Elemente per Tab/Enter erreichbar
+- [ ] **Screenreader** – ARIA-Labels, Rollen und Live-Regions für dynamische Inhalte
+- [ ] **Kontraste & Schriftgrößen** – Farbkontraste mindestens 4.5:1, skalierbare Schrift
+- [ ] **Audit** – Bestehende Komponenten mit axe/Lighthouse prüfen + Nachbesserung
+
 ### Mögliche Module (Ideen)
 
 | Modul                  | Beschreibung                                                       |

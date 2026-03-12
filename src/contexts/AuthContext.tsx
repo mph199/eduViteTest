@@ -48,20 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        // Nur verifizieren, wenn ein Token vorhanden ist
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          setIsAuthenticated(false);
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-
         const response = await api.auth.verify();
         if (response.authenticated && response.user) {
           let nextUser = response.user as User;
 
-          // Try to resolve first/last name from linked teacher record (if available).
           if (nextUser.teacherId) {
             try {
               const teacher = await api.teacher.getInfo();
@@ -78,16 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(nextUser);
           setActiveViewState(computeInitialView(nextUser));
         } else {
-          // Token ist ungültig, entfernen
-          localStorage.removeItem('auth_token');
           setIsAuthenticated(false);
           setUser(null);
           setActiveViewState(null);
         }
       } catch (error) {
         console.error('Auth verification failed:', error);
-        // Token ist ungültig, entfernen
-        localStorage.removeItem('auth_token');
         setIsAuthenticated(false);
         setUser(null);
         setActiveViewState(null);
@@ -102,7 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sofortige Reaktion auf 401-Events aus dem API-Client
   useEffect(() => {
     const onForcedLogout = () => {
-      localStorage.removeItem('auth_token');
       setIsAuthenticated(false);
       setUser(null);
       setActiveViewState(null);
@@ -114,8 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const response = await api.auth.login(username, password);
-      if (response.success && response.user && response.token) {
-        localStorage.setItem('auth_token', response.token);
+      if (response.success && response.user) {
         let nextUser = response.user as User;
 
         if (nextUser.teacherId) {
@@ -137,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw new Error('Login fehlgeschlagen');
     } catch (error) {
-      localStorage.removeItem('auth_token');
       setIsAuthenticated(false);
       setUser(null);
       setActiveViewState(null);
@@ -151,7 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
-      localStorage.removeItem('auth_token');
       setIsAuthenticated(false);
       setUser(null);
       setActiveViewState(null);

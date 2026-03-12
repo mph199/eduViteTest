@@ -7,10 +7,7 @@ const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
 const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('auth_token');
-  return token
-    ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-    : { 'Content-Type': 'application/json' };
+  return { 'Content-Type': 'application/json' };
 }
 
 async function requestJSON(path: string, options: RequestInit & { auth?: boolean } = {}) {
@@ -20,7 +17,7 @@ async function requestJSON(path: string, options: RequestInit & { auth?: boolean
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, { ...rest, headers: mergedHeaders });
+    response = await fetch(`${API_BASE}${path}`, { ...rest, headers: mergedHeaders, credentials: 'include' });
   } catch {
     throw new Error('Backend nicht erreichbar – läuft das Backend (Port 4000)?');
   }
@@ -39,7 +36,6 @@ async function requestJSON(path: string, options: RequestInit & { auth?: boolean
     const status = response.status;
     const message = (data && ((data as any).message || (data as any).error)) || `Fehler ${status}`;
     if (status === 401) {
-      localStorage.removeItem('auth_token');
       try {
         window.dispatchEvent(new Event('auth:logout'));
       } catch {
@@ -337,10 +333,9 @@ const api = {
     async uploadLogo(file: File) {
       const form = new FormData();
       form.append('logo', file);
-      const token = localStorage.getItem('auth_token');
       const res = await fetch(`${API_BASE}/superadmin/logo`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
         body: form,
       });
       if (!res.ok) {

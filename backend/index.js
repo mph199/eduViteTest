@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
@@ -37,8 +38,10 @@ app.use(cors({
     if (!origin) return callback(null, true);
     if (corsOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
-  }
+  },
+  credentials: true,
 }));
+app.use(cookieParser());
 app.use(express.json());
 
 // Rate limiting

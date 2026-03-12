@@ -5,6 +5,18 @@ import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../mi
 
 const router = express.Router();
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    maxAge: 8 * 60 * 60 * 1000, // 8 hours (matches JWT expiry)
+    path: '/',
+  };
+}
+
 /**
  * POST /api/auth/login
  * Body: { username, password }
@@ -26,6 +38,7 @@ router.post('/login', async (req, res) => {
       const user = { username: ADMIN_USER.username, role: 'admin' };
       const token = generateToken(user);
       console.log('Admin login successful');
+      res.cookie('token', token, cookieOptions());
       return res.json({
         success: true,
         message: 'Login successful',
@@ -73,6 +86,7 @@ router.post('/login', async (req, res) => {
     // Verwendung einfacher Strings statt Template-Literals, um Heredoc-/Encoding-Issues zu vermeiden
     console.log('DB login successful:', dbUser.username, '(' + role + ')');
 
+    res.cookie('token', token, cookieOptions());
     return res.json({
       success: true,
       message: 'Login successful',
@@ -93,6 +107,7 @@ router.post('/login', async (req, res) => {
  * Token wird clientseitig gelöscht
  */
 router.post('/logout', (_req, res) => {
+  res.clearCookie('token', { path: '/' });
   res.json({
     success: true,
     message: 'Logout successful'
@@ -101,6 +116,7 @@ router.post('/logout', (_req, res) => {
 
 // Optional: accept DELETE for clients using DELETE /logout
 router.delete('/logout', (_req, res) => {
+  res.clearCookie('token', { path: '/' });
   res.json({
     success: true,
     message: 'Logout successful'
@@ -113,12 +129,17 @@ router.delete('/logout', (_req, res) => {
  */
 router.get('/verify', (req, res) => {
   const authHeader = req.headers.authorization;
+  let token = null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.json({ authenticated: false });
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else if (req.cookies?.token) {
+    token = req.cookies.token;
   }
 
-  const token = authHeader.substring(7);
+  if (!token) {
+    return res.json({ authenticated: false });
+  }
   const decoded = verifyToken(token);
 
   if (!decoded) {
