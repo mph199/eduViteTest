@@ -7,14 +7,11 @@ type CreateBookingRequestResponse = {
   message?: string;
 };
 
-function buildHalfHourWindows(startHour: number, endHour: number) {
+function buildHalfHourWindows(startMinutes: number, endMinutes: number) {
   const windows: string[] = [];
   const pad2 = (n: number) => String(n).padStart(2, '0');
-  const toMins = (h: number, m: number) => h * 60 + m;
   const fmt = (mins: number) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
-  const start = toMins(startHour, 0);
-  const end = toMins(endHour, 0);
-  for (let m = start; m + 30 <= end; m += 30) {
+  for (let m = startMinutes; m + 30 <= endMinutes; m += 30) {
     windows.push(`${fmt(m)} - ${fmt(m + 30)}`);
   }
   return windows;
