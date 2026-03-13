@@ -389,6 +389,17 @@ const api = {
       }
       return res.json();
     },
+    // ── Text Branding ─────────────────────────────────
+    async getTextBranding() {
+      return requestJSON('/superadmin/text-branding');
+    },
+    async updateTextBranding(payload: Record<string, unknown>) {
+      return requestJSON('/superadmin/text-branding', {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
     /** Resolve a tile image path to a full URL */
     resolveTileUrl(tileUrl: string): string {
       if (!tileUrl) return '';

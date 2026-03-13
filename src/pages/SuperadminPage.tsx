@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
 import { useBranding, type SiteBranding } from '../contexts/BrandingContext';
+import { useTextBranding, type TextBranding } from '../contexts/TextBrandingContext';
 import { modules } from '../modules/registry';
 import api from '../services/api';
 import './SuperadminPage.css';
@@ -68,6 +69,7 @@ function esc(str: string) {
 export function SuperadminPage() {
   const { user } = useAuth();
   const { branding: liveBranding, reload: reloadBranding } = useBranding();
+  const { textBranding: liveTextBranding, reload: reloadTextBranding } = useTextBranding();
 
   // ── Site Branding state ──────────────────────────────
   const [site, setSite] = useState<SiteBranding>({ ...liveBranding });
@@ -80,7 +82,13 @@ export function SuperadminPage() {
   const [emailMsg, setEmailMsg] = useState('');
   const [previewEmail, setPreviewEmail] = useState('');
   const [previewSending, setPreviewSending] = useState(false);
-  const [activeTab, setActiveTab] = useState<'branding' | 'email'>('email');
+
+  // ── Text Branding state ──────────────────────────────
+  const [text, setText] = useState<TextBranding>({ ...liveTextBranding });
+  const [textSaving, setTextSaving] = useState(false);
+  const [textMsg, setTextMsg] = useState('');
+
+  const [activeTab, setActiveTab] = useState<'branding' | 'email' | 'texts'>('email');
 
   // Access guard: superadmin role
   if (!user || user.role !== 'superadmin') {
@@ -125,14 +133,35 @@ export function SuperadminPage() {
     }
   }, [liveBranding]);
 
+  // ── Load Text Branding ──────────────────────────────
+  const loadTextBranding = useCallback(async () => {
+    try {
+      const data = await api.superadmin.getTextBranding();
+      if (data) {
+        const merged = { ...liveTextBranding };
+        for (const key of Object.keys(merged) as (keyof TextBranding)[]) {
+          if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+            (merged as Record<string, unknown>)[key] = data[key];
+          }
+        }
+        setText(merged);
+      }
+    } catch {
+      // keep current state
+    }
+  }, [liveTextBranding]);
+
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => { loadEmailBranding(); loadSiteBranding(); }, [loadEmailBranding, loadSiteBranding]);
+  useEffect(() => { loadEmailBranding(); loadSiteBranding(); loadTextBranding(); }, [loadEmailBranding, loadSiteBranding, loadTextBranding]);
 
   const setSiteField = <K extends keyof SiteBranding>(key: K, value: SiteBranding[K]) =>
     setSite((prev) => ({ ...prev, [key]: value }));
 
   const setEb = <K extends keyof EmailBranding>(key: K, value: EmailBranding[K]) =>
     setEmailBranding((prev) => ({ ...prev, [key]: value }));
+
+  const setTextField = <K extends keyof TextBranding>(key: K, value: TextBranding[K]) =>
+    setText((prev) => ({ ...prev, [key]: value }));
 
   // ── Save Site Branding ───────────────────────────────
   const saveSiteBranding = async () => {
@@ -147,6 +176,22 @@ export function SuperadminPage() {
     } finally {
       setSiteSaving(false);
       setTimeout(() => setSiteMsg(''), 4000);
+    }
+  };
+
+  // ── Save Text Branding ──────────────────────────────
+  const saveTextBranding = async () => {
+    setTextSaving(true);
+    setTextMsg('');
+    try {
+      await api.superadmin.updateTextBranding(text as unknown as Record<string, unknown>);
+      await reloadTextBranding();
+      setTextMsg('Gespeichert');
+    } catch (e: any) {
+      setTextMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
+    } finally {
+      setTextSaving(false);
+      setTimeout(() => setTextMsg(''), 4000);
     }
   };
 
@@ -233,6 +278,13 @@ export function SuperadminPage() {
             onClick={() => setActiveTab('email')}
           >
             E-Mail-Branding
+          </button>
+          <button
+            type="button"
+            className={`superadmin__tab ${activeTab === 'texts' ? 'superadmin__tab--active' : ''}`}
+            onClick={() => setActiveTab('texts')}
+          >
+            Texte Sprechtag
           </button>
         </div>
 
@@ -567,6 +619,108 @@ export function SuperadminPage() {
                 disabled={emailSaving}
               >
                 {emailSaving ? 'Speichern…' : 'Änderungen speichern'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════
+            TAB: Text-Branding (Elternsprechtag Buchungs-UI)
+            ═══════════════════════════════════════════════ */}
+        {activeTab === 'texts' && (
+          <>
+            {/* ── 1. Welcome-Bereich ────────────────────── */}
+            <section className="superadmin__section">
+              <h2 className="superadmin__section-title">Willkommen-Bereich</h2>
+              <div className="superadmin__grid">
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Titel</span>
+                  <input type="text" className="superadmin__input" value={text.booking_title} onChange={(e) => setTextField('booking_title', e.target.value)} placeholder="Herzlich willkommen!" />
+                </div>
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Beschreibungstext (Absatztrennung mit Leerzeile)</span>
+                  <textarea className="superadmin__textarea" value={text.booking_text} onChange={(e) => setTextField('booking_text', e.target.value)} rows={5} />
+                </div>
+              </div>
+            </section>
+
+            {/* ── 2. Drei-Schritte-Anleitung ────────────── */}
+            <section className="superadmin__section">
+              <h2 className="superadmin__section-title">Kurzanleitung (Sidebar)</h2>
+              <div className="superadmin__grid">
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Titel</span>
+                  <input type="text" className="superadmin__input" value={text.booking_steps_title} onChange={(e) => setTextField('booking_steps_title', e.target.value)} placeholder="In drei Schritten zum Termin:" />
+                </div>
+                <div className="superadmin__field">
+                  <span className="superadmin__label">Schritt 1</span>
+                  <input type="text" className="superadmin__input" value={text.booking_step_1} onChange={(e) => setTextField('booking_step_1', e.target.value)} />
+                </div>
+                <div className="superadmin__field">
+                  <span className="superadmin__label">Schritt 2</span>
+                  <input type="text" className="superadmin__input" value={text.booking_step_2} onChange={(e) => setTextField('booking_step_2', e.target.value)} />
+                </div>
+                <div className="superadmin__field">
+                  <span className="superadmin__label">Schritt 3</span>
+                  <input type="text" className="superadmin__input" value={text.booking_step_3} onChange={(e) => setTextField('booking_step_3', e.target.value)} />
+                </div>
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Hinweistext unter den Schritten</span>
+                  <textarea className="superadmin__textarea" value={text.booking_hint} onChange={(e) => setTextField('booking_hint', e.target.value)} rows={2} />
+                </div>
+              </div>
+            </section>
+
+            {/* ── 3. Event-Banner ───────────────────────── */}
+            <section className="superadmin__section">
+              <h2 className="superadmin__section-title">Event-Banner</h2>
+              <div className="superadmin__grid">
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">
+                    Banner-Text (Platzhalter: {'{weekday}'}, {'{date}'}, {'{startTime}'}, {'{endTime}'})
+                  </span>
+                  <textarea className="superadmin__textarea" value={text.event_banner_template} onChange={(e) => setTextField('event_banner_template', e.target.value)} rows={2} />
+                </div>
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Fallback-Text (wenn kein Event aktiv)</span>
+                  <input type="text" className="superadmin__input" value={text.event_banner_fallback} onChange={(e) => setTextField('event_banner_fallback', e.target.value)} />
+                </div>
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Hinweis bei deaktivierten Buchungen</span>
+                  <input type="text" className="superadmin__input" value={text.booking_closed_text} onChange={(e) => setTextField('booking_closed_text', e.target.value)} />
+                </div>
+              </div>
+            </section>
+
+            {/* ── 4. Erfolgs-Modal ──────────────────────── */}
+            <section className="superadmin__section">
+              <h2 className="superadmin__section-title">Erfolgs-Dialog (nach Buchungsanfrage)</h2>
+              <div className="superadmin__grid">
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Titel</span>
+                  <input type="text" className="superadmin__input" value={text.modal_title} onChange={(e) => setTextField('modal_title', e.target.value)} placeholder="Fast fertig!" />
+                </div>
+                <div className="superadmin__field superadmin__field--wide">
+                  <span className="superadmin__label">Nachricht (Absatztrennung mit Leerzeile)</span>
+                  <textarea className="superadmin__textarea" value={text.modal_text} onChange={(e) => setTextField('modal_text', e.target.value)} rows={5} />
+                </div>
+                <div className="superadmin__field">
+                  <span className="superadmin__label">Button-Text</span>
+                  <input type="text" className="superadmin__input" value={text.modal_button} onChange={(e) => setTextField('modal_button', e.target.value)} placeholder="Verstanden" />
+                </div>
+              </div>
+            </section>
+
+            {/* ── Status + Save ────────────────────────── */}
+            {textMsg && (
+              <div className={`superadmin__hint ${textMsg.startsWith('Fehler') ? 'superadmin__hint--error' : ''}`}>
+                <span>{textMsg}</span>
+              </div>
+            )}
+            <div className="superadmin__actions">
+              <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={() => { setText({ ...liveTextBranding }); setTextMsg(''); }}>Zurücksetzen</button>
+              <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={saveTextBranding} disabled={textSaving}>
+                {textSaving ? 'Speichern...' : 'Änderungen speichern'}
               </button>
             </div>
           </>

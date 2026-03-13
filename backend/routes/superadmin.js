@@ -249,6 +249,72 @@ const tileUpload = multer({
   },
 });
 
+// ═══════════════════════════════════════════════════════════════════════
+// Text Branding (Elternsprechtag booking UI texts)
+// ═══════════════════════════════════════════════════════════════════════
+
+const TEXT_BRANDING_DEFAULTS = {
+  booking_title: 'Herzlich willkommen!',
+  booking_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.\n\nWählen Sie die gewünschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewünschten Zeitfenster zuzuweisen.\n\nSobald Ihr Termin bestätigt wurde, erhalten Sie eine E-Mail mit allen Details.',
+  booking_steps_title: 'In drei Schritten zum Termin:',
+  booking_step_1: 'Lehrkraft auswählen',
+  booking_step_2: 'Wunsch-Zeitfenster wählen',
+  booking_step_3: 'Daten eingeben und Anfrage absenden',
+  booking_hint: 'Die Lehrkraft vergibt nach Möglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.',
+  event_banner_template: 'Der nächste Eltern- und Ausbildersprechtag findet am {weekday}, den {date} von {startTime} bis {endTime} Uhr statt.',
+  event_banner_fallback: 'Der nächste Eltern- und Ausbildersprechtag: Termine folgen.',
+  modal_title: 'Fast fertig!',
+  modal_text: 'Vielen Dank für Ihre Terminanfrage!\n\nBitte bestätigen Sie zunächst Ihre E-Mail-Adresse über den zugesandten Link (ggf. im Spam-Ordner prüfen). Anschließend wird die Lehrkraft Ihnen einen Termin im gewünschten Zeitfenster zuweisen. Sie erhalten eine Bestätigungs-E-Mail mit Datum, Uhrzeit und Raum.',
+  modal_button: 'Verstanden',
+  booking_closed_text: 'Buchungen sind aktuell noch nicht freigeschaltet.',
+};
+
+const TEXT_BRANDING_FIELDS = Object.keys(TEXT_BRANDING_DEFAULTS);
+
+// GET /api/superadmin/text-branding  (public — booking UI needs these texts)
+router.get('/text-branding', async (_req, res) => {
+  try {
+    const { rows } = await query('SELECT * FROM text_branding WHERE id = 1 LIMIT 1');
+    return res.json(rows[0] || { ...TEXT_BRANDING_DEFAULTS });
+  } catch {
+    return res.json({ ...TEXT_BRANDING_DEFAULTS });
+  }
+});
+
+// PUT /api/superadmin/text-branding  (superadmin only)
+router.put('/text-branding', requireSuperadmin, async (req, res) => {
+  const b = req.body || {};
+
+  const values = {};
+  for (const key of TEXT_BRANDING_FIELDS) {
+    values[key] = String(b[key] ?? TEXT_BRANDING_DEFAULTS[key]).trim();
+    // Limit VARCHAR fields to 255 chars
+    if (key !== 'booking_text' && key !== 'booking_hint' && key !== 'event_banner_template' && key !== 'event_banner_fallback' && key !== 'modal_text' && key !== 'booking_closed_text') {
+      values[key] = values[key].slice(0, 255);
+    }
+  }
+
+  try {
+    const now = new Date().toISOString();
+    const cols = TEXT_BRANDING_FIELDS;
+    const placeholders = cols.map((_, i) => `$${i + 2}`);
+    const setClause = cols.map((c, i) => `${c} = $${i + 2}`).join(', ');
+    const params = [now, ...cols.map((c) => values[c])];
+
+    const { rows } = await query(
+      `INSERT INTO text_branding (id, ${cols.join(', ')}, updated_at)
+       VALUES (1, ${placeholders.join(', ')}, $1)
+       ON CONFLICT (id) DO UPDATE SET ${setClause}, updated_at = $1
+       RETURNING *`,
+      params
+    );
+    return res.json({ success: true, textBranding: rows[0] });
+  } catch (error) {
+    console.error('Error updating text branding:', error);
+    return res.status(500).json({ error: 'Failed to update text branding' });
+  }
+});
+
 router.post('/tile-image', requireSuperadmin, (req, res) => {
   tileUpload.single('tile')(req, res, async (err) => {
     if (err) {

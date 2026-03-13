@@ -3,6 +3,7 @@ import { SlotList } from './SlotList';
 import { BookingForm } from './BookingForm';
 import { TeacherCombobox } from './TeacherCombobox';
 import { useBooking } from '../hooks/useBooking';
+import { useTextBranding } from '../../../contexts/TextBrandingContext';
 import type { Teacher } from '../../../types';
 import { teacherDisplayNameAccusative } from '../../../utils/teacherDisplayName';
 import api from '../../../services/api';
@@ -24,6 +25,7 @@ type ActiveEventResponse = {
 };
 
 export const BookingApp = () => {
+  const { textBranding: tb } = useTextBranding();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teachersLoading, setTeachersLoading] = useState<boolean>(true);
   const [teachersError, setTeachersError] = useState<string>('');
@@ -62,12 +64,14 @@ export const BookingApp = () => {
       minute: '2-digit',
     }).format(ends);
 
-    return (
-      <>
-        Der nächste Eltern- und Ausbildersprechtag findet am <strong>{weekday}, den {date}</strong> von {startTime} bis {endTime} Uhr statt.
-      </>
-    );
-  }, [activeEvent]);
+    const bannerText = tb.event_banner_template
+      .replace('{weekday}', weekday)
+      .replace('{date}', date)
+      .replace('{startTime}', startTime)
+      .replace('{endTime}', endTime);
+
+    return bannerText;
+  }, [activeEvent, tb.event_banner_template]);
 
   const selectedTeacher = useMemo(() => {
     if (!selectedTeacherId) return null;
@@ -163,18 +167,12 @@ export const BookingApp = () => {
       {bookingNoticeOpen && (
         <div className="booking-notice-overlay" role="dialog" aria-modal="true" aria-label="Hinweis zur E-Mail-Bestätigung">
           <div className="booking-notice">
-            <h3>Fast fertig!</h3>
-            <p>
-              Vielen Dank für Ihre Terminanfrage!
-            </p>
-            <p>
-              <span className="booking-notice-important">Wichtig:</span>{' '}
-              Bitte bestätigen Sie zunächst Ihre E-Mail-Adresse über den zugesandten Link (ggf. im Spam-Ordner prüfen).
-              Anschließend wird die Lehrkraft Ihnen einen Termin im gewünschten Zeitfenster zuweisen.
-              Sie erhalten eine Bestätigungs-E-Mail mit Datum, Uhrzeit und Raum.
-            </p>
+            <h3>{tb.modal_title}</h3>
+            {tb.modal_text.split('\n\n').map((paragraph, i) => (
+              <p key={i}>{paragraph}</p>
+            ))}
             <button type="button" className="btn btn-primary" onClick={resetSelection}>
-              Verstanden
+              {tb.modal_button}
             </button>
           </div>
         </div>
@@ -185,40 +183,32 @@ export const BookingApp = () => {
           <div className="welcomeWindow__grid">
             <div className="welcomeWindow__main">
               <div className="welcomeWindow__headlineRow">
-                <h1 className="welcomeWindow__title">Herzlich willkommen!</h1>
+                <h1 className="welcomeWindow__title">{tb.booking_title}</h1>
               </div>
 
-              <p className="welcomeWindow__text">
-                Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag am BKSB anfragen.
-              </p>
-
-              <p className="welcomeWindow__text">
-                Wählen Sie die gewünschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewünschten Zeitfenster zuzuweisen. 
-              </p>
-
-              <p className="welcomeWindow__text">
-                Sobald Ihr Termin bestätigt wurde, erhalten Sie eine E-Mail mit allen Details.
-              </p>
+              {tb.booking_text.split('\n\n').map((paragraph, i) => (
+                <p key={i} className="welcomeWindow__text">{paragraph}</p>
+              ))}
 
               {(eventLoading || eventError || !activeEvent) && (
                 <div className={`welcomeWindow__notice${eventError ? ' is-error' : ''}`} role="status">
-                  {eventLoading ? 'Lade Eltern- und Ausbildersprechtag…' : eventError ? eventError : 'Buchungen sind aktuell noch nicht freigeschaltet.'}
+                  {eventLoading ? 'Lade Eltern- und Ausbildersprechtag\u2026' : eventError ? eventError : tb.booking_closed_text}
                 </div>
               )}
             </div>
 
             <aside className="welcomeWindow__side" aria-label="Kurzanleitung">
-              <h2 className="welcomeWindow__sideTitle">In drei Schritten zum Termin:</h2>
+              <h2 className="welcomeWindow__sideTitle">{tb.booking_steps_title}</h2>
               <ol className="welcomeWindow__steps">
-                <li>Lehrkraft auswählen</li>
-                <li>Wunsch-Zeitfenster wählen</li>
-                <li>Daten eingeben und Anfrage absenden</li>
+                <li>{tb.booking_step_1}</li>
+                <li>{tb.booking_step_2}</li>
+                <li>{tb.booking_step_3}</li>
               </ol>
-              <p className="welcomeWindow__sideHint">Die Lehrkraft vergibt nach Möglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.</p>
+              <p className="welcomeWindow__sideHint">{tb.booking_hint}</p>
             </aside>
 
             <div className="welcomeWindow__eventLine" aria-label="Termin">
-              {formattedEventBanner ? formattedEventBanner : 'Der nächste Eltern- und Ausbildersprechtag: Termine folgen.'}
+              {formattedEventBanner ? formattedEventBanner : tb.event_banner_fallback}
             </div>
           </div>
         </div>
