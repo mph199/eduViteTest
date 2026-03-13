@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
@@ -25,6 +25,8 @@ export function AdminTeachers() {
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
+  const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: any | null }>({ show: false, uploading: false, result: null });
+  const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
 
@@ -141,6 +143,17 @@ export function AdminTeachers() {
     setFormData({ first_name: '', last_name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   };
 
+  const handleCsvImport = async (file: File) => {
+    setCsvImport({ show: true, uploading: true, result: null });
+    try {
+      const result = await api.admin.importTeachersCSV(file);
+      setCsvImport({ show: true, uploading: false, result });
+      await loadTeachers();
+    } catch (err) {
+      setCsvImport({ show: true, uploading: false, result: { error: err instanceof Error ? err.message : 'Fehler beim Import' } });
+    }
+  };
+
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -216,17 +229,138 @@ export function AdminTeachers() {
       <main className="admin-main">
         <div className="admin-section-header">
           <h2>Benutzer & Rechte verwalten</h2>
-          {!showForm && (
-            <button 
-              onClick={() => setShowForm(true)} 
-              className="btn-primary"
-            >
-              + Neuer Nutzer
-            </button>
+          {!showForm && !csvImport.show && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => setShowForm(true)} 
+                className="btn-primary"
+              >
+                + Neuer Nutzer
+              </button>
+              <button
+                onClick={() => csvFileRef.current?.click()}
+                className="btn-secondary"
+              >
+                CSV Import
+              </button>
+              <input
+                ref={csvFileRef}
+                type="file"
+                accept=".csv,.txt"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleCsvImport(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
           )}
         </div>
 
-        {!showForm && (
+        {/* CSV Import Dialog */}
+        {csvImport.show && (
+          <div className="teacher-form-container" style={{ marginBottom: '1.5rem' }}>
+            <h3>CSV Import</h3>
+            {csvImport.uploading && <p>Import wird verarbeitet…</p>}
+            {csvImport.result?.error && (
+              <div style={{ color: 'var(--color-error, #dc2626)', marginBottom: '1rem' }}>
+                <strong>Fehler:</strong> {csvImport.result.error}
+                {csvImport.result.hint && <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>{csvImport.result.hint}</div>}
+              </div>
+            )}
+            {csvImport.result?.success && (
+              <div>
+                <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <div><strong>{csvImport.result.imported}</strong> importiert</div>
+                  <div><strong>{csvImport.result.skipped}</strong> übersprungen</div>
+                  <div><strong>{csvImport.result.total}</strong> Zeilen gesamt</div>
+                </div>
+
+                {csvImport.result.details?.imported?.length > 0 && (
+                  <details open style={{ marginBottom: '1rem' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      Importierte Lehrkräfte ({csvImport.result.details.imported.length})
+                    </summary>
+                    <div className="admin-resp-table-container">
+                      <table className="admin-resp-table" style={{ fontSize: '0.85rem' }}>
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>E-Mail</th>
+                            <th>Username</th>
+                            <th>Passwort</th>
+                            <th>Slots</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {csvImport.result.details.imported.map((t: any) => (
+                            <tr key={t.id}>
+                              <td>{t.name}</td>
+                              <td>{t.email}</td>
+                              <td><code>{t.username}</code></td>
+                              <td><code>{t.tempPassword}</code></td>
+                              <td>{t.slotsCreated}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <button
+                      className="btn-secondary btn-secondary--sm"
+                      style={{ marginTop: '0.5rem' }}
+                      onClick={() => {
+                        const lines = ['Name;Email;Username;Passwort'];
+                        for (const t of csvImport.result.details.imported) {
+                          lines.push(`${t.name};${t.email};${t.username};${t.tempPassword}`);
+                        }
+                        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'import-zugangsdaten.csv';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      Zugangsdaten als CSV herunterladen
+                    </button>
+                  </details>
+                )}
+
+                {csvImport.result.details?.skipped?.length > 0 && (
+                  <details style={{ marginBottom: '1rem' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-warning, #b45309)' }}>
+                      Übersprungene Zeilen ({csvImport.result.details.skipped.length})
+                    </summary>
+                    <ul style={{ fontSize: '0.85rem', paddingLeft: '1.2rem' }}>
+                      {csvImport.result.details.skipped.map((s: any, i: number) => (
+                        <li key={i}>Zeile {s.line}: {s.reason}{s.name ? ` (${s.name})` : ''}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
+            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+              <button className="btn-secondary" onClick={() => setCsvImport({ show: false, uploading: false, result: null })}>
+                Schließen
+              </button>
+              {csvImport.result?.success && (
+                <button className="btn-secondary" onClick={() => { setCsvImport({ show: false, uploading: false, result: null }); csvFileRef.current?.click(); }}>
+                  Weitere Datei importieren
+                </button>
+              )}
+            </div>
+            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--brand-surface-2, #f0f0f0)', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
+              <strong>CSV-Format:</strong> Semikolon- oder kommagetrennt, mit Kopfzeile.<br />
+              Pflicht-Spalten: <code>Nachname</code>, <code>Email</code><br />
+              Optional: <code>Vorname</code>, <code>Anrede</code>, <code>Raum</code>, <code>Fach</code>
+            </div>
+          </div>
+        )}
+
+        {!showForm && !csvImport.show && (
           <div className="admin-teacher-search">
             <label htmlFor="teacherAdminSearch" className="admin-teacher-search-label">
               Suche

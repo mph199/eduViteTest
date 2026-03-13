@@ -128,11 +128,16 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [ ] **Node-Cron oder externer Cron** – Entscheidung: `node-cron` im Backend-Prozess oder separater Container/Systemd-Timer
 - [ ] **Duplikat-Schutz** – Sicherstellen, dass Erinnerungen nicht doppelt gesendet werden (Sent-Flag in DB)
 
-## Phase 11 – Import/Export
+## Phase 11 – CSV-Import Lehrkräfte
 
-- [ ] **CSV-Import Lehrkräfte** – Upload einer CSV-Datei (Name, E-Mail, Sprechzeiten) → Bulk-Anlage von Nutzern
-- [ ] **CSV/Excel-Export Buchungen** – Alle Buchungen pro Event als Download für die Schulverwaltung
-- [ ] **Validierung** – Fehlerhafte Zeilen überspringen, Zusammenfassung anzeigen (X importiert, Y übersprungen)
+- [x] **CSV-Import Endpoint** – `POST /api/admin/teachers/import-csv` (multipart/form-data, multer): Semikolon- oder kommagetrennte CSV mit Kopfzeile, flexibles Column-Mapping (deutsch/englisch: Nachname, Vorname, Email, Anrede, Raum, Fach, Sprechzeit_von, Sprechzeit_bis)
+- [x] **CSV-Parser** – Eigener RFC-konformer Parser (Quotes, Escaped Quotes, Semikolon + Komma als Trenner), kein externes Dependency
+- [x] **Validierung** – Pflicht-Spalten (Nachname, Email), E-Mail-Validierung, Duplikat-Erkennung (existierende E-Mails werden übersprungen), ungültige Zeilen gesammelt mit Zeilennummer + Grund
+- [x] **Bulk-Anlage** – Pro importierter Zeile: Teacher (first_name/last_name), User-Account (auto username: vorname.nachname), Passwort (crypto.randomBytes), Zeitslots fürs aktive Event
+- [x] **Frontend: CSV Import Button** – In AdminTeachers: „CSV Import"-Button neben „Neuer Nutzer", Hidden File-Input, Dateiauswahl → sofortiger Upload
+- [x] **Frontend: Ergebnis-Dialog** – Zusammenfassung (X importiert, Y übersprungen, Z gesamt), aufklappbare Tabelle mit Zugangsdaten (Name, Email, Username, Passwort, Slots), aufklappbare Liste übersprungener Zeilen mit Gründen
+- [x] **Zugangsdaten-Export** – Button „Zugangsdaten als CSV herunterladen" generiert client-seitig eine CSV mit Name/Email/Username/Passwort der importierten Lehrkräfte
+- [x] **Format-Hinweis** – Info-Box im Import-Dialog zeigt erwartetes CSV-Format
 
 ## Phase 12 – Barrierefreiheit (WCAG 2.1 AA)
 

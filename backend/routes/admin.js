@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
@@ -11,6 +12,7 @@ import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation
 import { generateTimeSlotsForTeacher, formatDateDE } from '../utils/timeWindows.js';
 
 const router = express.Router();
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
 
 // ── Feedback ───────────────────────────────────────────────────────────
 
@@ -312,6 +314,223 @@ router.get('/teachers', requireAdmin, async (_req, res) => {
   } catch (error) {
     console.error('Error fetching admin teachers:', error);
     return res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
+// ── CSV-Import ─────────────────────────────────────────────────────────
+
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  if (lines.length < 2) return { headers: [], rows: [] };
+
+  const parseLine = (line) => {
+    const fields = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { current += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ';' || ch === ',') { fields.push(current.trim()); current = ''; }
+        else { current += ch; }
+      }
+    }
+    fields.push(current.trim());
+    return fields;
+  };
+
+  const headerLine = lines.findIndex(l => l.trim().length > 0);
+  if (headerLine < 0) return { headers: [], rows: [] };
+  const headers = parseLine(lines[headerLine]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
+  const rows = [];
+  for (let i = headerLine + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const vals = parseLine(line);
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
+// Column-name aliases (German & English, flexible naming)
+const COL_ALIASES = {
+  last_name:  ['nachname', 'last_name', 'lastname', 'familienname', 'name'],
+  first_name: ['vorname', 'first_name', 'firstname'],
+  email:      ['email', 'e-mail', 'e_mail', 'mail'],
+  salutation: ['anrede', 'salutation'],
+  room:       ['raum', 'room', 'zimmer'],
+  subject:    ['fach', 'subject', 'fächer'],
+  available_from:  ['von', 'from', 'available_from', 'sprechzeit_von'],
+  available_until: ['bis', 'until', 'available_until', 'sprechzeit_bis'],
+};
+
+function mapColumns(headers) {
+  const mapping = {};
+  for (const [field, aliases] of Object.entries(COL_ALIASES)) {
+    const found = headers.find(h => aliases.includes(h));
+    if (found) mapping[field] = found;
+  }
+  return mapping;
+}
+
+// POST /api/admin/teachers/import-csv
+router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Keine Datei hochgeladen.' });
+    }
+
+    const text = req.file.buffer.toString('utf-8');
+    const { headers, rows } = parseCSV(text);
+
+    if (!rows.length) {
+      return res.status(400).json({ error: 'Die CSV-Datei enthält keine Datenzeilen.' });
+    }
+
+    const colMap = mapColumns(headers);
+    if (!colMap.last_name) {
+      return res.status(400).json({
+        error: 'Pflicht-Spalte "Nachname" nicht gefunden. Erkannte Spalten: ' + headers.join(', '),
+        hint: 'Erwartete Spalten: Nachname, Vorname, Email, Anrede (Trennzeichen: Semikolon oder Komma)',
+      });
+    }
+    if (!colMap.email) {
+      return res.status(400).json({
+        error: 'Pflicht-Spalte "Email" nicht gefunden. Erkannte Spalten: ' + headers.join(', '),
+        hint: 'Erwartete Spalten: Nachname, Vorname, Email, Anrede',
+      });
+    }
+
+    // Resolve active event for slot generation
+    let targetEventId = null;
+    let eventDate = null;
+    try {
+      const nowIso = new Date().toISOString();
+      const { rows: evRows } = await query(
+        `SELECT id, starts_at FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
+        [nowIso]
+      );
+      if (evRows.length) { targetEventId = evRows[0].id; eventDate = formatDateDE(evRows[0].starts_at); }
+    } catch {}
+    if (!targetEventId) {
+      try {
+        const { rows: evRows } = await query('SELECT id, starts_at FROM events ORDER BY starts_at DESC LIMIT 1');
+        if (evRows.length) { targetEventId = evRows[0].id; eventDate = formatDateDE(evRows[0].starts_at); }
+      } catch {}
+    }
+    if (!eventDate) {
+      try {
+        const { rows: sRows } = await query('SELECT event_date FROM settings LIMIT 1');
+        if (sRows[0]?.event_date) eventDate = formatDateDE(sRows[0].event_date);
+      } catch {}
+    }
+    if (!eventDate) eventDate = formatDateDE(new Date().toISOString()) || '01.01.1970';
+
+    // Fetch existing emails to detect duplicates
+    const { rows: existingTeachers } = await query('SELECT email FROM teachers WHERE email IS NOT NULL');
+    const existingEmails = new Set(existingTeachers.map(t => t.email.toLowerCase()));
+
+    const imported = [];
+    const skipped = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const lineNum = i + 2; // 1-indexed, +1 for header
+
+      const lastName  = (row[colMap.last_name]  || '').trim();
+      const firstName = colMap.first_name ? (row[colMap.first_name] || '').trim() : '';
+      const rawEmail  = (row[colMap.email] || '').trim();
+      const rawSalut  = colMap.salutation ? (row[colMap.salutation] || '').trim() : '';
+      const rawRoom   = colMap.room ? (row[colMap.room] || '').trim() : '';
+      const rawSubj   = colMap.subject ? (row[colMap.subject] || '').trim() : '';
+      const rawFrom   = colMap.available_from ? (row[colMap.available_from] || '').trim() : '';
+      const rawUntil  = colMap.available_until ? (row[colMap.available_until] || '').trim() : '';
+
+      // Validate
+      if (!lastName) { skipped.push({ line: lineNum, reason: 'Nachname fehlt' }); continue; }
+
+      const parsedEmail = normalizeAndValidateTeacherEmail(rawEmail);
+      if (!parsedEmail.ok) { skipped.push({ line: lineNum, reason: `Ungültige E-Mail: ${rawEmail}`, name: `${firstName} ${lastName}`.trim() }); continue; }
+
+      if (existingEmails.has(parsedEmail.email)) { skipped.push({ line: lineNum, reason: `E-Mail existiert bereits: ${parsedEmail.email}`, name: `${firstName} ${lastName}`.trim() }); continue; }
+
+      // Salutation: try to match, default to empty
+      let salutation = null;
+      if (rawSalut) {
+        const parsed = normalizeAndValidateTeacherSalutation(rawSalut.charAt(0).toUpperCase() + rawSalut.slice(1).toLowerCase());
+        if (parsed.ok) salutation = parsed.salutation;
+      }
+
+      const availFrom = rawFrom || '16:00';
+      const availUntil = rawUntil || '19:00';
+
+      // Insert teacher
+      const { rows: tRows } = await query(
+        'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+        [firstName, lastName, parsedEmail.email, salutation, rawSubj || 'Sprechstunde', availFrom, availUntil, rawRoom || null]
+      );
+      const teacher = tRows[0];
+      existingEmails.add(parsedEmail.email);
+
+      // Generate slots
+      const timeSlots = generateTimeSlotsForTeacher(availFrom, availUntil);
+      if (timeSlots.length && eventDate) {
+        const now = new Date().toISOString();
+        const slotCols = ['teacher_id', 'event_id', 'time', 'date', 'booked', 'updated_at'];
+        const placeholders = [];
+        const vals = [];
+        let pIdx = 1;
+        for (const time of timeSlots) {
+          placeholders.push(`($${pIdx}, $${pIdx + 1}, $${pIdx + 2}, $${pIdx + 3}, $${pIdx + 4}, $${pIdx + 5})`);
+          vals.push(teacher.id, targetEventId, time, eventDate, false, now);
+          pIdx += 6;
+        }
+        try {
+          await query(`INSERT INTO slots (${slotCols.join(', ')}) VALUES ${placeholders.join(', ')}`, vals);
+        } catch {}
+      }
+
+      // Create user account
+      const autoFirst = String(firstName).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
+      const autoLast  = String(lastName).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
+      const username = (autoFirst && autoLast ? `${autoFirst}.${autoLast}` : autoFirst || autoLast || `teacher${teacher.id}`).slice(0, 30);
+      const tempPassword = crypto.randomBytes(6).toString('base64url');
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+      try {
+        await query(
+          `INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4, teacher_id = $5`,
+          [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
+        );
+      } catch {}
+
+      imported.push({
+        id: teacher.id,
+        name: `${firstName} ${lastName}`.trim(),
+        email: parsedEmail.email,
+        username,
+        tempPassword,
+        slotsCreated: timeSlots.length,
+      });
+    }
+
+    res.json({
+      success: true,
+      imported: imported.length,
+      skipped: skipped.length,
+      total: rows.length,
+      details: { imported, skipped },
+    });
+  } catch (error) {
+    console.error('CSV import error:', error);
+    res.status(500).json({ error: 'Fehler beim CSV-Import: ' + (error?.message || 'Unbekannter Fehler') });
   }
 });
 

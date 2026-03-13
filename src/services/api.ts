@@ -146,6 +146,20 @@ const api = {
     async deleteTeacher(id: number) {
       return requestJSON(`/admin/teachers/${id}`, { method: 'DELETE', auth: true });
     },
+    async importTeachersCSV(file: File) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch(`${API_BASE}/admin/teachers/import-csv`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error((data as any)?.error || `Fehler ${response.status}`);
+      }
+      return data;
+    },
     async getSlots() {
       return requestJSON('/admin/slots', { auth: true });
     },
