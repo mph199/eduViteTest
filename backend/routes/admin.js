@@ -124,8 +124,8 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
 
   const { role } = req.body || {};
   const roleStr = String(role || '').trim();
-  if (!['admin', 'teacher', 'superadmin'].includes(roleStr)) {
-    return res.status(400).json({ error: 'role must be "admin", "teacher" or "superadmin"' });
+  if (!['admin', 'teacher', 'superadmin', 'ssw'].includes(roleStr)) {
+    return res.status(400).json({ error: 'role must be "admin", "teacher", "superadmin" or "ssw"' });
   }
 
   // Prevent an admin from demoting themselves.

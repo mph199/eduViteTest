@@ -51,17 +51,17 @@ export function GlobalTopHeader() {
       return 'Lehrkraft';
     }
 
-    if (pathname === '/admin' || pathname === '/admin/') return 'Admin · Übersicht';
+    if (pathname === '/admin' || pathname === '/admin/') return user?.role === 'ssw' ? 'Schulsozialarbeit · Übersicht' : 'Admin · Übersicht';
     if (pathname.includes('/admin/teachers')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/events')) return 'Admin · Eltern- und Ausbildersprechtage verwalten';
     if (pathname.includes('/admin/users')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/feedback')) return 'Admin · Feedback einsehen';
     // Dynamic module admin labels
     for (const ar of moduleAdminRoutes) {
-      if (pathname.includes(ar.path)) return `Admin · ${ar.label}`;
+      if (pathname.includes(ar.path)) return user?.role === 'ssw' ? `Schulsozialarbeit · ${ar.label}` : `Admin · ${ar.label}`;
     }
     if (pathname === '/superadmin' || pathname.startsWith('/superadmin')) return 'Superadmin · Tenant-Branding';
-    return 'Admin';
+    return user?.role === 'ssw' ? 'Schulsozialarbeit' : 'Admin';
   }, [inTeacher, pathname, showAreaMenu, moduleAdminRoutes]);
 
   useEffect(() => {
@@ -171,6 +171,24 @@ export function GlobalTopHeader() {
                         <span>Feedback senden</span>
                         {pathname === '/teacher/feedback' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
+                    </>
+                  ) : user?.role === 'ssw' ? (
+                    <>
+                      {/* SSW role: only module admin routes for SSW */}
+                      {moduleAdminRoutes.map((ar) => (
+                        <button
+                          key={ar.path}
+                          type="button"
+                          className={pathname === ar.path ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                          onClick={() => {
+                            navigate(ar.path);
+                            close();
+                          }}
+                        >
+                          <span>{ar.icon} {ar.label}</span>
+                          {pathname === ar.path && <span className="dropdown__hint">Aktiv</span>}
+                        </button>
+                      ))}
                     </>
                   ) : (
                     <>

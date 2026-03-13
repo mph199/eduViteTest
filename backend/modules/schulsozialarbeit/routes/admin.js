@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { requireAdmin } from '../../../middleware/auth.js';
+import { requireSSW } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 
 const router = express.Router();
@@ -13,7 +13,7 @@ const router = express.Router();
 // ── Counselors CRUD ────────────────────────────────────────────────────
 
 // GET /api/ssw/admin/counselors
-router.get('/counselors', requireAdmin, async (_req, res) => {
+router.get('/counselors', requireSSW, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM ssw_counselors ORDER BY last_name, first_name');
     res.json({ counselors: rows });
@@ -23,7 +23,7 @@ router.get('/counselors', requireAdmin, async (_req, res) => {
 });
 
 // POST /api/ssw/admin/counselors
-router.post('/counselors', requireAdmin, async (req, res) => {
+router.post('/counselors', requireSSW, async (req, res) => {
   try {
     const { first_name, last_name, email, salutation, room, phone, specializations,
             available_from, available_until, slot_duration_minutes } = req.body || {};
@@ -56,7 +56,7 @@ router.post('/counselors', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/ssw/admin/counselors/:id
-router.put('/counselors/:id', requireAdmin, async (req, res) => {
+router.put('/counselors/:id', requireSSW, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { first_name, last_name, email, salutation, room, phone, specializations,
@@ -96,7 +96,7 @@ router.put('/counselors/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/ssw/admin/counselors/:id
-router.delete('/counselors/:id', requireAdmin, async (req, res) => {
+router.delete('/counselors/:id', requireSSW, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { rows } = await query('DELETE FROM ssw_counselors WHERE id = $1 RETURNING id', [id]);
@@ -113,7 +113,7 @@ router.delete('/counselors/:id', requireAdmin, async (req, res) => {
 // ── Categories CRUD ────────────────────────────────────────────────────
 
 // GET /api/ssw/admin/categories
-router.get('/categories', requireAdmin, async (_req, res) => {
+router.get('/categories', requireSSW, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM ssw_categories ORDER BY sort_order, id');
     res.json({ categories: rows });
@@ -123,7 +123,7 @@ router.get('/categories', requireAdmin, async (_req, res) => {
 });
 
 // POST /api/ssw/admin/categories
-router.post('/categories', requireAdmin, async (req, res) => {
+router.post('/categories', requireSSW, async (req, res) => {
   try {
     const { name, description, icon, sort_order } = req.body || {};
     if (!name?.trim()) return res.status(400).json({ error: 'Name ist erforderlich' });
@@ -139,7 +139,7 @@ router.post('/categories', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/ssw/admin/categories/:id
-router.put('/categories/:id', requireAdmin, async (req, res) => {
+router.put('/categories/:id', requireSSW, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { name, description, icon, sort_order, active } = req.body || {};
@@ -159,7 +159,7 @@ router.put('/categories/:id', requireAdmin, async (req, res) => {
 // ── Stats ──────────────────────────────────────────────────────────────
 
 // GET /api/ssw/admin/stats
-router.get('/stats', requireAdmin, async (_req, res) => {
+router.get('/stats', requireSSW, async (_req, res) => {
   try {
     const { rows: [counts] } = await query(`
       SELECT
@@ -177,7 +177,7 @@ router.get('/stats', requireAdmin, async (_req, res) => {
 // ── Appointments (calendar management) ─────────────────────────────────
 
 // GET /api/ssw/admin/appointments?counselor_id=X&date_from=YYYY-MM-DD&date_until=YYYY-MM-DD
-router.get('/appointments', requireAdmin, async (req, res) => {
+router.get('/appointments', requireSSW, async (req, res) => {
   try {
     const counselorId = parseInt(req.query.counselor_id, 10);
     if (!counselorId) return res.status(400).json({ error: 'counselor_id erforderlich' });
@@ -203,7 +203,7 @@ router.get('/appointments', requireAdmin, async (req, res) => {
 
 // DELETE /api/ssw/admin/appointments — bulk delete
 // Body: { ids: [1, 2, 3] }
-router.delete('/appointments', requireAdmin, async (req, res) => {
+router.delete('/appointments', requireSSW, async (req, res) => {
   try {
     const { ids } = req.body || {};
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -228,7 +228,7 @@ router.delete('/appointments', requireAdmin, async (req, res) => {
 // ── Weekly Schedule ────────────────────────────────────────────────────
 
 // GET /api/ssw/admin/counselors/:id/schedule
-router.get('/counselors/:id/schedule', requireAdmin, async (req, res) => {
+router.get('/counselors/:id/schedule', requireSSW, async (req, res) => {
   try {
     const counselorId = parseInt(req.params.id, 10);
     const { rows } = await query(
@@ -243,7 +243,7 @@ router.get('/counselors/:id/schedule', requireAdmin, async (req, res) => {
 
 // PUT /api/ssw/admin/counselors/:id/schedule
 // Body: { schedule: [{ weekday: 0, start_time: "08:00", end_time: "14:00", active: true }, ...] }
-router.put('/counselors/:id/schedule', requireAdmin, async (req, res) => {
+router.put('/counselors/:id/schedule', requireSSW, async (req, res) => {
   try {
     const counselorId = parseInt(req.params.id, 10);
     const { schedule } = req.body || {};

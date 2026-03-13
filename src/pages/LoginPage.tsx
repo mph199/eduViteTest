@@ -23,6 +23,8 @@ export function LoginPage() {
       // Admins mit teacherId und Teacher → Lehrkräfte-Bereich
       if (u?.role === 'superadmin') {
         navigate('/admin', { replace: true });
+      } else if (u?.role === 'ssw') {
+        navigate('/admin/ssw', { replace: true });
       } else if (u?.role === 'admin' && !u.teacherId) {
         navigate('/admin', { replace: true });
       } else if (u?.role === 'admin' || u?.role === 'teacher') {

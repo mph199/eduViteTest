@@ -85,7 +85,7 @@ function App() {
               <Route 
                 path="/admin" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                     <AdminDashboard />
                   </ProtectedRoute>
                 } 
@@ -93,7 +93,7 @@ function App() {
               <Route 
                 path="/admin/teachers" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                     <AdminTeachers />
                   </ProtectedRoute>
                 } 
@@ -115,7 +115,7 @@ function App() {
               <Route 
                 path="/admin/events" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                     <AdminEvents />
                   </ProtectedRoute>
                 } 
@@ -127,7 +127,7 @@ function App() {
               <Route 
                 path="/admin/feedback" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
                     <AdminFeedback />
                   </ProtectedRoute>
                 } 
@@ -135,7 +135,7 @@ function App() {
               <Route 
                 path="/superadmin" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['superadmin']}>
                     <SuperadminPage />
                   </ProtectedRoute>
                 } 

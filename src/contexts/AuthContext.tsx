@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  const isAdminLike = (role: string) => role === 'admin' || role === 'superadmin';
+  const isAdminLike = (role: string) => role === 'admin' || role === 'superadmin' || role === 'ssw';
 
   const computeInitialView = useCallback((u: User): ActiveView => {
     if (u.role === 'teacher') return 'teacher';

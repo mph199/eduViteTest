@@ -18,8 +18,8 @@ const router = express.Router();
 async function requireCounselor(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Nicht angemeldet' });
 
-  // Admin/Superadmin can access all counselor routes
-  if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+  // Admin/Superadmin/SSW can access all counselor routes
+  if (req.user.role === 'admin' || req.user.role === 'superadmin' || req.user.role === 'ssw') {
     // Get counselor_id from query param or request body
     const counselorId = parseInt(req.query.counselor_id || req.body?.counselor_id, 10) || null;
     if (counselorId) {

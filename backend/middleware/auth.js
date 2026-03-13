@@ -15,10 +15,33 @@ const JWT_EXPIRES_IN = '8h';
  */
 export function generateToken(user) {
   const payload = { username: user.username, role: user.role };
+  if (user.id) {
+    payload.id = user.id;
+  }
   if (user.teacherId) {
     payload.teacherId = user.teacherId;
   }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
+
+/**
+ * Middleware: Requires SSW role (Schulsozialarbeit admin access)
+ * Allows admin, superadmin, and ssw roles.
+ */
+export function requireSSW(req, res, next) {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
+  }
+  if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
+    return res.status(403).json({ error: 'Forbidden', message: 'SSW access required' });
+  }
+  req.user = decoded;
+  return next();
 }
 
 /**

@@ -3,10 +3,11 @@ import { useAuth } from '../contexts/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading } = useAuth();
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -25,6 +26,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Role-based gating: redirect SSW users to their area
+  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
+    if (user.role === 'ssw') {
+      return <Navigate to="/admin/ssw" replace />;
+    }
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

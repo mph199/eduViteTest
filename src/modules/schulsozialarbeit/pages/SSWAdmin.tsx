@@ -125,7 +125,6 @@ export function SSWAdmin() {
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
 
   // Slot generation
-  const [slotGenCounselorId, setSlotGenCounselorId] = useState<number | null>(null);
   const [slotGenFrom, setSlotGenFrom] = useState('');
   const [slotGenUntil, setSlotGenUntil] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -307,7 +306,7 @@ export function SSWAdmin() {
 
   // ── Slot Generation ───────────────────────────────────────────────
   const handleGenerateSlots = async () => {
-    if (!slotGenCounselorId || !slotGenFrom || !slotGenUntil) {
+    if (!calCounselorId || !slotGenFrom || !slotGenUntil) {
       alert('Bitte Berater/in und Zeitraum wählen.');
       return;
     }
@@ -316,15 +315,17 @@ export function SSWAdmin() {
       const data = await apiFetch('/ssw/counselor/generate-slots', {
         method: 'POST',
         body: JSON.stringify({
-          counselor_id: slotGenCounselorId,
+          counselor_id: calCounselorId,
           date_from: slotGenFrom,
           date_until: slotGenUntil,
         }),
       });
       showFlash(`${data.created || 0} Termine erstellt (${data.skipped || 0} übersprungen).`);
-      setSlotGenCounselorId(null);
       setSlotGenFrom('');
       setSlotGenUntil('');
+      // Refresh calendar
+      loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
+      loadData();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler');
     } finally {
@@ -393,7 +394,7 @@ export function SSWAdmin() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {([['counselors', '👥 Berater/innen'], ['termine', '📅 Termine'], ['categories', '📂 Kategorien'], ['stats', '📊 Statistik']] as [Tab, string][]).map(([key, label]) => (
+          {([['counselors', '👥 Berater/innen'], ['termine', '📅 Terminverwaltung'], ['categories', '📂 Kategorien'], ['stats', '📊 Statistik']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -514,35 +515,6 @@ export function SSWAdmin() {
               </div>
             )}
 
-            {/* Slot Generation */}
-            <details style={{ marginBottom: '1rem', marginTop: '1rem' }}>
-              <summary style={{ cursor: 'pointer', fontWeight: 600 }}>🗓️ Termine generieren</summary>
-              <div className="teacher-form-container" style={{ marginTop: '0.5rem' }}>
-                <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
-                  <div className="form-group">
-                    <label htmlFor="ssw-gen-counselor">Berater/in</label>
-                    <select id="ssw-gen-counselor" value={slotGenCounselorId || ''} onChange={e => setSlotGenCounselorId(parseInt(e.target.value) || null)}>
-                      <option value="">– Wählen –</option>
-                      {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Zeitraum</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
-                      <span>bis</span>
-                      <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="form-actions">
-                    <button className="btn-primary" type="submit" disabled={generating}>
-                      {generating ? 'Generiere…' : 'Termine generieren'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </details>
-
             <div className="admin-resp-table-container">
               <table className="admin-resp-table">
                 <thead>
@@ -583,26 +555,46 @@ export function SSWAdmin() {
           </>
         )}
 
-        {/* ── Termine Tab (Calendar) ────────────────────────────── */}
+        {/* ── Terminverwaltung Tab ─────────────────────────────── */}
         {tab === 'termine' && (
           <>
             <div className="admin-section-header">
-              <h3>Terminkalender</h3>
+              <h3>Terminverwaltung</h3>
             </div>
 
-            {/* Counselor picker */}
+            {/* Counselor picker + Slot generation */}
             <div className="teacher-form-container" style={{ marginBottom: '1rem' }}>
-              <div className="form-group">
-                <label htmlFor="cal-counselor">Berater/in auswählen</label>
-                <select
-                  id="cal-counselor"
-                  value={calCounselorId || ''}
-                  onChange={e => { setCalCounselorId(parseInt(e.target.value) || null); setCalSelectedDate(null); setCalSelectedIds(new Set()); }}
-                >
-                  <option value="">– Bitte wählen –</option>
-                  {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
+              <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
+                <div className="form-group">
+                  <label htmlFor="cal-counselor">Berater/in</label>
+                  <select
+                    id="cal-counselor"
+                    value={calCounselorId || ''}
+                    onChange={e => {
+                      const id = parseInt(e.target.value) || null;
+                      setCalCounselorId(id);
+                      setCalSelectedDate(null);
+                      setCalSelectedIds(new Set());
+                    }}
+                  >
+                    <option value="">– Bitte wählen –</option>
+                    {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Slots freischalten für Zeitraum</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
+                    <span>bis</span>
+                    <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button className="btn-primary" type="submit" disabled={generating || !calCounselorId}>
+                    {generating ? 'Generiere…' : 'Termine freischalten'}
+                  </button>
+                </div>
+              </form>
             </div>
 
             {calCounselorId && (

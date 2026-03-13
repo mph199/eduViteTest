@@ -236,7 +236,7 @@ const api = {
       const res = await requestJSON('/admin/users', { auth: true });
       return (res && (res as any).users) || [];
     },
-    async updateUserRole(id: number, role: 'admin' | 'teacher') {
+    async updateUserRole(id: number, role: string) {
       const res = await requestJSON(`/admin/users/${id}`, {
         method: 'PATCH',
         auth: true,

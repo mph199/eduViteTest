@@ -179,24 +179,23 @@ export function AdminTeachers() {
     return { total, adminCount, teacherCount };
   }, [users]);
 
-  const updateRole = async (target: UserAccount, nextRole: 'admin' | 'teacher') => {
+  const updateRole = async (target: UserAccount, nextRole: string) => {
     const currentRole = target.role;
     if (currentRole === nextRole) return;
 
     const isSelf = !!user?.username && target.username === user.username;
-    if (isSelf && nextRole !== 'admin') {
+    if (isSelf && currentRole === 'admin') {
       alert('Du kannst deine eigenen Adminrechte nicht entfernen.');
       return;
     }
 
-    const prompt = nextRole === 'admin'
-      ? `Soll „${target.username}" Adminrechte bekommen?`
-      : `Soll „${target.username}" die Adminrechte verlieren?`;
+    const roleLabels: Record<string, string> = { admin: 'Admin', teacher: 'Lehrkraft', ssw: 'Schulsozialarbeit', superadmin: 'Superadmin' };
+    const prompt = `Rolle von „${target.username}" zu „${roleLabels[nextRole] || nextRole}" ändern?`;
 
     if (!confirm(prompt)) return;
 
     setRoleSaving((prev) => ({ ...prev, [target.id]: true }));
-    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: nextRole } : u)));
+    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: nextRole as UserAccount['role'] } : u)));
 
     try {
       const updated = await api.admin.updateUserRole(target.id, nextRole);
@@ -208,7 +207,7 @@ export function AdminTeachers() {
       setFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
       window.setTimeout(() => setFlash(''), 6500);
     } catch (e) {
-      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: currentRole } : u)));
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: currentRole as UserAccount['role'] } : u)));
       alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
     } finally {
       setRoleSaving((prev) => ({ ...prev, [target.id]: false }));
@@ -608,13 +607,14 @@ export function AdminTeachers() {
                                 <div className="admin-users-action">
                                   <select
                                     className="admin-table-select"
-                                    value={acct.role === 'admin' ? 'admin' : 'teacher'}
+                                    value={acct.role}
                                     disabled={!!roleSaving[acct.id] || (isSelf && acct.role === 'admin')}
-                                    onChange={(e) => updateRole(acct, e.target.value === 'admin' ? 'admin' : 'teacher')}
+                                    onChange={(e) => updateRole(acct, e.target.value)}
                                     aria-label={`Rolle für ${acct.username}`}
                                   >
                                     <option value="teacher">Lehrkraft</option>
                                     <option value="admin">Admin</option>
+                                    <option value="ssw">Schulsozialarbeit</option>
                                   </select>
                                   {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
                                 </div>
@@ -722,14 +722,15 @@ export function AdminTeachers() {
                                   <div className="admin-users-action">
                                     <select
                                       className="admin-table-select"
-                                      value={acct.role === 'admin' ? 'admin' : 'teacher'}
+                                      value={acct.role}
                                       disabled={!!roleSaving[acct.id] || (!!user?.username && acct.username === user.username && acct.role === 'admin')}
-                                      onChange={(e) => updateRole(acct, e.target.value === 'admin' ? 'admin' : 'teacher')}
+                                      onChange={(e) => updateRole(acct, e.target.value)}
                                       aria-label={`Rolle für ${acct.username}`}
                                       title={user?.username === acct.username && acct.role === 'admin' ? 'Eigene Adminrolle kann nicht entfernt werden.' : 'Rolle ändern'}
                                     >
                                       <option value="teacher">Lehrkraft</option>
                                       <option value="admin">Admin</option>
+                                      <option value="ssw">Schulsozialarbeit</option>
                                     </select>
                                     {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
                                   </div>
