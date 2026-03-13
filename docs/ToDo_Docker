@@ -151,7 +151,7 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 | Modul                  | Beschreibung                                                       |
 |------------------------|--------------------------------------------------------------------|
 | **Elternsprechtag**    | Bestehendes System (Kern)                                          |
-| **Schulsozialarbeit**  | Terminbuchung für Beratungsgespräche, vertrauliche Notizen         |
+| **Schulsozialarbeit**  | ✅ Terminbuchung für Beratungsgespräche, vertrauliche Notizen      |
 | **Beratungslehrer**    | Sprechstunden, Themenkategorien, anonyme Anfragen                  |
 | **Berufsorientierung** | Betriebsbesuche, Praktikumsplätze, Matching                       |
 | **Fächerwahl** | Fächer/Kurse im Gymnasium wählen, , Matching der Fächer, Ausgabe von Liste            |
@@ -159,3 +159,19 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 ---
 
 > **Nächster konkreter Schritt:** Phase 1 – Dockerfile + docker-compose.yml erstellen und lokal testen.
+
+---
+
+## Phase 12 – Modul Schulsozialarbeit
+
+- [x] **Migration 022** – `ssw_counselors`, `ssw_categories`, `ssw_appointments` Tabellen + 5 Default-Kategorien geseedet
+- [x] **Backend-Modul** – `backend/modules/schulsozialarbeit/index.js` (Manifest mit `register()`)
+- [x] **Public API** – `GET /api/ssw/counselors`, `GET /api/ssw/categories`, `GET /api/ssw/appointments/:id?date=`, `POST /api/ssw/appointments/:id/book`
+- [x] **Counselor API** – Authentifizierte Routen: eigene Termine, Slots generieren, bestätigen/absagen/Notizen
+- [x] **Admin API** – CRUD für Berater/innen und Kategorien, Statistik-Endpoint
+- [x] **Service-Layer** – `appointmentService.js` mit Zeitslot-Generierung, Buchungslogik
+- [x] **Frontend BookingApp** – 4-Schritt-Wizard (Berater → Datum/Zeit → Formular → Bestätigung) mit Vertraulichkeitshinweis
+- [x] **Frontend Admin** – Berater-CRUD, Kategorien-CRUD, Slot-Generierung, Statistik-Dashboard (Tabs)
+- [x] **Modul-Manifest** – `src/modules/schulsozialarbeit/index.ts` (ModuleDefinition mit lazy-loading)
+- [x] **Registry** – In `src/modules/registry.ts` registriert
+- [x] **Docker Build** – Erfolgreich gebaut, Migration 022 automatisch angewandt, Modul geladen

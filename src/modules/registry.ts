@@ -49,11 +49,11 @@ export interface ModuleDefinition {
 // ── Alle verfügbaren Module registrieren ────────────────────────────────
 
 import elternsprechtagModule from './elternsprechtag/index';
+import schulsozialarbeitModule from './schulsozialarbeit/index';
 
 const allModules: ModuleDefinition[] = [
   elternsprechtagModule,
-  // Weitere Module hier hinzufügen:
-  // import schulsozialarbeitModule from './schulsozialarbeit/index';
+  schulsozialarbeitModule,
 ];
 
 // ── Filter über Env-Variable ────────────────────────────────────────────
