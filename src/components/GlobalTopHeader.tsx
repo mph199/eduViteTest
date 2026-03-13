@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
 import { useAuth } from '../contexts/useAuth';
 import { useBranding } from '../contexts/BrandingContext';
+import { modules } from '../modules/registry';
 import './GlobalTopHeader.css';
 
 export function GlobalTopHeader() {
@@ -23,6 +24,19 @@ export function GlobalTopHeader() {
   const isArea = showAreaMenu;
   const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
 
+  // Find which module the user is currently viewing (public page)
+  const activeModule = useMemo(() => {
+    if (!showModuleTitle) return null;
+    return modules.find((m) => pathname === m.basePath || pathname === m.basePath + '/') ?? null;
+  }, [pathname, showModuleTitle]);
+
+  // Collect all admin routes from active modules
+  const moduleAdminRoutes = useMemo(() => {
+    return modules.flatMap((m) =>
+      (m.adminRoutes ?? []).map((ar) => ({ ...ar, icon: m.icon }))
+    );
+  }, []);
+
   const userLabel = user?.fullName || user?.username;
 
   const areaLabel = useMemo(() => {
@@ -40,12 +54,15 @@ export function GlobalTopHeader() {
     if (pathname === '/admin' || pathname === '/admin/') return 'Admin · Übersicht';
     if (pathname.includes('/admin/teachers')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/events')) return 'Admin · Eltern- und Ausbildersprechtage verwalten';
-    if (pathname.includes('/admin/slots')) return 'Admin · Sprechzeiten verwalten';
     if (pathname.includes('/admin/users')) return 'Admin · Benutzer & Rechte verwalten';
     if (pathname.includes('/admin/feedback')) return 'Admin · Feedback einsehen';
+    // Dynamic module admin labels
+    for (const ar of moduleAdminRoutes) {
+      if (pathname.includes(ar.path)) return `Admin · ${ar.label}`;
+    }
     if (pathname === '/superadmin' || pathname.startsWith('/superadmin')) return 'Superadmin · Tenant-Branding';
     return 'Admin';
-  }, [inTeacher, pathname, showAreaMenu]);
+  }, [inTeacher, pathname, showAreaMenu, moduleAdminRoutes]);
 
   useEffect(() => {
     const element = headerRef.current;
@@ -190,17 +207,21 @@ export function GlobalTopHeader() {
                         <span>Eltern- und Ausbildersprechtage verwalten</span>
                         {pathname === '/admin/events' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
-                      <button
-                        type="button"
-                        className={pathname === '/admin/slots' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/admin/slots');
-                          close();
-                        }}
-                      >
-                        <span>Sprechzeiten verwalten</span>
-                        {pathname === '/admin/slots' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
+                      {/* Dynamic module admin routes */}
+                      {moduleAdminRoutes.map((ar) => (
+                        <button
+                          key={ar.path}
+                          type="button"
+                          className={pathname === ar.path ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                          onClick={() => {
+                            navigate(ar.path);
+                            close();
+                          }}
+                        >
+                          <span>{ar.icon} {ar.label}</span>
+                          {pathname === ar.path && <span className="dropdown__hint">Aktiv</span>}
+                        </button>
+                      ))}
 
                       <button
                         type="button"
@@ -297,7 +318,7 @@ export function GlobalTopHeader() {
             <div className="globalTopHeader__brandBottom">Buchungssystem</div>
           </div>
 
-          {showModuleTitle ? <div className="globalTopHeader__moduleTitle">Eltern- und Ausbildersprechtag</div> : null}
+          {showModuleTitle && activeModule ? <div className="globalTopHeader__moduleTitle">{activeModule.icon} {activeModule.title}</div> : null}
 
           {areaLabel ? <div className="globalTopHeader__areaLabel">{areaLabel}</div> : null}
         </div>

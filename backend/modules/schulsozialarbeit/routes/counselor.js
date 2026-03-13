@@ -20,8 +20,8 @@ async function requireCounselor(req, res, next) {
 
   // Admin/Superadmin can access all counselor routes
   if (req.user.role === 'admin' || req.user.role === 'superadmin') {
-    // If admin, optionally get counselor_id from query param
-    const counselorId = req.query.counselor_id ? parseInt(req.query.counselor_id, 10) : null;
+    // Get counselor_id from query param or request body
+    const counselorId = parseInt(req.query.counselor_id || req.body?.counselor_id, 10) || null;
     if (counselorId) {
       const { rows } = await query('SELECT * FROM ssw_counselors WHERE id = $1', [counselorId]);
       req.counselor = rows[0] || null;
@@ -74,24 +74,57 @@ router.post('/generate-slots', requireAuth, requireCounselor, async (req, res) =
 
     const endDate = date_until && /^\d{4}-\d{2}-\d{2}$/.test(date_until) ? date_until : date_from;
 
-    // Get counselor details for time window
+    // Get counselor details
     const { rows: cRows } = await query('SELECT * FROM ssw_counselors WHERE id = $1', [counselorId]);
     const counselor = cRows[0];
     if (!counselor) return res.status(404).json({ error: 'Berater/in nicht gefunden' });
 
-    const fromStr = counselor.available_from?.toString()?.slice(0, 5) || '08:00';
-    const untilStr = counselor.available_until?.toString()?.slice(0, 5) || '14:00';
+    // Load weekly schedule (if exists)
+    const { rows: scheduleRows } = await query(
+      'SELECT * FROM ssw_weekly_schedule WHERE counselor_id = $1 AND active = TRUE ORDER BY weekday',
+      [counselorId]
+    );
+
+    // Build a map: JS weekday (0=Sun..6=Sat) → { start_time, end_time }
+    // DB weekday: 0=Mon..4=Fri,5=Sat,6=Sun → JS: Mon=1..Fri=5,Sat=6,Sun=0
+    const scheduleByJsDay = new Map();
+    for (const s of scheduleRows) {
+      const jsDay = s.weekday === 6 ? 0 : s.weekday + 1; // DB 0(Mon)→JS 1, DB 6(Sun)→JS 0
+      scheduleByJsDay.set(jsDay, {
+        start: s.start_time?.toString()?.slice(0, 5),
+        end: s.end_time?.toString()?.slice(0, 5),
+      });
+    }
+
+    const hasSchedule = scheduleByJsDay.size > 0;
     const duration = counselor.slot_duration_minutes || 30;
-    const timeSlots = generateTimeSlots(fromStr, untilStr, duration);
+
+    // Fallback: use counselor's default times if no schedule exists
+    const defaultFrom = counselor.available_from?.toString()?.slice(0, 5) || '08:00';
+    const defaultUntil = counselor.available_until?.toString()?.slice(0, 5) || '14:00';
 
     let totalCreated = 0;
+    let totalSkipped = 0;
     const start = new Date(date_from);
     const end = new Date(endDate);
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      if (exclude_weekends && (dayOfWeek === 0 || dayOfWeek === 6)) continue;
+      const dayOfWeek = d.getDay(); // JS: 0=Sun, 1=Mon, ..., 6=Sat
 
+      let fromStr, untilStr;
+      if (hasSchedule) {
+        const entry = scheduleByJsDay.get(dayOfWeek);
+        if (!entry) continue; // no schedule for this day → skip
+        fromStr = entry.start;
+        untilStr = entry.end;
+      } else {
+        // Fallback: skip weekends, use default times
+        if (exclude_weekends && (dayOfWeek === 0 || dayOfWeek === 6)) continue;
+        fromStr = defaultFrom;
+        untilStr = defaultUntil;
+      }
+
+      const timeSlots = generateTimeSlots(fromStr, untilStr, duration);
       const dateStr = d.toISOString().slice(0, 10);
 
       // Check for existing slots on this date
@@ -102,6 +135,7 @@ router.post('/generate-slots', requireAuth, requireCounselor, async (req, res) =
       const existingTimes = new Set(existing.map(r => r.time?.toString()?.slice(0, 5)));
 
       const newSlots = timeSlots.filter(t => !existingTimes.has(t));
+      totalSkipped += existingTimes.size;
       if (!newSlots.length) continue;
 
       const cols = ['counselor_id', 'date', 'time', 'duration_minutes', 'status'];
@@ -117,7 +151,7 @@ router.post('/generate-slots', requireAuth, requireCounselor, async (req, res) =
       totalCreated += newSlots.length;
     }
 
-    res.json({ success: true, created: totalCreated });
+    res.json({ success: true, created: totalCreated, skipped: totalSkipped });
   } catch (err) {
     console.error('SSW generate-slots error:', err);
     res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });

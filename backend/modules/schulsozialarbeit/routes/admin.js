@@ -174,4 +174,116 @@ router.get('/stats', requireAdmin, async (_req, res) => {
   }
 });
 
+// ── Appointments (calendar management) ─────────────────────────────────
+
+// GET /api/ssw/admin/appointments?counselor_id=X&date_from=YYYY-MM-DD&date_until=YYYY-MM-DD
+router.get('/appointments', requireAdmin, async (req, res) => {
+  try {
+    const counselorId = parseInt(req.query.counselor_id, 10);
+    if (!counselorId) return res.status(400).json({ error: 'counselor_id erforderlich' });
+
+    const dateFrom = req.query.date_from;
+    const dateUntil = req.query.date_until;
+    if (!dateFrom || !dateUntil) return res.status(400).json({ error: 'date_from und date_until erforderlich' });
+
+    const { rows } = await query(
+      `SELECT a.*, c.name AS category_name, c.icon AS category_icon
+       FROM ssw_appointments a
+       LEFT JOIN ssw_categories c ON c.id = a.category_id
+       WHERE a.counselor_id = $1 AND a.date >= $2 AND a.date <= $3
+       ORDER BY a.date, a.time`,
+      [counselorId, dateFrom, dateUntil]
+    );
+    res.json({ appointments: rows });
+  } catch (err) {
+    console.error('SSW admin appointments error:', err);
+    res.status(500).json({ error: 'Fehler beim Laden der Termine' });
+  }
+});
+
+// DELETE /api/ssw/admin/appointments — bulk delete
+// Body: { ids: [1, 2, 3] }
+router.delete('/appointments', requireAdmin, async (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids-Array erforderlich' });
+    }
+
+    const numericIds = ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    if (numericIds.length === 0) return res.status(400).json({ error: 'Keine gültigen IDs' });
+
+    const placeholders = numericIds.map((_, i) => `$${i + 1}`).join(', ');
+    const { rowCount } = await query(
+      `DELETE FROM ssw_appointments WHERE id IN (${placeholders})`,
+      numericIds
+    );
+    res.json({ success: true, deleted: rowCount });
+  } catch (err) {
+    console.error('SSW admin delete appointments error:', err);
+    res.status(500).json({ error: 'Fehler beim Löschen' });
+  }
+});
+
+// ── Weekly Schedule ────────────────────────────────────────────────────
+
+// GET /api/ssw/admin/counselors/:id/schedule
+router.get('/counselors/:id/schedule', requireAdmin, async (req, res) => {
+  try {
+    const counselorId = parseInt(req.params.id, 10);
+    const { rows } = await query(
+      'SELECT * FROM ssw_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      [counselorId]
+    );
+    res.json({ schedule: rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Laden des Wochenplans' });
+  }
+});
+
+// PUT /api/ssw/admin/counselors/:id/schedule
+// Body: { schedule: [{ weekday: 0, start_time: "08:00", end_time: "14:00", active: true }, ...] }
+router.put('/counselors/:id/schedule', requireAdmin, async (req, res) => {
+  try {
+    const counselorId = parseInt(req.params.id, 10);
+    const { schedule } = req.body || {};
+
+    if (!Array.isArray(schedule)) {
+      return res.status(400).json({ error: 'schedule muss ein Array sein' });
+    }
+
+    // Validate each entry
+    for (const entry of schedule) {
+      const wd = parseInt(entry.weekday, 10);
+      if (isNaN(wd) || wd < 0 || wd > 6) {
+        return res.status(400).json({ error: `Ungültiger Wochentag: ${entry.weekday}` });
+      }
+      if (entry.active && (!entry.start_time || !entry.end_time)) {
+        return res.status(400).json({ error: `Start- und Endzeit erforderlich für Tag ${wd}` });
+      }
+    }
+
+    // Upsert each day
+    for (const entry of schedule) {
+      const wd = parseInt(entry.weekday, 10);
+      await query(
+        `INSERT INTO ssw_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (counselor_id, weekday)
+         DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
+        [counselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
+      );
+    }
+
+    const { rows } = await query(
+      'SELECT * FROM ssw_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      [counselorId]
+    );
+    res.json({ success: true, schedule: rows });
+  } catch (err) {
+    console.error('SSW schedule update error:', err);
+    res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
+  }
+});
+
 export default router;

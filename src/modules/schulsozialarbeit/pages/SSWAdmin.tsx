@@ -20,6 +20,13 @@ interface Counselor {
   user_id?: number;
 }
 
+interface ScheduleEntry {
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  active: boolean;
+}
+
 interface Category {
   id: number;
   name: string;
@@ -29,6 +36,20 @@ interface Category {
   active?: boolean;
 }
 
+interface Appointment {
+  id: number;
+  counselor_id: number;
+  date: string;
+  time: string;
+  duration_minutes: number;
+  status: string;
+  student_name?: string;
+  student_class?: string;
+  concern?: string;
+  category_name?: string;
+  category_icon?: string;
+}
+
 interface Stats {
   total_counselors: number;
   pending_appointments: number;
@@ -36,7 +57,18 @@ interface Stats {
   available_slots: number;
 }
 
-type Tab = 'counselors' | 'categories' | 'stats';
+type Tab = 'counselors' | 'categories' | 'termine' | 'stats';
+
+const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+function defaultSchedule(): ScheduleEntry[] {
+  return WEEKDAY_LABELS.map((_, i) => ({
+    weekday: i,
+    start_time: '08:00',
+    end_time: '14:00',
+    active: i < 5, // Mon-Fri active by default
+  }));
+}
 
 const emptyCounselor = {
   first_name: '',
@@ -84,6 +116,8 @@ export function SSWAdmin() {
   const [showCounselorForm, setShowCounselorForm] = useState(false);
   const [editingCounselorId, setEditingCounselorId] = useState<number | null>(null);
   const [counselorForm, setCounselorForm] = useState(emptyCounselor);
+  const [schedule, setSchedule] = useState<ScheduleEntry[]>(defaultSchedule());
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   // Category form
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -95,6 +129,18 @@ export function SSWAdmin() {
   const [slotGenFrom, setSlotGenFrom] = useState('');
   const [slotGenUntil, setSlotGenUntil] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  // Schedules overview for table display
+  const [schedulesMap, setSchedulesMap] = useState<Record<number, ScheduleEntry[]>>({});
+
+  // Termine (calendar) tab
+  const [calCounselorId, setCalCounselorId] = useState<number | null>(null);
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
+  const [calAppointments, setCalAppointments] = useState<Appointment[]>([]);
+  const [calLoading, setCalLoading] = useState(false);
+  const [calSelectedDate, setCalSelectedDate] = useState<string | null>(null);
+  const [calSelectedIds, setCalSelectedIds] = useState<Set<number>>(new Set());
+  const [calDeleting, setCalDeleting] = useState(false);
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
 
@@ -109,6 +155,16 @@ export function SSWAdmin() {
       setCounselors(cData.counselors || []);
       setCategories(catData.categories || []);
       setStats(sData.stats || null);
+      // Load schedules for all counselors
+      const cList: Counselor[] = cData.counselors || [];
+      if (cList.length > 0) {
+        const scheduleResults = await Promise.all(
+          cList.map(c => apiFetch(`/ssw/admin/counselors/${c.id}/schedule`).catch(() => ({ schedule: [] })))
+        );
+        const map: Record<number, ScheduleEntry[]> = {};
+        cList.forEach((c, i) => { map[c.id] = scheduleResults[i].schedule || []; });
+        setSchedulesMap(map);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden');
     } finally {
@@ -119,6 +175,35 @@ export function SSWAdmin() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // ── Counselor CRUD ────────────────────────────────────────────────
+  const loadSchedule = async (counselorId: number) => {
+    setScheduleLoading(true);
+    try {
+      const data = await apiFetch(`/ssw/admin/counselors/${counselorId}/schedule`);
+      const rows: ScheduleEntry[] = data.schedule || [];
+      if (rows.length > 0) {
+        // Merge with defaults so all 7 days are present
+        const merged = defaultSchedule().map(def => {
+          const found = rows.find(r => r.weekday === def.weekday);
+          return found ? { weekday: found.weekday, start_time: found.start_time?.toString().slice(0, 5) || '08:00', end_time: found.end_time?.toString().slice(0, 5) || '14:00', active: found.active } : def;
+        });
+        setSchedule(merged);
+      } else {
+        setSchedule(defaultSchedule());
+      }
+    } catch {
+      setSchedule(defaultSchedule());
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const saveSchedule = async (counselorId: number) => {
+    await apiFetch(`/ssw/admin/counselors/${counselorId}/schedule`, {
+      method: 'PUT',
+      body: JSON.stringify({ schedule }),
+    });
+  };
+
   const handleSaveCounselor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!counselorForm.first_name.trim() || !counselorForm.last_name.trim()) {
@@ -131,17 +216,22 @@ export function SSWAdmin() {
           method: 'PUT',
           body: JSON.stringify(counselorForm),
         });
+        await saveSchedule(editingCounselorId);
         showFlash('Berater/in aktualisiert.');
       } else {
-        await apiFetch('/ssw/admin/counselors', {
+        const data = await apiFetch('/ssw/admin/counselors', {
           method: 'POST',
           body: JSON.stringify(counselorForm),
         });
+        if (data.counselor?.id) {
+          await saveSchedule(data.counselor.id);
+        }
         showFlash('Berater/in erstellt.');
       }
       setShowCounselorForm(false);
       setEditingCounselorId(null);
       setCounselorForm(emptyCounselor);
+      setSchedule(defaultSchedule());
       loadData();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -163,6 +253,7 @@ export function SSWAdmin() {
     });
     setEditingCounselorId(c.id);
     setShowCounselorForm(true);
+    loadSchedule(c.id);
   };
 
   const handleDeleteCounselor = async (id: number) => {
@@ -243,7 +334,52 @@ export function SSWAdmin() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  if (loading) return <div className="admin-dashboard"><p>Lade…</p></div>;
+  // ── Calendar helpers ──────────────────────────────────────────────
+  const loadCalendarAppointments = useCallback(async (counselorId: number, year: number, month: number) => {
+    setCalLoading(true);
+    try {
+      const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const dateUntil = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const data = await apiFetch(`/ssw/admin/appointments?counselor_id=${counselorId}&date_from=${dateFrom}&date_until=${dateUntil}`);
+      setCalAppointments(data.appointments || []);
+    } catch {
+      setCalAppointments([]);
+    } finally {
+      setCalLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (calCounselorId && tab === 'termine') {
+      loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
+      setCalSelectedDate(null);
+      setCalSelectedIds(new Set());
+    }
+  }, [calCounselorId, calMonth, tab, loadCalendarAppointments]);
+
+  const handleDeleteSelectedAppointments = async () => {
+    if (calSelectedIds.size === 0) return;
+    const count = calSelectedIds.size;
+    if (!confirm(`${count} Termin(e) wirklich löschen?`)) return;
+    setCalDeleting(true);
+    try {
+      const data = await apiFetch('/ssw/admin/appointments', {
+        method: 'DELETE',
+        body: JSON.stringify({ ids: Array.from(calSelectedIds) }),
+      });
+      showFlash(`${data.deleted || 0} Termin(e) gelöscht.`);
+      setCalSelectedIds(new Set());
+      if (calCounselorId) loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
+      loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Fehler beim Löschen');
+    } finally {
+      setCalDeleting(false);
+    }
+  };
+
+  if (loading) return <div className="admin-dashboard"><div className="admin-main"><p>Lade…</p></div></div>;
 
   return (
     <div className="admin-dashboard">
@@ -252,12 +388,12 @@ export function SSWAdmin() {
           <h2>Schulsozialarbeit</h2>
         </div>
 
-        {flash && <div className="flash flash--success">{flash}</div>}
-        {error && <p style={{ color: 'var(--color-error, red)' }}>{error}</p>}
+        {flash && <div className="admin-success">{flash}</div>}
+        {error && <div className="admin-error">{error}</div>}
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {([['counselors', '👥 Berater/innen'], ['categories', '📂 Kategorien'], ['stats', '📊 Statistik']] as [Tab, string][]).map(([key, label]) => (
+          {([['counselors', '👥 Berater/innen'], ['termine', '📅 Termine'], ['categories', '📂 Kategorien'], ['stats', '📊 Statistik']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -275,115 +411,409 @@ export function SSWAdmin() {
               <h3>Berater/innen</h3>
               <button
                 className="btn-primary"
-                onClick={() => { setCounselorForm(emptyCounselor); setEditingCounselorId(null); setShowCounselorForm(true); }}
+                onClick={() => { setCounselorForm(emptyCounselor); setEditingCounselorId(null); setSchedule(defaultSchedule()); setShowCounselorForm(true); }}
               >
                 + Neue/r Berater/in
               </button>
             </div>
 
             {showCounselorForm && (
-              <form className="teacher-form-container" onSubmit={handleSaveCounselor}>
+              <div className="teacher-form-container">
                 <h3>{editingCounselorId ? 'Berater/in bearbeiten' : 'Neue/r Berater/in'}</h3>
-                <div className="form-row">
-                  <label>Anrede
-                    <select value={counselorForm.salutation} onChange={e => setCounselorForm({ ...counselorForm, salutation: e.target.value })}>
+                <form className="teacher-form" onSubmit={handleSaveCounselor}>
+                  <div className="form-group">
+                    <label htmlFor="ssw-salutation">Anrede</label>
+                    <select id="ssw-salutation" value={counselorForm.salutation} onChange={e => setCounselorForm({ ...counselorForm, salutation: e.target.value })}>
                       <option value="Frau">Frau</option>
                       <option value="Herr">Herr</option>
                       <option value="">–</option>
                     </select>
-                  </label>
-                  <label>Vorname *
-                    <input type="text" value={counselorForm.first_name} onChange={e => setCounselorForm({ ...counselorForm, first_name: e.target.value })} required />
-                  </label>
-                  <label>Nachname *
-                    <input type="text" value={counselorForm.last_name} onChange={e => setCounselorForm({ ...counselorForm, last_name: e.target.value })} required />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>E-Mail
-                    <input type="email" value={counselorForm.email} onChange={e => setCounselorForm({ ...counselorForm, email: e.target.value })} />
-                  </label>
-                  <label>Raum
-                    <input type="text" value={counselorForm.room} onChange={e => setCounselorForm({ ...counselorForm, room: e.target.value })} />
-                  </label>
-                  <label>Telefon
-                    <input type="text" value={counselorForm.phone} onChange={e => setCounselorForm({ ...counselorForm, phone: e.target.value })} />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>Schwerpunkte
-                    <input type="text" value={counselorForm.specializations} onChange={e => setCounselorForm({ ...counselorForm, specializations: e.target.value })} placeholder="Kommasepariert, z.B. Mobbing, Familie" />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>Verfügbar von
-                    <input type="time" value={counselorForm.available_from} onChange={e => setCounselorForm({ ...counselorForm, available_from: e.target.value })} />
-                  </label>
-                  <label>Verfügbar bis
-                    <input type="time" value={counselorForm.available_until} onChange={e => setCounselorForm({ ...counselorForm, available_until: e.target.value })} />
-                  </label>
-                  <label>Dauer (Min.)
-                    <input type="number" min={10} max={120} value={counselorForm.slot_duration_minutes} onChange={e => setCounselorForm({ ...counselorForm, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
-                  </label>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button className="btn-primary" type="submit">{editingCounselorId ? 'Speichern' : 'Erstellen'}</button>
-                  <button className="btn-secondary" type="button" onClick={() => { setShowCounselorForm(false); setEditingCounselorId(null); }}>Abbrechen</button>
-                </div>
-              </form>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-first-name">Vorname</label>
+                    <input id="ssw-first-name" type="text" value={counselorForm.first_name} onChange={e => setCounselorForm({ ...counselorForm, first_name: e.target.value })} placeholder="z.B. Maria" required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-last-name">Nachname</label>
+                    <input id="ssw-last-name" type="text" value={counselorForm.last_name} onChange={e => setCounselorForm({ ...counselorForm, last_name: e.target.value })} placeholder="z.B. Müller" required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-email">E-Mail</label>
+                    <input id="ssw-email" type="email" value={counselorForm.email} onChange={e => setCounselorForm({ ...counselorForm, email: e.target.value })} placeholder="z.B. m.mueller@schule.de" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-room">Raum</label>
+                    <input id="ssw-room" type="text" value={counselorForm.room} onChange={e => setCounselorForm({ ...counselorForm, room: e.target.value })} placeholder="z.B. B12" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-phone">Telefon</label>
+                    <input id="ssw-phone" type="text" value={counselorForm.phone} onChange={e => setCounselorForm({ ...counselorForm, phone: e.target.value })} placeholder="z.B. 0123-456789" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-specs">Schwerpunkte</label>
+                    <input id="ssw-specs" type="text" value={counselorForm.specializations} onChange={e => setCounselorForm({ ...counselorForm, specializations: e.target.value })} placeholder="Kommasepariert, z.B. Mobbing, Familie" />
+                  </div>
+                  <div className="form-group">
+                    <label>Wochenplan</label>
+                    {scheduleLoading ? (
+                      <p>Lade Wochenplan…</p>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Tag</th>
+                            <th style={{ textAlign: 'center', padding: '0.3rem 0.5rem' }}>Aktiv</th>
+                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Von</th>
+                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Bis</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {schedule.map((entry) => (
+                            <tr key={entry.weekday} style={{ opacity: entry.active ? 1 : 0.5 }}>
+                              <td style={{ padding: '0.3rem 0.5rem', fontWeight: 500 }}>{WEEKDAY_LABELS[entry.weekday]}</td>
+                              <td style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={entry.active}
+                                  onChange={() => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, active: !s.active } : s))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.3rem 0.5rem' }}>
+                                <input
+                                  type="time"
+                                  value={entry.start_time}
+                                  disabled={!entry.active}
+                                  onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, start_time: e.target.value } : s))}
+                                  style={{ width: '100%' }}
+                                />
+                              </td>
+                              <td style={{ padding: '0.3rem 0.5rem' }}>
+                                <input
+                                  type="time"
+                                  value={entry.end_time}
+                                  disabled={!entry.active}
+                                  onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, end_time: e.target.value } : s))}
+                                  style={{ width: '100%' }}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-duration">Termindauer (Minuten)</label>
+                    <input id="ssw-duration" type="number" min={10} max={120} value={counselorForm.slot_duration_minutes} onChange={e => setCounselorForm({ ...counselorForm, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
+                  </div>
+                  <div className="form-actions">
+                    <button className="btn-primary" type="submit">{editingCounselorId ? 'Speichern' : 'Erstellen'}</button>
+                    <button className="btn-secondary" type="button" onClick={() => { setShowCounselorForm(false); setEditingCounselorId(null); setSchedule(defaultSchedule()); }}>Abbrechen</button>
+                  </div>
+                </form>
+              </div>
             )}
 
             {/* Slot Generation */}
             <details style={{ marginBottom: '1rem', marginTop: '1rem' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 600 }}>🗓️ Termine generieren</summary>
               <div className="teacher-form-container" style={{ marginTop: '0.5rem' }}>
-                <div className="form-row">
-                  <label>Berater/in
-                    <select value={slotGenCounselorId || ''} onChange={e => setSlotGenCounselorId(parseInt(e.target.value) || null)}>
+                <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
+                  <div className="form-group">
+                    <label htmlFor="ssw-gen-counselor">Berater/in</label>
+                    <select id="ssw-gen-counselor" value={slotGenCounselorId || ''} onChange={e => setSlotGenCounselorId(parseInt(e.target.value) || null)}>
                       <option value="">– Wählen –</option>
                       {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                  </label>
-                  <label>Von
-                    <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
-                  </label>
-                  <label>Bis
-                    <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
-                  </label>
-                </div>
-                <button className="btn-primary" disabled={generating} onClick={handleGenerateSlots}>
-                  {generating ? 'Generiere…' : 'Termine generieren'}
-                </button>
+                  </div>
+                  <div className="form-group">
+                    <label>Zeitraum</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
+                      <span>bis</span>
+                      <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button className="btn-primary" type="submit" disabled={generating}>
+                      {generating ? 'Generiere…' : 'Termine generieren'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </details>
 
-            <table className="admin-resp-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>E-Mail</th>
-                  <th>Raum</th>
-                  <th>Zeiten</th>
-                  <th>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {counselors.length === 0 ? (
-                  <tr><td colSpan={5}>Keine Berater/innen vorhanden.</td></tr>
-                ) : counselors.map(c => (
-                  <tr key={c.id}>
-                    <td>{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
-                    <td>{c.email || '–'}</td>
-                    <td>{c.room || '–'}</td>
-                    <td>{c.available_from?.toString().slice(0, 5)} – {c.available_until?.toString().slice(0, 5)}</td>
-                    <td>
-                      <button className="btn-secondary btn-sm" onClick={() => handleEditCounselor(c)}>Bearbeiten</button>{' '}
-                      <button className="btn-danger btn-sm" onClick={() => handleDeleteCounselor(c.id)}>Löschen</button>
-                    </td>
+            <div className="admin-resp-table-container">
+              <table className="admin-resp-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>E-Mail</th>
+                    <th>Raum</th>
+                    <th>Zeiten</th>
+                    <th>Aktionen</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {counselors.length === 0 ? (
+                    <tr><td colSpan={5}>Keine Berater/innen vorhanden.</td></tr>
+                  ) : counselors.map(c => (
+                    <tr key={c.id}>
+                      <td>{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
+                      <td>{c.email || '–'}</td>
+                      <td>{c.room || '–'}</td>
+                      <td>
+                        {(() => {
+                          const sch = (schedulesMap[c.id] || []).filter(s => s.active);
+                          if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '–'} – ${c.available_until?.toString().slice(0, 5) || '–'}`;
+                          return sch.map(s => `${WEEKDAY_LABELS[s.weekday]?.slice(0, 2)} ${s.start_time?.toString().slice(0, 5)}–${s.end_time?.toString().slice(0, 5)}`).join(', ');
+                        })()}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button className="btn-secondary" onClick={() => handleEditCounselor(c)}>Bearbeiten</button>
+                          <button className="btn-secondary" style={{ color: 'var(--color-error, #dc2626)' }} onClick={() => handleDeleteCounselor(c.id)}>Löschen</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ── Termine Tab (Calendar) ────────────────────────────── */}
+        {tab === 'termine' && (
+          <>
+            <div className="admin-section-header">
+              <h3>Terminkalender</h3>
+            </div>
+
+            {/* Counselor picker */}
+            <div className="teacher-form-container" style={{ marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label htmlFor="cal-counselor">Berater/in auswählen</label>
+                <select
+                  id="cal-counselor"
+                  value={calCounselorId || ''}
+                  onChange={e => { setCalCounselorId(parseInt(e.target.value) || null); setCalSelectedDate(null); setCalSelectedIds(new Set()); }}
+                >
+                  <option value="">– Bitte wählen –</option>
+                  {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {calCounselorId && (
+              <>
+                {/* Month navigator */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setCalMonth(prev => {
+                      const d = new Date(prev.year, prev.month - 1, 1);
+                      return { year: d.getFullYear(), month: d.getMonth() };
+                    })}
+                  >
+                    ◀
+                  </button>
+                  <span style={{ fontWeight: 600, fontSize: '1.1rem', minWidth: '160px', textAlign: 'center' }}>
+                    {new Date(calMonth.year, calMonth.month).toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setCalMonth(prev => {
+                      const d = new Date(prev.year, prev.month + 1, 1);
+                      return { year: d.getFullYear(), month: d.getMonth() };
+                    })}
+                  >
+                    ▶
+                  </button>
+                </div>
+
+                {calLoading ? (
+                  <p>Lade Termine…</p>
+                ) : (
+                  <>
+                    {/* Calendar grid */}
+                    {(() => {
+                      const year = calMonth.year;
+                      const month = calMonth.month;
+                      const firstDay = new Date(year, month, 1);
+                      const lastDay = new Date(year, month + 1, 0).getDate();
+                      // Monday = 0 in our grid
+                      let startOffset = firstDay.getDay() - 1;
+                      if (startOffset < 0) startOffset = 6;
+
+                      // Group appointments by date string
+                      const byDate: Record<string, Appointment[]> = {};
+                      for (const a of calAppointments) {
+                        const ds = typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10);
+                        (byDate[ds] ||= []).push(a);
+                      }
+
+                      const cells: React.ReactNode[] = [];
+                      // Header row
+                      for (const label of ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']) {
+                        cells.push(
+                          <div key={`h-${label}`} style={{ fontWeight: 600, textAlign: 'center', padding: '0.3rem', fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
+                            {label}
+                          </div>
+                        );
+                      }
+                      // Empty leading cells
+                      for (let i = 0; i < startOffset; i++) {
+                        cells.push(<div key={`e-${i}`} />);
+                      }
+                      // Day cells
+                      for (let d = 1; d <= lastDay; d++) {
+                        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const dayAppts = byDate[ds] || [];
+                        const count = dayAppts.length;
+                        const isSelected = calSelectedDate === ds;
+                        const hasBooked = dayAppts.some(a => a.status !== 'available');
+                        const isPast = ds < today;
+
+                        cells.push(
+                          <div
+                            key={d}
+                            onClick={() => { setCalSelectedDate(isSelected ? null : ds); setCalSelectedIds(new Set()); }}
+                            style={{
+                              border: isSelected ? '2px solid var(--brand-primary, #123C73)' : '1px solid var(--color-gray-200, #e5e7eb)',
+                              borderRadius: '0.375rem',
+                              padding: '0.3rem',
+                              textAlign: 'center',
+                              cursor: count > 0 ? 'pointer' : 'default',
+                              background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? '#fff' : 'var(--color-gray-50, #f9fafb)',
+                              opacity: isPast ? 0.5 : 1,
+                              minHeight: '50px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>{d}</div>
+                            {count > 0 && (
+                              <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>
+                                <span style={{ color: 'var(--brand-primary, #123C73)' }}>{count} Termin{count !== 1 ? 'e' : ''}</span>
+                                {hasBooked && <span style={{ color: 'var(--color-warning, #d97706)', marginLeft: '2px' }}>*</span>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '1.5rem' }}>
+                          {cells}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Selected day detail */}
+                    {calSelectedDate && (() => {
+                      const dayAppts = calAppointments
+                        .filter(a => {
+                          const ds = typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10);
+                          return ds === calSelectedDate;
+                        })
+                        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+                      if (dayAppts.length === 0) return (
+                        <div style={{ padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem' }}>
+                          <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                          <p style={{ marginTop: '0.5rem', color: 'var(--color-gray-500)' }}>Keine Termine an diesem Tag.</p>
+                        </div>
+                      );
+
+                      const allSelected = dayAppts.every(a => calSelectedIds.has(a.id));
+
+                      const statusLabel = (s: string) => {
+                        switch (s) {
+                          case 'available': return '🟢 Frei';
+                          case 'requested': return '🟡 Angefragt';
+                          case 'confirmed': return '🔵 Bestätigt';
+                          case 'cancelled': return '⚫ Abgesagt';
+                          case 'completed': return '✅ Abgeschlossen';
+                          default: return s;
+                        }
+                      };
+
+                      return (
+                        <div style={{ padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={allSelected}
+                                  onChange={() => {
+                                    if (allSelected) {
+                                      setCalSelectedIds(new Set());
+                                    } else {
+                                      setCalSelectedIds(new Set(dayAppts.map(a => a.id)));
+                                    }
+                                  }}
+                                />
+                                Alle
+                              </label>
+                              {calSelectedIds.size > 0 && (
+                                <button
+                                  className="btn-secondary"
+                                  style={{ color: 'var(--color-error, #dc2626)', fontSize: '0.85rem' }}
+                                  disabled={calDeleting}
+                                  onClick={handleDeleteSelectedAppointments}
+                                >
+                                  {calDeleting ? 'Lösche…' : `${calSelectedIds.size} löschen`}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="admin-resp-table-container">
+                            <table className="admin-resp-table" style={{ fontSize: '0.9rem' }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '30px' }}></th>
+                                  <th>Uhrzeit</th>
+                                  <th>Status</th>
+                                  <th>Schüler/in</th>
+                                  <th>Kategorie</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {dayAppts.map(a => (
+                                  <tr key={a.id} style={{ background: calSelectedIds.has(a.id) ? 'var(--brand-surface-2, #eef2f9)' : undefined }}>
+                                    <td>
+                                      <input
+                                        type="checkbox"
+                                        checked={calSelectedIds.has(a.id)}
+                                        onChange={() => setCalSelectedIds(prev => {
+                                          const next = new Set(prev);
+                                          if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                                          return next;
+                                        })}
+                                      />
+                                    </td>
+                                    <td style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                                    <td>{statusLabel(a.status)}</td>
+                                    <td>{a.student_name || '–'}</td>
+                                    <td>{a.category_icon || ''} {a.category_name || '–'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </>
+            )}
           </>
         )}
 
@@ -401,57 +831,61 @@ export function SSWAdmin() {
             </div>
 
             {showCategoryForm && (
-              <form className="teacher-form-container" onSubmit={handleSaveCategory}>
+              <div className="teacher-form-container">
                 <h3>{editingCategoryId ? 'Kategorie bearbeiten' : 'Neue Kategorie'}</h3>
-                <div className="form-row">
-                  <label>Name *
-                    <input type="text" value={categoryForm.name} onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })} required />
-                  </label>
-                  <label>Icon (Emoji)
-                    <input type="text" value={categoryForm.icon} onChange={e => setCategoryForm({ ...categoryForm, icon: e.target.value })} placeholder="z.B. 💬" maxLength={4} />
-                  </label>
-                  <label>Sortierung
-                    <input type="number" value={categoryForm.sort_order} onChange={e => setCategoryForm({ ...categoryForm, sort_order: parseInt(e.target.value) || 0 })} />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>Beschreibung
-                    <input type="text" value={categoryForm.description} onChange={e => setCategoryForm({ ...categoryForm, description: e.target.value })} />
-                  </label>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button className="btn-primary" type="submit">{editingCategoryId ? 'Speichern' : 'Erstellen'}</button>
-                  <button className="btn-secondary" type="button" onClick={() => { setShowCategoryForm(false); setEditingCategoryId(null); }}>Abbrechen</button>
-                </div>
-              </form>
+                <form className="teacher-form" onSubmit={handleSaveCategory}>
+                  <div className="form-group">
+                    <label htmlFor="ssw-cat-name">Name</label>
+                    <input id="ssw-cat-name" type="text" value={categoryForm.name} onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })} required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-cat-icon">Icon (Emoji)</label>
+                    <input id="ssw-cat-icon" type="text" value={categoryForm.icon} onChange={e => setCategoryForm({ ...categoryForm, icon: e.target.value })} placeholder="z.B. 💬" maxLength={4} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-cat-desc">Beschreibung</label>
+                    <input id="ssw-cat-desc" type="text" value={categoryForm.description} onChange={e => setCategoryForm({ ...categoryForm, description: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-cat-sort">Sortierung</label>
+                    <input id="ssw-cat-sort" type="number" value={categoryForm.sort_order} onChange={e => setCategoryForm({ ...categoryForm, sort_order: parseInt(e.target.value) || 0 })} />
+                  </div>
+                  <div className="form-actions">
+                    <button className="btn-primary" type="submit">{editingCategoryId ? 'Speichern' : 'Erstellen'}</button>
+                    <button className="btn-secondary" type="button" onClick={() => { setShowCategoryForm(false); setEditingCategoryId(null); }}>Abbrechen</button>
+                  </div>
+                </form>
+              </div>
             )}
 
-            <table className="admin-resp-table">
-              <thead>
-                <tr>
-                  <th>Icon</th>
-                  <th>Name</th>
-                  <th>Beschreibung</th>
-                  <th>#</th>
-                  <th>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.length === 0 ? (
-                  <tr><td colSpan={5}>Keine Kategorien vorhanden.</td></tr>
-                ) : categories.map(cat => (
-                  <tr key={cat.id}>
-                    <td>{cat.icon || '–'}</td>
-                    <td>{cat.name}</td>
-                    <td>{cat.description || '–'}</td>
-                    <td>{cat.sort_order}</td>
-                    <td>
-                      <button className="btn-secondary btn-sm" onClick={() => handleEditCategory(cat)}>Bearbeiten</button>
-                    </td>
+            <div className="admin-resp-table-container">
+              <table className="admin-resp-table">
+                <thead>
+                  <tr>
+                    <th>Icon</th>
+                    <th>Name</th>
+                    <th>Beschreibung</th>
+                    <th>#</th>
+                    <th>Aktionen</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {categories.length === 0 ? (
+                    <tr><td colSpan={5}>Keine Kategorien vorhanden.</td></tr>
+                  ) : categories.map(cat => (
+                    <tr key={cat.id}>
+                      <td>{cat.icon || '–'}</td>
+                      <td>{cat.name}</td>
+                      <td>{cat.description || '–'}</td>
+                      <td>{cat.sort_order}</td>
+                      <td>
+                        <button className="btn-secondary" onClick={() => handleEditCategory(cat)}>Bearbeiten</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
 
@@ -459,22 +893,22 @@ export function SSWAdmin() {
         {tab === 'stats' && stats && (
           <div>
             <h3>Statistik</h3>
-            <div className="stats-bar" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-              <div className="stat-card" style={{ background: 'var(--brand-surface-2, #f0f4fa)', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.total_counselors}</div>
-                <div>Berater/innen</div>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              <div style={{ background: 'var(--brand-surface-2, #f0f4fa)', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand-primary-dark)' }}>{stats.total_counselors}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--color-gray-600)' }}>Berater/innen</div>
               </div>
-              <div className="stat-card" style={{ background: '#fff3cd', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.pending_appointments}</div>
-                <div>Offene Anfragen</div>
+              <div style={{ background: '#fff3cd', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#856404' }}>{stats.pending_appointments}</div>
+                <div style={{ fontSize: '0.9rem', color: '#856404' }}>Offene Anfragen</div>
               </div>
-              <div className="stat-card" style={{ background: '#d4edda', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.confirmed_appointments}</div>
-                <div>Bestätigte Termine</div>
+              <div style={{ background: '#d4edda', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#155724' }}>{stats.confirmed_appointments}</div>
+                <div style={{ fontSize: '0.9rem', color: '#155724' }}>Bestätigte Termine</div>
               </div>
-              <div className="stat-card" style={{ background: 'var(--brand-surface-2, #f0f4fa)', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.available_slots}</div>
-                <div>Freie Slots</div>
+              <div style={{ background: 'var(--brand-surface-2, #f0f4fa)', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand-primary-dark)' }}>{stats.available_slots}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--color-gray-600)' }}>Freie Slots</div>
               </div>
             </div>
           </div>

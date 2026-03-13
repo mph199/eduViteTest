@@ -15,11 +15,10 @@ export default {
 
   /** Express-Routen registrieren */
   register(app, { rateLimiters }) {
-    // Öffentliche Routen (Termin buchen)
-    app.use('/api/ssw', rateLimiters.booking, publicRouter);
-    // Berater-Routen (authentifiziert)
-    app.use('/api/ssw/counselor', counselorRouter);
-    // Admin-Routen (Berater & Kategorien verwalten)
+    // Admin- und Berater-Routen ZUERST (ohne Booking-Limiter)
     app.use('/api/ssw/admin', adminRouter);
+    app.use('/api/ssw/counselor', counselorRouter);
+    // Öffentliche Routen (Termin buchen) – mit Rate-Limit
+    app.use('/api/ssw', rateLimiters.booking, publicRouter);
   },
 };
