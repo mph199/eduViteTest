@@ -29,7 +29,7 @@ export interface ModuleDefinition {
   title: string;
   /** Kurzbeschreibung für die Landing Page */
   description: string;
-  /** Emoji-Icon */
+  /** Optional icon */
   icon: string;
   /** Basis-Pfad der öffentlichen Seite (z.B. '/elternsprechtag') */
   basePath: string;

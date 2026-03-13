@@ -197,7 +197,7 @@ export function SSWBookingApp() {
       {step === 'counselor' && (
         <>
           <div className="ssw-confidential-notice">
-            🔒 Alle Beratungsgespräche sind <strong>vertraulich</strong>. Deine Angaben werden nur an die gewählte Beratungsperson weitergegeben.
+            Alle Beratungsgespräche sind <strong>vertraulich</strong>. Deine Angaben werden nur an die gewählte Beratungsperson weitergegeben.
           </div>
           {counselors.length === 0 ? (
             <p className="ssw-empty">Derzeit sind keine Berater/innen verfügbar.</p>
@@ -295,7 +295,7 @@ export function SSWBookingApp() {
           </p>
 
           <div className="ssw-confidential-notice">
-            🔒 Deine Angaben werden vertraulich behandelt und nur an die Beratungsperson weitergegeben.
+            Deine Angaben werden vertraulich behandelt und nur an die Beratungsperson weitergegeben.
           </div>
 
           <form className="ssw-form" onSubmit={handleSubmit}>
@@ -344,7 +344,7 @@ export function SSWBookingApp() {
                 <option value="">– Bitte wählen –</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
+                    {cat.name}
                   </option>
                 ))}
               </select>
@@ -385,7 +385,7 @@ export function SSWBookingApp() {
       {/* Step: Success */}
       {step === 'success' && (
         <div className="ssw-success">
-          <div className="ssw-success__icon">✅</div>
+          <div className="ssw-success__icon">&#10003;</div>
           <h2>Termin angefragt!</h2>
           <p>Deine Anfrage wurde erfolgreich übermittelt.</p>
           {selectedCounselor && (

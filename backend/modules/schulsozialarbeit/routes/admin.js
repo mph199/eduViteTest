@@ -5,6 +5,8 @@
  */
 
 import express from 'express';
+import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import { requireSSW } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 
@@ -30,6 +32,8 @@ router.post('/counselors', requireSSW, async (req, res) => {
 
     if (!last_name?.trim()) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
+    const { username: reqUsername, password: reqPassword } = req.body || {};
+
     const { rows } = await query(
       `INSERT INTO ssw_counselors (first_name, last_name, email, salutation, room, phone,
        specializations, available_from, available_until, slot_duration_minutes)
@@ -48,7 +52,43 @@ router.post('/counselors', requireSSW, async (req, res) => {
       ]
     );
 
-    res.json({ success: true, counselor: rows[0] });
+    const counselor = rows[0];
+
+    // Auto-create linked user account (same pattern as teachers)
+    let userInfo = null;
+    try {
+      let uname;
+      if (reqUsername && typeof reqUsername === 'string' && reqUsername.trim()) {
+        uname = reqUsername.trim();
+      } else {
+        const autoFirst = String(counselor.first_name || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
+        const autoLast  = String(counselor.last_name  || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
+        uname = (autoFirst && autoLast ? `${autoFirst}.${autoLast}` : autoFirst || autoLast || `ssw${counselor.id}`).slice(0, 30);
+      }
+      const tempPassword = (reqPassword && typeof reqPassword === 'string' && reqPassword.trim())
+        ? reqPassword.trim()
+        : crypto.randomBytes(6).toString('base64url');
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      const parsedEmail = email ? email.trim().toLowerCase() : null;
+
+      const { rows: userRows } = await query(
+        `INSERT INTO users (username, email, password_hash, role)
+         VALUES ($1, $2, $3, 'ssw')
+         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = 'ssw'
+         RETURNING id`,
+        [uname, parsedEmail, passwordHash]
+      );
+
+      if (userRows[0]) {
+        await query('UPDATE ssw_counselors SET user_id = $1 WHERE id = $2', [userRows[0].id, counselor.id]);
+        counselor.user_id = userRows[0].id;
+        userInfo = { username: uname, tempPassword };
+      }
+    } catch (userErr) {
+      console.warn('User creation for counselor failed:', userErr?.message || userErr);
+    }
+
+    res.json({ success: true, counselor, user: userInfo });
   } catch (err) {
     console.error('SSW create counselor error:', err);
     res.status(500).json({ error: 'Fehler beim Anlegen' });
@@ -88,7 +128,21 @@ router.put('/counselors/:id', requireSSW, async (req, res) => {
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Berater/in nicht gefunden' });
-    res.json({ success: true, counselor: rows[0] });
+
+    // Sync email to linked user account
+    const counselor = rows[0];
+    if (counselor.user_id) {
+      try {
+        await query('UPDATE users SET email = $1 WHERE id = $2', [
+          email ? email.trim().toLowerCase() : null,
+          counselor.user_id,
+        ]);
+      } catch (syncErr) {
+        console.warn('Email sync to user failed:', syncErr?.message || syncErr);
+      }
+    }
+
+    res.json({ success: true, counselor });
   } catch (err) {
     console.error('SSW update counselor error:', err);
     res.status(500).json({ error: 'Fehler beim Speichern' });
@@ -99,8 +153,23 @@ router.put('/counselors/:id', requireSSW, async (req, res) => {
 router.delete('/counselors/:id', requireSSW, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+
+    // Check for linked user before deleting
+    const { rows: counselorRows } = await query('SELECT user_id FROM ssw_counselors WHERE id = $1', [id]);
+    const linkedUserId = counselorRows[0]?.user_id;
+
     const { rows } = await query('DELETE FROM ssw_counselors WHERE id = $1 RETURNING id', [id]);
     if (!rows.length) return res.status(404).json({ error: 'Berater/in nicht gefunden' });
+
+    // Delete linked user account
+    if (linkedUserId) {
+      try {
+        await query('DELETE FROM users WHERE id = $1', [linkedUserId]);
+      } catch (userErr) {
+        console.warn('Deleting linked user failed:', userErr?.message || userErr);
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     if (err?.code === '23503') {
@@ -130,7 +199,7 @@ router.post('/categories', requireSSW, async (req, res) => {
 
     const { rows } = await query(
       'INSERT INTO ssw_categories (name, description, icon, sort_order) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name.trim(), description || null, icon || '💬', sort_order || 0]
+      [name.trim(), description || null, icon || null, sort_order || 0]
     );
     res.json({ success: true, category: rows[0] });
   } catch (err) {
@@ -147,7 +216,7 @@ router.put('/categories/:id', requireSSW, async (req, res) => {
 
     const { rows } = await query(
       'UPDATE ssw_categories SET name = $1, description = $2, icon = $3, sort_order = $4, active = $5 WHERE id = $6 RETURNING *',
-      [name.trim(), description || null, icon || '💬', sort_order || 0, active !== false, id]
+      [name.trim(), description || null, icon || null, sort_order || 0, active !== false, id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Kategorie nicht gefunden' });
     res.json({ success: true, category: rows[0] });

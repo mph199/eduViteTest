@@ -185,7 +185,7 @@ export function GlobalTopHeader() {
                             close();
                           }}
                         >
-                          <span>{ar.icon} {ar.label}</span>
+                          <span>{ar.label}</span>
                           {pathname === ar.path && <span className="dropdown__hint">Aktiv</span>}
                         </button>
                       ))}
@@ -236,7 +236,7 @@ export function GlobalTopHeader() {
                             close();
                           }}
                         >
-                          <span>{ar.icon} {ar.label}</span>
+                          <span>{ar.label}</span>
                           {pathname === ar.path && <span className="dropdown__hint">Aktiv</span>}
                         </button>
                       ))}
@@ -263,7 +263,7 @@ export function GlobalTopHeader() {
                               close();
                             }}
                           >
-                            <span>⚡ Superadmin</span>
+                            <span>Superadmin</span>
                             {pathname === '/superadmin' && <span className="dropdown__hint">Aktiv</span>}
                           </button>
                         </>
@@ -336,7 +336,7 @@ export function GlobalTopHeader() {
             <div className="globalTopHeader__brandBottom">Buchungssystem</div>
           </div>
 
-          {showModuleTitle && activeModule ? <div className="globalTopHeader__moduleTitle">{activeModule.icon} {activeModule.title}</div> : null}
+          {showModuleTitle && activeModule ? <div className="globalTopHeader__moduleTitle">{activeModule.title}</div> : null}
 
           {areaLabel ? <div className="globalTopHeader__areaLabel">{areaLabel}</div> : null}
         </div>

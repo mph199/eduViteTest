@@ -37,7 +37,7 @@ const elternsprechtagModule: ModuleDefinition = {
   id: 'elternsprechtag',
   title: 'Eltern- und Ausbildersprechtag',
   description: 'Buchen Sie einen Gesprächstermin mit einer Lehrkraft.',
-  icon: '🗓️',
+  icon: '',
   basePath: '/elternsprechtag',
 
   /** Öffentliche Buchungsseite */

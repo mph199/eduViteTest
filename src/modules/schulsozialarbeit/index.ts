@@ -19,7 +19,7 @@ const schulsozialarbeitModule: ModuleDefinition = {
   id: 'schulsozialarbeit',
   title: 'Schulsozialarbeit',
   description: 'Buche einen vertraulichen Beratungstermin bei der Schulsozialarbeit.',
-  icon: '🤝',
+  icon: '',
   basePath: '/schulsozialarbeit',
 
   /** Öffentliche Buchungsseite */

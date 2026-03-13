@@ -50,14 +50,7 @@ interface Appointment {
   category_icon?: string;
 }
 
-interface Stats {
-  total_counselors: number;
-  pending_appointments: number;
-  confirmed_appointments: number;
-  available_slots: number;
-}
-
-type Tab = 'counselors' | 'categories' | 'termine' | 'stats';
+type Tab = 'counselors' | 'categories' | 'termine';
 
 const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
@@ -81,6 +74,8 @@ const emptyCounselor = {
   available_from: '08:00',
   available_until: '14:00',
   slot_duration_minutes: 30,
+  username: '',
+  password: '',
 };
 
 const emptyCategory = {
@@ -107,7 +102,6 @@ export function SSWAdmin() {
   const [tab, setTab] = useState<Tab>('counselors');
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
@@ -116,6 +110,7 @@ export function SSWAdmin() {
   const [showCounselorForm, setShowCounselorForm] = useState(false);
   const [editingCounselorId, setEditingCounselorId] = useState<number | null>(null);
   const [counselorForm, setCounselorForm] = useState(emptyCounselor);
+  const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(defaultSchedule());
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
@@ -146,14 +141,12 @@ export function SSWAdmin() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [cData, catData, sData] = await Promise.all([
+      const [cData, catData] = await Promise.all([
         apiFetch('/ssw/admin/counselors'),
         apiFetch('/ssw/admin/categories'),
-        apiFetch('/ssw/admin/stats'),
       ]);
       setCounselors(cData.counselors || []);
       setCategories(catData.categories || []);
-      setStats(sData.stats || null);
       // Load schedules for all counselors
       const cList: Counselor[] = cData.counselors || [];
       if (cList.length > 0) {
@@ -225,6 +218,9 @@ export function SSWAdmin() {
         if (data.counselor?.id) {
           await saveSchedule(data.counselor.id);
         }
+        if (data.user) {
+          setCreatedCreds({ username: data.user.username, tempPassword: data.user.tempPassword });
+        }
         showFlash('Berater/in erstellt.');
       }
       setShowCounselorForm(false);
@@ -249,6 +245,8 @@ export function SSWAdmin() {
       available_from: c.available_from?.toString().slice(0, 5) || '08:00',
       available_until: c.available_until?.toString().slice(0, 5) || '14:00',
       slot_duration_minutes: c.slot_duration_minutes || 30,
+      username: '',
+      password: '',
     });
     setEditingCounselorId(c.id);
     setShowCounselorForm(true);
@@ -390,11 +388,24 @@ export function SSWAdmin() {
         </div>
 
         {flash && <div className="admin-success">{flash}</div>}
+        {createdCreds && (
+          <div className="admin-success" style={{ background: '#f0f9ff', border: '1px solid #38bdf8', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+            <strong>Zugangsdaten erstellt:</strong>
+            <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+              Benutzername: <strong>{createdCreds.username}</strong><br />
+              Passwort: <strong>{createdCreds.tempPassword}</strong>
+            </div>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555' }}>
+              Bitte Zugangsdaten notieren — das Passwort wird nicht erneut angezeigt.
+            </p>
+            <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schließen</button>
+          </div>
+        )}
         {error && <div className="admin-error">{error}</div>}
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {([['counselors', '👥 Berater/innen'], ['termine', '📅 Terminverwaltung'], ['categories', '📂 Kategorien'], ['stats', '📊 Statistik']] as [Tab, string][]).map(([key, label]) => (
+          {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['categories', 'Themen']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -507,6 +518,18 @@ export function SSWAdmin() {
                     <label htmlFor="ssw-duration">Termindauer (Minuten)</label>
                     <input id="ssw-duration" type="number" min={10} max={120} value={counselorForm.slot_duration_minutes} onChange={e => setCounselorForm({ ...counselorForm, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
                   </div>
+                  {!editingCounselorId && (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor="ssw-username">Benutzername <span style={{ fontWeight: 'normal', color: '#888' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <input id="ssw-username" type="text" value={counselorForm.username} onChange={e => setCounselorForm({ ...counselorForm, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="ssw-password">Passwort <span style={{ fontWeight: 'normal', color: '#888' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <input id="ssw-password" type="text" value={counselorForm.password} onChange={e => setCounselorForm({ ...counselorForm, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
+                      </div>
+                    </>
+                  )}
                   <div className="form-actions">
                     <button className="btn-primary" type="submit">{editingCounselorId ? 'Speichern' : 'Erstellen'}</button>
                     <button className="btn-secondary" type="button" onClick={() => { setShowCounselorForm(false); setEditingCounselorId(null); setSchedule(defaultSchedule()); }}>Abbrechen</button>
@@ -793,7 +816,7 @@ export function SSWAdmin() {
                                     <td style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
                                     <td>{statusLabel(a.status)}</td>
                                     <td>{a.student_name || '–'}</td>
-                                    <td>{a.category_icon || ''} {a.category_name || '–'}</td>
+                                    <td>{a.category_name || '–'}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -813,26 +836,22 @@ export function SSWAdmin() {
         {tab === 'categories' && (
           <>
             <div className="admin-section-header">
-              <h3>Kategorien</h3>
+              <h3>Themen</h3>
               <button
                 className="btn-primary"
                 onClick={() => { setCategoryForm(emptyCategory); setEditingCategoryId(null); setShowCategoryForm(true); }}
               >
-                + Neue Kategorie
+                + Neues Thema
               </button>
             </div>
 
             {showCategoryForm && (
               <div className="teacher-form-container">
-                <h3>{editingCategoryId ? 'Kategorie bearbeiten' : 'Neue Kategorie'}</h3>
+                <h3>{editingCategoryId ? 'Thema bearbeiten' : 'Neues Thema'}</h3>
                 <form className="teacher-form" onSubmit={handleSaveCategory}>
                   <div className="form-group">
                     <label htmlFor="ssw-cat-name">Name</label>
                     <input id="ssw-cat-name" type="text" value={categoryForm.name} onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="ssw-cat-icon">Icon (Emoji)</label>
-                    <input id="ssw-cat-icon" type="text" value={categoryForm.icon} onChange={e => setCategoryForm({ ...categoryForm, icon: e.target.value })} placeholder="z.B. 💬" maxLength={4} />
                   </div>
                   <div className="form-group">
                     <label htmlFor="ssw-cat-desc">Beschreibung</label>
@@ -854,7 +873,6 @@ export function SSWAdmin() {
               <table className="admin-resp-table">
                 <thead>
                   <tr>
-                    <th>Icon</th>
                     <th>Name</th>
                     <th>Beschreibung</th>
                     <th>#</th>
@@ -863,10 +881,9 @@ export function SSWAdmin() {
                 </thead>
                 <tbody>
                   {categories.length === 0 ? (
-                    <tr><td colSpan={5}>Keine Kategorien vorhanden.</td></tr>
+                    <tr><td colSpan={4}>Keine Themen vorhanden.</td></tr>
                   ) : categories.map(cat => (
                     <tr key={cat.id}>
-                      <td>{cat.icon || '–'}</td>
                       <td>{cat.name}</td>
                       <td>{cat.description || '–'}</td>
                       <td>{cat.sort_order}</td>
@@ -879,31 +896,6 @@ export function SSWAdmin() {
               </table>
             </div>
           </>
-        )}
-
-        {/* ── Stats Tab ──────────────────────────────────────────── */}
-        {tab === 'stats' && stats && (
-          <div>
-            <h3>Statistik</h3>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-              <div style={{ background: 'var(--brand-surface-2, #f0f4fa)', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand-primary-dark)' }}>{stats.total_counselors}</div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--color-gray-600)' }}>Berater/innen</div>
-              </div>
-              <div style={{ background: '#fff3cd', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#856404' }}>{stats.pending_appointments}</div>
-                <div style={{ fontSize: '0.9rem', color: '#856404' }}>Offene Anfragen</div>
-              </div>
-              <div style={{ background: '#d4edda', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#155724' }}>{stats.confirmed_appointments}</div>
-                <div style={{ fontSize: '0.9rem', color: '#155724' }}>Bestätigte Termine</div>
-              </div>
-              <div style={{ background: 'var(--brand-surface-2, #f0f4fa)', padding: '1rem 1.5rem', borderRadius: '0.5rem', textAlign: 'center', minWidth: '140px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand-primary-dark)' }}>{stats.available_slots}</div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--color-gray-600)' }}>Freie Slots</div>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>

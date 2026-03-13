@@ -614,7 +614,6 @@ export function AdminTeachers() {
                                   >
                                     <option value="teacher">Lehrkraft</option>
                                     <option value="admin">Admin</option>
-                                    <option value="ssw">Schulsozialarbeit</option>
                                   </select>
                                   {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
                                 </div>
@@ -730,7 +729,6 @@ export function AdminTeachers() {
                                     >
                                       <option value="teacher">Lehrkraft</option>
                                       <option value="admin">Admin</option>
-                                      <option value="ssw">Schulsozialarbeit</option>
                                     </select>
                                     {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
                                   </div>
