@@ -86,7 +86,7 @@ export interface FeedbackItem {
 export interface UserAccount {
   id: number;
   username: string;
-  role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
+  role: 'admin' | 'teacher' | 'superadmin' | 'ssw' | 'beratungslehrer';
   teacher_id?: number | null;
   created_at?: string;
   updated_at?: string;

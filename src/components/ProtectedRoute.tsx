@@ -33,6 +33,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (user.role === 'ssw') {
       return <Navigate to="/admin/ssw" replace />;
     }
+    if (user.role === 'beratungslehrer') {
+      return <Navigate to="/admin/beratungslehrer" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 
