@@ -486,6 +486,7 @@ async function assignExtraSlot(requestRow, teacherId, preferredTime) {
 async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId, teacherMessage = '') {
   if (!allSlots?.length || !allSlots[0]?.email || !isEmailConfigured()) return;
 
+  const now = new Date().toISOString();
   try {
     const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
