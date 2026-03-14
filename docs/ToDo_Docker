@@ -116,10 +116,63 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ## Phase 9 – DSGVO & Datenhygiene
 
-- [ ] **Automatische Datenlöschung** – Personenbezogene Buchungsdaten nach X Tagen automatisch löschen (konfigurierbar über Admin-Settings)
-- [ ] **Datenexport** – Betroffenenanfragen (Art. 15 DSGVO): Export aller gespeicherten Daten zu einer Person als JSON/CSV
-- [ ] **Datenschutzhinweis** – Hinweis auf der Buchungsseite, welche Daten gespeichert werden und wie lange
-- [ ] **Auftragsverarbeitung** – Hinweise/Vorlage für AV-Vertrag in der Dokumentation (INSTALL.md)
+> Ziel: Vollständige DSGVO-Konformität (Verordnung (EU) 2016/679) für den Betrieb
+> an öffentlichen Schulen und in Zusammenarbeit mit Schulträgern. Schulen sind
+> verantwortliche Stellen i. S. d. DSGVO; die Software muss alle technischen und
+> organisatorischen Maßnahmen (TOMs) unterstützen.
+
+### 9a – Bestandsaufnahme personenbezogener Daten
+
+Folgende Tabellen enthalten personenbezogene Daten (PII), die unter die DSGVO fallen:
+
+| Tabelle | PII-Spalten | Kategorie | Aufbewahrungszweck |
+|---------|-------------|-----------|-------------------|
+| `users` | `username`, `email`, `password_hash` | Beschäftigtendaten | Authentifizierung |
+| `teachers` | `first_name`, `last_name`, `email`, `phone`, `salutation` | Beschäftigtendaten | Lehrkräfte-Verwaltung |
+| `slots` | `email`, `parent_name`, `student_name`, `company_name`, `message` | Eltern-/Schülerdaten | Terminbuchung |
+| `booking_requests` | `email`, `parent_name`, `student_name`, `representative_name`, `message` | Eltern-/Schülerdaten | Buchungsanfragen |
+| `ssw_counselors` | `first_name`, `last_name`, `email`, `phone` | Beschäftigtendaten | Beraterverwaltung |
+| `ssw_appointments` | `student_name`, `notes` | Schülerdaten (sensibel) | Beratungstermine |
+| `feedback` | `message` | Pseudonym/anonym | Rückmeldungen |
+
+### 9b – Automatische Datenlöschung (Speicherfristkonzept)
+
+- [ ] **Admin-Settings-Tabelle** – Neue Migration: `settings`-Tabelle mit Key-Value-Paaren für Retention-Zeiträume (z. B. `booking_retention_days = 90`, `ssw_retention_days = 365`)
+- [ ] **Superadmin-UI: Speicherfristen** – Neuer Tab "Datenschutz" im Superadmin-Bereich: Eingabefelder für Aufbewahrungsfristen pro Datentyp (Buchungen, SSW-Termine, Feedback), Mindest-/Maximalwerte
+- [ ] **Cleanup-Cronjob** – `node-cron`-Job im Backend (täglich 02:00 Uhr): Löscht/anonymisiert abgelaufene Datensätze basierend auf `created_at` + konfigurierter Frist
+- [ ] **Anonymisierung statt Löschung** – Option: Statt `DELETE` werden PII-Felder durch Platzhalter ersetzt (`parent_name → 'Gelöscht'`, `email → NULL`), damit Statistiken erhalten bleiben
+- [ ] **Audit-Log** – Löschvorgänge protokollieren: Wann, welche Tabelle, wie viele Datensätze, durch wen/was ausgelöst (Cronjob vs. manuell)
+- [ ] **Manueller Lösch-Button** – Admin-UI: "Alte Daten jetzt bereinigen" mit Vorschau (X Datensätze betroffen) und Bestätigungsdialog
+
+Empfohlene Standard-Fristen (konfigurierbar):
+- Buchungsdaten (`slots`, `booking_requests`): **90 Tage** nach Event-Datum
+- SSW-Termine (`ssw_appointments`): **365 Tage** (besondere Kategorie, schulrechtliche Aufbewahrungspflicht)
+- Feedback: **180 Tage**
+- Benutzerkonten: Manuell durch Admin (kein Auto-Delete für Beschäftigte)
+
+### 9c – Betroffenenrechte (Art. 15–21 DSGVO)
+
+- [ ] **Datenauskunft (Art. 15)** – API-Endpoint `GET /api/admin/data-export?email=` durchsucht alle PII-Tabellen nach einer E-Mail-Adresse und liefert alle gespeicherten Daten als JSON oder CSV
+- [ ] **Recht auf Löschung (Art. 17)** – API-Endpoint `DELETE /api/admin/data-deletion?email=` löscht/anonymisiert alle Datensätze einer Person (mit Bestätigung und Audit-Log)
+- [ ] **Admin-UI: Datenschutz-Anfragen** – Formular im Admin-Bereich: E-Mail eingeben → Vorschau aller Treffer in allen Tabellen → Buttons "Daten exportieren (CSV)" / "Daten löschen"
+- [ ] **Datenportabilität (Art. 20)** – Export als maschinenlesbares JSON (bereits durch Art.-15-Export abgedeckt)
+- [ ] **Widerspruchsrecht (Art. 21)** – Bei automatisierten E-Mail-Erinnerungen (Phase 10): Opt-Out-Link in jeder E-Mail, Flag `email_opt_out` in `booking_requests`
+
+### 9d – Datenschutzhinweise & Einwilligungen
+
+- [ ] **Datenschutzhinweis auf Buchungsseite** – Pflichthinweis vor Buchungsabschluss: Welche Daten werden gespeichert (Name, E-Mail, Terminwunsch), Zweck (Terminkoordination), Speicherdauer (konfiguriert), Verantwortliche Stelle (Schulname aus Branding), Rechte der Betroffenen (Auskunft, Löschung, Beschwerde bei Aufsichtsbehörde)
+- [ ] **Einwilligungs-Checkbox** – Pflicht-Checkbox im Buchungsformular: "Ich habe die Datenschutzhinweise gelesen und stimme der Verarbeitung meiner Daten zum Zweck der Terminbuchung zu." (Buchung ohne Häkchen nicht möglich)
+- [ ] **Impressum/Datenschutz editierbar** – (verknüpft mit Phase 7c): Superadmin pflegt Impressum und Datenschutzerklärung als Freitext, wird auf `/datenschutz` und `/impressum` angezeigt
+- [ ] **Auftragsverarbeitung (AV-Vertrag)** – Muster-AV-Vertrag als PDF/Markdown in `docs/AV-Vertrag-Muster.md`: Gegenstand der Verarbeitung, Art der Daten, Kreis der Betroffenen, TOMs des Auftragsverarbeiters, Unterauftragsverhältnisse, Löschkonzept
+- [ ] **Verarbeitungsverzeichnis** – Vorlage für das Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO) in `docs/Verarbeitungsverzeichnis.md`: Name des Systems, Zweck, Kategorien betroffener Personen, Kategorien personenbezogener Daten, Empfänger, Löschfristen
+
+### 9e – Technische Datenschutzmaßnahmen
+
+- [ ] **Verschlüsselung at Rest** – PostgreSQL-Volume mit LUKS/dm-crypt verschlüsseln (Dokumentation in INSTALL.md), alternativ: Managed PostgreSQL mit Encryption at Rest
+- [ ] **Verschlüsselung in Transit** – HTTPS-Pflicht dokumentieren (Reverse-Proxy mit TLS), interne Docker-Kommunikation über isoliertes Netzwerk
+- [ ] **Minimale Datenerhebung** – Prüfung: Welche Felder sind wirklich nötig? `company_name` und `message` in Slots als optional markieren, nicht-benötigte Felder entfernen
+- [ ] **Pseudonymisierung SSW-Daten** – Besonders sensible SSW-Beratungsdaten (`notes`): Verschlüsselung auf Anwendungsebene (AES-256-GCM), Schlüssel pro Schule, nur autorisierte SSW-Berater können entschlüsseln
+- [ ] **Backup-Verschlüsselung** – `scripts/backup.sh` erweitern: DB-Dumps mit GPG verschlüsseln, Schlüsselmanagement dokumentieren
 
 ## Phase 10 – Automatische Erinnerungen
 
@@ -145,6 +198,78 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [ ] **Screenreader** – ARIA-Labels, Rollen und Live-Regions für dynamische Inhalte
 - [ ] **Kontraste & Schriftgrößen** – Farbkontraste mindestens 4.5:1, skalierbare Schrift
 - [ ] **Audit** – Bestehende Komponenten mit axe/Lighthouse prüfen + Nachbesserung
+
+## Phase 13 – Security Hardening (Angriffsschutz)
+
+> Ziel: Die Anwendung gegen die häufigsten Angriffsvektoren absichern (OWASP Top 10)
+> und für den Betrieb an Schulen mit sensiblen Schülerdaten produktionsreif machen.
+
+### Aktueller Sicherheitsstand (Ist-Zustand)
+
+| Maßnahme | Status | Details |
+|----------|--------|---------|
+| SQL-Injection-Schutz | Implementiert | Alle Queries parametrisiert (`$1`, `$2`, ...) |
+| Passwort-Hashing | Implementiert | bcrypt mit 10 Runden |
+| httpOnly-Cookies | Implementiert | JWT in Cookie, `SameSite=Lax`, `Secure` in Prod |
+| Rate Limiting | Implementiert | Auth: 20/15min, Booking: 30/15min |
+| CORS | Implementiert | Dynamisch via `CORS_ORIGINS` Env-Variable |
+| Helmet.js | Implementiert | Standard-Security-Headers (ohne CSP) |
+| Graceful Shutdown | Implementiert | SIGTERM/SIGINT mit 10s Force-Timeout |
+| Structured Logging | Implementiert | Pino, keine Stack-Traces in Production |
+| Row Level Security | Implementiert | `feedback`, `events`, `booking_requests` |
+
+### 13a – Content Security Policy (CSP)
+
+- [ ] **CSP-Header aktivieren** – Helmet.js CSP einschalten oder Nginx-Config mit strikter CSP ergänzen: `default-src 'self'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'` (für CSS-in-JS), `img-src 'self' data: blob:` (für Uploads/Logos), `connect-src 'self'` (API-Calls)
+- [ ] **CSP-Report-Only** – Zunächst im Report-Only-Modus testen (`Content-Security-Policy-Report-Only`), Violations loggen, dann enforced schalten
+- [ ] **Nonce-basiertes Script-Loading** – Inline-Scripts mit Nonce versehen (Vite generiert Hashes), `unsafe-inline` für Scripts entfernen
+- [ ] **Nginx-Template** – CSP-Header in `docs/reverse-proxy-examples.md` als Referenz-Config ergänzen
+
+### 13b – Cross-Site Request Forgery (CSRF)
+
+- [ ] **CSRF-Risikobewertung** – Aktuell: `SameSite=Lax`-Cookies bieten Basis-Schutz. Risiko: Ältere Browser ohne SameSite-Support, Subdomain-Angriffe bei Shared-Hosting
+- [ ] **Double-Submit-Cookie** – Für State-Changing-Requests (POST/PUT/DELETE): Backend setzt CSRF-Token als Cookie, Frontend sendet Token im `X-CSRF-Token`-Header, Backend vergleicht beide Werte
+- [ ] **Origin/Referer-Validierung** – Zusätzlich: Backend prüft `Origin`- oder `Referer`-Header gegen `CORS_ORIGINS`-Whitelist bei allen mutierenden Requests
+
+### 13c – Cross-Site Scripting (XSS)
+
+- [ ] **Input-Sanitization** – `npm install dompurify` (oder serverseitig `sanitize-html`): Alle Freitext-Felder (`message`, `feedback`, `notes`) beim Speichern sanitieren
+- [ ] **Output-Encoding** – React escaped standardmäßig (kein `dangerouslySetInnerHTML` verwenden). Prüfung: Alle Stellen mit `dangerouslySetInnerHTML` identifizieren und durch sichere Alternativen ersetzen
+- [ ] **E-Mail-Template-Escaping** – `escapeHtml()`-Funktion in E-Mail-Templates konsequent einsetzen (bereits teilweise vorhanden, Vollständigkeit prüfen)
+- [ ] **HTTP-Header** – `X-Content-Type-Options: nosniff` (bereits via Helmet), `X-XSS-Protection: 0` (veraltet, browser-eigene Filterung reicht mit CSP)
+
+### 13d – Authentifizierung & Session-Management
+
+- [ ] **JWT-Secret Rotation** – Dokumentation: Wie das JWT-Secret sicher rotiert wird (neues Secret setzen, alte Tokens laufen nach maxAge aus)
+- [ ] **Token-Lebensdauer verkürzen** – Standard von 8h auf 4h reduzieren, für Admin/Superadmin auf 2h
+- [ ] **Refresh-Token-Mechanismus** – Optional: Kurzlebiges Access-Token (15min) + langlebiges Refresh-Token (7 Tage) in separatem httpOnly-Cookie, Refresh-Endpoint `/api/auth/refresh`
+- [ ] **Account-Lockout** – Nach 5 fehlgeschlagenen Login-Versuchen: Account für 15 Minuten sperren (Brute-Force-Schutz, ergänzend zum Rate Limiting)
+- [ ] **Passwort-Richtlinien** – Mindestlänge 10 Zeichen, Komplexitätsprüfung (Groß-/Kleinbuchstaben, Zahlen), Passwort-Ablauf nach 365 Tagen (optional, konfigurierbar)
+- [ ] **Passwort-Änderung erzwingen** – Beim ersten Login nach CSV-Import: Nutzer muss Passwort ändern (`force_password_change`-Flag in `users`-Tabelle)
+
+### 13e – API-Sicherheit
+
+- [ ] **Rate Limiting erweitern** – Alle öffentlichen Endpunkte absichern (nicht nur Auth + Booking): SSW-Buchungen, Datenexport, Feedback
+- [ ] **Request-Size-Limits** – `express.json({ limit: '100kb' })` und `express.urlencoded({ limit: '100kb' })` für alle Routen, Upload-Routen separat mit höherem Limit (5MB)
+- [ ] **File-Upload-Validierung** – MIME-Type-Prüfung (nicht nur Extension), Dateigröße begrenzen, Uploads in isoliertem Verzeichnis ohne Execute-Rechte, Dateinamen sanitieren
+- [ ] **API-Versionierung** – Langfristig: `/api/v1/` Prefix für Breaking Changes, Deprecation-Header für alte Endpunkte
+- [ ] **Request-Logging** – Alle API-Zugriffe loggen (IP, Endpunkt, User-ID, Timestamp, Status-Code) für Audit-Trail und Anomalie-Erkennung
+
+### 13f – Infrastruktur-Sicherheit
+
+- [ ] **Docker-Sicherheit** – Container als non-root User ausführen (`USER node` in Dockerfile), Read-Only-Filesystem wo möglich, keine privilegierten Container
+- [ ] **Netzwerk-Isolation** – Interne Docker-Services (Backend, DB) nicht direkt nach außen exponieren, nur Frontend/Nginx öffentlich
+- [ ] **Secrets-Management** – Docker Secrets statt Env-Variablen für `JWT_SECRET`, `DATABASE_URL`, SMTP-Credentials; Anleitung in INSTALL.md
+- [ ] **Dependency-Scanning** – GitHub Dependabot aktivieren, `npm audit` in CI/CD-Pipeline, automatische PRs für Security-Updates
+- [ ] **Security-Headers Audit** – Regelmäßig mit securityheaders.com oder Mozilla Observatory prüfen, Ziel: A+ Rating
+- [ ] **PostgreSQL-Hardening** – `pg_hba.conf`: Nur Verbindungen vom Backend-Container erlauben, SSL-Verbindung zwischen Backend und DB erzwingen (`?sslmode=require` in `DATABASE_URL`)
+
+### 13g – Monitoring & Incident Response
+
+- [ ] **Security-Event-Logging** – Fehlgeschlagene Logins, Rate-Limit-Überschreitungen, unerlaubte Zugriffe (403/401) in separatem Log-Stream erfassen
+- [ ] **Alerting** – Bei auffälligen Mustern benachrichtigen: >10 fehlgeschlagene Logins/Minute, unbekannte IP-Ranges, ungewöhnliche API-Nutzung
+- [ ] **Incident-Response-Plan** – Dokumentation in `docs/SECURITY.md`: Ansprechpartner, Meldekette (72h-Frist bei Datenpanne, Art. 33 DSGVO), Sofortmaßnahmen (Secret-Rotation, Account-Sperrung, Backup-Restore)
+- [ ] **Penetration-Test-Checkliste** – Dokumentierte Testfälle für manuelle/automatisierte Sicherheitstests (OWASP ZAP, Burp Suite Community)
 
 ### Mögliche Module (Ideen)
 
