@@ -50,10 +50,12 @@ export interface ModuleDefinition {
 
 import elternsprechtagModule from './elternsprechtag/index';
 import schulsozialarbeitModule from './schulsozialarbeit/index';
+import beratungslehrerModule from './beratungslehrer/index';
 
 const allModules: ModuleDefinition[] = [
   elternsprechtagModule,
   schulsozialarbeitModule,
+  beratungslehrerModule,
 ];
 
 // ── Filter über Env-Variable ────────────────────────────────────────────

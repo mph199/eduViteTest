@@ -1,0 +1,317 @@
+.bl-app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.bl-app h1 {
+  color: var(--brand-primary, #123C73);
+  margin-bottom: 0.25rem;
+}
+
+.bl-app__subtitle {
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Mode selection */
+.bl-mode-selection {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bl-mode-card {
+  border: 2px solid var(--brand-surface-2, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  text-align: center;
+}
+
+.bl-mode-card:hover {
+  border-color: var(--brand-primary, #123C73);
+  box-shadow: 0 2px 8px rgba(var(--brand-primary-rgb, 18, 60, 115), 0.12);
+}
+
+.bl-mode-card__title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--brand-ink, #0B2545);
+  margin-bottom: 0.5rem;
+}
+
+.bl-mode-card__desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* Steps indicator */
+.bl-steps {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.bl-step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: var(--brand-surface-2, #e5e7eb);
+  color: var(--color-text-muted, #6b7280);
+  transition: all 0.2s;
+}
+
+.bl-step--active {
+  background: var(--brand-primary, #123C73);
+  color: #fff;
+}
+
+.bl-step--done {
+  background: var(--color-success, #059669);
+  color: #fff;
+}
+
+.bl-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Counselor cards */
+.bl-counselors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bl-counselor-card {
+  border: 2px solid var(--brand-surface-2, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.bl-counselor-card:hover {
+  border-color: var(--brand-primary, #123C73);
+  box-shadow: 0 2px 8px rgba(var(--brand-primary-rgb, 18, 60, 115), 0.12);
+}
+
+.bl-counselor-card--selected {
+  border-color: var(--brand-primary, #123C73);
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.04);
+}
+
+.bl-counselor-card__name {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--brand-ink, #0B2545);
+}
+
+.bl-counselor-card__meta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-top: 0.25rem;
+}
+
+.bl-counselor-card__specs {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.bl-counselor-card__spec {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--brand-surface-2, #e5e7eb);
+  color: var(--brand-ink, #0B2545);
+}
+
+/* Date picker */
+.bl-date-section {
+  margin-bottom: 1.5rem;
+}
+
+.bl-date-section label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--brand-ink, #0B2545);
+}
+
+.bl-date-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Time slots */
+.bl-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.bl-slot {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--brand-surface-2, #e5e7eb);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.bl-slot:hover {
+  border-color: var(--brand-primary, #123C73);
+}
+
+.bl-slot--selected {
+  border-color: var(--brand-primary, #123C73);
+  background: var(--brand-primary, #123C73);
+  color: #fff;
+}
+
+/* Booking form */
+.bl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bl-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bl-form__group label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--brand-ink, #0B2545);
+}
+
+.bl-form__group input,
+.bl-form__group select,
+.bl-form__group textarea {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.bl-form__group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.bl-form__urgent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.bl-form__anonymous {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.04);
+  border-radius: 0.5rem;
+}
+
+.bl-form__hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.bl-confidential-notice {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.06);
+  border-left: 3px solid var(--brand-primary, #123C73);
+  font-size: 0.85rem;
+  color: var(--brand-ink, #0B2545);
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.bl-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Success */
+.bl-success {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.bl-success__icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.bl-success h2 {
+  color: var(--color-success, #059669);
+  margin-bottom: 0.5rem;
+}
+
+.bl-success__details {
+  background: var(--brand-surface-2, #f0f0f0);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 400px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.bl-success__details dt {
+  font-weight: 600;
+  color: var(--brand-ink, #0B2545);
+}
+
+.bl-success__details dd {
+  margin: 0 0 0.5rem 0;
+}
+
+/* Loading */
+.bl-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.bl-empty {
+  text-align: center;
+  padding: 1rem;
+  color: var(--color-text-muted, #6b7280);
+  font-style: italic;
+}

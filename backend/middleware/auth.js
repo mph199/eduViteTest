@@ -25,6 +25,26 @@ export function generateToken(user) {
 }
 
 /**
+ * Middleware: Requires Beratungslehrer role
+ * Allows admin, superadmin, and beratungslehrer roles.
+ */
+export function requireBeratungslehrer(req, res, next) {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
+  }
+  if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'beratungslehrer') {
+    return res.status(403).json({ error: 'Forbidden', message: 'Beratungslehrer access required' });
+  }
+  req.user = decoded;
+  return next();
+}
+
+/**
  * Middleware: Requires SSW role (Schulsozialarbeit admin access)
  * Allows admin, superadmin, and ssw roles.
  */
