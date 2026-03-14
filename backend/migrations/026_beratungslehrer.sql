@@ -2,7 +2,22 @@
 -- Sprechstunden, Themenkategorien, anonyme Anfragen
 
 -- 1) Rolle 'beratungslehrer' zum User-Constraint hinzufuegen
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+-- Drop ALL existing CHECK constraints on users.role (handles both named and auto-generated)
+DO $$
+DECLARE
+  _cname TEXT;
+BEGIN
+  FOR _cname IN
+    SELECT con.conname FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+    WHERE rel.relname = 'users' AND con.contype = 'c'
+      AND pg_get_constraintdef(con.oid) LIKE '%role%'
+  LOOP
+    EXECUTE format('ALTER TABLE users DROP CONSTRAINT IF EXISTS %I', _cname);
+  END LOOP;
+END $$;
+
 ALTER TABLE users ADD CONSTRAINT users_role_check
   CHECK (role IN ('admin', 'teacher', 'superadmin', 'ssw', 'beratungslehrer'));
 
