@@ -392,17 +392,36 @@ export function SuperadminPage() {
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
+                          const maxSize = 2 * 1024 * 1024;
+                          if (file.size > maxSize) {
+                            setSiteMsg(`Fehler: "${file.name}" ist zu gross (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximal 2 MB erlaubt.`);
+                            setTimeout(() => setSiteMsg(''), 6000);
+                            e.target.value = '';
+                            return;
+                          }
+                          const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+                          const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
+                          const dotIdx = file.name.lastIndexOf('.');
+                          const ext = dotIdx >= 0 ? file.name.slice(dotIdx).toLowerCase() : '';
+                          if (!ext || !allowedExts.includes(ext) || !allowedMimes.includes(file.type)) {
+                            setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstuetztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, SVG, WebP, GIF.`);
+                            setTimeout(() => setSiteMsg(''), 6000);
+                            e.target.value = '';
+                            return;
+                          }
                           try {
                             const result = await api.superadmin.uploadTileImage(file);
                             setSite((prev) => ({
                               ...prev,
                               tile_images: { ...prev.tile_images, [mod.id]: result.tile_url },
                             }));
-                            setSiteMsg(`Bild für ${mod.title} hochgeladen`);
+                            setSiteMsg(`Bild fuer ${mod.title} hochgeladen`);
                             setTimeout(() => setSiteMsg(''), 3000);
                           } catch (err: any) {
-                            setSiteMsg(err.message || 'Upload fehlgeschlagen');
+                            setSiteMsg(`Fehler: Upload fuer ${mod.title} fehlgeschlagen – ${err.message || 'Unbekannter Fehler'}`);
+                            setTimeout(() => setSiteMsg(''), 6000);
                           }
+                          e.target.value = '';
                         }}
                       />
                       {tileUrl && (
