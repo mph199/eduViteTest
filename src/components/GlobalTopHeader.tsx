@@ -11,24 +11,19 @@ export function GlobalTopHeader() {
   const headerRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout, activeView, setActiveView } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const { branding } = useBranding();
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
   const inAdmin = pathname === '/admin' || pathname.startsWith('/admin/') || pathname === '/superadmin' || pathname.startsWith('/superadmin/');
   const inTeacher = pathname === '/teacher' || pathname.startsWith('/teacher/');
-  const showAreaMenu = Boolean(isAuthenticated && (inAdmin || inTeacher));
+  const showAreaMenu = Boolean(isAuthenticated && inTeacher);
+  const showAdminHeader = Boolean(isAuthenticated && inAdmin);
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
+
   const isPublic = showModuleTitle;
-  const isArea = showAreaMenu;
-  const hasModule = (key: string) =>
-    user?.role === 'admin' || user?.role === 'superadmin' || (Array.isArray(user?.modules) && user.modules.includes(key));
-  const canBL = hasModule('beratungslehrer');
-  const canTeacherView = Boolean(user?.teacherId) && (user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'superadmin');
-  const canSwitchView = Boolean(
-    (user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId
-  ) || (user?.role === 'teacher' && canBL);
+  const isArea = showAreaMenu || showAdminHeader;
 
   // Find which module the user is currently viewing (public page)
   const activeModule = useMemo(() => {
@@ -36,41 +31,22 @@ export function GlobalTopHeader() {
     return modules.find((m) => pathname === m.basePath || pathname === m.basePath + '/') ?? null;
   }, [pathname, showModuleTitle]);
 
-  // Collect all admin routes from active modules
-  const moduleAdminRoutes = useMemo(() => {
-    return modules.flatMap((m) =>
-      (m.adminRoutes ?? []).map((ar) => ({ ...ar, icon: m.icon, moduleKey: m.id }))
-    );
-  }, []);
-
   const userLabel = user?.fullName || user?.username;
 
   const areaLabel = useMemo(() => {
-    if (!showAreaMenu) return null;
+    if (!isArea) return null;
 
     if (inTeacher) {
-      if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft · Übersicht';
+      if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft · Uebersicht';
       if (pathname.includes('/teacher/requests')) return 'Lehrkraft · Anfragen verwalten';
       if (pathname.includes('/teacher/bookings')) return 'Lehrkraft · Meine Buchungen';
-      if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort ändern';
+      if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort aendern';
       if (pathname.includes('/teacher/feedback')) return 'Lehrkraft · Feedback senden';
       return 'Lehrkraft';
     }
 
-    const roleArea = user?.role === 'ssw' ? 'Schulsozialarbeit' : (activeView === 'beratungslehrer' || (user?.role !== 'admin' && user?.role !== 'superadmin' && canBL)) ? 'Beratungslehrer' : 'Admin';
-
-    if (pathname === '/admin' || pathname === '/admin/') return `${roleArea} · Übersicht`;
-    if (pathname.includes('/admin/teachers')) return 'Admin · Benutzer & Rechte verwalten';
-    if (pathname.includes('/admin/events')) return 'Admin · Eltern- und Ausbildersprechtage verwalten';
-    if (pathname.includes('/admin/users')) return 'Admin · Benutzer & Rechte verwalten';
-    if (pathname.includes('/admin/feedback')) return 'Admin · Feedback einsehen';
-    // Dynamic module admin labels
-    for (const ar of moduleAdminRoutes) {
-      if (pathname.includes(ar.path)) return `${roleArea} · ${ar.label}`;
-    }
-    if (pathname === '/superadmin' || pathname.startsWith('/superadmin')) return 'Superadmin · Tenant-Branding';
-    return roleArea;
-  }, [inTeacher, pathname, showAreaMenu, moduleAdminRoutes, user, activeView, canBL]);
+    return null;
+  }, [inTeacher, pathname, isArea]);
 
   useEffect(() => {
     const element = headerRef.current;
@@ -101,10 +77,11 @@ export function GlobalTopHeader() {
     >
       <div className="globalTopHeader__inner">
         <div className="globalTopHeader__left">
+          {/* Teacher slide-out sidebar (mobile + desktop) */}
           {showAreaMenu ? (
             <Sidebar
-              label="Menü"
-              ariaLabel="Menü"
+              label="Menue"
+              ariaLabel="Menue"
               variant="icon"
               side="left"
               noWrapper
@@ -120,237 +97,47 @@ export function GlobalTopHeader() {
             >
               {({ close }) => (
                 <>
-                  <div className="dropdown__sectionTitle">Aktionen</div>
+                  <div className="dropdown__sectionTitle">Lehrkraft</div>
+                  {([
+                    ['/teacher', 'Uebersicht'],
+                    ['/teacher/requests', 'Anfragen einsehen'],
+                    ['/teacher/bookings', 'Meine Buchungen'],
+                    ['/teacher/password', 'Passwort aendern'],
+                    ['/teacher/feedback', 'Feedback senden'],
+                  ] as [string, string][]).map(([path, label]) => (
+                    <button
+                      key={path}
+                      type="button"
+                      className={pathname === path ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                      onClick={() => { navigate(path); close(); }}
+                    >
+                      <span>{label}</span>
+                      {pathname === path && <span className="dropdown__hint">Aktiv</span>}
+                    </button>
+                  ))}
 
-                  {inTeacher ? (
-                    <>
-                      <button
-                        type="button"
-                        className={pathname === '/teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/teacher');
-                          close();
-                        }}
-                      >
-                        <span>Übersicht</span>
-                        {pathname === '/teacher' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={pathname === '/teacher/requests' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/teacher/requests');
-                          close();
-                        }}
-                      >
-                        <span>Anfragen einsehen</span>
-                        {pathname === '/teacher/requests' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={pathname === '/teacher/bookings' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/teacher/bookings');
-                          close();
-                        }}
-                      >
-                        <span>Meine Buchungen</span>
-                        {pathname === '/teacher/bookings' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={pathname === '/teacher/password' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/teacher/password');
-                          close();
-                        }}
-                      >
-                        <span>Passwort ändern</span>
-                        {pathname === '/teacher/password' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={pathname === '/teacher/feedback' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/teacher/feedback');
-                          close();
-                        }}
-                      >
-                        <span>Feedback senden</span>
-                        {pathname === '/teacher/feedback' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                    </>
-                  ) : user?.role === 'ssw' || (activeView === 'beratungslehrer' && user?.role !== 'admin' && user?.role !== 'superadmin') ? (
-                    <>
-                      {/* Module-specific role: only show own module routes */}
-                      {moduleAdminRoutes
-                        .filter((ar) => ar.moduleKey === (user?.role === 'ssw' ? 'schulsozialarbeit' : 'beratungslehrer'))
-                        .map((ar) => (
-                        <button
-                          key={ar.path}
-                          type="button"
-                          className={pathname === ar.path ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                          onClick={() => {
-                            navigate(ar.path);
-                            close();
-                          }}
-                        >
-                          <span>{ar.label}</span>
-                          {pathname === ar.path && <span className="dropdown__hint">Aktiv</span>}
-                        </button>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className={pathname === '/admin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/admin');
-                          close();
-                        }}
-                      >
-                        <span>Übersicht öffnen</span>
-                        {pathname === '/admin' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={pathname === '/admin/teachers' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/admin/teachers');
-                          close();
-                        }}
-                      >
-                        <span>Benutzer & Rechte verwalten</span>
-                        {pathname === '/admin/teachers' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={pathname === '/admin/events' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/admin/events');
-                          close();
-                        }}
-                      >
-                        <span>Eltern- und Ausbildersprechtage verwalten</span>
-                        {pathname === '/admin/events' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      {/* Dynamic module admin routes */}
-                      {moduleAdminRoutes.map((ar) => (
-                        <button
-                          key={ar.path}
-                          type="button"
-                          className={pathname === ar.path ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                          onClick={() => {
-                            navigate(ar.path);
-                            close();
-                          }}
-                        >
-                          <span>{ar.label}</span>
-                          {pathname === ar.path && <span className="dropdown__hint">Aktiv</span>}
-                        </button>
-                      ))}
-
-                      <button
-                        type="button"
-                        className={pathname === '/admin/feedback' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          navigate('/admin/feedback');
-                          close();
-                        }}
-                      >
-                        <span>Feedback einsehen</span>
-                        {pathname === '/admin/feedback' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      {user?.role === 'superadmin' && (
-                        <>
-                          <div className="dropdown__divider" role="separator" />
-                          <button
-                            type="button"
-                            className={pathname === '/superadmin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                            onClick={() => {
-                              navigate('/superadmin');
-                              close();
-                            }}
-                          >
-                            <span>Superadmin</span>
-                            {pathname === '/superadmin' && <span className="dropdown__hint">Aktiv</span>}
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-
-                  {canSwitchView && (
+                  {/* Link back to admin area if user is admin */}
+                  {(user?.role === 'admin' || user?.role === 'superadmin') && (
                     <>
                       <div className="dropdown__divider" role="separator" />
-                      <div className="dropdown__sectionTitle">Ansicht</div>
-                      {canTeacherView && (
-                        <button
-                          type="button"
-                          className={(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                          onClick={() => {
-                            setActiveView('teacher');
-                            navigate('/teacher/bookings', { replace: true });
-                            close();
-                          }}
-                        >
-                          <span>Lehrkraft</span>
-                          {(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
-                        </button>
-                      )}
-                      {canBL && (
-                        <button
-                          type="button"
-                          className={activeView === 'beratungslehrer' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                          onClick={() => {
-                            setActiveView('beratungslehrer');
-                            navigate('/admin/beratungslehrer', { replace: true });
-                            close();
-                          }}
-                        >
-                          <span>Beratungslehrer</span>
-                          {activeView === 'beratungslehrer' && <span className="dropdown__hint">Aktiv</span>}
-                        </button>
-                      )}
-                      {(user?.role === 'admin' || user?.role === 'superadmin') && (
-                        <button
-                          type="button"
-                          className={(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'admin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                          onClick={() => {
-                            setActiveView('admin');
-                            navigate('/admin', { replace: true });
-                            close();
-                          }}
-                        >
-                          <span>Admin</span>
-                          {(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'admin' && <span className="dropdown__hint">Aktiv</span>}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="dropdown__item"
+                        onClick={() => { navigate('/admin'); close(); }}
+                      >
+                        <span>Admin-Bereich</span>
+                      </button>
                     </>
                   )}
 
                   <div className="dropdown__divider" role="separator" />
-                  <button
-                    type="button"
-                    className="dropdown__item"
-                    onClick={() => {
-                      navigate('/');
-                      close();
-                    }}
-                  >
+                  <button type="button" className="dropdown__item" onClick={() => { navigate('/'); close(); }}>
                     <span>Zur Buchungsseite</span>
                   </button>
                   <button
                     type="button"
                     className="dropdown__item dropdown__item--danger"
-                    onClick={() => {
-                      close();
-                      void (async () => {
-                        await logout();
-                        navigate('/login');
-                      })();
-                    }}
+                    onClick={() => { close(); void (async () => { await logout(); navigate('/login'); })(); }}
                   >
                     <span>Abmelden</span>
                   </button>
@@ -370,7 +157,7 @@ export function GlobalTopHeader() {
         </div>
 
         <div className="globalTopHeader__right">
-          {showAreaMenu ? (
+          {isArea ? (
             <>
               <NotificationBell />
               <div className="globalTopHeader__user" aria-label="Angemeldeter Benutzer">

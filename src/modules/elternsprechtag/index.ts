@@ -48,6 +48,15 @@ const elternsprechtagModule: ModuleDefinition = {
     { path: '/admin/slots', label: 'Sprechzeiten', Component: AdminSlots },
   ],
 
+  /** Sidebar-Navigation */
+  sidebarNav: {
+    label: 'Elternsprechtag',
+    items: [
+      { path: '/admin/events', label: 'Sprechtage verwalten', roles: ['admin', 'superadmin'] },
+      { path: '/admin/slots', label: 'Sprechzeiten', roles: ['admin', 'superadmin'] },
+    ],
+  },
+
   /** Lehrkraft-Bereich */
   teacherLayout: TeacherLayout,
   teacherRoutes: [
