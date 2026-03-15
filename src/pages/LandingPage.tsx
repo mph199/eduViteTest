@@ -28,17 +28,14 @@ export function LandingPage() {
                 {tileUrl ? (
                   <img
                     src={api.superadmin.resolveTileUrl(tileUrl)}
-                    alt={mod.title}
-                    className="landing__card-img"
+                    alt=""
+                    className="landing__card-bg"
                     onError={(e) => {
-                      // fallback to emoji if image fails
-                      const el = e.target as HTMLImageElement;
-                      el.style.display = 'none';
-                      el.nextElementSibling?.classList.remove('landing__card-icon--hidden');
+                      (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 ) : null}
-                <span className={`landing__card-icon${tileUrl ? ' landing__card-icon--hidden' : ''}`}>{mod.icon}</span>
+                <span className="landing__card-icon">{mod.icon}</span>
                 <h2 className="landing__card-title">{mod.title}</h2>
                 <p className="landing__card-desc">{mod.description}</p>
                 <span className="landing__card-action">Termin buchen &rarr;</span>

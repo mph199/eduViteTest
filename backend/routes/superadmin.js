@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -12,7 +13,11 @@ const __dirname = path.dirname(__filename);
 
 // Multer config for logo uploads
 const logoStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '..', 'uploads', 'logos')),
+  destination: (_req, _file, cb) => {
+    const dir = path.join(__dirname, '..', 'uploads', 'logos');
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
+    cb(null, dir);
+  },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `logo-${Date.now()}${ext}`);
@@ -232,7 +237,11 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
 
 // POST /api/superadmin/tile-image  (superadmin only — upload tile image for a module)
 const tileStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '..', 'uploads', 'tiles')),
+  destination: (_req, _file, cb) => {
+    const dir = path.join(__dirname, '..', 'uploads', 'tiles');
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
+    cb(null, dir);
+  },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `tile-${Date.now()}${ext}`);
