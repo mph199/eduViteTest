@@ -38,7 +38,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
-      ENABLED_MODULES: ${ENABLED_MODULES:-}
+      ENABLED_MODULES: ${ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
     volumes:
       - uploads:/app/uploads
     ports:
@@ -49,7 +49,7 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        VITE_ENABLED_MODULES: ${VITE_ENABLED_MODULES:-}
+        VITE_ENABLED_MODULES: ${VITE_ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
     restart: unless-stopped
     depends_on:
       - backend
