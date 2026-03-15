@@ -329,6 +329,84 @@ const api = {
     },
   },
 
+  // Beratungslehrer (counselor) endpoints
+  bl: {
+    async getProfile() {
+      return requestJSON('/bl/counselor/profile', { auth: true });
+    },
+    async getSchedule() {
+      return requestJSON('/bl/counselor/schedule', { auth: true });
+    },
+    async updateSchedule(schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
+      return requestJSON('/bl/counselor/schedule', {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify({ schedule }),
+      });
+    },
+    async getAppointments(params: { date_from?: string; date_until?: string; status?: string } = {}) {
+      const qs = new URLSearchParams();
+      if (params.date_from) qs.set('date_from', params.date_from);
+      if (params.date_until) qs.set('date_until', params.date_until);
+      if (params.status) qs.set('status', params.status);
+      const query = qs.toString();
+      return requestJSON(`/bl/counselor/appointments${query ? `?${query}` : ''}`, { auth: true });
+    },
+    async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
+      return requestJSON('/bl/counselor/generate-slots', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify({ counselor_id: counselorId, date_from: dateFrom, date_until: dateUntil }),
+      });
+    },
+    async confirmAppointment(id: number) {
+      return requestJSON(`/bl/counselor/appointments/${encodeURIComponent(id)}/confirm`, {
+        method: 'PUT',
+        auth: true,
+      });
+    },
+    async cancelAppointment(id: number) {
+      return requestJSON(`/bl/counselor/appointments/${encodeURIComponent(id)}/cancel`, {
+        method: 'PUT',
+        auth: true,
+      });
+    },
+    // Admin-only
+    async getAdminCounselors() {
+      return requestJSON('/bl/admin/counselors', { auth: true });
+    },
+    async getAdminTopics() {
+      return requestJSON('/bl/admin/topics', { auth: true });
+    },
+    async createTopic(payload: { name: string; description?: string; sort_order?: number }) {
+      return requestJSON('/bl/admin/topics', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateTopic(id: number, payload: { name: string; description?: string; sort_order?: number; active?: boolean }) {
+      return requestJSON(`/bl/admin/topics/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
+      return requestJSON(`/bl/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, { auth: true });
+    },
+    async deleteAppointments(ids: number[]) {
+      return requestJSON('/bl/admin/appointments', {
+        method: 'DELETE',
+        auth: true,
+        body: JSON.stringify({ ids }),
+      });
+    },
+    async getAdminCounselorSchedule(counselorId: number) {
+      return requestJSON(`/bl/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, { auth: true });
+    },
+  },
+
   // Superadmin endpoints
   superadmin: {
     async getEmailBranding() {
