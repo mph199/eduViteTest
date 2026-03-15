@@ -2,6 +2,8 @@
 -- Neue Tabelle user_module_access fuer zusaetzliche Modul-Berechtigungen
 -- Ermoeglicht z.B. Lehrkraeften den Zugang zum Beratungslehrer-Modul
 
+BEGIN;
+
 -- 1) Tabelle fuer Modul-Berechtigungen
 CREATE TABLE IF NOT EXISTS user_module_access (
   id SERIAL PRIMARY KEY,
@@ -20,8 +22,9 @@ INSERT INTO user_module_access (user_id, module_key)
 SELECT id, 'beratungslehrer' FROM users WHERE role = 'beratungslehrer'
 ON CONFLICT DO NOTHING;
 
--- User mit teacher_id: Rolle auf 'teacher' setzen (behalten Teacher-Funktionalitaet)
-UPDATE users SET role = 'teacher' WHERE role = 'beratungslehrer' AND teacher_id IS NOT NULL;
+-- ALLE beratungslehrer-User auf 'teacher' setzen (auch ohne teacher_id),
+-- damit der neue Constraint nicht fehlschlaegt
+UPDATE users SET role = 'teacher' WHERE role = 'beratungslehrer';
 
 -- 3) Role-Constraint aktualisieren: 'beratungslehrer' als Rolle entfernen
 DO $$
@@ -41,3 +44,5 @@ END $$;
 
 ALTER TABLE users ADD CONSTRAINT users_role_check
   CHECK (role IN ('admin', 'teacher', 'superadmin', 'ssw'));
+
+COMMIT;

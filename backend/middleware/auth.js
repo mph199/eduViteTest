@@ -129,20 +129,6 @@ export function requireSSW(req, res, next) {
 }
 
 /**
- * Middleware: Requires Beratungslehrer access
- * Allows admin, superadmin, or users with 'beratungslehrer' module access.
- */
-export function requireBeratungslehrer(req, res, next) {
-  const decoded = authenticate(req, res);
-  if (!decoded) return;
-  if (!hasModuleAccess(decoded, 'beratungslehrer')) {
-    return res.status(403).json({ error: 'Forbidden', message: 'Beratungslehrer access required' });
-  }
-  req.user = decoded;
-  return next();
-}
-
-/**
  * Factory: Create middleware that requires access to a specific module.
  */
 export function requireModuleAccess(moduleKey) {
@@ -156,6 +142,9 @@ export function requireModuleAccess(moduleKey) {
     return next();
   };
 }
+
+/** Alias fuer requireModuleAccess('beratungslehrer') */
+export const requireBeratungslehrer = requireModuleAccess('beratungslehrer');
 
 /**
  * Verify login credentials

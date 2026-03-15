@@ -185,15 +185,19 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
   }
 
   try {
-    // Remove all existing module access for this user
-    await query('DELETE FROM user_module_access WHERE user_id = $1', [userId]);
-
-    // Insert new module access entries
-    for (const moduleKey of modules) {
-      await query(
-        'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [userId, moduleKey]
-      );
+    await query('BEGIN');
+    try {
+      await query('DELETE FROM user_module_access WHERE user_id = $1', [userId]);
+      for (const moduleKey of modules) {
+        await query(
+          'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, moduleKey]
+        );
+      }
+      await query('COMMIT');
+    } catch (txErr) {
+      await query('ROLLBACK');
+      throw txErr;
     }
 
     return res.json({ success: true, modules });

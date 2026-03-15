@@ -180,7 +180,7 @@ export function GlobalTopHeader() {
                         {pathname === '/teacher/feedback' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
                     </>
-                  ) : user?.role === 'ssw' || activeView === 'beratungslehrer' ? (
+                  ) : user?.role === 'ssw' || (activeView === 'beratungslehrer' && user?.role !== 'admin' && user?.role !== 'superadmin') ? (
                     <>
                       {/* SSW role: only module admin routes for SSW */}
                       {moduleAdminRoutes.map((ar) => (

@@ -74,7 +74,11 @@ router.post('/login', async (req, res) => {
     }
 
     // Nur bekannte Rollen erlauben
-    const role = ['admin', 'teacher', 'superadmin', 'ssw'].includes(dbUser.role) ? dbUser.role : 'user';
+    const validRoles = ['admin', 'teacher', 'superadmin', 'ssw'];
+    if (!validRoles.includes(dbUser.role)) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Unbekannte Rolle' });
+    }
+    const role = dbUser.role;
 
     // Modul-Berechtigungen laden
     const { rows: moduleRows } = await query(

@@ -41,6 +41,10 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
   if (allowedModules && allowedModules.length > 0) {
     const hasModuleAccess = allowedModules.some(m => modules.includes(m));
     if (hasModuleAccess) return <>{children}</>;
+    // Module required but not granted → deny
+    if (!allowedRoles) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   // Check role-based access
