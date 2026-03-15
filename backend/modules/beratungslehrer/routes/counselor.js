@@ -2,7 +2,7 @@
  * Beratungslehrer – Berater-Routen (authentifiziert)
  *
  * Endpunkte fuer Beratungslehrer: eigene Termine verwalten,
- * Anfragen bestaetigen/absagen, Notizen pflegen, anonyme Anfragen beantworten.
+ * Anfragen bestaetigen/absagen, Notizen pflegen.
  */
 
 import express from 'express';
@@ -223,80 +223,6 @@ router.put('/appointments/:id/notes', requireAuth, requireBLCounselor, async (re
     res.json({ success: true, appointment: rows[0] });
   } catch (err) {
     res.status(500).json({ error: 'Fehler beim Speichern der Notiz' });
-  }
-});
-
-// GET /api/bl/counselor/requests — own anonymous requests
-router.get('/requests', requireAuth, requireBLCounselor, async (req, res) => {
-  try {
-    const counselorId = req.counselor?.id;
-
-    let whereClause = '';
-    const params = [];
-    if (counselorId) {
-      whereClause = 'WHERE r.counselor_id = $1';
-      params.push(counselorId);
-    }
-
-    const { rows } = await query(
-      `SELECT r.*, t.name AS topic_name
-       FROM bl_requests r
-       LEFT JOIN bl_topics t ON t.id = r.topic_id
-       ${whereClause}
-       ORDER BY r.created_at DESC`,
-      params
-    );
-    res.json({ requests: rows });
-  } catch (err) {
-    res.status(500).json({ error: 'Fehler beim Laden der Anfragen' });
-  }
-});
-
-// PUT /api/bl/counselor/requests/:id/respond — respond to anonymous request
-router.put('/requests/:id/respond', requireAuth, requireBLCounselor, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    const { response } = req.body || {};
-
-    if (!response || !String(response).trim()) {
-      return res.status(400).json({ error: 'Antwort ist erforderlich' });
-    }
-
-    const { rows } = await query(
-      `UPDATE bl_requests SET response = $1, status = 'answered', responded_at = NOW(),
-       responded_by = $2, updated_at = NOW()
-       WHERE id = $3 RETURNING *`,
-      [String(response).trim(), req.user.id, id]
-    );
-
-    if (!rows.length) return res.status(404).json({ error: 'Anfrage nicht gefunden' });
-    res.json({ success: true, request: rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Fehler beim Antworten' });
-  }
-});
-
-// PUT /api/bl/counselor/requests/:id/status — update request status
-router.put('/requests/:id/status', requireAuth, requireBLCounselor, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    const { status } = req.body || {};
-
-    const validStatuses = ['read', 'in_progress', 'closed'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: `Ungueltiger Status. Erlaubt: ${validStatuses.join(', ')}` });
-    }
-
-    const { rows } = await query(
-      `UPDATE bl_requests SET status = $1, updated_at = NOW()
-       WHERE id = $2 RETURNING *`,
-      [status, id]
-    );
-
-    if (!rows.length) return res.status(404).json({ error: 'Anfrage nicht gefunden' });
-    res.json({ success: true, request: rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Fehler beim Aktualisieren' });
   }
 });
 

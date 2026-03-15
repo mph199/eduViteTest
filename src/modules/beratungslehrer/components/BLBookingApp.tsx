@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BLAnonymousRequest } from './BLAnonymousRequest';
 import './BLBookingApp.css';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
@@ -30,7 +29,6 @@ interface AppointmentSlot {
   duration_minutes: number;
 }
 
-type Mode = 'select' | 'booking' | 'request';
 type Step = 'counselor' | 'datetime' | 'form' | 'success';
 
 export function BLBookingApp() {
@@ -38,9 +36,6 @@ export function BLBookingApp() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Mode: select between booking and anonymous request
-  const [mode, setMode] = useState<Mode>('select');
 
   // Booking flow state
   const [step, setStep] = useState<Step>('counselor');
@@ -59,7 +54,6 @@ export function BLBookingApp() {
     concern: '',
     topic_id: '',
     is_urgent: false,
-    is_anonymous: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [, setBookedAppointment] = useState<any>(null);
@@ -122,8 +116,8 @@ export function BLBookingApp() {
     e.preventDefault();
     if (!selectedSlot) return;
 
-    if (!formData.is_anonymous && !formData.student_name.trim()) {
-      alert('Bitte gib deinen Namen ein oder waehle "Anonym buchen".');
+    if (!formData.student_name.trim()) {
+      alert('Bitte gib deinen Namen ein.');
       return;
     }
 
@@ -155,14 +149,13 @@ export function BLBookingApp() {
   };
 
   const handleReset = () => {
-    setMode('select');
     setStep('counselor');
     setSelectedCounselor(null);
     setSelectedDate('');
     setAvailableSlots([]);
     setSelectedSlot(null);
     setBookedAppointment(null);
-    setFormData({ student_name: '', student_class: '', email: '', phone: '', concern: '', topic_id: '', is_urgent: false, is_anonymous: false });
+    setFormData({ student_name: '', student_class: '', email: '', phone: '', concern: '', topic_id: '', is_urgent: false });
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -183,57 +176,10 @@ export function BLBookingApp() {
   return (
     <div className="bl-app">
       <h1>Beratungslehrer</h1>
-      <p className="bl-app__subtitle">Buche eine Sprechstunde oder stelle eine anonyme Anfrage.</p>
+      <p className="bl-app__subtitle">Buche eine Sprechstunde bei einem Beratungslehrer.</p>
 
-      {/* Mode selection */}
-      {mode === 'select' && (
-        <>
-          <div className="bl-confidential-notice">
-            Alle Beratungsgespraeche sind <strong>vertraulich</strong>. Du kannst auch <strong>anonym</strong> Hilfe anfragen.
-          </div>
-          <div className="bl-mode-selection">
-            <div
-              className="bl-mode-card"
-              onClick={() => setMode('booking')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('booking'); } }}
-            >
-              <div className="bl-mode-card__title">Sprechstunde buchen</div>
-              <div className="bl-mode-card__desc">
-                Waehle einen Beratungslehrer und einen Termin aus dem Kalender.
-              </div>
-            </div>
-            <div
-              className="bl-mode-card"
-              onClick={() => setMode('request')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('request'); } }}
-            >
-              <div className="bl-mode-card__title">Anonyme Anfrage</div>
-              <div className="bl-mode-card__desc">
-                Stelle eine Frage oder bitte um Hilfe -- ganz ohne deinen Namen.
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Anonymous request mode */}
-      {mode === 'request' && (
-        <BLAnonymousRequest
-          counselors={counselors}
-          topics={topics}
-          onBack={handleReset}
-        />
-      )}
-
-      {/* Booking mode */}
-      {mode === 'booking' && (
-        <>
-          {/* Step indicator */}
-          <div className="bl-steps">
+      {/* Step indicator */}
+      <div className="bl-steps">
             {steps.map((s, i) => (
               <div
                 key={s.key}
@@ -245,12 +191,12 @@ export function BLBookingApp() {
             ))}
           </div>
 
-          {/* Step: Select Counselor */}
-          {step === 'counselor' && (
-            <>
-              <div className="bl-confidential-notice">
-                Alle Beratungsgespraeche sind <strong>vertraulich</strong>. Deine Angaben werden nur an den gewaehlten Beratungslehrer weitergegeben.
-              </div>
+      {/* Step: Select Counselor */}
+      {step === 'counselor' && (
+        <>
+          <div className="bl-confidential-notice">
+            Alle Beratungsgespraeche sind <strong>vertraulich</strong>. Deine Angaben werden nur an den gewaehlten Beratungslehrer weitergegeben.
+          </div>
               {counselors.length === 0 ? (
                 <p className="bl-empty">Derzeit sind keine Beratungslehrer verfuegbar.</p>
               ) : (
@@ -354,28 +300,17 @@ export function BLBookingApp() {
               </div>
 
               <form className="bl-form" onSubmit={handleSubmit}>
-                <label className="bl-form__anonymous">
+                <div className="bl-form__group">
+                  <label htmlFor="bl-name">Name *</label>
                   <input
-                    type="checkbox"
-                    checked={formData.is_anonymous}
-                    onChange={e => setFormData({ ...formData, is_anonymous: e.target.checked, student_name: e.target.checked ? '' : formData.student_name })}
+                    id="bl-name"
+                    type="text"
+                    value={formData.student_name}
+                    onChange={e => setFormData({ ...formData, student_name: e.target.value })}
+                    placeholder="Dein vollstaendiger Name"
+                    required
                   />
-                  Ich moechte anonym bleiben
-                </label>
-
-                {!formData.is_anonymous && (
-                  <div className="bl-form__group">
-                    <label htmlFor="bl-name">Name *</label>
-                    <input
-                      id="bl-name"
-                      type="text"
-                      value={formData.student_name}
-                      onChange={e => setFormData({ ...formData, student_name: e.target.value })}
-                      placeholder="Dein vollstaendiger Name"
-                      required={!formData.is_anonymous}
-                    />
-                  </div>
-                )}
+                </div>
 
                 <div className="bl-form__group">
                   <label htmlFor="bl-class">Klasse / Kurs</label>
@@ -468,12 +403,6 @@ export function BLBookingApp() {
                       <dd>{selectedCounselor.room}</dd>
                     </>
                   )}
-                  {formData.is_anonymous && (
-                    <>
-                      <dt>Hinweis</dt>
-                      <dd>Anonyme Buchung</dd>
-                    </>
-                  )}
                 </dl>
               )}
               <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>
@@ -486,8 +415,6 @@ export function BLBookingApp() {
               </div>
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }

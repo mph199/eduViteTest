@@ -1,7 +1,7 @@
 /**
  * Beratungslehrer – Admin-Routen
  *
- * Verwaltung von Beratungslehrern, Themen und anonymen Anfragen.
+ * Verwaltung von Beratungslehrern und Themen.
  */
 
 import express from 'express';
@@ -233,8 +233,7 @@ router.get('/stats', requireBeratungslehrer, async (_req, res) => {
         (SELECT COUNT(*) FROM bl_counselors WHERE active = TRUE) AS counselors,
         (SELECT COUNT(*) FROM bl_appointments WHERE status = 'requested') AS pending,
         (SELECT COUNT(*) FROM bl_appointments WHERE status = 'confirmed') AS confirmed,
-        (SELECT COUNT(*) FROM bl_appointments WHERE status = 'available' AND date >= CURRENT_DATE) AS available,
-        (SELECT COUNT(*) FROM bl_requests WHERE status IN ('new', 'read', 'in_progress')) AS open_requests
+        (SELECT COUNT(*) FROM bl_appointments WHERE status = 'available' AND date >= CURRENT_DATE) AS available
     `);
     res.json({ stats: counts });
   } catch (err) {
@@ -289,36 +288,6 @@ router.delete('/appointments', requireBeratungslehrer, async (req, res) => {
   } catch (err) {
     console.error('BL admin delete appointments error:', err);
     res.status(500).json({ error: 'Fehler beim Loeschen' });
-  }
-});
-
-// ── Anonymous Requests ─────────────────────────────────────────────────
-
-// GET /api/bl/admin/requests?status=new
-router.get('/requests', requireBeratungslehrer, async (req, res) => {
-  try {
-    const status = req.query.status;
-    let whereClause = '';
-    const params = [];
-
-    if (status && ['new', 'read', 'in_progress', 'answered', 'closed'].includes(status)) {
-      whereClause = 'WHERE r.status = $1';
-      params.push(status);
-    }
-
-    const { rows } = await query(
-      `SELECT r.*, t.name AS topic_name, c.name AS counselor_name
-       FROM bl_requests r
-       LEFT JOIN bl_topics t ON t.id = r.topic_id
-       LEFT JOIN bl_counselors c ON c.id = r.counselor_id
-       ${whereClause}
-       ORDER BY r.is_urgent DESC, r.created_at DESC`,
-      params
-    );
-    res.json({ requests: rows });
-  } catch (err) {
-    console.error('BL admin requests error:', err);
-    res.status(500).json({ error: 'Fehler beim Laden der Anfragen' });
   }
 });
 
