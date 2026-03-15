@@ -107,7 +107,15 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
 // GET /api/admin/users
 router.get('/users', requireAdmin, async (_req, res) => {
   try {
-    const { rows } = await query('SELECT id, username, role, teacher_id, created_at, updated_at FROM users ORDER BY id');
+    const { rows } = await query(
+      `SELECT u.id, u.username, u.role, u.teacher_id, u.created_at, u.updated_at,
+              COALESCE(
+                (SELECT json_agg(uma.module_key ORDER BY uma.module_key)
+                 FROM user_module_access uma WHERE uma.user_id = u.id),
+                '[]'::json
+              ) AS modules
+       FROM users u ORDER BY u.id`
+    );
     return res.json({ users: rows });
   } catch (error) {
     console.error('Error fetching admin users:', error);
@@ -153,6 +161,49 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error updating admin user role:', error);
     return res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// PUT /api/admin/users/:id/modules
+const VALID_MODULE_KEYS = ['beratungslehrer'];
+
+router.put('/users/:id/modules', requireAdmin, async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  const { modules } = req.body || {};
+  if (!Array.isArray(modules)) {
+    return res.status(400).json({ error: 'modules must be an array of module keys' });
+  }
+
+  // Validate module keys
+  const invalid = modules.filter(m => !VALID_MODULE_KEYS.includes(m));
+  if (invalid.length > 0) {
+    return res.status(400).json({ error: 'Invalid module keys: ' + invalid.join(', ') });
+  }
+
+  try {
+    await query('BEGIN');
+    try {
+      await query('DELETE FROM user_module_access WHERE user_id = $1', [userId]);
+      for (const moduleKey of modules) {
+        await query(
+          'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, moduleKey]
+        );
+      }
+      await query('COMMIT');
+    } catch (txErr) {
+      await query('ROLLBACK');
+      throw txErr;
+    }
+
+    return res.json({ success: true, modules });
+  } catch (error) {
+    console.error('Error updating user modules:', error);
+    return res.status(500).json({ error: 'Failed to update user modules' });
   }
 });
 

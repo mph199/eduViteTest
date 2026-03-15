@@ -74,13 +74,25 @@ router.post('/login', async (req, res) => {
     }
 
     // Nur bekannte Rollen erlauben
-    const role = ['admin', 'teacher', 'superadmin', 'ssw', 'beratungslehrer'].includes(dbUser.role) ? dbUser.role : 'user';
+    const validRoles = ['admin', 'teacher', 'superadmin', 'ssw'];
+    if (!validRoles.includes(dbUser.role)) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Unbekannte Rolle' });
+    }
+    const role = dbUser.role;
+
+    // Modul-Berechtigungen laden
+    const { rows: moduleRows } = await query(
+      'SELECT module_key FROM user_module_access WHERE user_id = $1',
+      [dbUser.id]
+    );
+    const modules = moduleRows.map(r => r.module_key);
 
     const user = {
       id: dbUser.id,
       username: dbUser.username,
       role,
-      teacherId: dbUser.teacher_id || undefined
+      teacherId: dbUser.teacher_id || undefined,
+      modules: modules.length > 0 ? modules : undefined
     };
     const token = generateToken(user);
 
@@ -152,7 +164,8 @@ router.get('/verify', (req, res) => {
     user: {
       username: decoded.username,
       role: decoded.role,
-      teacherId: decoded.teacherId
+      teacherId: decoded.teacherId,
+      modules: decoded.modules || []
     }
   });
 });

@@ -12,6 +12,34 @@ type TeacherLoginResponse = {
   };
 };
 
+interface CsvImportedTeacher {
+  id: number;
+  name: string;
+  email: string;
+  username: string;
+  tempPassword: string;
+  slotsCreated: number;
+}
+
+interface CsvSkippedRow {
+  line: number;
+  reason: string;
+  name?: string;
+}
+
+interface CsvImportResult {
+  success?: boolean;
+  error?: string;
+  hint?: string;
+  imported?: number;
+  skipped?: number;
+  total?: number;
+  details?: {
+    imported?: CsvImportedTeacher[];
+    skipped?: CsvSkippedRow[];
+  };
+}
+
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
@@ -23,9 +51,10 @@ export function AdminTeachers() {
   const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
+  const [moduleSaving, setModuleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
-  const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: any | null }>({ show: false, uploading: false, result: null });
+  const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
@@ -214,6 +243,26 @@ export function AdminTeachers() {
     }
   };
 
+  const toggleModule = async (target: UserAccount, moduleKey: string) => {
+    const current = target.modules || [];
+    const has = current.includes(moduleKey);
+    const next = has ? current.filter(m => m !== moduleKey) : [...current, moduleKey];
+
+    setModuleSaving((prev) => ({ ...prev, [target.id]: true }));
+    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: next } : u)));
+
+    try {
+      await api.admin.updateUserModules(target.id, next);
+      setFlash(has ? 'Modul-Zugang entfernt. Wird nach erneutem Login wirksam.' : 'Modul-Zugang erteilt. Wird nach erneutem Login wirksam.');
+      window.setTimeout(() => setFlash(''), 6500);
+    } catch (e) {
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: current } : u)));
+      alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Modul-Berechtigungen');
+    } finally {
+      setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-loading">
@@ -276,10 +325,10 @@ export function AdminTeachers() {
                   <div><strong>{csvImport.result.total}</strong> Zeilen gesamt</div>
                 </div>
 
-                {csvImport.result.details?.imported?.length > 0 && (
+                {(csvImport.result.details?.imported?.length ?? 0) > 0 && (
                   <details open style={{ marginBottom: '1rem' }}>
                     <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      Importierte Lehrkräfte ({csvImport.result.details.imported.length})
+                      Importierte Lehrkräfte ({csvImport.result.details!.imported!.length})
                     </summary>
                     <div className="admin-resp-table-container">
                       <table className="admin-resp-table" style={{ fontSize: '0.85rem' }}>
@@ -293,7 +342,7 @@ export function AdminTeachers() {
                           </tr>
                         </thead>
                         <tbody>
-                          {csvImport.result.details.imported.map((t: any) => (
+                          {csvImport.result.details!.imported!.map((t: CsvImportedTeacher) => (
                             <tr key={t.id}>
                               <td>{t.name}</td>
                               <td>{t.email}</td>
@@ -309,8 +358,9 @@ export function AdminTeachers() {
                       className="btn-secondary btn-secondary--sm"
                       style={{ marginTop: '0.5rem' }}
                       onClick={() => {
+                        const imported = csvImport.result?.details?.imported ?? [];
                         const lines = ['Name;Email;Username;Passwort'];
-                        for (const t of csvImport.result.details.imported) {
+                        for (const t of imported) {
                           lines.push(`${t.name};${t.email};${t.username};${t.tempPassword}`);
                         }
                         const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -327,13 +377,13 @@ export function AdminTeachers() {
                   </details>
                 )}
 
-                {csvImport.result.details?.skipped?.length > 0 && (
+                {(csvImport.result.details?.skipped?.length ?? 0) > 0 && (
                   <details style={{ marginBottom: '1rem' }}>
                     <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-warning, #b45309)' }}>
-                      Übersprungene Zeilen ({csvImport.result.details.skipped.length})
+                      Übersprungene Zeilen ({csvImport.result.details!.skipped!.length})
                     </summary>
                     <ul style={{ fontSize: '0.85rem', paddingLeft: '1.2rem' }}>
-                      {csvImport.result.details.skipped.map((s: any, i: number) => (
+                      {csvImport.result.details!.skipped!.map((s: CsvSkippedRow, i: number) => (
                         <li key={i}>Zeile {s.line}: {s.reason}{s.name ? ` (${s.name})` : ''}</li>
                       ))}
                     </ul>
@@ -616,6 +666,18 @@ export function AdminTeachers() {
                                     <option value="admin">Admin</option>
                                   </select>
                                   {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                  {acct.role === 'teacher' && (
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={(acct.modules || []).includes('beratungslehrer')}
+                                        disabled={!!moduleSaving[acct.id]}
+                                        onChange={() => toggleModule(acct, 'beratungslehrer')}
+                                      />
+                                      Beratungslehrer
+                                      {moduleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                    </label>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="teacher-card__tag teacher-card__tag--nologin" style={{ fontSize: '0.78rem' }}>Kein Login</span>
@@ -682,6 +744,9 @@ export function AdminTeachers() {
                                   {isAdmin ? 'Admin' : 'Lehrkraft'}
                                 </span>
                               )}
+                              {acct && (acct.modules || []).includes('beratungslehrer') && (
+                                <span className="teacher-card__tag teacher-card__tag--teacher">BL</span>
+                              )}
                               {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
                             </div>
                           </div>
@@ -732,6 +797,23 @@ export function AdminTeachers() {
                                     </select>
                                     {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
                                   </div>
+                                </dd>
+                              </div>
+                            )}
+                            {acct && acct.role === 'teacher' && (
+                              <div className="teacher-card__row">
+                                <dt>Module</dt>
+                                <dd>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={(acct.modules || []).includes('beratungslehrer')}
+                                      disabled={!!moduleSaving[acct.id]}
+                                      onChange={() => toggleModule(acct, 'beratungslehrer')}
+                                    />
+                                    Beratungslehrer
+                                    {moduleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                  </label>
                                 </dd>
                               </div>
                             )}

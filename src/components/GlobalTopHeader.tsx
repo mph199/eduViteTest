@@ -22,7 +22,13 @@ export function GlobalTopHeader() {
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
   const isPublic = showModuleTitle;
   const isArea = showAreaMenu;
-  const canSwitchView = Boolean((user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId);
+  const hasModule = (key: string) =>
+    user?.role === 'admin' || user?.role === 'superadmin' || (Array.isArray(user?.modules) && user.modules.includes(key));
+  const canBL = hasModule('beratungslehrer');
+  const canTeacherView = Boolean(user?.teacherId) && (user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'superadmin');
+  const canSwitchView = Boolean(
+    (user?.role === 'admin' || user?.role === 'superadmin') && user.teacherId
+  ) || (user?.role === 'teacher' && canBL);
 
   // Find which module the user is currently viewing (public page)
   const activeModule = useMemo(() => {
@@ -51,7 +57,7 @@ export function GlobalTopHeader() {
       return 'Lehrkraft';
     }
 
-    const roleArea = user?.role === 'ssw' ? 'Schulsozialarbeit' : user?.role === 'beratungslehrer' ? 'Beratungslehrer' : 'Admin';
+    const roleArea = user?.role === 'ssw' ? 'Schulsozialarbeit' : (activeView === 'beratungslehrer' || (user?.role !== 'admin' && user?.role !== 'superadmin' && canBL)) ? 'Beratungslehrer' : 'Admin';
 
     if (pathname === '/admin' || pathname === '/admin/') return `${roleArea} · Übersicht`;
     if (pathname.includes('/admin/teachers')) return 'Admin · Benutzer & Rechte verwalten';
@@ -174,7 +180,7 @@ export function GlobalTopHeader() {
                         {pathname === '/teacher/feedback' && <span className="dropdown__hint">Aktiv</span>}
                       </button>
                     </>
-                  ) : user?.role === 'ssw' || user?.role === 'beratungslehrer' ? (
+                  ) : user?.role === 'ssw' || (activeView === 'beratungslehrer' && user?.role !== 'admin' && user?.role !== 'superadmin') ? (
                     <>
                       {/* SSW role: only module admin routes for SSW */}
                       {moduleAdminRoutes.map((ar) => (
@@ -277,30 +283,48 @@ export function GlobalTopHeader() {
                     <>
                       <div className="dropdown__divider" role="separator" />
                       <div className="dropdown__sectionTitle">Ansicht</div>
-                      <button
-                        type="button"
-                        className={(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          setActiveView('teacher');
-                          navigate('/teacher/bookings', { replace: true });
-                          close();
-                        }}
-                      >
-                        <span>Lehrkraft</span>
-                        {(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
-                      <button
-                        type="button"
-                        className={(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'admin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                        onClick={() => {
-                          setActiveView('admin');
-                          navigate('/admin', { replace: true });
-                          close();
-                        }}
-                      >
-                        <span>Admin</span>
-                        {(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'admin' && <span className="dropdown__hint">Aktiv</span>}
-                      </button>
+                      {canTeacherView && (
+                        <button
+                          type="button"
+                          className={(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'teacher' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                          onClick={() => {
+                            setActiveView('teacher');
+                            navigate('/teacher/bookings', { replace: true });
+                            close();
+                          }}
+                        >
+                          <span>Lehrkraft</span>
+                          {(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'teacher' && <span className="dropdown__hint">Aktiv</span>}
+                        </button>
+                      )}
+                      {canBL && (
+                        <button
+                          type="button"
+                          className={activeView === 'beratungslehrer' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                          onClick={() => {
+                            setActiveView('beratungslehrer');
+                            navigate('/admin/beratungslehrer', { replace: true });
+                            close();
+                          }}
+                        >
+                          <span>Beratungslehrer</span>
+                          {activeView === 'beratungslehrer' && <span className="dropdown__hint">Aktiv</span>}
+                        </button>
+                      )}
+                      {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                        <button
+                          type="button"
+                          className={(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'admin' ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                          onClick={() => {
+                            setActiveView('admin');
+                            navigate('/admin', { replace: true });
+                            close();
+                          }}
+                        >
+                          <span>Admin</span>
+                          {(activeView ?? (inTeacher ? 'teacher' : 'admin')) === 'admin' && <span className="dropdown__hint">Aktiv</span>}
+                        </button>
+                      )}
                     </>
                   )}
 

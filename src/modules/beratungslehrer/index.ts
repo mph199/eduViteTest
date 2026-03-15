@@ -21,6 +21,7 @@ const beratungslehrerModule: ModuleDefinition = {
   description: 'Sprechstunde buchen oder eine anonyme Anfrage stellen.',
   icon: '',
   basePath: '/beratungslehrer',
+  requiredModule: 'beratungslehrer',
 
   /** Oeffentliche Buchungsseite */
   PublicPage: BLBookingApp,

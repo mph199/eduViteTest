@@ -105,7 +105,7 @@ function App() {
                     key={ar.path}
                     path={ar.path}
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}>
                         <ar.Component />
                       </ProtectedRoute>
                     }

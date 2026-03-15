@@ -6,7 +6,7 @@
  */
 
 import express from 'express';
-import { requireAuth } from '../../../middleware/auth.js';
+import { requireAuth, hasModuleAccess } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { generateTimeSlots } from '../services/appointmentService.js';
 
@@ -18,21 +18,31 @@ const router = express.Router();
 async function requireBLCounselor(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Nicht angemeldet' });
 
-  // Admin/Superadmin/Beratungslehrer can access all counselor routes
-  if (req.user.role === 'admin' || req.user.role === 'superadmin' || req.user.role === 'beratungslehrer') {
-    const counselorId = parseInt(req.query.counselor_id || req.body?.counselor_id, 10) || null;
-    if (counselorId) {
-      const { rows } = await query('SELECT * FROM bl_counselors WHERE id = $1', [counselorId]);
-      req.counselor = rows[0] || null;
+  try {
+    // Admin/Superadmin: can access any counselor by ID
+    if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+      const counselorId = parseInt(req.query.counselor_id || req.body?.counselor_id, 10) || null;
+      if (counselorId) {
+        const { rows } = await query('SELECT * FROM bl_counselors WHERE id = $1', [counselorId]);
+        req.counselor = rows[0] || null;
+      }
+      return next();
     }
-    return next();
-  }
 
-  // For regular users, check if they are linked to a counselor
-  const { rows } = await query('SELECT * FROM bl_counselors WHERE user_id = $1 AND active = TRUE', [req.user.id]);
-  if (!rows.length) return res.status(403).json({ error: 'Kein Beratungslehrer-Zugang' });
-  req.counselor = rows[0];
-  next();
+    // Users with beratungslehrer module access: only own counselor profile
+    if (hasModuleAccess(req.user, 'beratungslehrer')) {
+      const { rows } = await query('SELECT * FROM bl_counselors WHERE user_id = $1 AND active = TRUE', [req.user.id]);
+      if (!rows.length) return res.status(403).json({ error: 'Kein Beratungslehrer-Profil zugeordnet' });
+      req.counselor = rows[0];
+      return next();
+    }
+
+    // No access
+    return res.status(403).json({ error: 'Kein Beratungslehrer-Zugang' });
+  } catch (err) {
+    console.error('requireBLCounselor error:', err);
+    return res.status(500).json({ error: 'Interner Fehler bei Berechtigungspruefung' });
+  }
 }
 
 // GET /api/bl/counselor/appointments?date=YYYY-MM-DD — own appointments

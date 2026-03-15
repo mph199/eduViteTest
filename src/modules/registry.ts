@@ -40,6 +40,9 @@ export interface ModuleDefinition {
   /** Zusätzliche Admin-Routen */
   adminRoutes?: AdminRoute[];
 
+  /** Module-Key fuer Zugangssteuerung (user_module_access) */
+  requiredModule?: string;
+
   /** Lehrkraft-Layout-Komponente */
   teacherLayout?: LazyExoticComponent<ComponentType>;
   /** Lehrkraft-Unterrouten */

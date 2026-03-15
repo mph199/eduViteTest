@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/useAuth';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
+  allowedModules?: string[];
 }
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, allowedModules }: ProtectedRouteProps) {
   const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
@@ -28,12 +29,31 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />;
   }
 
-  // Role-based gating: redirect SSW users to their area
-  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
-    if (user.role === 'ssw') {
+  const role = user?.role;
+  const modules = user?.modules || [];
+
+  // Admin/Superadmin always have access
+  if (role === 'admin' || role === 'superadmin') {
+    return <>{children}</>;
+  }
+
+  // Check module-based access
+  if (allowedModules && allowedModules.length > 0) {
+    const hasModuleAccess = allowedModules.some(m => modules.includes(m));
+    if (hasModuleAccess) return <>{children}</>;
+    // Module required but not granted → deny
+    if (!allowedRoles) {
+      return <Navigate to="/" replace />;
+    }
+  }
+
+  // Check role-based access
+  if (allowedRoles && role && !allowedRoles.includes(role)) {
+    if (role === 'ssw') {
       return <Navigate to="/admin/ssw" replace />;
     }
-    if (user.role === 'beratungslehrer') {
+    // Teacher with BL module → redirect to BL area
+    if (role === 'teacher' && modules.includes('beratungslehrer')) {
       return <Navigate to="/admin/beratungslehrer" replace />;
     }
     return <Navigate to="/" replace />;
