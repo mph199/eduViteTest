@@ -39,7 +39,7 @@ export function GlobalTopHeader() {
   // Collect all admin routes from active modules
   const moduleAdminRoutes = useMemo(() => {
     return modules.flatMap((m) =>
-      (m.adminRoutes ?? []).map((ar) => ({ ...ar, icon: m.icon }))
+      (m.adminRoutes ?? []).map((ar) => ({ ...ar, icon: m.icon, moduleKey: m.id }))
     );
   }, []);
 
@@ -182,8 +182,10 @@ export function GlobalTopHeader() {
                     </>
                   ) : user?.role === 'ssw' || (activeView === 'beratungslehrer' && user?.role !== 'admin' && user?.role !== 'superadmin') ? (
                     <>
-                      {/* SSW role: only module admin routes for SSW */}
-                      {moduleAdminRoutes.map((ar) => (
+                      {/* Module-specific role: only show own module routes */}
+                      {moduleAdminRoutes
+                        .filter((ar) => ar.moduleKey === (user?.role === 'ssw' ? 'schulsozialarbeit' : 'beratungslehrer'))
+                        .map((ar) => (
                         <button
                           key={ar.path}
                           type="button"

@@ -52,30 +52,6 @@ type Tab = 'counselors' | 'topics' | 'termine';
 
 const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
-function defaultSchedule(): ScheduleEntry[] {
-  return WEEKDAY_LABELS.map((_, i) => ({
-    weekday: i,
-    start_time: '08:00',
-    end_time: '14:00',
-    active: i < 5,
-  }));
-}
-
-const emptyCounselor = {
-  first_name: '',
-  last_name: '',
-  salutation: 'Frau',
-  email: '',
-  room: '',
-  phone: '',
-  specializations: '',
-  available_from: '08:00',
-  available_until: '14:00',
-  slot_duration_minutes: 30,
-  username: '',
-  password: '',
-};
-
 const emptyTopic = {
   name: '',
   description: '',
@@ -102,14 +78,6 @@ export function BLAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
-
-  // Counselor form
-  const [showCounselorForm, setShowCounselorForm] = useState(false);
-  const [editingCounselorId, setEditingCounselorId] = useState<number | null>(null);
-  const [counselorForm, setCounselorForm] = useState(emptyCounselor);
-  const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
-  const [schedule, setSchedule] = useState<ScheduleEntry[]>(defaultSchedule());
-  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   // Topic form
   const [showTopicForm, setShowTopicForm] = useState(false);
@@ -161,103 +129,6 @@ export function BLAdmin() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  // ── Counselor CRUD ────────────────────────────────────────────────
-  const loadSchedule = async (counselorId: number) => {
-    setScheduleLoading(true);
-    try {
-      const data = await apiFetch(`/bl/admin/counselors/${counselorId}/schedule`);
-      const rows: ScheduleEntry[] = data.schedule || [];
-      if (rows.length > 0) {
-        const merged = defaultSchedule().map(def => {
-          const found = rows.find(r => r.weekday === def.weekday);
-          return found ? { weekday: found.weekday, start_time: found.start_time?.toString().slice(0, 5) || '08:00', end_time: found.end_time?.toString().slice(0, 5) || '14:00', active: found.active } : def;
-        });
-        setSchedule(merged);
-      } else {
-        setSchedule(defaultSchedule());
-      }
-    } catch {
-      setSchedule(defaultSchedule());
-    } finally {
-      setScheduleLoading(false);
-    }
-  };
-
-  const saveSchedule = async (counselorId: number) => {
-    await apiFetch(`/bl/admin/counselors/${counselorId}/schedule`, {
-      method: 'PUT',
-      body: JSON.stringify({ schedule }),
-    });
-  };
-
-  const handleSaveCounselor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!counselorForm.first_name.trim() || !counselorForm.last_name.trim()) {
-      alert('Vor- und Nachname sind Pflichtfelder.');
-      return;
-    }
-    try {
-      if (editingCounselorId) {
-        await apiFetch(`/bl/admin/counselors/${editingCounselorId}`, {
-          method: 'PUT',
-          body: JSON.stringify(counselorForm),
-        });
-        await saveSchedule(editingCounselorId);
-        showFlash('Beratungslehrer aktualisiert.');
-      } else {
-        const data = await apiFetch('/bl/admin/counselors', {
-          method: 'POST',
-          body: JSON.stringify(counselorForm),
-        });
-        if (data.counselor?.id) {
-          await saveSchedule(data.counselor.id);
-        }
-        if (data.user) {
-          setCreatedCreds({ username: data.user.username, tempPassword: data.user.tempPassword });
-        }
-        showFlash('Beratungslehrer erstellt.');
-      }
-      setShowCounselorForm(false);
-      setEditingCounselorId(null);
-      setCounselorForm(emptyCounselor);
-      setSchedule(defaultSchedule());
-      loadData();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
-    }
-  };
-
-  const handleEditCounselor = (c: Counselor) => {
-    setCounselorForm({
-      first_name: c.first_name || '',
-      last_name: c.last_name || '',
-      salutation: c.salutation || '',
-      email: c.email || '',
-      room: c.room || '',
-      phone: c.phone || '',
-      specializations: c.specializations || '',
-      available_from: c.available_from?.toString().slice(0, 5) || '08:00',
-      available_until: c.available_until?.toString().slice(0, 5) || '14:00',
-      slot_duration_minutes: c.slot_duration_minutes || 30,
-      username: '',
-      password: '',
-    });
-    setEditingCounselorId(c.id);
-    setShowCounselorForm(true);
-    loadSchedule(c.id);
-  };
-
-  const handleDeleteCounselor = async (id: number) => {
-    if (!confirm('Beratungslehrer wirklich loeschen?')) return;
-    try {
-      await apiFetch(`/bl/admin/counselors/${id}`, { method: 'DELETE' });
-      showFlash('Beratungslehrer geloescht.');
-      loadData();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
-    }
-  };
 
   // ── Topic CRUD ─────────────────────────────────────────────────
   const handleSaveTopic = async (e: React.FormEvent) => {
@@ -381,19 +252,6 @@ export function BLAdmin() {
         </div>
 
         {flash && <div className="admin-success">{flash}</div>}
-        {createdCreds && (
-          <div className="admin-success" style={{ background: '#f0f9ff', border: '1px solid #38bdf8', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-            <strong>Zugangsdaten erstellt:</strong>
-            <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.95rem' }}>
-              Benutzername: <strong>{createdCreds.username}</strong><br />
-              Passwort: <strong>{createdCreds.tempPassword}</strong>
-            </div>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555' }}>
-              Bitte Zugangsdaten notieren -- das Passwort wird nicht erneut angezeigt.
-            </p>
-            <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schliessen</button>
-          </div>
-        )}
         {error && <div className="admin-error">{error}</div>}
 
         {/* Tabs */}
@@ -414,122 +272,14 @@ export function BLAdmin() {
           <>
             <div className="admin-section-header">
               <h3>Beratungslehrer</h3>
-              <button
-                className="btn-primary"
-                onClick={() => { setCounselorForm(emptyCounselor); setEditingCounselorId(null); setSchedule(defaultSchedule()); setShowCounselorForm(true); }}
-              >
-                + Neue/r Beratungslehrer/in
-              </button>
             </div>
 
-            {showCounselorForm && (
-              <div className="teacher-form-container">
-                <h3>{editingCounselorId ? 'Beratungslehrer bearbeiten' : 'Neue/r Beratungslehrer/in'}</h3>
-                <form className="teacher-form" onSubmit={handleSaveCounselor}>
-                  <div className="form-group">
-                    <label htmlFor="bl-salutation">Anrede</label>
-                    <select id="bl-salutation" value={counselorForm.salutation} onChange={e => setCounselorForm({ ...counselorForm, salutation: e.target.value })}>
-                      <option value="Frau">Frau</option>
-                      <option value="Herr">Herr</option>
-                      <option value="">--</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-first-name">Vorname</label>
-                    <input id="bl-first-name" type="text" value={counselorForm.first_name} onChange={e => setCounselorForm({ ...counselorForm, first_name: e.target.value })} placeholder="z.B. Maria" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-last-name">Nachname</label>
-                    <input id="bl-last-name" type="text" value={counselorForm.last_name} onChange={e => setCounselorForm({ ...counselorForm, last_name: e.target.value })} placeholder="z.B. Mueller" required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-email">E-Mail</label>
-                    <input id="bl-email" type="email" value={counselorForm.email} onChange={e => setCounselorForm({ ...counselorForm, email: e.target.value })} placeholder="z.B. m.mueller@schule.de" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-room">Raum</label>
-                    <input id="bl-room" type="text" value={counselorForm.room} onChange={e => setCounselorForm({ ...counselorForm, room: e.target.value })} placeholder="z.B. B12" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-phone">Telefon</label>
-                    <input id="bl-phone" type="text" value={counselorForm.phone} onChange={e => setCounselorForm({ ...counselorForm, phone: e.target.value })} placeholder="z.B. 0123-456789" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-specs">Schwerpunkte</label>
-                    <input id="bl-specs" type="text" value={counselorForm.specializations} onChange={e => setCounselorForm({ ...counselorForm, specializations: e.target.value })} placeholder="Kommasepariert, z.B. Lernberatung, Konflikte" />
-                  </div>
-                  <div className="form-group">
-                    <label>Wochenplan</label>
-                    {scheduleLoading ? (
-                      <p>Lade Wochenplan...</p>
-                    ) : (
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                        <thead>
-                          <tr>
-                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Tag</th>
-                            <th style={{ textAlign: 'center', padding: '0.3rem 0.5rem' }}>Aktiv</th>
-                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Von</th>
-                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Bis</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {schedule.map((entry) => (
-                            <tr key={entry.weekday} style={{ opacity: entry.active ? 1 : 0.5 }}>
-                              <td style={{ padding: '0.3rem 0.5rem', fontWeight: 500 }}>{WEEKDAY_LABELS[entry.weekday]}</td>
-                              <td style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={entry.active}
-                                  onChange={() => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, active: !s.active } : s))}
-                                />
-                              </td>
-                              <td style={{ padding: '0.3rem 0.5rem' }}>
-                                <input
-                                  type="time"
-                                  value={entry.start_time}
-                                  disabled={!entry.active}
-                                  onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, start_time: e.target.value } : s))}
-                                  style={{ width: '100%' }}
-                                />
-                              </td>
-                              <td style={{ padding: '0.3rem 0.5rem' }}>
-                                <input
-                                  type="time"
-                                  value={entry.end_time}
-                                  disabled={!entry.active}
-                                  onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, end_time: e.target.value } : s))}
-                                  style={{ width: '100%' }}
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="bl-duration">Termindauer (Minuten)</label>
-                    <input id="bl-duration" type="number" min={10} max={120} value={counselorForm.slot_duration_minutes} onChange={e => setCounselorForm({ ...counselorForm, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
-                  </div>
-                  {!editingCounselorId && (
-                    <>
-                      <div className="form-group">
-                        <label htmlFor="bl-username">Benutzername <span style={{ fontWeight: 'normal', color: '#888' }}>(optional -- wird sonst automatisch generiert)</span></label>
-                        <input id="bl-username" type="text" value={counselorForm.username} onChange={e => setCounselorForm({ ...counselorForm, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="bl-password">Passwort <span style={{ fontWeight: 'normal', color: '#888' }}>(optional -- wird sonst automatisch generiert)</span></label>
-                        <input id="bl-password" type="text" value={counselorForm.password} onChange={e => setCounselorForm({ ...counselorForm, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
-                      </div>
-                    </>
-                  )}
-                  <div className="form-actions">
-                    <button className="btn-primary" type="submit">{editingCounselorId ? 'Speichern' : 'Erstellen'}</button>
-                    <button className="btn-secondary" type="button" onClick={() => { setShowCounselorForm(false); setEditingCounselorId(null); setSchedule(defaultSchedule()); }}>Abbrechen</button>
-                  </div>
-                </form>
-              </div>
-            )}
+            <div style={{ padding: '1rem', background: 'var(--bg-muted, #f8fafc)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+              <p style={{ margin: 0, color: 'var(--text-secondary, #64748b)' }}>
+                Beratungslehrer werden ueber <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
+                Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrer&quot;.
+              </p>
+            </div>
 
             <div className="admin-resp-table-container">
               <table className="admin-resp-table">
@@ -539,12 +289,11 @@ export function BLAdmin() {
                     <th>E-Mail</th>
                     <th>Raum</th>
                     <th>Zeiten</th>
-                    <th>Aktionen</th>
                   </tr>
                 </thead>
                 <tbody>
                   {counselors.length === 0 ? (
-                    <tr><td colSpan={5}>Keine Beratungslehrer vorhanden.</td></tr>
+                    <tr><td colSpan={4}>Keine Beratungslehrer vorhanden.</td></tr>
                   ) : counselors.map(c => (
                     <tr key={c.id}>
                       <td>{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
@@ -556,12 +305,6 @@ export function BLAdmin() {
                           if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '--'} -- ${c.available_until?.toString().slice(0, 5) || '--'}`;
                           return sch.map(s => `${WEEKDAY_LABELS[s.weekday]?.slice(0, 2)} ${s.start_time?.toString().slice(0, 5)}--${s.end_time?.toString().slice(0, 5)}`).join(', ');
                         })()}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn-secondary" onClick={() => handleEditCounselor(c)}>Bearbeiten</button>
-                          <button className="btn-secondary" style={{ color: 'var(--color-error, #dc2626)' }} onClick={() => handleDeleteCounselor(c.id)}>Loeschen</button>
-                        </div>
                       </td>
                     </tr>
                   ))}

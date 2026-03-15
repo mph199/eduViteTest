@@ -146,6 +146,9 @@ const api = {
     async deleteTeacher(id: number) {
       return requestJSON(`/admin/teachers/${id}`, { method: 'DELETE', auth: true });
     },
+    async getTeacherBL(teacherId: number) {
+      return requestJSON(`/admin/teachers/${teacherId}/bl`, { auth: true });
+    },
     async importTeachersCSV(file: File) {
       const formData = new FormData();
       formData.append('file', file);
