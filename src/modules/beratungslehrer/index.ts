@@ -35,7 +35,7 @@ const beratungslehrerModule: ModuleDefinition = {
   sidebarNav: {
     label: 'Beratungslehrer',
     items: [
-      { path: '/admin/beratungslehrer', label: 'Verwaltung der Beratungslehrer' },
+      { path: '/admin/beratungslehrer', label: 'BL-Termine verwalten' },
     ],
   },
 };

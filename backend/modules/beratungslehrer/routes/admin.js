@@ -167,7 +167,7 @@ router.delete('/counselors/:id', requireBeratungslehrer, async (req, res) => {
 
     if (linkedUserId) {
       try {
-        // Remove beratungslehrer module access
+        // Remove beratungslehrer module access (keep user account intact for other modules)
         await query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [linkedUserId, 'beratungslehrer']);
       } catch (userErr) {
         console.warn('Removing BL module access failed:', userErr?.message || userErr);
