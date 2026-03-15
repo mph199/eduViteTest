@@ -333,14 +333,60 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       : crypto.randomBytes(6).toString('base64url');
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+    let userId = null;
     try {
-      await query(
+      const { rows: userRows } = await query(
         `INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4, teacher_id = $5`,
+         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4, teacher_id = $5
+         RETURNING id`,
         [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
       );
+      userId = userRows[0]?.id ?? null;
     } catch (userErr) {
       console.warn('User creation for teacher failed:', userErr?.message || userErr);
+    }
+
+    // Optional: Beratungslehrer-Profil anlegen
+    const blData = req.body.beratungslehrer;
+    if (blData && userId) {
+      try {
+        const { rows: blRows } = await query(
+          `INSERT INTO bl_counselors (first_name, last_name, email, salutation, room, phone,
+           specializations, available_from, available_until, slot_duration_minutes, user_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+          [
+            firstName, lastName, parsedEmail.email, parsedSalutation.salutation,
+            (blData.room || room || '').trim() || null,
+            (blData.phone || '').trim() || null,
+            blData.specializations || null,
+            blData.available_from || '08:00',
+            blData.available_until || '14:00',
+            blData.slot_duration_minutes || 30,
+            userId,
+          ]
+        );
+        const blCounselorId = blRows[0]?.id;
+        await query(
+          'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, 'beratungslehrer']
+        );
+        // Wochenplan speichern
+        if (Array.isArray(blData.schedule) && blCounselorId) {
+          for (const entry of blData.schedule) {
+            const wd = parseInt(entry.weekday, 10);
+            if (isNaN(wd) || wd < 0 || wd > 6) continue;
+            await query(
+              `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
+               VALUES ($1, $2, $3, $4, $5)
+               ON CONFLICT (counselor_id, weekday)
+               DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
+              [blCounselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
+            );
+          }
+        }
+      } catch (blErr) {
+        console.warn('BL counselor creation failed:', blErr?.message || blErr);
+      }
     }
 
     res.json({
@@ -360,11 +406,48 @@ router.post('/teachers', requireAdmin, async (req, res) => {
 // GET /api/admin/teachers
 router.get('/teachers', requireAdmin, async (_req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM teachers ORDER BY id');
+    const { rows } = await query(`
+      SELECT t.*,
+             bl.id AS bl_counselor_id,
+             bl.phone AS bl_phone,
+             bl.specializations AS bl_specializations,
+             bl.slot_duration_minutes AS bl_slot_duration_minutes,
+             bl.active AS bl_active
+      FROM teachers t
+      LEFT JOIN users u ON u.teacher_id = t.id
+      LEFT JOIN bl_counselors bl ON bl.user_id = u.id AND bl.active = true
+      ORDER BY t.id
+    `);
     return res.json({ teachers: rows || [] });
   } catch (error) {
     console.error('Error fetching admin teachers:', error);
     return res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
+// GET /api/admin/teachers/:id/bl – Beratungslehrer-Daten + Wochenplan fuer einen Teacher
+router.get('/teachers/:id/bl', requireAdmin, async (req, res) => {
+  const teacherId = parseInt(req.params.id, 10);
+  if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
+
+  try {
+    const { rows: blRows } = await query(
+      `SELECT bl.* FROM bl_counselors bl
+       JOIN users u ON u.id = bl.user_id
+       WHERE u.teacher_id = $1 LIMIT 1`,
+      [teacherId]
+    );
+    if (!blRows.length) return res.json({ counselor: null, schedule: [] });
+
+    const counselor = blRows[0];
+    const { rows: scheduleRows } = await query(
+      'SELECT * FROM bl_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      [counselor.id]
+    );
+    return res.json({ counselor, schedule: scheduleRows });
+  } catch (error) {
+    console.error('Error fetching BL data for teacher:', error);
+    return res.status(500).json({ error: 'Failed to fetch BL data' });
   }
 });
 
@@ -635,6 +718,97 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       'UPDATE users SET email = $1 WHERE teacher_id = $2',
       [parsedEmail.email, teacherId]
     );
+
+    // Optional: Beratungslehrer-Profil anlegen/aktualisieren/deaktivieren
+    const blData = req.body.beratungslehrer;
+    if (blData !== undefined) {
+      try {
+        const { rows: userRows } = await query('SELECT id FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
+        const userId = userRows[0]?.id;
+        if (userId) {
+          if (blData === null || blData === false) {
+            // Deaktivieren: bl_counselors.active = false, Modulzugang entfernen
+            await query('UPDATE bl_counselors SET active = false WHERE user_id = $1', [userId]);
+            await query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'beratungslehrer']);
+          } else {
+            // Anlegen oder aktualisieren
+            const { rows: existingBl } = await query('SELECT id FROM bl_counselors WHERE user_id = $1', [userId]);
+            if (existingBl.length) {
+              await query(
+                `UPDATE bl_counselors SET
+                   room = $1, phone = $2, specializations = $3,
+                   available_from = $4, available_until = $5,
+                   slot_duration_minutes = $6, active = true,
+                   first_name = $7, last_name = $8, email = $9, salutation = $10
+                 WHERE user_id = $11`,
+                [
+                  (blData.room || '').trim() || null,
+                  (blData.phone || '').trim() || null,
+                  blData.specializations || null,
+                  blData.available_from || '08:00',
+                  blData.available_until || '14:00',
+                  blData.slot_duration_minutes || 30,
+                  firstName, lastName, parsedEmail.email, parsedSalutation.salutation,
+                  userId,
+                ]
+              );
+              // Wochenplan aktualisieren
+              if (Array.isArray(blData.schedule)) {
+                for (const entry of blData.schedule) {
+                  const wd = parseInt(entry.weekday, 10);
+                  if (isNaN(wd) || wd < 0 || wd > 6) continue;
+                  await query(
+                    `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
+                     VALUES ($1, $2, $3, $4, $5)
+                     ON CONFLICT (counselor_id, weekday)
+                     DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
+                    [existingBl[0].id, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
+                  );
+                }
+              }
+            } else {
+              // Neu anlegen
+              const { rows: blRows } = await query(
+                `INSERT INTO bl_counselors (first_name, last_name, email, salutation, room, phone,
+                 specializations, available_from, available_until, slot_duration_minutes, user_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+                [
+                  firstName, lastName, parsedEmail.email, parsedSalutation.salutation,
+                  (blData.room || '').trim() || null,
+                  (blData.phone || '').trim() || null,
+                  blData.specializations || null,
+                  blData.available_from || '08:00',
+                  blData.available_until || '14:00',
+                  blData.slot_duration_minutes || 30,
+                  userId,
+                ]
+              );
+              // Wochenplan speichern
+              const blCounselorId = blRows[0]?.id;
+              if (Array.isArray(blData.schedule) && blCounselorId) {
+                for (const entry of blData.schedule) {
+                  const wd = parseInt(entry.weekday, 10);
+                  if (isNaN(wd) || wd < 0 || wd > 6) continue;
+                  await query(
+                    `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
+                     VALUES ($1, $2, $3, $4, $5)
+                     ON CONFLICT (counselor_id, weekday)
+                     DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
+                    [blCounselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
+                  );
+                }
+              }
+            }
+            await query(
+              'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+              [userId, 'beratungslehrer']
+            );
+          }
+        }
+      } catch (blErr) {
+        console.warn('BL counselor update failed:', blErr?.message || blErr);
+      }
+    }
 
     res.json({ success: true, teacher: rows[0] });
   } catch (error) {

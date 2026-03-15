@@ -2,8 +2,28 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
+import { getModule } from '../modules/registry';
 import type { Teacher as ApiTeacher, UserAccount } from '../types';
 import './AdminDashboard.css';
+
+const BL_MODULE_ACTIVE = !!getModule('beratungslehrer');
+const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'] as const;
+
+interface BlFormData {
+  enabled: boolean;
+  phone: string;
+  specializations: string;
+  slot_duration_minutes: number;
+  schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
+}
+
+const defaultBlForm = (): BlFormData => ({
+  enabled: false,
+  phone: '',
+  specializations: '',
+  slot_duration_minutes: 30,
+  schedule: WEEKDAYS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
+});
 
 type TeacherLoginResponse = {
   user?: {
@@ -55,6 +75,7 @@ export function AdminTeachers() {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
+  const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
@@ -105,7 +126,7 @@ export function AdminTeachers() {
     }
 
     try {
-      const teacherData = {
+      const teacherData: Record<string, unknown> = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: normalizedEmail,
@@ -117,7 +138,27 @@ export function AdminTeachers() {
         username: formData.username || undefined,
         password: formData.password || undefined,
       };
-      
+
+      // BL-Daten mitschicken wenn aktiviert
+      if (BL_MODULE_ACTIVE) {
+        if (blForm.enabled) {
+          teacherData.beratungslehrer = {
+            phone: blForm.phone,
+            specializations: blForm.specializations,
+            slot_duration_minutes: blForm.slot_duration_minutes,
+            available_from: blForm.schedule.find(s => s.active)?.start_time || '08:00',
+            available_until: blForm.schedule.find(s => s.active)?.end_time || '14:00',
+            schedule: blForm.schedule,
+          };
+        } else if (editingTeacher) {
+          // Wenn BL deaktiviert wurde, null schicken um zu deaktivieren
+          const hasBlData = !!(editingTeacher as ApiTeacher & { bl_counselor_id?: number }).bl_counselor_id;
+          if (hasBlData) {
+            teacherData.beratungslehrer = null;
+          }
+        }
+      }
+
       if (editingTeacher) {
         await api.admin.updateTeacher(editingTeacher.id, teacherData);
       } else {
@@ -131,13 +172,14 @@ export function AdminTeachers() {
       setShowForm(false);
       setEditingTeacher(null);
       setFormData({ first_name: '', last_name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
+      setBlForm(defaultBlForm());
     } catch (err) {
       console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
   };
 
-  const handleEdit = (teacher: ApiTeacher) => {
+  const handleEdit = async (teacher: ApiTeacher) => {
     setEditingTeacher(teacher);
     setFormData({
       first_name: teacher.first_name || '',
@@ -149,6 +191,33 @@ export function AdminTeachers() {
       username: '',
       password: '',
     });
+    // BL-Daten laden falls vorhanden
+    setBlForm(defaultBlForm());
+    if (BL_MODULE_ACTIVE) {
+      try {
+        const blData = await api.admin.getTeacherBL(teacher.id);
+        if (blData?.counselor) {
+          const c = blData.counselor;
+          type ScheduleEntry = { weekday: number; start_time: string; end_time: string; active: boolean };
+          const scheduleMap = new Map<number, ScheduleEntry>((blData.schedule || []).map((s: ScheduleEntry) => [s.weekday, s]));
+          setBlForm({
+            enabled: c.active !== false,
+            phone: c.phone || '',
+            specializations: c.specializations || '',
+            slot_duration_minutes: c.slot_duration_minutes || 30,
+            schedule: WEEKDAYS.map((_, i) => {
+              const wd = i + 1;
+              const existing = scheduleMap.get(wd);
+              return existing
+                ? { weekday: wd, start_time: existing.start_time, end_time: existing.end_time, active: existing.active }
+                : { weekday: wd, start_time: '08:00', end_time: '14:00', active: false };
+            }),
+          });
+        }
+      } catch {
+        // BL data is supplementary
+      }
+    }
     setShowForm(true);
   };
 
@@ -170,6 +239,7 @@ export function AdminTeachers() {
     setShowForm(false);
     setEditingTeacher(null);
     setFormData({ first_name: '', last_name: '', email: '', salutation: 'Herr', available_from: '16:00', available_until: '19:00', username: '', password: '' });
+    setBlForm(defaultBlForm());
   };
 
   const handleCsvImport = async (file: File) => {
@@ -553,6 +623,104 @@ export function AdminTeachers() {
                     />
                   </div>
                 </>
+              )}
+              {BL_MODULE_ACTIVE && (
+                <details style={{ marginTop: '1rem', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={blForm.enabled}
+                        onChange={(e) => setBlForm({ ...blForm, enabled: e.target.checked })}
+                      />
+                      Beratungslehrer
+                    </label>
+                  </summary>
+                  {blForm.enabled && (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div className="form-group">
+                        <label htmlFor="bl_phone">Telefon</label>
+                        <input
+                          id="bl_phone"
+                          type="text"
+                          value={blForm.phone}
+                          onChange={(e) => setBlForm({ ...blForm, phone: e.target.value })}
+                          placeholder="z.B. 0221-12345"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="bl_specializations">Schwerpunkte</label>
+                        <input
+                          id="bl_specializations"
+                          type="text"
+                          value={blForm.specializations}
+                          onChange={(e) => setBlForm({ ...blForm, specializations: e.target.value })}
+                          placeholder="z.B. Lernberatung, Konfliktloesung"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="bl_slot_duration">Termindauer (Minuten)</label>
+                        <input
+                          id="bl_slot_duration"
+                          type="number"
+                          min={5}
+                          max={120}
+                          value={blForm.slot_duration_minutes}
+                          onChange={(e) => setBlForm({ ...blForm, slot_duration_minutes: parseInt(e.target.value, 10) || 30 })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Wochenplan</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          {WEEKDAYS.map((day, i) => {
+                            const entry = blForm.schedule[i];
+                            return (
+                              <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', minWidth: '8rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={entry.active}
+                                    onChange={(e) => {
+                                      const next = [...blForm.schedule];
+                                      next[i] = { ...entry, active: e.target.checked };
+                                      setBlForm({ ...blForm, schedule: next });
+                                    }}
+                                  />
+                                  {day}
+                                </label>
+                                {entry.active && (
+                                  <>
+                                    <input
+                                      type="time"
+                                      value={entry.start_time}
+                                      onChange={(e) => {
+                                        const next = [...blForm.schedule];
+                                        next[i] = { ...entry, start_time: e.target.value };
+                                        setBlForm({ ...blForm, schedule: next });
+                                      }}
+                                      style={{ width: '6rem' }}
+                                    />
+                                    <span>bis</span>
+                                    <input
+                                      type="time"
+                                      value={entry.end_time}
+                                      onChange={(e) => {
+                                        const next = [...blForm.schedule];
+                                        next[i] = { ...entry, end_time: e.target.value };
+                                        setBlForm({ ...blForm, schedule: next });
+                                      }}
+                                      style={{ width: '6rem' }}
+                                    />
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </details>
               )}
               <div className="form-actions">
                 <button type="submit" className="btn-primary">
