@@ -12,6 +12,34 @@ type TeacherLoginResponse = {
   };
 };
 
+interface CsvImportedTeacher {
+  id: number;
+  name: string;
+  email: string;
+  username: string;
+  tempPassword: string;
+  slotsCreated: number;
+}
+
+interface CsvSkippedRow {
+  line: number;
+  reason: string;
+  name?: string;
+}
+
+interface CsvImportResult {
+  success?: boolean;
+  error?: string;
+  hint?: string;
+  imported?: number;
+  skipped?: number;
+  total?: number;
+  details?: {
+    imported?: CsvImportedTeacher[];
+    skipped?: CsvSkippedRow[];
+  };
+}
+
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
@@ -26,7 +54,7 @@ export function AdminTeachers() {
   const [moduleSaving, setModuleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
-  const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: any | null }>({ show: false, uploading: false, result: null });
+  const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
@@ -297,10 +325,10 @@ export function AdminTeachers() {
                   <div><strong>{csvImport.result.total}</strong> Zeilen gesamt</div>
                 </div>
 
-                {csvImport.result.details?.imported?.length > 0 && (
+                {(csvImport.result.details?.imported?.length ?? 0) > 0 && (
                   <details open style={{ marginBottom: '1rem' }}>
                     <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      Importierte Lehrkräfte ({csvImport.result.details.imported.length})
+                      Importierte Lehrkräfte ({csvImport.result.details!.imported!.length})
                     </summary>
                     <div className="admin-resp-table-container">
                       <table className="admin-resp-table" style={{ fontSize: '0.85rem' }}>
@@ -314,7 +342,7 @@ export function AdminTeachers() {
                           </tr>
                         </thead>
                         <tbody>
-                          {csvImport.result.details.imported.map((t: any) => (
+                          {csvImport.result.details!.imported!.map((t: CsvImportedTeacher) => (
                             <tr key={t.id}>
                               <td>{t.name}</td>
                               <td>{t.email}</td>
@@ -330,8 +358,9 @@ export function AdminTeachers() {
                       className="btn-secondary btn-secondary--sm"
                       style={{ marginTop: '0.5rem' }}
                       onClick={() => {
+                        const imported = csvImport.result?.details?.imported ?? [];
                         const lines = ['Name;Email;Username;Passwort'];
-                        for (const t of csvImport.result.details.imported) {
+                        for (const t of imported) {
                           lines.push(`${t.name};${t.email};${t.username};${t.tempPassword}`);
                         }
                         const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -348,13 +377,13 @@ export function AdminTeachers() {
                   </details>
                 )}
 
-                {csvImport.result.details?.skipped?.length > 0 && (
+                {(csvImport.result.details?.skipped?.length ?? 0) > 0 && (
                   <details style={{ marginBottom: '1rem' }}>
                     <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-warning, #b45309)' }}>
-                      Übersprungene Zeilen ({csvImport.result.details.skipped.length})
+                      Übersprungene Zeilen ({csvImport.result.details!.skipped!.length})
                     </summary>
                     <ul style={{ fontSize: '0.85rem', paddingLeft: '1.2rem' }}>
-                      {csvImport.result.details.skipped.map((s: any, i: number) => (
+                      {csvImport.result.details!.skipped!.map((s: CsvSkippedRow, i: number) => (
                         <li key={i}>Zeile {s.line}: {s.reason}{s.name ? ` (${s.name})` : ''}</li>
                       ))}
                     </ul>

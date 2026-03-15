@@ -7,7 +7,10 @@ export const ADMIN_USER = {
   passwordHash: '$2b$10$jMMKjGTA.VRvbHHcoWAlhexrOd29f89oVG7wdk..iKtXxMcCWGeYa' // Start
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bksb-jwt-secret-2024-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET oder SESSION_SECRET Umgebungsvariable muss gesetzt sein');
+}
 const JWT_EXPIRES_IN = '8h';
 
 /**
