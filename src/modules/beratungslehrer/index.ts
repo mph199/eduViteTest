@@ -30,6 +30,14 @@ const beratungslehrerModule: ModuleDefinition = {
   adminRoutes: [
     { path: '/admin/beratungslehrer', label: 'Beratungslehrer', Component: BLAdmin },
   ],
+
+  /** Sidebar-Navigation */
+  sidebarNav: {
+    label: 'Beratungslehrer',
+    items: [
+      { path: '/admin/beratungslehrer', label: 'Beratungslehrer' },
+    ],
+  },
 };
 
 export default beratungslehrerModule;

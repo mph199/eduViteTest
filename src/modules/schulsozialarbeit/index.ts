@@ -29,6 +29,14 @@ const schulsozialarbeitModule: ModuleDefinition = {
   adminRoutes: [
     { path: '/admin/ssw', label: 'Schulsozialarbeit', Component: SSWAdmin },
   ],
+
+  /** Sidebar-Navigation */
+  sidebarNav: {
+    label: 'Schulsozialarbeit',
+    items: [
+      { path: '/admin/ssw', label: 'SSW-Verwaltung' },
+    ],
+  },
 };
 
 export default schulsozialarbeitModule;

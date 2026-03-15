@@ -22,6 +22,22 @@ export interface AdminRoute {
   Component: LazyExoticComponent<ComponentType>;
 }
 
+/** Sidebar navigation item within a module group */
+export interface SidebarNavItem {
+  path: string;
+  label: string;
+  /** Only show for these roles. If omitted, visible to all with access. */
+  roles?: string[];
+}
+
+/** Sidebar navigation group contributed by a module */
+export interface SidebarNavGroup {
+  /** Group label shown in sidebar */
+  label: string;
+  /** Navigation items */
+  items: SidebarNavItem[];
+}
+
 export interface ModuleDefinition {
   /** Eindeutige Modul-ID (z.B. 'elternsprechtag') */
   id: string;
@@ -39,6 +55,9 @@ export interface ModuleDefinition {
 
   /** Zusätzliche Admin-Routen */
   adminRoutes?: AdminRoute[];
+
+  /** Sidebar-Navigationsgruppe(n) fuer den Admin/Modulbereich */
+  sidebarNav?: SidebarNavGroup;
 
   /** Module-Key fuer Zugangssteuerung (user_module_access) */
   requiredModule?: string;
