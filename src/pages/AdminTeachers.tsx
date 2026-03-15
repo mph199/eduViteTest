@@ -23,6 +23,7 @@ export function AdminTeachers() {
   const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', salutation: 'Herr' as 'Herr' | 'Frau' | 'Divers', available_from: '16:00', available_until: '19:00', username: '', password: '' });
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
+  const [moduleSaving, setModuleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, setFlash] = useState('');
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: any | null }>({ show: false, uploading: false, result: null });
@@ -211,6 +212,26 @@ export function AdminTeachers() {
       alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
     } finally {
       setRoleSaving((prev) => ({ ...prev, [target.id]: false }));
+    }
+  };
+
+  const toggleModule = async (target: UserAccount, moduleKey: string) => {
+    const current = target.modules || [];
+    const has = current.includes(moduleKey);
+    const next = has ? current.filter(m => m !== moduleKey) : [...current, moduleKey];
+
+    setModuleSaving((prev) => ({ ...prev, [target.id]: true }));
+    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: next } : u)));
+
+    try {
+      await api.admin.updateUserModules(target.id, next);
+      setFlash(has ? 'Modul-Zugang entfernt. Wird nach erneutem Login wirksam.' : 'Modul-Zugang erteilt. Wird nach erneutem Login wirksam.');
+      window.setTimeout(() => setFlash(''), 6500);
+    } catch (e) {
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: current } : u)));
+      alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Modul-Berechtigungen');
+    } finally {
+      setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
     }
   };
 
@@ -616,6 +637,18 @@ export function AdminTeachers() {
                                     <option value="admin">Admin</option>
                                   </select>
                                   {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                  {acct.role === 'teacher' && (
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={(acct.modules || []).includes('beratungslehrer')}
+                                        disabled={!!moduleSaving[acct.id]}
+                                        onChange={() => toggleModule(acct, 'beratungslehrer')}
+                                      />
+                                      Beratungslehrer
+                                      {moduleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                    </label>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="teacher-card__tag teacher-card__tag--nologin" style={{ fontSize: '0.78rem' }}>Kein Login</span>
@@ -682,6 +715,9 @@ export function AdminTeachers() {
                                   {isAdmin ? 'Admin' : 'Lehrkraft'}
                                 </span>
                               )}
+                              {acct && (acct.modules || []).includes('beratungslehrer') && (
+                                <span className="teacher-card__tag teacher-card__tag--teacher">BL</span>
+                              )}
                               {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
                             </div>
                           </div>
@@ -732,6 +768,23 @@ export function AdminTeachers() {
                                     </select>
                                     {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
                                   </div>
+                                </dd>
+                              </div>
+                            )}
+                            {acct && acct.role === 'teacher' && (
+                              <div className="teacher-card__row">
+                                <dt>Module</dt>
+                                <dd>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={(acct.modules || []).includes('beratungslehrer')}
+                                      disabled={!!moduleSaving[acct.id]}
+                                      onChange={() => toggleModule(acct, 'beratungslehrer')}
+                                    />
+                                    Beratungslehrer
+                                    {moduleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+                                  </label>
                                 </dd>
                               </div>
                             )}

@@ -244,6 +244,13 @@ const api = {
       });
       return (res && (res as any).user) || null;
     },
+    async updateUserModules(id: number, modules: string[]) {
+      return requestJSON(`/admin/users/${id}/modules`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify({ modules }),
+      });
+    },
   },
 
   // Teacher endpoints

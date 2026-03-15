@@ -6,7 +6,7 @@
  */
 
 import express from 'express';
-import { requireAuth } from '../../../middleware/auth.js';
+import { requireAuth, hasModuleAccess } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { generateTimeSlots } from '../services/appointmentService.js';
 
@@ -18,8 +18,8 @@ const router = express.Router();
 async function requireBLCounselor(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Nicht angemeldet' });
 
-  // Admin/Superadmin/Beratungslehrer can access all counselor routes
-  if (req.user.role === 'admin' || req.user.role === 'superadmin' || req.user.role === 'beratungslehrer') {
+  // Admin/Superadmin or users with beratungslehrer module access can use all counselor routes
+  if (hasModuleAccess(req.user, 'beratungslehrer')) {
     const counselorId = parseInt(req.query.counselor_id || req.body?.counselor_id, 10) || null;
     if (counselorId) {
       const { rows } = await query('SELECT * FROM bl_counselors WHERE id = $1', [counselorId]);

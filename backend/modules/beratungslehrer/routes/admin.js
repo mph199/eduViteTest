@@ -73,14 +73,19 @@ router.post('/counselors', requireBeratungslehrer, async (req, res) => {
 
       const { rows: userRows } = await query(
         `INSERT INTO users (username, email, password_hash, role)
-         VALUES ($1, $2, $3, 'beratungslehrer')
-         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = 'beratungslehrer'
+         VALUES ($1, $2, $3, 'teacher')
+         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3
          RETURNING id`,
         [uname, parsedEmail, passwordHash]
       );
 
       if (userRows[0]) {
         await query('UPDATE bl_counselors SET user_id = $1 WHERE id = $2', [userRows[0].id, counselor.id]);
+        // Grant beratungslehrer module access
+        await query(
+          'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userRows[0].id, 'beratungslehrer']
+        );
         counselor.user_id = userRows[0].id;
         userInfo = { username: uname, tempPassword };
       }
@@ -162,9 +167,10 @@ router.delete('/counselors/:id', requireBeratungslehrer, async (req, res) => {
 
     if (linkedUserId) {
       try {
-        await query('DELETE FROM users WHERE id = $1', [linkedUserId]);
+        // Remove beratungslehrer module access
+        await query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [linkedUserId, 'beratungslehrer']);
       } catch (userErr) {
-        console.warn('Deleting linked user failed:', userErr?.message || userErr);
+        console.warn('Removing BL module access failed:', userErr?.message || userErr);
       }
     }
 

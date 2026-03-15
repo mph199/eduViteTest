@@ -21,47 +21,19 @@ export function generateToken(user) {
   if (user.teacherId) {
     payload.teacherId = user.teacherId;
   }
+  if (user.modules && user.modules.length > 0) {
+    payload.modules = user.modules;
+  }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 /**
- * Middleware: Requires Beratungslehrer role
- * Allows admin, superadmin, and beratungslehrer roles.
+ * Check if a decoded user has access to a specific module.
+ * Admin/Superadmin always have access to all modules.
  */
-export function requireBeratungslehrer(req, res, next) {
-  const token = extractToken(req);
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
-  }
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
-  }
-  if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'beratungslehrer') {
-    return res.status(403).json({ error: 'Forbidden', message: 'Beratungslehrer access required' });
-  }
-  req.user = decoded;
-  return next();
-}
-
-/**
- * Middleware: Requires SSW role (Schulsozialarbeit admin access)
- * Allows admin, superadmin, and ssw roles.
- */
-export function requireSSW(req, res, next) {
-  const token = extractToken(req);
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
-  }
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
-  }
-  if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
-    return res.status(403).json({ error: 'Forbidden', message: 'SSW access required' });
-  }
-  req.user = decoded;
-  return next();
+export function hasModuleAccess(user, moduleKey) {
+  if (user.role === 'admin' || user.role === 'superadmin') return true;
+  return Array.isArray(user.modules) && user.modules.includes(moduleKey);
 }
 
 /**
@@ -90,62 +62,42 @@ function extractToken(req) {
 }
 
 /**
+ * Shared authentication logic for all middleware.
+ * Returns decoded token or sends error response.
+ */
+function authenticate(req, res) {
+  const token = extractToken(req);
+  if (!token) {
+    res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    return null;
+  }
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
+    return null;
+  }
+  return decoded;
+}
+
+/**
  * Middleware: Requires authenticated token
- * Checks Authorization header or cookie for valid JWT token
  */
 export function requireAuth(req, res, next) {
-  const token = extractToken(req);
-
-  if (!token) {
-    return res.status(401).json({ 
-      error: 'Unauthorized', 
-      message: 'Authentication required' 
-    });
-  }
-
-  const decoded = verifyToken(token);
-  
-  if (!decoded) {
-    return res.status(401).json({ 
-      error: 'Unauthorized', 
-      message: 'Invalid or expired token' 
-    });
-  }
-  
+  const decoded = authenticate(req, res);
+  if (!decoded) return;
   req.user = decoded;
   return next();
 }
 
 /**
  * Middleware: Requires admin role
- * Checks if user is authenticated AND has admin role
  */
 export function requireAdmin(req, res, next) {
-  const token = extractToken(req);
-
-  if (!token) {
-    return res.status(401).json({ 
-      error: 'Unauthorized', 
-      message: 'Authentication required' 
-    });
-  }
-
-  const decoded = verifyToken(token);
-  
-  if (!decoded) {
-    return res.status(401).json({ 
-      error: 'Unauthorized', 
-      message: 'Invalid or expired token' 
-    });
-  }
-  
+  const decoded = authenticate(req, res);
+  if (!decoded) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
-    return res.status(403).json({ 
-      error: 'Forbidden', 
-      message: 'Admin access required' 
-    });
+    return res.status(403).json({ error: 'Forbidden', message: 'Admin access required' });
   }
-  
   req.user = decoded;
   return next();
 }
@@ -154,24 +106,55 @@ export function requireAdmin(req, res, next) {
  * Middleware: Requires superadmin role
  */
 export function requireSuperadmin(req, res, next) {
-  const token = extractToken(req);
-
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
-  }
-
-  const decoded = verifyToken(token);
-
-  if (!decoded) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
-  }
-
+  const decoded = authenticate(req, res);
+  if (!decoded) return;
   if (decoded.role !== 'superadmin') {
     return res.status(403).json({ error: 'Forbidden', message: 'Superadmin access required' });
   }
-
   req.user = decoded;
   return next();
+}
+
+/**
+ * Middleware: Requires SSW access (role ssw, admin, or superadmin)
+ */
+export function requireSSW(req, res, next) {
+  const decoded = authenticate(req, res);
+  if (!decoded) return;
+  if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
+    return res.status(403).json({ error: 'Forbidden', message: 'SSW access required' });
+  }
+  req.user = decoded;
+  return next();
+}
+
+/**
+ * Middleware: Requires Beratungslehrer access
+ * Allows admin, superadmin, or users with 'beratungslehrer' module access.
+ */
+export function requireBeratungslehrer(req, res, next) {
+  const decoded = authenticate(req, res);
+  if (!decoded) return;
+  if (!hasModuleAccess(decoded, 'beratungslehrer')) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Beratungslehrer access required' });
+  }
+  req.user = decoded;
+  return next();
+}
+
+/**
+ * Factory: Create middleware that requires access to a specific module.
+ */
+export function requireModuleAccess(moduleKey) {
+  return (req, res, next) => {
+    const decoded = authenticate(req, res);
+    if (!decoded) return;
+    if (!hasModuleAccess(decoded, moduleKey)) {
+      return res.status(403).json({ error: 'Forbidden', message: `${moduleKey} access required` });
+    }
+    req.user = decoded;
+    return next();
+  };
 }
 
 /**

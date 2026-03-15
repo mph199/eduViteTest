@@ -1,11 +1,12 @@
 import { createContext } from 'react';
 
-export type ActiveView = 'admin' | 'teacher';
+export type ActiveView = 'admin' | 'teacher' | 'beratungslehrer';
 
 export interface User {
   username: string;
   fullName?: string;
-  role: 'admin' | 'teacher' | 'superadmin' | 'ssw' | 'beratungslehrer';
+  role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
+  modules?: string[];
   teacherId?: number; // Nur für Lehrer
 }
 
