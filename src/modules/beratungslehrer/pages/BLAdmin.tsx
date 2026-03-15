@@ -67,8 +67,9 @@ const emptyTopic = { name: '', description: '', sort_order: 0 };
 export function BLAdmin() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isBLUser = !isAdmin && Array.isArray(user?.modules) && user.modules.includes('beratungslehrer');
 
-  const [tab, setTab] = useState<Tab>('sprechzeiten');
+  const [tab, setTab] = useState<Tab>(isAdmin ? 'counselors' : 'sprechzeiten');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
@@ -201,13 +202,15 @@ export function BLAdmin() {
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await loadProfile();
-      await loadSchedule();
+      if (isBLUser) {
+        await loadProfile();
+        await loadSchedule();
+      }
       if (isAdmin) await loadAdminData();
       setLoading(false);
     }
     init();
-  }, [loadProfile, loadSchedule, loadAdminData, isAdmin]);
+  }, [loadProfile, loadSchedule, loadAdminData, isAdmin, isBLUser]);
 
   // Load calendar when tab=termine
   useEffect(() => {
@@ -364,16 +367,16 @@ export function BLAdmin() {
   }, [tab, adminCalCounselorId, calMonth, loadAdminCalendar]);
 
   // ── Tab definitions ────────────────────────────────────────────────
-  const blTabs: [Tab, string][] = [
+  const blTabs: [Tab, string][] = isBLUser ? [
     ['sprechzeiten', 'Meine Sprechzeiten'],
     ['termine', 'Termine verwalten'],
     ['anfragen', 'Anfragen'],
-  ];
+  ] : [];
   const adminTabs: [Tab, string][] = isAdmin ? [
     ['counselors', 'Alle Berater'],
     ['topics', 'Themen'],
   ] : [];
-  const allTabs = [...blTabs, ...adminTabs];
+  const allTabs = [...adminTabs, ...blTabs];
 
   if (loading) return <div className="admin-dashboard"><div className="admin-main"><p>Lade...</p></div></div>;
 
