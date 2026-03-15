@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import { query } from '../../../config/db.js';
 
 /**
@@ -51,21 +50,21 @@ export async function getAvailableAppointments(counselorId, date) {
 }
 
 /**
- * Book an appointment (supports anonymous booking).
+ * Book an appointment.
  */
 export async function bookAppointment(appointmentId, bookingData) {
-  const { student_name, student_class, email, phone, concern, topic_id, is_urgent, is_anonymous } = bookingData;
+  const { student_name, student_class, email, phone, concern, topic_id, is_urgent } = bookingData;
 
   const { rows } = await query(
     `UPDATE bl_appointments
      SET status = 'requested',
          student_name = $1, student_class = $2, email = $3, phone = $4,
-         concern = $5, topic_id = $6, is_urgent = $7, is_anonymous = $8,
+         concern = $5, topic_id = $6, is_urgent = $7,
          booked_at = NOW(), updated_at = NOW()
-     WHERE id = $9 AND status = 'available'
+     WHERE id = $8 AND status = 'available'
      RETURNING *`,
     [student_name || null, student_class || null, email || null, phone || null,
-     concern || null, topic_id || null, is_urgent || false, is_anonymous || false, appointmentId]
+     concern || null, topic_id || null, is_urgent || false, appointmentId]
   );
 
   if (!rows.length) {
@@ -95,38 +94,3 @@ export function generateTimeSlots(availFrom, availUntil, durationMinutes) {
   return slots;
 }
 
-/**
- * Create an anonymous request with a secure access token.
- */
-export async function createRequest(requestData) {
-  const { counselor_id, topic_id, message, contact_method, contact_info, is_urgent } = requestData;
-  const accessToken = crypto.randomBytes(32).toString('hex');
-
-  const { rows } = await query(
-    `INSERT INTO bl_requests (counselor_id, topic_id, message, contact_method, contact_info, is_urgent, access_token)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING *`,
-    [counselor_id || null, topic_id || null, message, contact_method || 'none',
-     contact_info || null, is_urgent || false, accessToken]
-  );
-  return rows[0];
-}
-
-/**
- * Get a request by its access token (public — no personal data exposed).
- */
-export async function getRequestByToken(token) {
-  const { rows } = await query(
-    `SELECT r.status, r.response, r.responded_at, t.name AS topic_name, r.created_at
-     FROM bl_requests r
-     LEFT JOIN bl_topics t ON t.id = r.topic_id
-     WHERE r.access_token = $1`,
-    [token]
-  );
-  if (!rows.length) {
-    const err = new Error('Anfrage nicht gefunden');
-    err.statusCode = 404;
-    throw err;
-  }
-  return rows[0];
-}

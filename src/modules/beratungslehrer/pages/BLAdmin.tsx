@@ -46,25 +46,9 @@ interface Appointment {
   student_class?: string;
   concern?: string;
   topic_name?: string;
-  is_anonymous?: boolean;
 }
 
-interface AnonRequest {
-  id: number;
-  counselor_id?: number;
-  counselor_name?: string;
-  topic_name?: string;
-  message: string;
-  contact_method: string;
-  contact_info?: string;
-  is_urgent: boolean;
-  status: string;
-  response?: string;
-  responded_at?: string;
-  created_at: string;
-}
-
-type Tab = 'counselors' | 'topics' | 'termine' | 'requests';
+type Tab = 'counselors' | 'topics' | 'termine';
 
 const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
@@ -148,14 +132,6 @@ export function BLAdmin() {
   const [calSelectedDate, setCalSelectedDate] = useState<string | null>(null);
   const [calSelectedIds, setCalSelectedIds] = useState<Set<number>>(new Set());
   const [calDeleting, setCalDeleting] = useState(false);
-
-  // Requests tab
-  const [requests, setRequests] = useState<AnonRequest[]>([]);
-  const [requestsLoading, setRequestsLoading] = useState(false);
-  const [requestsFilter, setRequestsFilter] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState<AnonRequest | null>(null);
-  const [responseText, setResponseText] = useState('');
-  const [responding, setResponding] = useState(false);
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
 
@@ -395,68 +371,6 @@ export function BLAdmin() {
     }
   };
 
-  // ── Requests helpers ──────────────────────────────────────────────
-  const loadRequests = useCallback(async () => {
-    setRequestsLoading(true);
-    try {
-      const filterParam = requestsFilter ? `?status=${requestsFilter}` : '';
-      const data = await apiFetch(`/bl/admin/requests${filterParam}`);
-      setRequests(data.requests || []);
-    } catch {
-      setRequests([]);
-    } finally {
-      setRequestsLoading(false);
-    }
-  }, [requestsFilter]);
-
-  useEffect(() => {
-    if (tab === 'requests') loadRequests();
-  }, [tab, loadRequests]);
-
-  const handleRespondToRequest = async () => {
-    if (!selectedRequest || !responseText.trim()) return;
-    setResponding(true);
-    try {
-      await apiFetch(`/bl/counselor/requests/${selectedRequest.id}/respond`, {
-        method: 'PUT',
-        body: JSON.stringify({ response: responseText.trim() }),
-      });
-      showFlash('Antwort gesendet.');
-      setSelectedRequest(null);
-      setResponseText('');
-      loadRequests();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
-    } finally {
-      setResponding(false);
-    }
-  };
-
-  const handleUpdateRequestStatus = async (requestId: number, status: string) => {
-    try {
-      await apiFetch(`/bl/counselor/requests/${requestId}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status }),
-      });
-      showFlash(`Status auf "${status}" gesetzt.`);
-      loadRequests();
-      if (selectedRequest?.id === requestId) setSelectedRequest(null);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
-    }
-  };
-
-  const requestStatusLabel = (s: string) => {
-    switch (s) {
-      case 'new': return 'Neu';
-      case 'read': return 'Gelesen';
-      case 'in_progress': return 'In Bearbeitung';
-      case 'answered': return 'Beantwortet';
-      case 'closed': return 'Geschlossen';
-      default: return s;
-    }
-  };
-
   if (loading) return <div className="admin-dashboard"><div className="admin-main"><p>Lade...</p></div></div>;
 
   return (
@@ -484,7 +398,7 @@ export function BLAdmin() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          {([['counselors', 'Beratungslehrer'], ['termine', 'Terminverwaltung'], ['topics', 'Themen'], ['requests', 'Anfragen']] as [Tab, string][]).map(([key, label]) => (
+          {([['counselors', 'Beratungslehrer'], ['termine', 'Terminverwaltung'], ['topics', 'Themen']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -888,7 +802,7 @@ export function BLAdmin() {
                                     </td>
                                     <td style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
                                     <td>{statusLabel(a.status)}</td>
-                                    <td>{a.is_anonymous ? '(anonym)' : a.student_name || '--'}</td>
+                                    <td>{a.student_name || '--'}</td>
                                     <td>{a.topic_name || '--'}</td>
                                   </tr>
                                 ))}
@@ -971,149 +885,6 @@ export function BLAdmin() {
           </>
         )}
 
-        {/* ── Requests Tab ─────────────────────────────────────── */}
-        {tab === 'requests' && (
-          <>
-            <div className="admin-section-header">
-              <h3>Anonyme Anfragen</h3>
-            </div>
-
-            <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <label htmlFor="req-filter" style={{ fontWeight: 500, fontSize: '0.9rem' }}>Filter:</label>
-              <select
-                id="req-filter"
-                value={requestsFilter}
-                onChange={e => setRequestsFilter(e.target.value)}
-                style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border, #d1d5db)' }}
-              >
-                <option value="">Alle</option>
-                <option value="new">Neu</option>
-                <option value="read">Gelesen</option>
-                <option value="in_progress">In Bearbeitung</option>
-                <option value="answered">Beantwortet</option>
-                <option value="closed">Geschlossen</option>
-              </select>
-            </div>
-
-            {requestsLoading ? (
-              <p>Lade Anfragen...</p>
-            ) : requests.length === 0 ? (
-              <p style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Keine Anfragen vorhanden.</p>
-            ) : (
-              <div className="admin-resp-table-container">
-                <table className="admin-resp-table">
-                  <thead>
-                    <tr>
-                      <th>Datum</th>
-                      <th>Thema</th>
-                      <th>Nachricht</th>
-                      <th>Dringend</th>
-                      <th>Kontakt</th>
-                      <th>Status</th>
-                      <th>Aktionen</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.map(r => (
-                      <tr key={r.id} style={{ background: r.is_urgent && r.status === 'new' ? '#fef3c7' : undefined }}>
-                        <td style={{ whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('de-DE')}</td>
-                        <td>{r.topic_name || '--'}</td>
-                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.message}</td>
-                        <td>{r.is_urgent ? 'Ja' : '--'}</td>
-                        <td>{r.contact_method === 'none' ? '--' : r.contact_method === 'email' ? 'E-Mail' : 'Codewort'}</td>
-                        <td>{requestStatusLabel(r.status)}</td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                            <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => { setSelectedRequest(r); setResponseText(r.response || ''); }}>
-                              Details
-                            </button>
-                            {r.status === 'new' && (
-                              <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => handleUpdateRequestStatus(r.id, 'read')}>
-                                Gelesen
-                              </button>
-                            )}
-                            {r.status !== 'closed' && r.status !== 'answered' && (
-                              <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => handleUpdateRequestStatus(r.id, 'closed')}>
-                                Schliessen
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Request detail / response */}
-            {selectedRequest && (
-              <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem', border: '1px solid var(--color-border, #d1d5db)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <h4>Anfrage-Details</h4>
-                  <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => setSelectedRequest(null)}>Schliessen</button>
-                </div>
-                <dl style={{ fontSize: '0.9rem' }}>
-                  <dt style={{ fontWeight: 600 }}>Datum</dt>
-                  <dd style={{ marginBottom: '0.5rem' }}>{new Date(selectedRequest.created_at).toLocaleString('de-DE')}</dd>
-                  {selectedRequest.counselor_name && (
-                    <>
-                      <dt style={{ fontWeight: 600 }}>Beratungslehrer</dt>
-                      <dd style={{ marginBottom: '0.5rem' }}>{selectedRequest.counselor_name}</dd>
-                    </>
-                  )}
-                  {selectedRequest.topic_name && (
-                    <>
-                      <dt style={{ fontWeight: 600 }}>Thema</dt>
-                      <dd style={{ marginBottom: '0.5rem' }}>{selectedRequest.topic_name}</dd>
-                    </>
-                  )}
-                  <dt style={{ fontWeight: 600 }}>Nachricht</dt>
-                  <dd style={{ marginBottom: '0.5rem', whiteSpace: 'pre-wrap' }}>{selectedRequest.message}</dd>
-                  <dt style={{ fontWeight: 600 }}>Dringend</dt>
-                  <dd style={{ marginBottom: '0.5rem' }}>{selectedRequest.is_urgent ? 'Ja' : 'Nein'}</dd>
-                  <dt style={{ fontWeight: 600 }}>Kontakt</dt>
-                  <dd style={{ marginBottom: '0.5rem' }}>
-                    {selectedRequest.contact_method === 'none' ? 'Kein Kontakt gewuenscht' :
-                     selectedRequest.contact_method === 'email' ? `E-Mail: ${selectedRequest.contact_info || '--'}` :
-                     `Codewort: ${selectedRequest.contact_info || '--'}`}
-                  </dd>
-                  <dt style={{ fontWeight: 600 }}>Status</dt>
-                  <dd style={{ marginBottom: '0.5rem' }}>{requestStatusLabel(selectedRequest.status)}</dd>
-                </dl>
-
-                {selectedRequest.response && (
-                  <div style={{ padding: '0.75rem', background: '#f0f9ff', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                    <strong>Bisherige Antwort:</strong>
-                    <p style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{selectedRequest.response}</p>
-                  </div>
-                )}
-
-                {selectedRequest.status !== 'closed' && (
-                  <div>
-                    <label style={{ fontWeight: 600, fontSize: '0.9rem', display: 'block', marginBottom: '0.25rem' }}>Antwort verfassen</label>
-                    <textarea
-                      value={responseText}
-                      onChange={e => setResponseText(e.target.value)}
-                      placeholder="Deine Antwort an den/die Schueler/in..."
-                      style={{ width: '100%', minHeight: '80px', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--color-border, #d1d5db)', resize: 'vertical', fontSize: '0.9rem' }}
-                    />
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                      <button className="btn-primary" disabled={responding || !responseText.trim()} onClick={handleRespondToRequest}>
-                        {responding ? 'Sende...' : 'Antworten'}
-                      </button>
-                      {selectedRequest.status !== 'in_progress' && (
-                        <button className="btn-secondary" onClick={() => handleUpdateRequestStatus(selectedRequest.id, 'in_progress')}>
-                          In Bearbeitung setzen
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
       </div>
     </div>
   );

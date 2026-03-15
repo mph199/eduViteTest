@@ -15,41 +15,6 @@
   font-size: 0.95rem;
 }
 
-/* Mode selection */
-.bl-mode-selection {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.bl-mode-card {
-  border: 2px solid var(--brand-surface-2, #e5e7eb);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #fff;
-  text-align: center;
-}
-
-.bl-mode-card:hover {
-  border-color: var(--brand-primary, #123C73);
-  box-shadow: 0 2px 8px rgba(var(--brand-primary-rgb, 18, 60, 115), 0.12);
-}
-
-.bl-mode-card__title {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--brand-ink, #0B2545);
-  margin-bottom: 0.5rem;
-}
-
-.bl-mode-card__desc {
-  font-size: 0.9rem;
-  color: var(--color-text-muted, #6b7280);
-}
-
 /* Steps indicator */
 .bl-steps {
   display: flex;
@@ -233,16 +198,6 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-}
-
-.bl-form__anonymous {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  padding: 0.5rem;
-  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.04);
-  border-radius: 0.5rem;
 }
 
 .bl-form__hint {
