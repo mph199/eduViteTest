@@ -70,7 +70,7 @@ export function GlobalTopHeader() {
     }
     if (pathname === '/superadmin' || pathname.startsWith('/superadmin')) return 'Superadmin · Tenant-Branding';
     return roleArea;
-  }, [inTeacher, pathname, showAreaMenu, moduleAdminRoutes]);
+  }, [inTeacher, pathname, showAreaMenu, moduleAdminRoutes, user, activeView, canBL]);
 
   useEffect(() => {
     const element = headerRef.current;

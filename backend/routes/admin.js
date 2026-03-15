@@ -996,7 +996,7 @@ router.post('/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
 // ── Settings ───────────────────────────────────────────────────────────
 
 // GET /api/admin/settings
-router.get('/settings', requireAuth, async (_req, res) => {
+router.get('/settings', requireAdmin, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM settings LIMIT 1');
     const data = rows[0] || null;

@@ -45,19 +45,105 @@ async function requireBLCounselor(req, res, next) {
   }
 }
 
-// GET /api/bl/counselor/appointments?date=YYYY-MM-DD — own appointments
+// GET /api/bl/counselor/profile — own counselor profile
+router.get('/profile', requireAuth, requireBLCounselor, async (req, res) => {
+  try {
+    const counselor = req.counselor;
+    if (!counselor) return res.status(404).json({ error: 'Kein Beratungslehrer-Profil gefunden' });
+    res.json({ counselor });
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Laden des Profils' });
+  }
+});
+
+// GET /api/bl/counselor/schedule — own weekly schedule
+router.get('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
+  try {
+    const counselorId = req.counselor?.id;
+    if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
+
+    const { rows } = await query(
+      'SELECT * FROM bl_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      [counselorId]
+    );
+    res.json({ schedule: rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Laden des Wochenplans' });
+  }
+});
+
+// PUT /api/bl/counselor/schedule — update own weekly schedule
+router.put('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
+  try {
+    const counselorId = req.counselor?.id;
+    if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
+
+    const { schedule } = req.body || {};
+    if (!Array.isArray(schedule)) {
+      return res.status(400).json({ error: 'schedule muss ein Array sein' });
+    }
+
+    for (const entry of schedule) {
+      const wd = parseInt(entry.weekday, 10);
+      if (isNaN(wd) || wd < 1 || wd > 5) {
+        return res.status(400).json({ error: `Ungueltiger Wochentag: ${entry.weekday}` });
+      }
+      if (entry.active && (!entry.start_time || !entry.end_time)) {
+        return res.status(400).json({ error: `Start- und Endzeit erforderlich fuer Tag ${wd}` });
+      }
+    }
+
+    for (const entry of schedule) {
+      const wd = parseInt(entry.weekday, 10);
+      await query(
+        `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (counselor_id, weekday)
+         DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
+        [counselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
+      );
+    }
+
+    const { rows } = await query(
+      'SELECT * FROM bl_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      [counselorId]
+    );
+    res.json({ success: true, schedule: rows });
+  } catch (err) {
+    console.error('BL counselor schedule update error:', err);
+    res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
+  }
+});
+
+// GET /api/bl/counselor/appointments?date=YYYY-MM-DD or ?date_from=&date_until= — own appointments
 router.get('/appointments', requireAuth, requireBLCounselor, async (req, res) => {
   try {
     const counselorId = req.counselor?.id;
     if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
-    const date = req.query.date;
+    const { date, date_from, date_until, status } = req.query;
     let dateFilter = '';
     const params = [counselorId];
+    let pIdx = 2;
 
     if (date && /^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
-      dateFilter = ' AND a.date = $2';
+      dateFilter += ` AND a.date = $${pIdx}`;
       params.push(date);
+      pIdx++;
+    } else if (date_from && date_until) {
+      dateFilter += ` AND a.date >= $${pIdx} AND a.date <= $${pIdx + 1}`;
+      params.push(date_from, date_until);
+      pIdx += 2;
+    }
+
+    if (status && typeof status === 'string') {
+      const allowed = ['available', 'requested', 'confirmed', 'cancelled', 'completed'];
+      const statuses = status.split(',').filter(s => allowed.includes(s));
+      if (statuses.length > 0) {
+        const placeholders = statuses.map((_, i) => `$${pIdx + i}`).join(', ');
+        dateFilter += ` AND a.status IN (${placeholders})`;
+        params.push(...statuses);
+      }
     }
 
     const { rows } = await query(
