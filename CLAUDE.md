@@ -1,90 +1,91 @@
 # CLAUDE.md – eduViteTest
 
-Modulares Schulverwaltungssystem (Elternsprechtage, Schulsozialarbeit, weitere Module).
-Selbstgehostet als Docker-Container fuer Schulen, Traeger oder IT-Dienstleister.
+> Directive file. Every instruction here is a RULE, not a suggestion.
 
-## Tech-Stack
+## Identity
 
-| Schicht    | Technologie                                      |
-|------------|--------------------------------------------------|
-| Frontend   | React 19, TypeScript 5.9, Vite 7, React Router 7 |
-| Backend    | Node.js 20 (ESM), Express.js, JWT (httpOnly Cookie) |
-| Datenbank  | PostgreSQL 16 (Alpine)                           |
-| Deployment | Docker Compose (3 Services), GitHub Actions CI/CD |
-| E-Mail     | Nodemailer (Ethereal Dev / SMTP Produktion)      |
+Modulares Schulverwaltungssystem. Docker-deployed. PostgreSQL + Express + React 19.
 
-## Schnellstart
+## Mandatory Workflow
+
+**EVERY non-trivial task MUST follow this sequence. No exceptions.**
+
+### 1. ANALYZE (Erkunder)
+Before touching code, spawn the `erkunder` agent to map:
+- Affected files and their dependencies
+- Existing patterns that solve similar problems
+- Potential side effects
+
+Skip ONLY for single-file, < 10-line changes where the impact is obvious.
+
+### 2. PLAN (Architekt)
+For new features, modules, schema changes, or multi-file changes, spawn the `architekt` agent to produce:
+- File list (create / modify / delete)
+- Implementation order
+- API contracts or schema DDL
+
+Skip ONLY for bug fixes or UI tweaks confined to one component.
+
+### 3. IMPLEMENT
+- Backend before Frontend. Always.
+- One logical change per commit.
+- Run `npm run build` after frontend changes.
+
+### 4. REVIEW (Pruefer)
+Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch" or "Hoch" before proceeding.
+
+## Hard Rules
+
+| # | Rule | Rationale |
+|---|------|-----------|
+| 1 | ESM only (`import`/`export`). No `require()`. | Project standard |
+| 2 | All DB queries parametrized (`$1`, `$2`). No string interpolation. | SQL injection prevention |
+| 3 | Every `fetch` uses `credentials: 'include'`. | Cookie-based JWT auth |
+| 4 | API responses normalized to arrays before `.map()`. | Prevents runtime crashes |
+| 5 | Colors via `var(--brand-*)`. No hardcoded hex/rgb. | Theming support |
+| 6 | No emojis in UI text. | Design guideline |
+| 7 | New types go in `src/types/index.ts`. | Single source of truth |
+| 8 | New API methods go in `src/services/api.ts`. | Centralized client |
+| 9 | New modules registered in `src/modules/registry.ts`. | Module system |
+| 10 | Auth middleware on every non-public route. Public routes get rate limiting. | Security baseline |
+| 11 | Migrations use `IF NOT EXISTS`, `TIMESTAMPTZ`. Check next number in `backend/migrations/`. | Safe migrations |
+| 12 | Commit format: `feat(scope):`, `fix(scope):`, `ui(scope):`, `docs(scope):` | Conventional commits |
+
+## Tech Stack (reference only)
+
+| Layer | Tech |
+|-------|------|
+| Frontend | React 19, TypeScript 5.9, Vite 7, React Router 7 |
+| Backend | Node.js 20 (ESM), Express, JWT (httpOnly Cookie) |
+| Database | PostgreSQL 16 |
+| Deploy | Docker Compose (3 services) |
+| Email | Nodemailer (Ethereal dev / SMTP prod) |
+
+## Key Entry Points
+
+| What | Where |
+|------|-------|
+| Architecture doc | `docs/ARCHITECTURE.md` |
+| Module guide | `docs/MODULE_GUIDE.md` |
+| Frontend types | `src/types/index.ts` |
+| API client | `src/services/api.ts` |
+| Module registry | `src/modules/registry.ts` |
+| Auth middleware | `backend/middleware/auth.js` |
+| Module loader | `backend/moduleLoader.js` |
+| Rule files | `.claude/rules/backend.md`, `frontend.md`, `workflows.md` |
+
+## Agents
+
+| Agent | When to spawn | File |
+|-------|---------------|------|
+| **Erkunder** | Before any non-trivial change | `.claude/agents/erkunder.md` |
+| **Architekt** | New features, modules, schema changes | `.claude/agents/architekt.md` |
+| **Pruefer** | Before every commit | `.claude/agents/pruefer.md` |
+
+## Quick Start
 
 ```bash
-docker compose up -d                                              # Docker Stack
-cd /workspaces/eduViteTest && npm install && npm run dev          # Frontend :5173
-cd /workspaces/eduViteTest/backend && npm install && npm run dev  # Backend  :4000
+docker compose up -d
+cd /workspaces/eduViteTest && npm install && npm run dev    # Frontend :5173
+cd /workspaces/eduViteTest/backend && npm install && npm run dev  # Backend :4000
 ```
-
-## Architektur
-
-### Modul-System
-
-Plugin-artiges System, aktiviert ueber Env-Variablen:
-- **Backend:** `backend/moduleLoader.js` laedt aus `backend/modules/*/index.js`
-- **Frontend:** `src/modules/registry.ts`, gefiltert durch `VITE_ENABLED_MODULES`
-- **Aktive Module:** `elternsprechtag` (Kern), `schulsozialarbeit` (SSW)
-
-### Authentifizierung
-
-- JWT in httpOnly Cookies (`SameSite=Lax`, `Secure`)
-- Rollen: `admin`, `teacher`, `superadmin`, `ssw`
-- Middleware: `requireAuth`, `requireAdmin`, `requireTeacher`, `requireSuperadmin`, `requireSSW`
-- Frontend: `AuthContext` + `useAuth()`, `ProtectedRoute` mit `allowedRoles`
-
-### Datenbank
-
-- DB/User: `sprechtag`, Migrationen in `backend/migrations/` (automatisch via `migrate.js`)
-- Naechste Migration: Nummer in `backend/migrations/` pruefen
-
-### Env-Variablen (wichtigste)
-
-- `DATABASE_URL` – PostgreSQL Connection String
-- `SESSION_SECRET` – JWT-Secret
-- `ENABLED_MODULES` / `VITE_ENABLED_MODULES` – Kommaseparierte Modulliste
-- `CORS_ORIGINS` – Erlaubte Origins
-- `MAIL_TRANSPORT` – `ethereal` (Dev) oder `smtp` (Prod)
-
-## Agent-Team
-
-Spezialisierte Sub-Agents in `.claude/agents/`:
-
-| Agent | Datei | Einsatz |
-|-------|-------|---------|
-| **Erkunder** | `.claude/agents/erkunder.md` | Vor Aenderungen: Abhaengigkeiten, Datenfluss, betroffene Dateien |
-| **Architekt** | `.claude/agents/architekt.md` | Neue Features/Module: Schema, API-Vertraege, Migrationsplan |
-| **Pruefer** | `.claude/agents/pruefer.md` | Vor Commits: Konventionen, Sicherheit, TypeScript |
-
-**Koordinator (Umsetzer)** ist die Haupt-Session und arbeitet so:
-1. Erkunder einsetzen (Kontext verstehen)
-2. Bei Bedarf: Architekt fuer Planung
-3. Implementieren (Backend vor Frontend)
-4. `npm run build` (TypeScript-Pruefung)
-5. Pruefer einsetzen
-6. Commit nach Konvention
-
-## Konventionen
-
-Detaillierte Regeln in `.claude/rules/`:
-- `backend.md` – ESM, parametrisierte Queries, Auth-Middleware
-- `frontend.md` – TypeScript strict, `credentials: 'include'`, CSS Custom Properties
-- `workflows.md` – Modul-Erstellung, Feature-Erweiterung, Commit-Format
-
-### Kern-Regeln (immer beachten)
-
-- Backend: ESM (`import`/`export`), alle Queries parametrisiert ($1, $2)
-- Frontend: `credentials: 'include'` bei fetch, API-Responses zu Array normalisieren
-- CSS: `var(--brand-*)` statt Hardcoded-Farben, keine Emojis in der UI
-- Commits: `feat(scope):`, `fix(scope):`, `ui(scope):`, `docs(scope):`
-
-## Weiterführende Dokumentation
-
-- `docs/AI_GUIDE.md` – Ausfuehrlicher Entwicklerleitfaden
-- `docs/MODULE_GUIDE.md` – Anleitung fuer neue Module
-- `docs/ToDo_Docker` – Projekt-Roadmap (Phasen 1–13)
-- `docs/INSTALL.md` – Installationsanleitung
