@@ -1,7 +1,6 @@
 import type { SiteBranding } from '../../contexts/BrandingContext';
 import { modules } from '../../modules/registry';
 import api from '../../services/api';
-import { renderWithLogo } from '../../components/EduViteLogo';
 import { ColorField } from './ColorField';
 
 interface Props {
@@ -65,9 +64,6 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
           <div className="superadmin__field superadmin__field--wide">
             <span className="superadmin__label">Beschreibungstext</span>
             <textarea className="superadmin__textarea" value={site.hero_text} onChange={(e) => setSiteField('hero_text', e.target.value)} placeholder="Beschreibungstext für den Hero-Bereich" rows={3} />
-            <span className="superadmin__hint" style={{ marginTop: 4, fontSize: '0.8rem' }}>
-              Tipp: Schreibe <code>{'{eduvite}'}</code> im Text, um das animierte eduVite-Logo einzufügen.
-            </span>
           </div>
         </div>
       </section>
@@ -182,7 +178,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
           </div>
           <div className="superadmin__preview-hero" style={{ background: `linear-gradient(135deg, ${site.surface_1} 0%, #fff 60%, ${site.surface_2} 100%)` }}>
             <h2 style={{ color: site.primary_dark }}>{site.hero_title || 'Überschrift'}</h2>
-            <p style={{ color: '#374151' }}>{site.hero_text ? renderWithLogo(site.hero_text) : 'Beschreibungstext…'}</p>
+            <p style={{ color: '#374151' }}>{site.hero_text || 'Beschreibungstext…'}</p>
             <div className="superadmin__preview-steps">
               <div className="superadmin__preview-step"><strong style={{ color: site.primary_dark }}>1.</strong> {site.step_1 || '—'}</div>
               <div className="superadmin__preview-step"><strong style={{ color: site.primary_dark }}>2.</strong> {site.step_2 || '—'}</div>
