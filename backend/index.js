@@ -21,6 +21,11 @@ const isProduction = process.env.NODE_ENV === 'production';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// CORS – origins from env or sensible defaults for development
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 // Security headers – CSP als Fallback; in Produktion ueberschreibt nginx die Header
 const cspConnectSrc = ["'self'", ...corsOrigins];
 app.use(helmet({
@@ -38,11 +43,6 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false,
 }));
-
-// CORS – origins from env or sensible defaults for development
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-  : ['http://localhost:5173', 'http://localhost:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
