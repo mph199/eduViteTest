@@ -14,6 +14,14 @@
 
 import { query } from '../config/db.js';
 
+/** Validates that a string is a safe SQL identifier (lowercase letters, digits, underscores). */
+const SAFE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
+function assertSafeIdentifier(value, label) {
+  if (!SAFE_IDENTIFIER.test(value)) {
+    throw new Error(`Invalid SQL identifier for ${label}: "${value}"`);
+  }
+}
+
 export function createCounselorService(config) {
   const {
     tablePrefix,
@@ -22,6 +30,14 @@ export function createCounselorService(config) {
     topicForeignKey,
     topicSelectCols = ['id', 'name', 'description'],
   } = config;
+
+  // Validate all identifiers used in SQL interpolation
+  assertSafeIdentifier(tablePrefix, 'tablePrefix');
+  assertSafeIdentifier(topicTable, 'topicTable');
+  assertSafeIdentifier(topicForeignKey, 'topicForeignKey');
+  for (const col of topicSelectCols) {
+    assertSafeIdentifier(col, 'topicSelectCols');
+  }
 
   const counselorsTable = `${tablePrefix}_counselors`;
   const appointmentsTable = `${tablePrefix}_appointments`;

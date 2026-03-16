@@ -481,10 +481,10 @@ const api = {
       return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`, { auth: true });
     },
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON('/ssw/counselor/generate-slots', {
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/generate-slots`, {
         method: 'POST',
         auth: true,
-        body: JSON.stringify({ counselor_id: counselorId, date_from: dateFrom, date_until: dateUntil }),
+        body: JSON.stringify({ date_from: dateFrom, date_until: dateUntil }),
       });
     },
     async confirmAppointment(id: number) {
