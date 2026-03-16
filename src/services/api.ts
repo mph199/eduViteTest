@@ -266,6 +266,10 @@ const api = {
       });
       const data = await response.json();
       if (response.status === 409) return data;
+      if (response.status === 401) {
+        try { window.dispatchEvent(new Event('auth:logout')); } catch { /* ignore */ }
+        throw new Error('Nicht angemeldet (401) – bitte neu einloggen.');
+      }
       if (!response.ok) throw new Error(data?.error || `Fehler ${response.status}`);
       return data;
     },

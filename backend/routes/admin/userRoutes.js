@@ -5,7 +5,7 @@ import logger from '../../config/logger.js';
 
 const router = express.Router();
 
-const VALID_MODULE_KEYS = ['beratungslehrer'];
+const VALID_MODULE_KEYS = ['beratungslehrer', 'schulsozialarbeit'];
 
 // GET /api/admin/users
 router.get('/users', requireAdmin, async (_req, res) => {
@@ -68,12 +68,20 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
 });
 
 // Counselor cleanup config per module key
+// NOTE: Table names are static constants, never from user input.
+// Keys must match VALID_MODULE_KEYS entries that have counselor data.
 const COUNSELOR_TABLES = {
   beratungslehrer: {
     counselors: 'bl_counselors',
     appointments: 'bl_appointments',
     schedule: 'bl_weekly_schedule',
     label: 'Beratungslehrkraft',
+  },
+  schulsozialarbeit: {
+    counselors: 'ssw_counselors',
+    appointments: 'ssw_appointments',
+    schedule: 'ssw_weekly_schedule',
+    label: 'Schulsozialarbeit',
   },
 };
 
