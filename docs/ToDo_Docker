@@ -275,9 +275,9 @@ Empfohlene Standard-Fristen (konfigurierbar):
 
 | Modul                  | Beschreibung                                                       |
 |------------------------|--------------------------------------------------------------------|
-| **Elternsprechtag**    | Bestehendes System (Kern)                                          |
+| **Elternsprechtag**    | ✅Bestehendes System (Kern)                                          |
 | **Schulsozialarbeit**  | ✅ Terminbuchung für Beratungsgespräche, vertrauliche Notizen      |
-| **Beratungslehrer**    | Sprechstunden, Themenkategorien                                    |
+| **Beratungslehrer**    | ✅ Sprechstunden, Themenkategorien                                    |
 | **Berufsorientierung** | Betriebsbesuche, Praktikumsplätze, Matching                       |
 | **Fächerwahl** | Fächer/Kurse für eine Jahrgangsstufe wählen, , Matching der Fächer, Ausgabe von Liste von schülern die ein fach belegt haben     |
 

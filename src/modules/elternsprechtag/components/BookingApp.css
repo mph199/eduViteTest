@@ -4,28 +4,31 @@
 }
 
 .booking-app {
+  position: relative;
   min-height: 100vh;
-  /* Subtle background styling (white base with green accents) */
   background-color: var(--color-white);
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      rgba(var(--brand-primary-rgb), 0.06) 0px,
-      rgba(var(--brand-primary-rgb), 0.06) 1px,
-      rgba(var(--brand-primary-rgb), 0) 1px,
-      rgba(var(--brand-primary-rgb), 0) 26px
-    ),
-    radial-gradient(circle at 12% 10%, rgba(var(--brand-primary-rgb), 0.18) 0%, rgba(var(--brand-primary-rgb), 0) 55%),
-    radial-gradient(circle at 88% 82%, rgba(var(--brand-primary-dark-rgb), 0.14) 0%, rgba(var(--brand-primary-dark-rgb), 0) 55%),
-    linear-gradient(135deg, var(--brand-surface-1) 0%, var(--color-white) 55%, var(--brand-surface-2) 100%);
-  background-attachment: fixed;
   padding-top: 1.25rem;
   padding-left: var(--page-gutter, 1.25rem);
   padding-right: var(--page-gutter, 1.25rem);
   padding-bottom: 2rem;
 }
 
+.booking-app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/Hintergrund_Sprechtag.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .welcomeWindow {
+  position: relative;
+  z-index: 1;
   max-width: var(--page-max-width, 1280px);
   margin: 0 auto 1.25rem;
 }
@@ -604,6 +607,8 @@
 }
 
 .booking-app .app-content {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 340px 1fr;
   gap: 1.25rem;
