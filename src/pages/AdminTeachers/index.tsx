@@ -3,12 +3,13 @@ import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
 import api from '../../services/api';
 import { getModule } from '../../modules/registry';
-import type { Teacher as ApiTeacher, UserAccount } from '../../types';
+import type { Teacher as ApiTeacher, UserAccount, RevokedModuleConflict } from '../../types';
 import type { BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from './types';
 import { defaultBlForm, defaultFormData } from './types';
 import { TeacherForm } from './TeacherForm';
 import { CsvImportDialog } from './CsvImportDialog';
 import { TeacherTable } from './TeacherTable';
+import { RevokeModuleDialog } from './RevokeModuleDialog';
 import '../AdminDashboard.css';
 
 const BL_MODULE_ACTIVE = !!getModule('beratungslehrer');
@@ -29,6 +30,11 @@ export function AdminTeachers() {
   const [flash, setFlash] = useState('');
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
+  const [revokeConflict, setRevokeConflict] = useState<{
+    target: UserAccount;
+    nextModules: string[];
+    conflicts: RevokedModuleConflict[];
+  } | null>(null);
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
@@ -266,17 +272,45 @@ export function AdminTeachers() {
     const next = has ? current.filter(m => m !== moduleKey) : [...current, moduleKey];
 
     setModuleSaving((prev) => ({ ...prev, [target.id]: true }));
-    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: next } : u)));
 
     try {
-      await api.admin.updateUserModules(target.id, next);
+      const res = await api.admin.updateUserModules(target.id, next);
+
+      // Backend returned a conflict – show warning dialog
+      if (res?.conflict) {
+        setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
+        setRevokeConflict({ target, nextModules: next, conflicts: res.revokedModules });
+        return;
+      }
+
+      // Success – update state after confirmed API response
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: next } : u)));
       setFlash(has ? 'Modul-Zugang entfernt. Wird nach erneutem Login wirksam.' : 'Modul-Zugang erteilt. Wird nach erneutem Login wirksam.');
       window.setTimeout(() => setFlash(''), 6500);
     } catch (e) {
-      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: current } : u)));
       alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Modul-Berechtigungen');
     } finally {
       setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
+    }
+  };
+
+  const confirmRevoke = async () => {
+    if (!revokeConflict) return;
+    const { target, nextModules } = revokeConflict;
+    const current = target.modules || [];
+
+    setModuleSaving((prev) => ({ ...prev, [target.id]: true }));
+    try {
+      await api.admin.updateUserModules(target.id, nextModules, true);
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: nextModules } : u)));
+      setFlash('Modul-Zugang und zugehoerige Daten entfernt. Wird nach erneutem Login wirksam.');
+      window.setTimeout(() => setFlash(''), 6500);
+    } catch (e) {
+      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: current } : u)));
+      alert(e instanceof Error ? e.message : 'Fehler beim Entfernen des Modul-Zugangs');
+    } finally {
+      setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
+      setRevokeConflict(null);
     }
   };
 
@@ -403,6 +437,16 @@ export function AdminTeachers() {
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
+
+        {revokeConflict && (
+          <RevokeModuleDialog
+            conflicts={revokeConflict.conflicts}
+            targetName={revokeConflict.target.username}
+            onConfirm={confirmRevoke}
+            onCancel={() => setRevokeConflict(null)}
+            saving={!!moduleSaving[revokeConflict.target.id]}
+          />
+        )}
       </main>
     </div>
   );

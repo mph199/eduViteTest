@@ -257,12 +257,17 @@ const api = {
       });
       return (res && (res as any).user) || null;
     },
-    async updateUserModules(id: number, modules: string[]) {
-      return requestJSON(`/admin/users/${id}/modules`, {
+    async updateUserModules(id: number, modules: string[], force = false) {
+      const response = await fetch(`${API_BASE}/admin/users/${id}/modules`, {
         method: 'PUT',
-
-        body: JSON.stringify({ modules }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ modules, force }),
       });
+      const data = await response.json();
+      if (response.status === 409) return data;
+      if (!response.ok) throw new Error(data?.error || `Fehler ${response.status}`);
+      return data;
     },
   },
 

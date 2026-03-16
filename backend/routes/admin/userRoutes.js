@@ -67,6 +67,16 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Counselor cleanup config per module key
+const COUNSELOR_TABLES = {
+  beratungslehrer: {
+    counselors: 'bl_counselors',
+    appointments: 'bl_appointments',
+    schedule: 'bl_weekly_schedule',
+    label: 'Beratungslehrkraft',
+  },
+};
+
 // PUT /api/admin/users/:id/modules
 router.put('/users/:id/modules', requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
@@ -74,7 +84,7 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid user ID' });
   }
 
-  const { modules } = req.body || {};
+  const { modules, force } = req.body || {};
   if (!Array.isArray(modules)) {
     return res.status(400).json({ error: 'modules must be an array of module keys' });
   }
@@ -88,6 +98,58 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
   try {
     await query('BEGIN');
     try {
+      // Determine which modules are being removed
+      const { rows: currentRows } = await query(
+        'SELECT module_key FROM user_module_access WHERE user_id = $1',
+        [userId]
+      );
+      const currentKeys = currentRows.map(r => r.module_key);
+      const removedKeys = currentKeys.filter(k => !modules.includes(k));
+
+      // Check for counselor data conflicts on removed modules
+      // NOTE: Table names in COUNSELOR_TABLES are static constants, never from user input.
+      const conflicts = [];
+      for (const key of removedKeys) {
+        const cfg = COUNSELOR_TABLES[key];
+        if (!cfg) continue;
+
+        const { rows: stats } = await query(
+          `SELECT c.id,
+                  (SELECT COUNT(*) FROM ${cfg.appointments} a WHERE a.counselor_id = c.id AND a.status NOT IN ('cancelled', 'available')) AS appointment_count,
+                  (SELECT COUNT(*) FROM ${cfg.schedule} s WHERE s.counselor_id = c.id AND s.active = true) AS schedule_count
+           FROM ${cfg.counselors} c WHERE c.user_id = $1`,
+          [userId]
+        );
+
+        if (stats.length > 0) {
+          const row = stats[0];
+          const appointmentCount = parseInt(row.appointment_count, 10) || 0;
+          const scheduleCount = parseInt(row.schedule_count, 10) || 0;
+          if (appointmentCount > 0 || scheduleCount > 0) {
+            conflicts.push({
+              key,
+              label: cfg.label,
+              appointmentCount,
+              scheduleCount,
+            });
+          }
+        }
+      }
+
+      // If conflicts exist and force is not set, rollback and return 409
+      if (conflicts.length > 0 && force !== true) {
+        await query('ROLLBACK');
+        return res.status(409).json({ conflict: true, revokedModules: conflicts });
+      }
+
+      // Clean up counselor data for removed modules
+      for (const key of removedKeys) {
+        const cfg = COUNSELOR_TABLES[key];
+        if (!cfg) continue;
+        // CASCADE on bl_counselors.id deletes appointments, schedule, requests
+        await query(`DELETE FROM ${cfg.counselors} WHERE user_id = $1`, [userId]);
+      }
+
       await query('DELETE FROM user_module_access WHERE user_id = $1', [userId]);
       for (const moduleKey of modules) {
         await query(
