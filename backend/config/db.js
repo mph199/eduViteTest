@@ -17,6 +17,7 @@ import pg from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from './logger.js';
 
 // 1) Load from cwd (npm run dev in backend/)
 dotenv.config();
@@ -49,13 +50,13 @@ pool.on('connect', () => {
     const target = process.env.DATABASE_URL
       ? process.env.DATABASE_URL.replace(/\/\/.*@/, '//***@')
       : `${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`;
-    console.log(`[db] Connected to PostgreSQL: ${target}`);
+    logger.info(`[db] Connected to PostgreSQL: ${target}`);
     pool._loggedOnce = true;
   }
 });
 
 pool.on('error', (err) => {
-  console.error('[db] Unexpected pool error', err);
+  logger.error({ err }, '[db] Unexpected pool error');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { query } from '../config/db.js';
 import { formatDateDE } from './timeWindows.js';
+import logger from '../config/logger.js';
 
 /**
  * Resolves the best event to use for slot generation.
@@ -27,7 +28,7 @@ export async function resolveActiveEvent() {
       eventDate = formatDateDE(rows[0].starts_at);
     }
   } catch (e) {
-    console.warn('Resolving active event failed:', e?.message || e);
+    logger.warn({ err: e }, 'Resolving active event failed');
   }
 
   // 2. Latest event fallback
@@ -39,7 +40,7 @@ export async function resolveActiveEvent() {
         eventDate = formatDateDE(rows[0].starts_at);
       }
     } catch (e) {
-      console.warn('Resolving latest event failed:', e?.message || e);
+      logger.warn({ err: e }, 'Resolving latest event failed');
     }
   }
 

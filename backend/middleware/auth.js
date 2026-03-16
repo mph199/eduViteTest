@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import logger from '../config/logger.js';
 
 // Admin User Credentials – aus Umgebungsvariablen laden
 const adminUsername = process.env.ADMIN_USERNAME;
@@ -9,7 +10,7 @@ export const ADMIN_USER = adminUsername && adminPasswordHash
   : null;
 
 if (!ADMIN_USER) {
-  console.warn('[auth] ADMIN_USERNAME / ADMIN_PASSWORD_HASH nicht gesetzt – System-Admin-Login deaktiviert. Nur DB-User koennen sich anmelden.');
+  logger.warn('[auth] ADMIN_USERNAME / ADMIN_PASSWORD_HASH nicht gesetzt – System-Admin-Login deaktiviert. Nur DB-User koennen sich anmelden.');
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;

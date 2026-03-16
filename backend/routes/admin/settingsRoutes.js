@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAdmin } from '../../middleware/auth.js';
 import { query } from '../../config/db.js';
+import logger from '../../config/logger.js';
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/settings', requireAdmin, async (_req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    logger.error({ err: error }, 'Error fetching settings');
     res.status(500).json({ error: 'Failed to fetch settings' });
   }
 });
@@ -43,7 +44,7 @@ router.put('/settings', requireAdmin, async (req, res) => {
 
     res.json({ success: true, settings: rows[0] });
   } catch (error) {
-    console.error('Error updating settings:', error);
+    logger.error({ err: error }, 'Error updating settings');
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });

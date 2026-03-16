@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
-import type { TimeSlot as ApiBooking } from '../types';
+import type { TimeSlot as ApiBooking, AdminEvent, EventStats } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
 import './AdminDashboard.css';
 
@@ -42,31 +42,11 @@ function visitorLabel(b: ApiBooking): string {
   return (b.companyName || '').trim();
 }
 
-type ActiveEvent = {
-  id: number;
-  name: string;
-  school_year: string;
-  starts_at: string;
-  ends_at: string;
-  status: 'draft' | 'published' | 'closed';
-  booking_opens_at?: string | null;
-  booking_closes_at?: string | null;
-};
-
-type EventStats = {
-  eventId: number;
-  totalSlots: number;
-  availableSlots: number;
-  bookedSlots: number;
-  reservedSlots: number;
-  confirmedSlots: number;
-};
-
 export function AdminDashboard() {
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
+  const [activeEvent, setActiveEvent] = useState<AdminEvent | null>(null);
   const [activeEventStats, setActiveEventStats] = useState<EventStats | null>(null);
   const [activeEventStatsError, setActiveEventStatsError] = useState<string>('');
 
@@ -91,7 +71,7 @@ export function AdminDashboard() {
     }).format(d);
   };
 
-  const statusLabel: Record<ActiveEvent['status'], string> = {
+  const statusLabel: Record<AdminEvent['status'], string> = {
     draft: 'Entwurf',
     published: 'Veröffentlicht',
     closed: 'Geschlossen',
@@ -116,7 +96,7 @@ export function AdminDashboard() {
   const loadActiveEvent = useCallback(async () => {
     try {
       const res = await api.events.getActive();
-      const parsed = res as unknown as { event?: ActiveEvent | null };
+      const parsed = res as unknown as { event?: AdminEvent | null };
       setActiveEvent(parsed?.event || null);
     } catch {
       // Non-blocking: keep UI usable even if event endpoint fails
@@ -292,16 +272,16 @@ export function AdminDashboard() {
           </div>
           {activeEvent ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontWeight: 800, color: '#111827' }}>{activeEvent.name}</div>
-              <div style={{ color: '#4b5563' }}>
+              <div className="text-bold">{activeEvent.name}</div>
+              <div className="text-secondary">
                 Schuljahr: {activeEvent.school_year} • Status: {statusLabel[activeEvent.status]}
               </div>
-              <div style={{ color: '#4b5563' }}>
+              <div className="text-secondary">
                 Buchungsfenster: {formatDateTime(activeEvent.booking_opens_at) || 'sofort'} – {formatDateTime(activeEvent.booking_closes_at) || 'offen'}
               </div>
 
               {(user?.role === 'admin' || user?.role === 'superadmin') && (
-                <div style={{ color: '#4b5563' }}>
+                <div className="text-secondary">
                   {activeEventStats ? (
                     <>
                       Sprechzeiten: {activeEventStats.totalSlots} gesamt • {activeEventStats.availableSlots} verfügbar • {activeEventStats.reservedSlots} reserviert • {activeEventStats.confirmedSlots} bestätigt
@@ -315,7 +295,7 @@ export function AdminDashboard() {
               )}
             </div>
           ) : (
-            <div style={{ color: '#4b5563' }}>
+            <div className="text-secondary">
               Kein aktives Event gefunden (nicht veröffentlicht oder außerhalb des Buchungsfensters).
             </div>
           )}
@@ -354,18 +334,18 @@ export function AdminDashboard() {
             <div className="admin-stats" style={{ gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <div className="stat-card" style={{ flex: '1 1 100%', minWidth: 0, padding: '1rem 1.1rem' }}>
                 <h3 style={{ marginBottom: 8 }}>Filter &amp; Sortierung</h3>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="admin-filter-bar">
                   <input
                     type="text"
+                    className="admin-filter-input"
                     placeholder="Suche (Name, Klasse, E-Mail, Nachricht…)"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    style={{ padding: '8px 10px', flex: '1 1 220px', minWidth: 0 }}
                   />
                   <select
+                    className="admin-filter-select"
                     value={teacherFilter}
                     onChange={(e) => setTeacherFilter(e.target.value)}
-                    style={{ padding: '8px 10px', flex: '0 1 200px' }}
                   >
                     <option value="all">Alle Lehrkräfte</option>
                     {teacherNames.map((name) => (
@@ -373,9 +353,9 @@ export function AdminDashboard() {
                     ))}
                   </select>
                   <select
+                    className="admin-filter-select"
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value as 'all' | 'parent' | 'company')}
-                    style={{ padding: '8px 10px', flex: '0 1 200px' }}
                   >
                     <option value="all">Alle Besuchertypen</option>
                     <option value="parent">Erziehungsberechtigte</option>
@@ -388,7 +368,7 @@ export function AdminDashboard() {
                   )}
                 </div>
                 {hasActiveFilters && (
-                  <div style={{ marginTop: 6, fontSize: '0.85rem', color: '#6b7280' }}>
+                  <div className="text-muted" style={{ marginTop: 6, fontSize: '0.85rem' }}>
                     {filteredAndSorted.length} von {bookings.length} Buchungen
                   </div>
                 )}
@@ -429,7 +409,7 @@ export function AdminDashboard() {
               <tbody>
                 {filteredAndSorted.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ color: '#555', textAlign: 'center', padding: '2rem 1rem' }}>
+                    <td colSpan={6} className="empty-state">
                       Keine Buchungen für die gewählten Filter gefunden.
                     </td>
                   </tr>

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from './logger.js';
 
 // Load env (supports running from repo root)
 dotenv.config();
@@ -52,7 +53,7 @@ async function getTransporter() {
             pass: testAccount.pass,
           },
         });
-        console.log('[email] Using Ethereal test account:', testAccount.user);
+        logger.info('[email] Using Ethereal test account: %s', testAccount.user);
         return transporter;
       })();
     }
@@ -85,14 +86,14 @@ export function getLastEmailDebugInfo() {
 export async function sendMail({ to, subject, text, html }) {
   const t = await getTransporter();
   if (!t) {
-    console.warn('Email not configured. Skipping send to', to, 'subject:', subject);
+    logger.warn({ to, subject }, 'Email not configured, skipping send');
     return { skipped: true };
   }
 
   const info = await t.sendMail({ from: fromEmail, to, subject, text, html });
   const previewUrl = nodemailer.getTestMessageUrl(info);
   if (previewUrl) {
-    console.log('[email] Preview URL:', previewUrl);
+    logger.info('[email] Preview URL: %s', previewUrl);
   }
   lastEmail = {
     to,

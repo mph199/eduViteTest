@@ -9,6 +9,7 @@ import express from 'express';
 import { requireAuth } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { generateTimeSlots } from '../services/appointmentService.js';
+import logger from '../../../config/logger.js';
 
 const router = express.Router();
 
@@ -153,7 +154,7 @@ router.post('/generate-slots', requireAuth, requireCounselor, async (req, res) =
 
     res.json({ success: true, created: totalCreated, skipped: totalSkipped });
   } catch (err) {
-    console.error('SSW generate-slots error:', err);
+    logger.error({ err }, 'SSW generate-slots error');
     res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
   }
 });

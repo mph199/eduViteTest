@@ -1,53 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { Counselor, ScheduleEntry, CounselorTopic as Category, CounselorAppointment as Appointment } from '../../../types';
 import api from '../../../services/api';
 import '../../../pages/AdminDashboard.css';
-
-interface Counselor {
-  id: number;
-  first_name: string;
-  last_name: string;
-  name: string;
-  salutation?: string;
-  email?: string;
-  room?: string;
-  phone?: string;
-  specializations?: string;
-  available_from?: string;
-  available_until?: string;
-  slot_duration_minutes?: number;
-  active?: boolean;
-  user_id?: number;
-}
-
-interface ScheduleEntry {
-  weekday: number;
-  start_time: string;
-  end_time: string;
-  active: boolean;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  description?: string;
-  icon?: string;
-  sort_order?: number;
-  active?: boolean;
-}
-
-interface Appointment {
-  id: number;
-  counselor_id: number;
-  date: string;
-  time: string;
-  duration_minutes: number;
-  status: string;
-  student_name?: string;
-  student_class?: string;
-  concern?: string;
-  category_name?: string;
-  category_icon?: string;
-}
 
 type Tab = 'counselors' | 'categories' | 'termine';
 
@@ -351,13 +305,13 @@ export function SSWAdmin() {
 
         {flash && <div className="admin-success">{flash}</div>}
         {createdCreds && (
-          <div className="admin-success" style={{ background: '#f0f9ff', border: '1px solid #38bdf8', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+          <div className="admin-success" style={{ background: 'var(--color-info-light)', border: '1px solid var(--color-info-accent)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
             <strong>Zugangsdaten erstellt:</strong>
             <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.95rem' }}>
               Benutzername: <strong>{createdCreds.username}</strong><br />
               Passwort: <strong>{createdCreds.tempPassword}</strong>
             </div>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555' }}>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
               Bitte Zugangsdaten notieren — das Passwort wird nicht erneut angezeigt.
             </p>
             <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schließen</button>
@@ -483,11 +437,11 @@ export function SSWAdmin() {
                   {!editingCounselorId && (
                     <>
                       <div className="form-group">
-                        <label htmlFor="ssw-username">Benutzername <span style={{ fontWeight: 'normal', color: '#888' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <label htmlFor="ssw-username">Benutzername <span style={{ fontWeight: 'normal', color: 'var(--color-gray-500)' }}>(optional – wird sonst automatisch generiert)</span></label>
                         <input id="ssw-username" type="text" value={counselorForm.username} onChange={e => setCounselorForm({ ...counselorForm, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="ssw-password">Passwort <span style={{ fontWeight: 'normal', color: '#888' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <label htmlFor="ssw-password">Passwort <span style={{ fontWeight: 'normal', color: 'var(--color-gray-500)' }}>(optional – wird sonst automatisch generiert)</span></label>
                         <input id="ssw-password" type="text" value={counselorForm.password} onChange={e => setCounselorForm({ ...counselorForm, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
                       </div>
                     </>
@@ -662,7 +616,7 @@ export function SSWAdmin() {
                               padding: '0.3rem',
                               textAlign: 'center',
                               cursor: count > 0 ? 'pointer' : 'default',
-                              background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? '#fff' : 'var(--color-gray-50, #f9fafb)',
+                              background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? 'var(--color-white)' : 'var(--color-gray-50)',
                               opacity: isPast ? 0.5 : 1,
                               minHeight: '50px',
                               display: 'flex',

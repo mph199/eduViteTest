@@ -98,7 +98,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
                 <img
                   src={api.superadmin.resolveLogoUrl(emailBranding.logo_url)}
                   alt="Logo-Vorschau"
-                  style={{ maxHeight: 60, maxWidth: 220, borderRadius: 4, background: '#fff', padding: 4 }}
+                  style={{ maxHeight: 60, maxWidth: 220, borderRadius: 4, background: 'var(--color-white)', padding: 4 }}
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
                 <button

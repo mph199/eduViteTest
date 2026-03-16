@@ -7,6 +7,7 @@ import { query } from '../../config/db.js';
 import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation } from '../../utils/validators.js';
 import { generateTimeSlotsForTeacher } from '../../utils/timeWindows.js';
 import { resolveActiveEvent } from '../../utils/resolveActiveEvent.js';
+import logger from '../../config/logger.js';
 
 const router = express.Router();
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
@@ -99,7 +100,7 @@ async function insertTeacherSlots(teacherId, availFrom, availUntil, targetEventI
   try {
     await query(`INSERT INTO slots (${slotCols.join(', ')}) VALUES ${placeholders.join(', ')}`, vals);
   } catch (slotsError) {
-    console.error('Error creating slots:', slotsError);
+    logger.error({ err: slotsError }, 'Error creating slots');
   }
   return timeSlots.length;
 }
@@ -167,7 +168,7 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       );
       userId = userRows[0]?.id ?? null;
     } catch (userErr) {
-      console.warn('User creation for teacher failed:', userErr?.message || userErr);
+      logger.warn({ err: userErr }, 'User creation for teacher failed');
     }
 
     // Optional: Beratungslehrer-Profil anlegen
@@ -209,7 +210,7 @@ router.post('/teachers', requireAdmin, async (req, res) => {
           }
         }
       } catch (blErr) {
-        console.warn('BL counselor creation failed:', blErr?.message || blErr);
+        logger.warn({ err: blErr }, 'BL counselor creation failed');
       }
     }
 
@@ -222,7 +223,7 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       user: { username, tempPassword }
     });
   } catch (error) {
-    console.error('Error creating teacher:', error);
+    logger.error({ err: error }, 'Error creating teacher');
     res.status(500).json({ error: 'Failed to create teacher' });
   }
 });
@@ -244,7 +245,7 @@ router.get('/teachers', requireAdmin, async (_req, res) => {
     `);
     return res.json({ teachers: rows || [] });
   } catch (error) {
-    console.error('Error fetching admin teachers:', error);
+    logger.error({ err: error }, 'Error fetching admin teachers');
     return res.status(500).json({ error: 'Failed to fetch teachers' });
   }
 });
@@ -270,7 +271,7 @@ router.get('/teachers/:id/bl', requireAdmin, async (req, res) => {
     );
     return res.json({ counselor, schedule: scheduleRows });
   } catch (error) {
-    console.error('Error fetching BL data for teacher:', error);
+    logger.error({ err: error }, 'Error fetching BL data for teacher');
     return res.status(500).json({ error: 'Failed to fetch BL data' });
   }
 });
@@ -381,7 +382,7 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
       details: { imported, skipped },
     });
   } catch (error) {
-    console.error('CSV import error:', error);
+    logger.error({ err: error }, 'CSV import error');
     res.status(500).json({ error: 'Fehler beim CSV-Import: ' + (error?.message || 'Unbekannter Fehler') });
   }
 });
@@ -518,13 +519,13 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
           }
         }
       } catch (blErr) {
-        console.warn('BL counselor update failed:', blErr?.message || blErr);
+        logger.warn({ err: blErr }, 'BL counselor update failed');
       }
     }
 
     res.json({ success: true, teacher: rows[0] });
   } catch (error) {
-    console.error('Error updating teacher:', error);
+    logger.error({ err: error }, 'Error updating teacher');
     res.status(500).json({ error: 'Failed to update teacher' });
   }
 });
@@ -550,7 +551,7 @@ router.put('/teachers/:id/reset-login', requireAdmin, async (req, res) => {
 
     res.json({ success: true, user: { username: user.username, tempPassword } });
   } catch (error) {
-    console.error('Error resetting teacher login:', error);
+    logger.error({ err: error }, 'Error resetting teacher login');
     res.status(500).json({ error: 'Failed to reset teacher login' });
   }
 });
@@ -581,7 +582,7 @@ router.delete('/teachers/:id', requireAdmin, async (req, res) => {
 
     res.json({ success: true, message: 'Teacher deleted successfully' });
   } catch (error) {
-    console.error('Error deleting teacher:', error);
+    logger.error({ err: error }, 'Error deleting teacher');
     res.status(500).json({ error: 'Failed to delete teacher' });
   }
 });
@@ -652,7 +653,7 @@ router.post('/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
 
     return res.json({ success: true, teacherId, eventId: targetEventId, eventDate, created: inserts.length, skipped });
   } catch (error) {
-    console.error('Error generating slots for teacher:', error);
+    logger.error({ err: error }, 'Error generating slots for teacher');
     return res.status(500).json({ error: 'Failed to generate slots for teacher' });
   }
 });

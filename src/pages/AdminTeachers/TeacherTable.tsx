@@ -126,7 +126,7 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                           {isSelf && <span className="admin-users-badge" title="Das bist du">Du</span>}
                         </span>
                       ) : (
-                        <span style={{ color: '#9ca3af' }}>–</span>
+                        <span style={{ color: 'var(--color-gray-400)' }}>–</span>
                       )}
                     </td>
                     <td>
@@ -214,7 +214,7 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                             {currentUsername === acct.username && <span className="admin-users-badge" title="Das bist du">Du</span>}
                           </span>
                         ) : (
-                          <span style={{ color: '#9ca3af' }}>Kein Login vorhanden</span>
+                          <span style={{ color: 'var(--color-gray-400)' }}>Kein Login vorhanden</span>
                         )}
                       </dd>
                     </div>

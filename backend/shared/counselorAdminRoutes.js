@@ -26,6 +26,7 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/db.js';
 import { createCounselorService } from './counselorService.js';
+import logger from '../config/logger.js';
 
 /** Validates that a string is a safe SQL identifier (lowercase letters, digits, underscores). */
 const SAFE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
@@ -110,13 +111,13 @@ export function createCounselorAdminRoutes(config) {
         try {
           userInfo = await onCounselorCreated(counselor, req);
         } catch (userErr) {
-          console.warn(`User creation for ${counselorLabel} failed:`, userErr?.message || userErr);
+          logger.warn({ err: userErr }, `User creation for ${counselorLabel} failed`);
         }
       }
 
       res.json({ success: true, counselor, user: userInfo });
     } catch (err) {
-      console.error(`${tablePrefix} create counselor error:`, err);
+      logger.error({ err }, `${tablePrefix} create counselor error`);
       res.status(500).json({ error: 'Fehler beim Anlegen' });
     }
   });
@@ -162,13 +163,13 @@ export function createCounselorAdminRoutes(config) {
             counselor.user_id,
           ]);
         } catch (syncErr) {
-          console.warn('Email sync to user failed:', syncErr?.message || syncErr);
+          logger.warn({ err: syncErr }, 'Email sync to user failed');
         }
       }
 
       res.json({ success: true, counselor });
     } catch (err) {
-      console.error(`${tablePrefix} update counselor error:`, err);
+      logger.error({ err }, `${tablePrefix} update counselor error`);
       res.status(500).json({ error: 'Fehler beim Speichern' });
     }
   });
@@ -187,7 +188,7 @@ export function createCounselorAdminRoutes(config) {
         try {
           await onCounselorDeleted(counselorRow);
         } catch (userErr) {
-          console.warn(`Cleanup for deleted ${counselorLabel} failed:`, userErr?.message || userErr);
+          logger.warn({ err: userErr }, `Cleanup for deleted ${counselorLabel} failed`);
         }
       }
 
@@ -288,7 +289,7 @@ export function createCounselorAdminRoutes(config) {
       );
       res.json({ appointments: rows });
     } catch (err) {
-      console.error(`${tablePrefix} admin appointments error:`, err);
+      logger.error({ err }, `${tablePrefix} admin appointments error`);
       res.status(500).json({ error: 'Fehler beim Laden der Termine' });
     }
   });
@@ -310,7 +311,7 @@ export function createCounselorAdminRoutes(config) {
       );
       res.json({ success: true, deleted: rowCount });
     } catch (err) {
-      console.error(`${tablePrefix} admin delete appointments error:`, err);
+      logger.error({ err }, `${tablePrefix} admin delete appointments error`);
       res.status(500).json({ error: 'Fehler beim Loeschen' });
     }
   });
@@ -366,7 +367,7 @@ export function createCounselorAdminRoutes(config) {
       );
       res.json({ success: true, schedule: rows });
     } catch (err) {
-      console.error(`${tablePrefix} schedule update error:`, err);
+      logger.error({ err }, `${tablePrefix} schedule update error`);
       res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
     }
   });
@@ -469,7 +470,7 @@ export function createCounselorAdminRoutes(config) {
 
       res.json({ success: true, created: totalCreated, skipped: totalSkipped });
     } catch (err) {
-      console.error(`${tablePrefix} admin generate-slots error:`, err);
+      logger.error({ err }, `${tablePrefix} admin generate-slots error`);
       res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
     }
   });

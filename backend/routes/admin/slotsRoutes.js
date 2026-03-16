@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAdmin } from '../../middleware/auth.js';
 import { query } from '../../config/db.js';
 import { mapSlotRow } from '../../utils/mappers.js';
+import logger from '../../config/logger.js';
 
 const router = express.Router();
 
@@ -59,7 +60,7 @@ router.get('/slots', requireAdmin, async (req, res) => {
 
     return res.json({ slots: (rows || []).map(mapSlotRow) });
   } catch (error) {
-    console.error('Error fetching admin slots:', error);
+    logger.error({ err: error }, 'Error fetching admin slots');
     return res.status(500).json({ error: 'Failed to fetch slots' });
   }
 });
@@ -80,7 +81,7 @@ router.post('/slots', requireAdmin, async (req, res) => {
 
     res.json({ success: true, slot: rows[0] });
   } catch (error) {
-    console.error('Error creating slot:', error);
+    logger.error({ err: error }, 'Error creating slot');
     res.status(500).json({ error: 'Failed to create slot' });
   }
 });
@@ -110,7 +111,7 @@ router.put('/slots/:id', requireAdmin, async (req, res) => {
 
     res.json({ success: true, slot: rows[0] });
   } catch (error) {
-    console.error('Error updating slot:', error);
+    logger.error({ err: error }, 'Error updating slot');
     res.status(500).json({ error: 'Failed to update slot' });
   }
 });
@@ -126,7 +127,7 @@ router.delete('/slots/:id', requireAdmin, async (req, res) => {
     await query('DELETE FROM slots WHERE id = $1', [slotId]);
     res.json({ success: true, message: 'Slot deleted successfully' });
   } catch (error) {
-    console.error('Error deleting slot:', error);
+    logger.error({ err: error }, 'Error deleting slot');
     res.status(500).json({ error: 'Failed to delete slot' });
   }
 });

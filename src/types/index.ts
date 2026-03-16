@@ -92,3 +92,101 @@ export interface UserAccount {
   created_at?: string;
   updated_at?: string;
 }
+
+// ── Event types ────────────────────────────────────────────────────
+
+export type EventStatus = 'draft' | 'published' | 'closed';
+
+export interface AdminEvent {
+  id: number;
+  name: string;
+  school_year: string;
+  starts_at: string;
+  ends_at: string;
+  status: EventStatus;
+  booking_opens_at?: string | null;
+  booking_closes_at?: string | null;
+  timezone?: string | null;
+}
+
+export interface EventStats {
+  eventId: number;
+  totalSlots: number;
+  availableSlots: number;
+  bookedSlots: number;
+  reservedSlots: number;
+  confirmedSlots: number;
+}
+
+// ── Counselor types (SSW / BL shared) ──────────────────────────────
+
+export interface Counselor {
+  id: number;
+  first_name: string;
+  last_name: string;
+  name: string;
+  salutation?: string;
+  email?: string;
+  room?: string;
+  phone?: string;
+  specializations?: string;
+  available_from?: string;
+  available_until?: string;
+  slot_duration_minutes?: number;
+  active?: boolean;
+  user_id?: number;
+}
+
+export interface ScheduleEntry {
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  active: boolean;
+}
+
+export interface CounselorAppointment {
+  id: number;
+  counselor_id: number;
+  date: string;
+  time: string;
+  duration_minutes: number;
+  status: string;
+  student_name?: string;
+  student_class?: string;
+  student_email?: string;
+  concern?: string;
+  notes?: string;
+  category_name?: string;
+  category_icon?: string;
+  topic_name?: string;
+}
+
+export interface CounselorTopic {
+  id: number;
+  name: string;
+  description?: string;
+  icon?: string;
+  sort_order?: number;
+  active?: boolean;
+}
+
+export interface AppointmentSlot {
+  id: number;
+  date: string;
+  time: string;
+  duration_minutes: number;
+}
+
+export interface CounselorBookingConfig {
+  title: string;
+  subtitle: string;
+  counselorLabel: string;
+  confidentialNotice: string;
+  topicLabel: string;
+  topicFieldKey: string;
+  successCounselorLabel: string;
+  successMessage: string;
+  apiPathPrefix: string;
+  topicEndpoint: string;
+  topicResponseKey: string;
+}

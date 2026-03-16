@@ -1,22 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveView } from '../../hooks/useActiveView';
+import type { AdminEvent } from '../../types';
 import api from '../../services/api';
 import { EventCreateForm } from './EventCreateForm';
 import { SlotControls } from './SlotControls';
 import { EventStatusActions } from './EventStatusActions';
 import '../AdminDashboard.css';
 
-type AdminEvent = {
-  id: number;
-  name: string;
-  school_year: string;
-  starts_at: string;
-  ends_at: string;
-  status: 'draft' | 'published' | 'closed';
-  booking_opens_at?: string | null;
-  booking_closes_at?: string | null;
-  timezone?: string | null;
-};
 type EventResponse = { event: AdminEvent };
 
 type GenerateSlotsResponse = {
@@ -202,7 +192,7 @@ export function AdminEvents() {
           {events.length === 0 ? (
             <div style={{ padding: '2rem' }}>
               <h3 style={{ margin: '0 0 0.75rem' }}>Keine Events vorhanden</h3>
-              <p style={{ color: '#6b7280', margin: 0 }}>Legen Sie oben ein neues Event an, um loszulegen.</p>
+              <p className="text-muted" style={{ margin: 0 }}>Legen Sie oben ein neues Event an, um loszulegen.</p>
             </div>
           ) : (
             <>
@@ -316,7 +306,7 @@ export function AdminEvents() {
         </div>
 
         <div className="teacher-form-container" style={{ padding: '1rem 1.5rem' }}>
-          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.88rem' }}>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.88rem' }}>
             <strong>Hinweis:</strong> „Aktiv" ist das zuletzt veröffentlichte Event, das innerhalb seines Buchungsfensters liegt.
             Buchungen sind nur möglich, solange ein Event den Status „Veröffentlicht" hat.
           </p>

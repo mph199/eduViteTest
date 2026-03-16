@@ -6,6 +6,7 @@ import { buildEmail, getEmailBranding } from '../../../emails/template.js';
 import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../../../utils/mappers.js';
 import { buildHalfHourWindows, getTimeWindowsForTeacher } from '../../../utils/timeWindows.js';
+import logger from '../../../config/logger.js';
 
 function parseTimeWindow(timeWindow) {
   if (typeof timeWindow !== 'string') return null;
@@ -122,7 +123,7 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
     await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [now, updatedSlot.id]);
     await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
   } catch (e) {
-    console.warn('Sending request confirmation email failed:', e?.message || e);
+    logger.warn({ err: e }, 'Sending request confirmation email failed');
   }
 }
 
@@ -249,7 +250,7 @@ async function autoAssignOverdueRequestsForTeacher(teacherId) {
     try {
       await assignRequestToSlot(reqRow, teacherId, null);
     } catch (e) {
-      console.warn('Auto-assignment for overdue request failed:', e?.message || e);
+      logger.warn({ err: e }, 'Auto-assignment for overdue request failed');
     }
   }
 }
@@ -267,7 +268,7 @@ async function autoAssignOverdueRequestsGlobal() {
     try {
       await assignRequestToSlot(reqRow, reqRow.teacher_id, null);
     } catch (e) {
-      console.warn('Global auto-assignment failed:', e?.message || e);
+      logger.warn({ err: e }, 'Global auto-assignment failed');
     }
   }
 }
@@ -275,7 +276,7 @@ async function autoAssignOverdueRequestsGlobal() {
 const autoAssignIntervalMs = 5 * 60 * 1000;
 const autoAssignTimer = setInterval(() => {
   autoAssignOverdueRequestsGlobal().catch((e) => {
-    console.warn('Auto-assignment sweep failed:', e?.message || e);
+    logger.warn({ err: e }, 'Auto-assignment sweep failed');
   });
 }, autoAssignIntervalMs);
 
@@ -327,7 +328,7 @@ router.get('/bookings', requireAuth, requireTeacher, async (req, res) => {
   
     res.json({ bookings });
   } catch (error) {
-    console.error('Error fetching teacher bookings:', error);
+    logger.error({ err: error }, 'Error fetching teacher bookings');
     res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 });
@@ -353,7 +354,7 @@ router.get('/slots', requireAuth, requireTeacher, async (req, res) => {
     
     res.json({ slots });
   } catch (error) {
-    console.error('Error fetching teacher slots:', error);
+    logger.error({ err: error }, 'Error fetching teacher slots');
     res.status(500).json({ error: 'Failed to fetch slots' });
   }
 });
@@ -412,7 +413,7 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
       })(),
     });
   } catch (error) {
-    console.error('Error fetching teacher requests:', error);
+    logger.error({ err: error }, 'Error fetching teacher requests');
     return res.status(500).json({ error: 'Failed to fetch requests' });
   }
 });
@@ -517,7 +518,7 @@ async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId, teache
     }
     await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
   } catch (e) {
-    console.warn('Sending multi-slot confirmation email failed:', e?.message || e);
+    logger.warn({ err: e }, 'Sending multi-slot confirmation email failed');
   }
 }
 
@@ -613,10 +614,10 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
           if (extraAssignment.ok) {
             allSlots.push(extraAssignment.updatedSlot);
           } else {
-            console.warn(`Multi-slot assignment: could not assign additional slot for time ${additionalTime}:`, extraAssignment.code);
+            logger.warn({ code: extraAssignment.code, time: additionalTime }, 'Multi-slot assignment: could not assign additional slot');
           }
         } catch (e) {
-          console.warn(`Multi-slot assignment: error assigning time ${additionalTime}:`, e?.message || e);
+          logger.warn({ err: e, time: additionalTime }, 'Multi-slot assignment: error assigning time');
         }
       }
     }
@@ -633,7 +634,7 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       slots: allSlots.map(mapSlotRow),
     });
   } catch (error) {
-    console.error('Error accepting booking request:', error);
+    logger.error({ err: error }, 'Error accepting booking request');
     return res.status(500).json({ error: 'Failed to accept request' });
   }
 });
@@ -667,7 +668,7 @@ router.put('/requests/:id/decline', requireAuth, requireTeacher, async (req, res
 
     return res.json({ success: true, request: mapBookingRequestRow(declineRows[0]) });
   } catch (error) {
-    console.error('Error declining booking request:', error);
+    logger.error({ err: error }, 'Error declining booking request');
     return res.status(500).json({ error: 'Failed to decline request' });
   }
 });
@@ -705,7 +706,7 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching teacher info:', error);
+    logger.error({ err: error }, 'Error fetching teacher info');
     res.status(500).json({ error: 'Failed to fetch teacher info' });
   }
 });
@@ -758,7 +759,7 @@ router.put('/room', requireAuth, requireTeacher, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error updating teacher room:', error);
+    logger.error({ err: error }, 'Error updating teacher room');
     return res.status(500).json({ error: 'Failed to update teacher room' });
   }
 });
@@ -786,7 +787,7 @@ router.post('/feedback', requireAuth, requireTeacher, async (req, res) => {
 
     return res.json({ success: true, feedback: data });
   } catch (error) {
-    console.error('Error creating feedback:', error);
+    logger.error({ err: error }, 'Error creating feedback');
     return res.status(500).json({ error: 'Feedback konnte nicht gespeichert werden.' });
   }
 });
@@ -861,7 +862,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
         await sendMail({ to: current.email, subject, text, html });
         await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
       } catch (e) {
-        console.warn('Sending cancellation email (teacher) failed:', e?.message || e);
+        logger.warn({ err: e }, 'Sending cancellation email (teacher) failed');
       }
     }
 
@@ -870,7 +871,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
       message: 'Booking cancelled successfully'
     });
   } catch (error) {
-    console.error('Error cancelling booking:', error);
+    logger.error({ err: error }, 'Error cancelling booking');
     res.status(500).json({ error: 'Failed to cancel booking' });
   }
 });
@@ -939,13 +940,13 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
         await sendMail({ to: data.email, subject, text, html });
         await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), data.id]);
       } catch (e) {
-        console.warn('Sending confirmation email failed:', e?.message || e);
+        logger.warn({ err: e }, 'Sending confirmation email failed');
       }
     }
 
     res.json({ success: true, slot: data });
   } catch (error) {
-    console.error('Error accepting booking:', error);
+    logger.error({ err: error }, 'Error accepting booking');
     res.status(500).json({ error: 'Failed to accept booking' });
   }
 });
@@ -982,7 +983,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
 
     res.json({ success: true, message: 'Passwort erfolgreich geändert' });
   } catch (error) {
-    console.error('Error changing password:', error);
+    logger.error({ err: error }, 'Error changing password');
     res.status(500).json({ error: 'Fehler beim Ändern des Passworts' });
   }
 });

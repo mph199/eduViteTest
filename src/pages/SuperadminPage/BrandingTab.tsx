@@ -105,7 +105,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                     <img
                       src={api.superadmin.resolveTileUrl(tileUrl)}
                       alt={`Kachelbild ${mod.title}`}
-                      style={{ maxHeight: 60, maxWidth: 120, borderRadius: 6, background: '#fff', padding: 2 }}
+                      style={{ maxHeight: 60, maxWidth: 120, borderRadius: 6, background: 'var(--color-white)', padding: 2 }}
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>

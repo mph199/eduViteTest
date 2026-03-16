@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { Counselor, AppointmentSlot, CounselorBookingConfig, CounselorTopic } from '../../types';
 import './CounselorBookingApp.css';
+
+export type { CounselorBookingConfig };
 
 const API_BASE = String(
   (import.meta as unknown as Record<string, Record<string, unknown>>).env?.VITE_API_URL || '/api'
@@ -18,68 +21,13 @@ async function requestJSON(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-// ── Types ──────────────────────────────────────────────────────────
-
-interface Counselor {
-  id: number;
-  first_name: string;
-  last_name: string;
-  name: string;
-  salutation?: string;
-  room?: string;
-  specializations?: string;
-  available_from?: string;
-  available_until?: string;
-  slot_duration_minutes?: number;
-}
-
-interface TopicItem {
-  id: number;
-  name: string;
-  description?: string;
-}
-
-interface AppointmentSlot {
-  id: number;
-  date: string;
-  time: string;
-  duration_minutes: number;
-}
-
 type Step = 'counselor' | 'datetime' | 'form' | 'success';
-
-// ── Config ─────────────────────────────────────────────────────────
-
-export interface CounselorBookingConfig {
-  /** Page title */
-  title: string;
-  /** Subtitle under the title */
-  subtitle: string;
-  /** How to refer to a counselor in labels */
-  counselorLabel: string;
-  /** Confidential notice text */
-  confidentialNotice: string;
-  /** Label for the topic/category dropdown */
-  topicLabel: string;
-  /** Form field key for topic FK ('category_id' or 'topic_id') */
-  topicFieldKey: string;
-  /** Label in the success summary for the counselor */
-  successCounselorLabel: string;
-  /** Success confirmation message */
-  successMessage: string;
-  /** API path prefix ('/ssw' or '/bl') */
-  apiPathPrefix: string;
-  /** API endpoint for topics ('/categories' or '/topics') */
-  topicEndpoint: string;
-  /** Response key for topics ('categories' or 'topics') */
-  topicResponseKey: string;
-}
 
 // ── Component ──────────────────────────────────────────────────────
 
 export function CounselorBookingApp({ config }: { config: CounselorBookingConfig }) {
   const [counselors, setCounselors] = useState<Counselor[]>([]);
-  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [topics, setTopics] = useState<CounselorTopic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 

@@ -4,6 +4,7 @@ import { query } from '../../config/db.js';
 import { isEmailConfigured, sendMail } from '../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../emails/template.js';
 import { listAdminBookings, cancelBookingAdmin } from '../../modules/elternsprechtag/services/slotsService.js';
+import logger from '../../config/logger.js';
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.get('/bookings', requireAdmin, async (_req, res) => {
     const bookings = await listAdminBookings();
     res.json({ bookings });
   } catch (error) {
-    console.error('Error fetching bookings:', error);
+    logger.error({ err: error }, 'Error fetching bookings');
     res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 });
@@ -49,13 +50,13 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
         await sendMail({ to: previous.email, subject, text, html });
         await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
       } catch (e) {
-        console.warn('Sending cancellation email (admin) failed:', e?.message || e);
+        logger.warn({ err: e }, 'Sending cancellation email (admin) failed');
       }
     }
 
     res.json({ success: true, message: 'Booking cancelled successfully' });
   } catch (error) {
-    console.error('Error cancelling booking:', error);
+    logger.error({ err: error }, 'Error cancelling booking');
     const status = error?.statusCode || 500;
     res.status(status).json({ error: error?.message || 'Failed to cancel booking' });
   }

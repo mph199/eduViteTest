@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAdmin } from '../../middleware/auth.js';
 import { query } from '../../config/db.js';
+import logger from '../../config/logger.js';
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/users', requireAdmin, async (_req, res) => {
     );
     return res.json({ users: rows });
   } catch (error) {
-    console.error('Error fetching admin users:', error);
+    logger.error({ err: error }, 'Error fetching admin users');
     return res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -61,7 +62,7 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
     }
     return res.json({ success: true, user: rows[0] });
   } catch (error) {
-    console.error('Error updating admin user role:', error);
+    logger.error({ err: error }, 'Error updating admin user role');
     return res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -102,7 +103,7 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
 
     return res.json({ success: true, modules });
   } catch (error) {
-    console.error('Error updating user modules:', error);
+    logger.error({ err: error }, 'Error updating user modules');
     return res.status(500).json({ error: 'Failed to update user modules' });
   }
 });

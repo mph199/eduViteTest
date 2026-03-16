@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAdmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import { generateTimeSlotsForTeacher, formatDateDE } from '../../utils/timeWindows.js';
+import logger from '../../config/logger.js';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.get('/events', requireAdmin, async (_req, res) => {
     const { rows } = await query('SELECT * FROM events ORDER BY starts_at DESC');
     res.json({ events: rows || [] });
   } catch (error) {
-    console.error('Error fetching events:', error);
+    logger.error({ err: error }, 'Error fetching events');
     res.status(500).json({ error: 'Failed to fetch events' });
   }
 });
@@ -31,7 +32,7 @@ router.post('/events', requireAdmin, async (req, res) => {
     );
     res.json({ success: true, event: rows[0] });
   } catch (error) {
-    console.error('Error creating event:', error);
+    logger.error({ err: error }, 'Error creating event');
     const message = (error && typeof error === 'object' && 'message' in error)
       ? String(error.message)
       : 'Failed to create event';
@@ -70,7 +71,7 @@ router.put('/events/:id', requireAdmin, async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     res.json({ success: true, event: rows[0] });
   } catch (error) {
-    console.error('Error updating event:', error);
+    logger.error({ err: error }, 'Error updating event');
     res.status(500).json({ error: 'Failed to update event' });
   }
 });
@@ -83,7 +84,7 @@ router.delete('/events/:id', requireAdmin, async (req, res) => {
     await query('DELETE FROM events WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting event:', error);
+    logger.error({ err: error }, 'Error deleting event');
     res.status(500).json({ error: 'Failed to delete event' });
   }
 });
@@ -114,7 +115,7 @@ router.get('/events/:id/stats', requireAdmin, async (req, res) => {
       confirmedSlots: parseInt(confirmedRes.rows[0].count, 10) || 0,
     });
   } catch (error) {
-    console.error('Error fetching event stats:', error);
+    logger.error({ err: error }, 'Error fetching event stats');
     res.status(500).json({ error: 'Failed to fetch event stats' });
   }
 });
@@ -204,7 +205,7 @@ router.post('/events/:id/generate-slots', requireAdmin, async (req, res) => {
 
     return res.json({ success: true, eventId, eventDate, created, skipped, dryRun: Boolean(dryRun), replaceExisting: Boolean(replaceExisting) });
   } catch (error) {
-    console.error('Error generating slots for event:', error);
+    logger.error({ err: error }, 'Error generating slots for event');
     return res.status(500).json({ error: 'Failed to generate slots for event' });
   }
 });
