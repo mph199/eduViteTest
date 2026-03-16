@@ -61,9 +61,6 @@ export function BLAdmin() {
   const [editingTopicId, setEditingTopicId] = useState<number | null>(null);
   const [topicForm, setTopicForm] = useState(emptyTopic);
 
-  // Admin calendar
-  const [adminCalCounselorId] = useState<number | null>(null);
-
   const showFlash = useCallback((msg: string) => {
     setFlash(msg);
     setTimeout(() => setFlash(''), 3000);
@@ -288,37 +285,12 @@ export function BLAdmin() {
     switch (s) {
       case 'available': return 'Frei';
       case 'requested': return 'Angefragt';
-      case 'confirmed': return 'Bestaetigt';
+      case 'confirmed': return 'Bestätigt';
       case 'cancelled': return 'Abgesagt';
       case 'completed': return 'Abgeschlossen';
       default: return s;
     }
   };
-
-  // ── Admin: load calendar for selected counselor ────────────────────
-  const loadAdminCalendar = useCallback(async (counselorId: number, year: number, month: number) => {
-    setCalLoading(true);
-    try {
-      const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      const dateUntil = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      const data = await api.bl.getAdminAppointments(counselorId, dateFrom, dateUntil);
-      setCalAppointments(data?.appointments || []);
-    } catch {
-      setCalAppointments([]);
-    } finally {
-      setCalLoading(false);
-    }
-  }, []);
-
-  // Admin calendar effect
-  useEffect(() => {
-    if (tab === 'counselors' && adminCalCounselorId) {
-      loadAdminCalendar(adminCalCounselorId, calMonth.year, calMonth.month);
-      setCalSelectedDate(null);
-      setCalSelectedIds(new Set());
-    }
-  }, [tab, adminCalCounselorId, calMonth, loadAdminCalendar]);
 
   // ── Tab definitions ────────────────────────────────────────────────
   const blTabs: [Tab, string][] = isBLUser ? [
@@ -439,7 +411,7 @@ export function BLAdmin() {
 
             {profile.room && (
               <div style={{ marginTop: '1rem', color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>
-                Raum: <strong>{profile.room}</strong> | Terminlaenge: <strong>{profile.slot_duration_minutes || 30} Min.</strong>
+                Raum: <strong>{profile.room}</strong> | Terminlänge: <strong>{profile.slot_duration_minutes || 30} Min.</strong>
               </div>
             )}
           </>
@@ -496,7 +468,7 @@ export function BLAdmin() {
                       <th>Datum</th>
                       <th>Uhrzeit</th>
                       <th>Status</th>
-                      <th>Schueler/in</th>
+                      <th>Schüler/in</th>
                       <th>Klasse</th>
                       <th>Thema</th>
                       <th>Anliegen</th>
@@ -528,7 +500,7 @@ export function BLAdmin() {
                               {a.status === 'requested' && (
                                 <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
                                   onClick={() => handleConfirm(a.id)}>
-                                  Bestaetigen
+                                  Bestätigen
                                 </button>
                               )}
                               {(a.status === 'requested' || a.status === 'confirmed') && (
@@ -820,7 +792,7 @@ function renderCalendar(
                         <th style={{ width: '30px' }}></th>
                         <th>Uhrzeit</th>
                         <th>Status</th>
-                        <th>Schueler/in</th>
+                        <th>Schüler/in</th>
                         <th>Thema</th>
                       </tr>
                     </thead>

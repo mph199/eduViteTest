@@ -5,14 +5,24 @@ const RAW_API_BASE =
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
 const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 
-function getAuthHeaders(): HeadersInit {
-  return { 'Content-Type': 'application/json' };
+async function uploadFile(endpoint: string, fieldName: string, file: File): Promise<any> {
+  const form = new FormData();
+  form.append(fieldName, file);
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
+    throw new Error(err.error || 'Upload fehlgeschlagen');
+  }
+  return res.json();
 }
 
-async function requestJSON(path: string, options: RequestInit & { auth?: boolean } = {}) {
-  const { auth = false, headers, ...rest } = options as any;
-  const baseHeaders = auth ? getAuthHeaders() : { 'Content-Type': 'application/json' };
-  const mergedHeaders = { ...baseHeaders, ...(headers || {}) } as HeadersInit;
+async function requestJSON(path: string, options: RequestInit = {}) {
+  const { headers, ...rest } = options as any;
+  const mergedHeaders = { 'Content-Type': 'application/json', ...(headers || {}) } as HeadersInit;
 
   let response: Response;
   try {
@@ -101,53 +111,53 @@ const api = {
     },
     async verify() {
       try {
-        const data = await requestJSON('/auth/verify', { auth: true });
+        const data = await requestJSON('/auth/verify', {});
         return data || { authenticated: false } as any;
       } catch {
         return { authenticated: false } as any;
       }
     },
     async logout() {
-      return requestJSON('/auth/logout', { method: 'DELETE', auth: true });
+      return requestJSON('/auth/logout', { method: 'DELETE' });
     },
   },
 
   // Admin endpoints
   admin: {
     async getBookings() {
-      const res = await requestJSON('/admin/bookings', { auth: true });
+      const res = await requestJSON('/admin/bookings', {});
       return (res && (res as any).bookings) || [];
     },
     async cancelBooking(bookingId: number, cancellationMessage: string) {
       return requestJSON(`/admin/bookings/${bookingId}`, {
         method: 'DELETE',
-        auth: true,
+
         body: JSON.stringify({ cancellationMessage }),
       });
     },
     async getTeachers() {
-      const res = await requestJSON('/admin/teachers', { auth: true });
+      const res = await requestJSON('/admin/teachers', {});
       return (res && (res as any).teachers) || [];
     },
     async createTeacher(payload: any) {
       return requestJSON('/admin/teachers', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async updateTeacher(id: number, payload: any) {
       return requestJSON(`/admin/teachers/${id}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async deleteTeacher(id: number) {
-      return requestJSON(`/admin/teachers/${id}`, { method: 'DELETE', auth: true });
+      return requestJSON(`/admin/teachers/${id}`, { method: 'DELETE'});
     },
     async getTeacherBL(teacherId: number) {
-      return requestJSON(`/admin/teachers/${teacherId}/bl`, { auth: true });
+      return requestJSON(`/admin/teachers/${teacherId}/bl`, {});
     },
     async importTeachersCSV(file: File) {
       const formData = new FormData();
@@ -164,85 +174,85 @@ const api = {
       return data;
     },
     async getSlots() {
-      return requestJSON('/admin/slots', { auth: true });
+      return requestJSON('/admin/slots', {});
     },
     async createSlot(payload: any) {
       return requestJSON('/admin/slots', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async updateSlot(id: number, payload: any) {
       return requestJSON(`/admin/slots/${id}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async deleteSlot(id: number) {
-      return requestJSON(`/admin/slots/${id}`, { method: 'DELETE', auth: true });
+      return requestJSON(`/admin/slots/${id}`, { method: 'DELETE'});
     },
     async generateTeacherSlots(id: number) {
-      return requestJSON(`/admin/teachers/${id}/generate-slots`, { method: 'POST', auth: true });
+      return requestJSON(`/admin/teachers/${id}/generate-slots`, { method: 'POST'});
     },
     async resetTeacherLogin(id: number) {
-      return requestJSON(`/admin/teachers/${id}/reset-login`, { method: 'PUT', auth: true });
+      return requestJSON(`/admin/teachers/${id}/reset-login`, { method: 'PUT'});
     },
 
     // Events
     async getEvents() {
-      const res = await requestJSON('/admin/events', { auth: true });
+      const res = await requestJSON('/admin/events', {});
       return (res && (res as any).events) || [];
     },
     async createEvent(payload: any) {
       return requestJSON('/admin/events', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async updateEvent(id: number, patch: any) {
       return requestJSON(`/admin/events/${id}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(patch),
       });
     },
     async deleteEvent(id: number) {
-      return requestJSON(`/admin/events/${id}`, { method: 'DELETE', auth: true });
+      return requestJSON(`/admin/events/${id}`, { method: 'DELETE'});
     },
     async getEventStats(eventId: number) {
-      return requestJSON(`/admin/events/${eventId}/stats`, { auth: true });
+      return requestJSON(`/admin/events/${eventId}/stats`, {});
     },
     async generateEventSlots(eventId: number, payload: any) {
       return requestJSON(`/admin/events/${eventId}/generate-slots`, {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
 
     // Feedback (anonymous)
     async listFeedback() {
-      const res = await requestJSON('/admin/feedback', { auth: true });
+      const res = await requestJSON('/admin/feedback', {});
       return (res && (res as any).feedback) || [];
     },
 
     async deleteFeedback(id: number) {
       const safeId = encodeURIComponent(String(id));
-      return requestJSON(`/admin/feedback/${safeId}`, { method: 'DELETE', auth: true });
+      return requestJSON(`/admin/feedback/${safeId}`, { method: 'DELETE'});
     },
 
     // Users / Roles
     async getUsers() {
-      const res = await requestJSON('/admin/users', { auth: true });
+      const res = await requestJSON('/admin/users', {});
       return (res && (res as any).users) || [];
     },
     async updateUserRole(id: number, role: string) {
       const res = await requestJSON(`/admin/users/${id}`, {
         method: 'PATCH',
-        auth: true,
+
         body: JSON.stringify({ role }),
       });
       return (res && (res as any).user) || null;
@@ -250,7 +260,7 @@ const api = {
     async updateUserModules(id: number, modules: string[]) {
       return requestJSON(`/admin/users/${id}/modules`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify({ modules }),
       });
     },
@@ -259,22 +269,22 @@ const api = {
   // Teacher endpoints
   teacher: {
     async getBookings() {
-      const res = await requestJSON('/teacher/bookings', { auth: true });
+      const res = await requestJSON('/teacher/bookings', {});
       return (res && (res as any).bookings) || [];
     },
     async getSlots() {
-      const res = await requestJSON('/teacher/slots', { auth: true });
+      const res = await requestJSON('/teacher/slots', {});
       return (res && (res as any).slots) || [];
     },
     async getInfo() {
-      const res = await requestJSON('/teacher/info', { auth: true });
+      const res = await requestJSON('/teacher/info', {});
       return (res && (res as any).teacher) || null;
     },
     async updateRoom(room: string | null) {
       const payload = { room };
       const res = await requestJSON('/teacher/room', {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
       return (res && (res as any).teacher) || null;
@@ -282,16 +292,16 @@ const api = {
     async cancelBooking(bookingId: number, cancellationMessage: string) {
       return requestJSON(`/teacher/bookings/${bookingId}`, {
         method: 'DELETE',
-        auth: true,
+
         body: JSON.stringify({ cancellationMessage }),
       });
     },
     async acceptBooking(bookingId: number) {
-      return requestJSON(`/teacher/bookings/${bookingId}/accept`, { method: 'PUT', auth: true });
+      return requestJSON(`/teacher/bookings/${bookingId}/accept`, { method: 'PUT'});
     },
 
     async getRequests() {
-      const res = await requestJSON('/teacher/requests', { auth: true });
+      const res = await requestJSON('/teacher/requests', {});
       return (res && (res as any).requests) || [];
     },
 
@@ -299,7 +309,7 @@ const api = {
       const safeId = encodeURIComponent(String(requestId));
       return requestJSON(`/teacher/requests/${safeId}/accept`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload || {}),
       });
     },
@@ -308,14 +318,14 @@ const api = {
       const safeId = encodeURIComponent(String(requestId));
       return requestJSON(`/teacher/requests/${safeId}/decline`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify({}),
       });
     },
     async changePassword(currentPassword: string, newPassword: string) {
       return requestJSON('/teacher/password', {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify({ currentPassword, newPassword }),
       });
     },
@@ -323,7 +333,7 @@ const api = {
     async submitFeedback(message: string) {
       return requestJSON('/teacher/feedback', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify({ message }),
       });
     },
@@ -332,15 +342,15 @@ const api = {
   // Beratungslehrer (counselor) endpoints
   bl: {
     async getProfile() {
-      return requestJSON('/bl/counselor/profile', { auth: true });
+      return requestJSON('/bl/counselor/profile', {});
     },
     async getSchedule() {
-      return requestJSON('/bl/counselor/schedule', { auth: true });
+      return requestJSON('/bl/counselor/schedule', {});
     },
     async updateSchedule(schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON('/bl/counselor/schedule', {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify({ schedule }),
       });
     },
@@ -350,60 +360,60 @@ const api = {
       if (params.date_until) qs.set('date_until', params.date_until);
       if (params.status) qs.set('status', params.status);
       const query = qs.toString();
-      return requestJSON(`/bl/counselor/appointments${query ? `?${query}` : ''}`, { auth: true });
+      return requestJSON(`/bl/counselor/appointments${query ? `?${query}` : ''}`, {});
     },
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
       return requestJSON('/bl/counselor/generate-slots', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify({ counselor_id: counselorId, date_from: dateFrom, date_until: dateUntil }),
       });
     },
     async confirmAppointment(id: number) {
       return requestJSON(`/bl/counselor/appointments/${encodeURIComponent(id)}/confirm`, {
         method: 'PUT',
-        auth: true,
+
       });
     },
     async cancelAppointment(id: number) {
       return requestJSON(`/bl/counselor/appointments/${encodeURIComponent(id)}/cancel`, {
         method: 'PUT',
-        auth: true,
+
       });
     },
     // Admin-only
     async getAdminCounselors() {
-      return requestJSON('/bl/admin/counselors', { auth: true });
+      return requestJSON('/bl/admin/counselors', {});
     },
     async getAdminTopics() {
-      return requestJSON('/bl/admin/topics', { auth: true });
+      return requestJSON('/bl/admin/topics', {});
     },
     async createTopic(payload: { name: string; description?: string; sort_order?: number }) {
       return requestJSON('/bl/admin/topics', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async updateTopic(id: number, payload: { name: string; description?: string; sort_order?: number; active?: boolean }) {
       return requestJSON(`/bl/admin/topics/${encodeURIComponent(id)}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON(`/bl/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, { auth: true });
+      return requestJSON(`/bl/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, {});
     },
     async deleteAppointments(ids: number[]) {
       return requestJSON('/bl/admin/appointments', {
         method: 'DELETE',
-        auth: true,
+
         body: JSON.stringify({ ids }),
       });
     },
     async getAdminCounselorSchedule(counselorId: number) {
-      return requestJSON(`/bl/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, { auth: true });
+      return requestJSON(`/bl/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {});
     },
   },
 
@@ -411,65 +421,65 @@ const api = {
   ssw: {
     // Admin
     async getAdminCounselors() {
-      return requestJSON('/ssw/admin/counselors', { auth: true });
+      return requestJSON('/ssw/admin/counselors', {});
     },
     async createCounselor(payload: any) {
       return requestJSON('/ssw/admin/counselors', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async updateCounselor(id: number, payload: any) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(id)}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async deleteCounselor(id: number) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-        auth: true,
+
       });
     },
     async getAdminCategories() {
-      return requestJSON('/ssw/admin/categories', { auth: true });
+      return requestJSON('/ssw/admin/categories', {});
     },
     async createCategory(payload: { name: string; description?: string; icon?: string; sort_order?: number }) {
       return requestJSON('/ssw/admin/categories', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async updateCategory(id: number, payload: { name: string; description?: string; icon?: string; sort_order?: number; active?: boolean }) {
       return requestJSON(`/ssw/admin/categories/${encodeURIComponent(id)}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async getAdminStats() {
-      return requestJSON('/ssw/admin/stats', { auth: true });
+      return requestJSON('/ssw/admin/stats', {});
     },
     async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON(`/ssw/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, { auth: true });
+      return requestJSON(`/ssw/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, {});
     },
     async deleteAppointments(ids: number[]) {
       return requestJSON('/ssw/admin/appointments', {
         method: 'DELETE',
-        auth: true,
+
         body: JSON.stringify({ ids }),
       });
     },
     async getAdminCounselorSchedule(counselorId: number) {
-      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, { auth: true });
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {});
     },
     async updateAdminCounselorSchedule(counselorId: number, schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify({ schedule }),
       });
     },
@@ -478,25 +488,25 @@ const api = {
       const qs = new URLSearchParams();
       if (params.date) qs.set('date', params.date);
       const query = qs.toString();
-      return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`, { auth: true });
+      return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`, {});
     },
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/generate-slots`, {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify({ date_from: dateFrom, date_until: dateUntil }),
       });
     },
     async confirmAppointment(id: number) {
       return requestJSON(`/ssw/counselor/appointments/${encodeURIComponent(id)}/confirm`, {
         method: 'PUT',
-        auth: true,
+
       });
     },
     async cancelAppointment(id: number) {
       return requestJSON(`/ssw/counselor/appointments/${encodeURIComponent(id)}/cancel`, {
         method: 'PUT',
-        auth: true,
+
       });
     },
   },
@@ -504,7 +514,7 @@ const api = {
   // Superadmin endpoints
   superadmin: {
     async getEmailBranding() {
-      return requestJSON('/superadmin/email-branding', { auth: true });
+      return requestJSON('/superadmin/email-branding', {});
     },
     async updateEmailBranding(payload: {
       school_name: string;
@@ -514,30 +524,19 @@ const api = {
     }) {
       return requestJSON('/superadmin/email-branding', {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async sendPreviewEmail(to: string) {
       return requestJSON('/superadmin/email-branding/preview', {
         method: 'POST',
-        auth: true,
+
         body: JSON.stringify({ to }),
       });
     },
     async uploadLogo(file: File) {
-      const form = new FormData();
-      form.append('logo', file);
-      const res = await fetch(`${API_BASE}/superadmin/logo`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
-        throw new Error(err.error || 'Upload fehlgeschlagen');
-      }
-      return res.json();
+      return uploadFile('/superadmin/logo', 'logo', file);
     },
     /** Resolve a relative upload path to a full URL for preview */
     resolveLogoUrl(logoUrl: string): string {
@@ -553,23 +552,12 @@ const api = {
     async updateSiteBranding(payload: Record<string, unknown>) {
       return requestJSON('/superadmin/site-branding', {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async uploadTileImage(file: File): Promise<{ tile_url: string }> {
-      const form = new FormData();
-      form.append('tile', file);
-      const res = await fetch(`${API_BASE}/superadmin/tile-image`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
-        throw new Error(err.error || 'Upload fehlgeschlagen');
-      }
-      return res.json();
+      return uploadFile('/superadmin/tile-image', 'tile', file);
     },
     // ── Text Branding ─────────────────────────────────
     async getTextBranding() {
@@ -578,23 +566,12 @@ const api = {
     async updateTextBranding(payload: Record<string, unknown>) {
       return requestJSON('/superadmin/text-branding', {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify(payload),
       });
     },
     async uploadBgImage(file: File): Promise<{ bg_url: string }> {
-      const form = new FormData();
-      form.append('bg', file);
-      const res = await fetch(`${API_BASE}/superadmin/bg-image`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
-        throw new Error(err.error || 'Upload fehlgeschlagen');
-      }
-      return res.json();
+      return uploadFile('/superadmin/bg-image', 'bg', file);
     },
     /** Resolve a background image path to a full URL */
     resolveBgUrl(bgUrl: string): string {
@@ -618,7 +595,7 @@ const api = {
     async setModuleEnabled(moduleId: string, enabled: boolean) {
       return requestJSON(`/superadmin/modules/${encodeURIComponent(moduleId)}`, {
         method: 'PUT',
-        auth: true,
+
         body: JSON.stringify({ enabled }),
       });
     },
