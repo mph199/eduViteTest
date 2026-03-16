@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import api from '../../../services/api';
 import '../../../pages/AdminDashboard.css';
-
-const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
 interface Counselor {
   id: number;
@@ -85,18 +84,6 @@ const emptyCategory = {
   sort_order: 0,
 };
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    ...opts,
-    headers: { 'Content-Type': 'application/json', ...opts?.headers },
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error((data as any)?.error || `Fehler ${res.status}`);
-  }
-  return res.json();
-}
 
 export function SSWAdmin() {
   const [tab, setTab] = useState<Tab>('counselors');
@@ -142,19 +129,19 @@ export function SSWAdmin() {
     setLoading(true);
     try {
       const [cData, catData] = await Promise.all([
-        apiFetch('/ssw/admin/counselors'),
-        apiFetch('/ssw/admin/categories'),
+        api.ssw.getAdminCounselors(),
+        api.ssw.getAdminCategories(),
       ]);
-      setCounselors(cData.counselors || []);
-      setCategories(catData.categories || []);
+      setCounselors(Array.isArray(cData?.counselors) ? cData.counselors : []);
+      setCategories(Array.isArray(catData?.categories) ? catData.categories : []);
       // Load schedules for all counselors
-      const cList: Counselor[] = cData.counselors || [];
+      const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
       if (cList.length > 0) {
         const scheduleResults = await Promise.all(
-          cList.map(c => apiFetch(`/ssw/admin/counselors/${c.id}/schedule`).catch(() => ({ schedule: [] })))
+          cList.map(c => api.ssw.getAdminCounselorSchedule(c.id).catch(() => ({ schedule: [] })))
         );
         const map: Record<number, ScheduleEntry[]> = {};
-        cList.forEach((c, i) => { map[c.id] = scheduleResults[i].schedule || []; });
+        cList.forEach((c, i) => { map[c.id] = scheduleResults[i]?.schedule || []; });
         setSchedulesMap(map);
       }
     } catch (err) {
@@ -170,8 +157,8 @@ export function SSWAdmin() {
   const loadSchedule = async (counselorId: number) => {
     setScheduleLoading(true);
     try {
-      const data = await apiFetch(`/ssw/admin/counselors/${counselorId}/schedule`);
-      const rows: ScheduleEntry[] = data.schedule || [];
+      const data = await api.ssw.getAdminCounselorSchedule(counselorId);
+      const rows: ScheduleEntry[] = data?.schedule || [];
       if (rows.length > 0) {
         // Merge with defaults so all 7 days are present
         const merged = defaultSchedule().map(def => {
@@ -190,10 +177,7 @@ export function SSWAdmin() {
   };
 
   const saveSchedule = async (counselorId: number) => {
-    await apiFetch(`/ssw/admin/counselors/${counselorId}/schedule`, {
-      method: 'PUT',
-      body: JSON.stringify({ schedule }),
-    });
+    await api.ssw.updateAdminCounselorSchedule(counselorId, schedule);
   };
 
   const handleSaveCounselor = async (e: React.FormEvent) => {
@@ -204,17 +188,11 @@ export function SSWAdmin() {
     }
     try {
       if (editingCounselorId) {
-        await apiFetch(`/ssw/admin/counselors/${editingCounselorId}`, {
-          method: 'PUT',
-          body: JSON.stringify(counselorForm),
-        });
+        await api.ssw.updateCounselor(editingCounselorId, counselorForm);
         await saveSchedule(editingCounselorId);
         showFlash('Berater/in aktualisiert.');
       } else {
-        const data = await apiFetch('/ssw/admin/counselors', {
-          method: 'POST',
-          body: JSON.stringify(counselorForm),
-        });
+        const data = await api.ssw.createCounselor(counselorForm);
         if (data.counselor?.id) {
           await saveSchedule(data.counselor.id);
         }
@@ -256,7 +234,7 @@ export function SSWAdmin() {
   const handleDeleteCounselor = async (id: number) => {
     if (!confirm('Berater/in wirklich löschen?')) return;
     try {
-      await apiFetch(`/ssw/admin/counselors/${id}`, { method: 'DELETE' });
+      await api.ssw.deleteCounselor(id);
       showFlash('Berater/in gelöscht.');
       loadData();
     } catch (err) {
@@ -270,16 +248,10 @@ export function SSWAdmin() {
     if (!categoryForm.name.trim()) { alert('Name ist Pflicht.'); return; }
     try {
       if (editingCategoryId) {
-        await apiFetch(`/ssw/admin/categories/${editingCategoryId}`, {
-          method: 'PUT',
-          body: JSON.stringify(categoryForm),
-        });
+        await api.ssw.updateCategory(editingCategoryId, categoryForm);
         showFlash('Kategorie aktualisiert.');
       } else {
-        await apiFetch('/ssw/admin/categories', {
-          method: 'POST',
-          body: JSON.stringify(categoryForm),
-        });
+        await api.ssw.createCategory(categoryForm);
         showFlash('Kategorie erstellt.');
       }
       setShowCategoryForm(false);
@@ -310,14 +282,7 @@ export function SSWAdmin() {
     }
     setGenerating(true);
     try {
-      const data = await apiFetch('/ssw/counselor/generate-slots', {
-        method: 'POST',
-        body: JSON.stringify({
-          counselor_id: calCounselorId,
-          date_from: slotGenFrom,
-          date_until: slotGenUntil,
-        }),
-      });
+      const data = await api.ssw.generateSlots(calCounselorId, slotGenFrom, slotGenUntil);
       showFlash(`${data.created || 0} Termine erstellt (${data.skipped || 0} übersprungen).`);
       setSlotGenFrom('');
       setSlotGenUntil('');
@@ -340,8 +305,8 @@ export function SSWAdmin() {
       const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
       const lastDay = new Date(year, month + 1, 0).getDate();
       const dateUntil = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      const data = await apiFetch(`/ssw/admin/appointments?counselor_id=${counselorId}&date_from=${dateFrom}&date_until=${dateUntil}`);
-      setCalAppointments(data.appointments || []);
+      const data = await api.ssw.getAdminAppointments(counselorId, dateFrom, dateUntil);
+      setCalAppointments(Array.isArray(data?.appointments) ? data.appointments : []);
     } catch {
       setCalAppointments([]);
     } finally {
@@ -363,10 +328,7 @@ export function SSWAdmin() {
     if (!confirm(`${count} Termin(e) wirklich löschen?`)) return;
     setCalDeleting(true);
     try {
-      const data = await apiFetch('/ssw/admin/appointments', {
-        method: 'DELETE',
-        body: JSON.stringify({ ids: Array.from(calSelectedIds) }),
-      });
+      const data = await api.ssw.deleteAppointments(Array.from(calSelectedIds));
       showFlash(`${data.deleted || 0} Termin(e) gelöscht.`);
       setCalSelectedIds(new Set());
       if (calCounselorId) loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);

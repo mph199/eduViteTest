@@ -407,6 +407,100 @@ const api = {
     },
   },
 
+  // Schulsozialarbeit (SSW) endpoints
+  ssw: {
+    // Admin
+    async getAdminCounselors() {
+      return requestJSON('/ssw/admin/counselors', { auth: true });
+    },
+    async createCounselor(payload: any) {
+      return requestJSON('/ssw/admin/counselors', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateCounselor(id: number, payload: any) {
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async deleteCounselor(id: number) {
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        auth: true,
+      });
+    },
+    async getAdminCategories() {
+      return requestJSON('/ssw/admin/categories', { auth: true });
+    },
+    async createCategory(payload: { name: string; description?: string; icon?: string; sort_order?: number }) {
+      return requestJSON('/ssw/admin/categories', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateCategory(id: number, payload: { name: string; description?: string; icon?: string; sort_order?: number; active?: boolean }) {
+      return requestJSON(`/ssw/admin/categories/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify(payload),
+      });
+    },
+    async getAdminStats() {
+      return requestJSON('/ssw/admin/stats', { auth: true });
+    },
+    async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
+      return requestJSON(`/ssw/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, { auth: true });
+    },
+    async deleteAppointments(ids: number[]) {
+      return requestJSON('/ssw/admin/appointments', {
+        method: 'DELETE',
+        auth: true,
+        body: JSON.stringify({ ids }),
+      });
+    },
+    async getAdminCounselorSchedule(counselorId: number) {
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, { auth: true });
+    },
+    async updateAdminCounselorSchedule(counselorId: number, schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify({ schedule }),
+      });
+    },
+    // Counselor self-service
+    async getAppointments(params: { date?: string } = {}) {
+      const qs = new URLSearchParams();
+      if (params.date) qs.set('date', params.date);
+      const query = qs.toString();
+      return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`, { auth: true });
+    },
+    async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
+      return requestJSON('/ssw/counselor/generate-slots', {
+        method: 'POST',
+        auth: true,
+        body: JSON.stringify({ counselor_id: counselorId, date_from: dateFrom, date_until: dateUntil }),
+      });
+    },
+    async confirmAppointment(id: number) {
+      return requestJSON(`/ssw/counselor/appointments/${encodeURIComponent(id)}/confirm`, {
+        method: 'PUT',
+        auth: true,
+      });
+    },
+    async cancelAppointment(id: number) {
+      return requestJSON(`/ssw/counselor/appointments/${encodeURIComponent(id)}/cancel`, {
+        method: 'PUT',
+        auth: true,
+      });
+    },
+  },
+
   // Superadmin endpoints
   superadmin: {
     async getEmailBranding() {
