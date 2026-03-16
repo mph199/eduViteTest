@@ -21,9 +21,21 @@ const isProduction = process.env.NODE_ENV === 'production';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Security headers
+// Security headers – CSP als Fallback; in Produktion ueberschreibt nginx die Header
+const cspConnectSrc = ["'self'", ...corsOrigins];
 app.use(helmet({
-  contentSecurityPolicy: false, // managed by nginx/reverse proxy in production
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: cspConnectSrc,
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
 }));
 
@@ -41,7 +53,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // Rate limiting
 const authLimiter = rateLimit({

@@ -1,11 +1,16 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-// Admin User Credentials
-export const ADMIN_USER = {
-  username: 'Start',
-  passwordHash: '$2b$10$jMMKjGTA.VRvbHHcoWAlhexrOd29f89oVG7wdk..iKtXxMcCWGeYa' // Start
-};
+// Admin User Credentials – aus Umgebungsvariablen laden
+const adminUsername = process.env.ADMIN_USERNAME;
+const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+export const ADMIN_USER = adminUsername && adminPasswordHash
+  ? { username: adminUsername, passwordHash: adminPasswordHash }
+  : null;
+
+if (!ADMIN_USER) {
+  console.warn('[auth] ADMIN_USERNAME / ADMIN_PASSWORD_HASH nicht gesetzt – System-Admin-Login deaktiviert. Nur DB-User koennen sich anmelden.');
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -51,13 +56,10 @@ export function verifyToken(token) {
 }
 
 /**
- * Extract token from Authorization header or cookie.
+ * Extract token from httpOnly cookie only.
+ * Bearer-Header-Extraktion wurde entfernt um die Angriffsflaeche zu reduzieren.
  */
 function extractToken(req) {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
   if (req.cookies?.token) {
     return req.cookies.token;
   }
@@ -153,8 +155,7 @@ export const requireBeratungslehrer = requireModuleAccess('beratungslehrer');
  * Verify login credentials
  */
 export async function verifyCredentials(username, password) {
-  if (username !== ADMIN_USER.username) {
-    return false;
-  }
+  if (!ADMIN_USER) return false;
+  if (username !== ADMIN_USER.username) return false;
   return bcrypt.compare(password, ADMIN_USER.passwordHash);
 }

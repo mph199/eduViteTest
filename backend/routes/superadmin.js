@@ -27,9 +27,10 @@ const logoUpload = multer({
   storage: logoStorage,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) return cb(null, true);
+    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
     cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
   },
 });
@@ -251,9 +252,10 @@ const tileUpload = multer({
   storage: tileStorage,
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) return cb(null, true);
+    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
     cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
   },
 });
