@@ -116,6 +116,36 @@ TLS-Zertifikat z. B. mit `certbot --nginx -d sprechtag.meineschule.de` einrichte
 
 ---
 
+## Security-Header (CSP) im Reverse Proxy
+
+Das Backend setzt bereits CSP-Header via Helmet. Bei Bedarf koennen
+zusaetzliche Header auf Reverse-Proxy-Ebene gesetzt werden.
+
+### Nginx CSP-Beispiel
+
+```nginx
+# In den server{} Block der HTTPS-Konfiguration einfuegen:
+
+# Security Headers (ergaenzend zu den Backend-Headern)
+add_header X-Frame-Options "DENY" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "no-referrer" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+# Strict Transport Security (nur wenn TLS korrekt konfiguriert)
+add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+# CSP (nur setzen wenn Backend-CSP ueberschrieben werden soll)
+# add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'" always;
+```
+
+> **Hinweis:** Das Backend setzt bereits CSP via Helmet (`backend/index.js:34-48`).
+> Die CSP-Zeile oben ist auskommentiert – nur aktivieren, wenn der Reverse Proxy
+> die Backend-Header ueberschreiben soll. Doppelte CSP-Header koennen zu
+> unerwartetem Verhalten fuehren.
+
+---
+
 ## Hinweise
 
 - Bei allen Varianten muss in `.env` die `PUBLIC_BASE_URL` auf `https://sprechtag.meineschule.de` gesetzt werden.

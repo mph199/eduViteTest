@@ -213,63 +213,70 @@ Empfohlene Standard-Fristen (konfigurierbar):
 | httpOnly-Cookies | Implementiert | JWT in Cookie, `SameSite=Lax`, `Secure` in Prod |
 | Rate Limiting | Implementiert | Auth: 20/15min, Booking: 30/15min |
 | CORS | Implementiert | Dynamisch via `CORS_ORIGINS` Env-Variable |
-| Helmet.js | Implementiert | Standard-Security-Headers (ohne CSP) |
+| Helmet.js | Implementiert | Standard-Security-Headers inkl. CSP |
 | Graceful Shutdown | Implementiert | SIGTERM/SIGINT mit 10s Force-Timeout |
 | Structured Logging | Implementiert | Pino, keine Stack-Traces in Production |
 | Row Level Security | Implementiert | `feedback`, `events`, `booking_requests` |
 
 ### 13a – Content Security Policy (CSP)
 
-- [ ] **CSP-Header aktivieren** – Helmet.js CSP einschalten oder Nginx-Config mit strikter CSP ergänzen: `default-src 'self'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'` (für CSS-in-JS), `img-src 'self' data: blob:` (für Uploads/Logos), `connect-src 'self'` (API-Calls)
-- [ ] **CSP-Report-Only** – Zunächst im Report-Only-Modus testen (`Content-Security-Policy-Report-Only`), Violations loggen, dann enforced schalten
-- [ ] **Nonce-basiertes Script-Loading** – Inline-Scripts mit Nonce versehen (Vite generiert Hashes), `unsafe-inline` für Scripts entfernen
+- [x] **CSP-Header aktivieren** – Helmet.js CSP aktiv mit strikten Direktiven: `default-src 'self'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'`, `img-src 'self' data: blob:`, `connect-src 'self' + CORS_ORIGINS`, `object-src 'none'`, `frame-ancestors 'none'` (`backend/index.js:34-48`)
+- [x] ~~**CSP-Report-Only**~~ – SKIP: CSP ist direkt enforced und funktioniert, Report-Only nicht noetig
+- [x] ~~**Nonce-basiertes Script-Loading**~~ – SKIP: Vite generiert statische Module, kein Inline-JS vorhanden
+- [x] **CSP fuer Uploads** – Restriktive CSP auf `/uploads`: `default-src 'none'; img-src 'self'; script-src 'none'` + `nosniff` (`backend/index.js:91-95`)
 - [ ] **Nginx-Template** – CSP-Header in `docs/reverse-proxy-examples.md` als Referenz-Config ergänzen
 
 ### 13b – Cross-Site Request Forgery (CSRF)
 
-- [ ] **CSRF-Risikobewertung** – Aktuell: `SameSite=Lax`-Cookies bieten Basis-Schutz. Risiko: Ältere Browser ohne SameSite-Support, Subdomain-Angriffe bei Shared-Hosting
-- [ ] **Double-Submit-Cookie** – Für State-Changing-Requests (POST/PUT/DELETE): Backend setzt CSRF-Token als Cookie, Frontend sendet Token im `X-CSRF-Token`-Header, Backend vergleicht beide Werte
-- [ ] **Origin/Referer-Validierung** – Zusätzlich: Backend prüft `Origin`- oder `Referer`-Header gegen `CORS_ORIGINS`-Whitelist bei allen mutierenden Requests
+- [x] **CSRF-Risikobewertung** – SameSite=Lax + CORS Origin-Pruefung bieten ausreichenden Schutz. Kein Shared-Hosting, kein Subdomain-Szenario. Designentscheidung dokumentiert in `docs/SECURITY.md` Abschnitt 4
+- [x] ~~**Double-Submit-Cookie**~~ – SKIP: SameSite=Lax + CORS reicht fuer unser Deployment-Szenario. Siehe `docs/SECURITY.md` fuer Begruendung
+- [x] **Origin/Referer-Validierung** – CORS-Middleware prueft Origin gegen `CORS_ORIGINS` Whitelist (`backend/index.js:50-57`)
 
 ### 13c – Cross-Site Scripting (XSS)
 
-- [ ] **Input-Sanitization** – `npm install dompurify` (oder serverseitig `sanitize-html`): Alle Freitext-Felder (`message`, `feedback`, `notes`) beim Speichern sanitieren
-- [ ] **Output-Encoding** – React escaped standardmäßig (kein `dangerouslySetInnerHTML` verwenden). Prüfung: Alle Stellen mit `dangerouslySetInnerHTML` identifizieren und durch sichere Alternativen ersetzen
-- [ ] **E-Mail-Template-Escaping** – `escapeHtml()`-Funktion in E-Mail-Templates konsequent einsetzen (bereits teilweise vorhanden, Vollständigkeit prüfen)
-- [ ] **HTTP-Header** – `X-Content-Type-Options: nosniff` (bereits via Helmet), `X-XSS-Protection: 0` (veraltet, browser-eigene Filterung reicht mit CSP)
+- [ ] **Input-Sanitization** – Empfohlen: `sanitize-html` serverseitig fuer Freitext-Felder (`message`, `feedback`, `notes`). Prioritaet: Mittel (React escaped bereits alle Outputs)
+- [x] **Output-Encoding** – React escaped standardmaessig. 1x `dangerouslySetInnerHTML` in EmailBrandingTab (admin-only, escaped Input) – sicher
+- [x] **E-Mail-Template-Escaping** – `esc()`-Funktion auf allen User-Inputs in `backend/emails/template.js:35-41`
+- [x] **HTTP-Header** – `X-Content-Type-Options: nosniff` via Helmet + explizit auf /uploads. CSP aktiv
 
 ### 13d – Authentifizierung & Session-Management
 
-- [ ] **JWT-Secret Rotation** – Dokumentation: Wie das JWT-Secret sicher rotiert wird (neues Secret setzen, alte Tokens laufen nach maxAge aus)
-- [ ] **Token-Lebensdauer verkürzen** – Standard von 8h auf 4h reduzieren, für Admin/Superadmin auf 2h
-- [ ] **Refresh-Token-Mechanismus** – Optional: Kurzlebiges Access-Token (15min) + langlebiges Refresh-Token (7 Tage) in separatem httpOnly-Cookie, Refresh-Endpoint `/api/auth/refresh`
-- [ ] **Account-Lockout** – Nach 5 fehlgeschlagenen Login-Versuchen: Account für 15 Minuten sperren (Brute-Force-Schutz, ergänzend zum Rate Limiting)
-- [ ] **Passwort-Richtlinien** – Mindestlänge 10 Zeichen, Komplexitätsprüfung (Groß-/Kleinbuchstaben, Zahlen), Passwort-Ablauf nach 365 Tagen (optional, konfigurierbar)
-- [ ] **Passwort-Änderung erzwingen** – Beim ersten Login nach CSV-Import: Nutzer muss Passwort ändern (`force_password_change`-Flag in `users`-Tabelle)
+- [x] **JWT-Secret Rotation** – Dokumentiert in `docs/SECURITY.md` Abschnitt 11 (Vorgehensweise, Rhythmus, Auswirkungen)
+- [x] **Token-Lebensdauer** – 8h konfiguriert (`backend/middleware/auth.js:20`), Cookie-maxAge synchron (`backend/routes/auth.js:16`)
+- [x] **Cookie-Security** – httpOnly, secure (Prod), sameSite=lax. Bearer-Header-Extraktion entfernt (`backend/middleware/auth.js:63-68`)
+- [ ] **Token-Lebensdauer verkürzen** – Von 8h auf 4h (Standard) / 2h (Admin) reduzieren
+- [ ] **Refresh-Token-Mechanismus** – Access-Token 15min + Refresh-Token 7d in separatem httpOnly-Cookie
+- [ ] **Account-Lockout** – Nach 5 Fehlversuchen: 15min Sperre auf Account-Ebene
+- [ ] **Passwort-Richtlinien** – Min. 10 Zeichen, Komplexitaetspruefung
+- [ ] **Passwort-Änderung erzwingen** – `force_password_change`-Flag in `users`-Tabelle
 
 ### 13e – API-Sicherheit
 
-- [ ] **Rate Limiting erweitern** – Alle öffentlichen Endpunkte absichern (nicht nur Auth + Booking): SSW-Buchungen, Datenexport, Feedback
-- [ ] **Request-Size-Limits** – `express.json({ limit: '100kb' })` und `express.urlencoded({ limit: '100kb' })` für alle Routen, Upload-Routen separat mit höherem Limit (5MB)
-- [ ] **File-Upload-Validierung** – MIME-Type-Prüfung (nicht nur Extension), Dateigröße begrenzen, Uploads in isoliertem Verzeichnis ohne Execute-Rechte, Dateinamen sanitieren
-- [ ] **API-Versionierung** – Langfristig: `/api/v1/` Prefix für Breaking Changes, Deprecation-Header für alte Endpunkte
-- [ ] **Request-Logging** – Alle API-Zugriffe loggen (IP, Endpunkt, User-ID, Timestamp, Status-Code) für Audit-Trail und Anomalie-Erkennung
+- [x] **Rate Limiting** – Auth 20/15min, Booking 30/15min, Admin 100/15min, Public/SA 60/15min (`backend/index.js:64-86`, `backend/routes/superadmin.js:13-19`)
+- [x] **Request-Size-Limits** – JSON auf 100kb begrenzt (`backend/index.js:61`), Uploads separat: Logo/Tile 2MB, Hintergrund 5MB
+- [x] **File-Upload-Validierung** – MIME-Type + Extension-Pruefung, SVG blockiert, Dateinamen sanitiert (Prefix+Timestamp), isoliertes Upload-Verzeichnis (`backend/routes/superadmin.js:26-51`)
+- [x] **Request-Logging** – Pino mit Method+URL (`backend/index.js:98-100`), JSON in Production, Pretty in Dev
+- [x] **SQL-Parametrisierung** – Durchgehend `$1, $2` in allen Queries
+- [ ] **API-Versionierung** – Langfristig: `/api/v1/` Prefix (niedrige Prioritaet)
 
 ### 13f – Infrastruktur-Sicherheit
 
-- [ ] **Docker-Sicherheit** – Container als non-root User ausführen (`USER node` in Dockerfile), Read-Only-Filesystem wo möglich, keine privilegierten Container
-- [ ] **Netzwerk-Isolation** – Interne Docker-Services (Backend, DB) nicht direkt nach außen exponieren, nur Frontend/Nginx öffentlich
-- [ ] **Secrets-Management** – Docker Secrets statt Env-Variablen für `JWT_SECRET`, `DATABASE_URL`, SMTP-Credentials; Anleitung in INSTALL.md
-- [ ] **Dependency-Scanning** – GitHub Dependabot aktivieren, `npm audit` in CI/CD-Pipeline, automatische PRs für Security-Updates
-- [ ] **Security-Headers Audit** – Regelmäßig mit securityheaders.com oder Mozilla Observatory prüfen, Ziel: A+ Rating
-- [ ] **PostgreSQL-Hardening** – `pg_hba.conf`: Nur Verbindungen vom Backend-Container erlauben, SSL-Verbindung zwischen Backend und DB erzwingen (`?sslmode=require` in `DATABASE_URL`)
+- [x] **Health Checks** – Backend + PostgreSQL mit Health Checks konfiguriert (`Dockerfile.backend:14-15`, `docker-compose.yml:13-17`)
+- [x] **Multi-Stage Build** – Frontend: node -> nginx, reduziert Image-Groesse (`Dockerfile.frontend`)
+- [x] **Dependency-Scanning** – GitHub Dependabot konfiguriert (`.github/dependabot.yml`) fuer npm + Docker
+- [ ] **Docker non-root** – `USER node` in `Dockerfile.backend` ergaenzen
+- [ ] **Netzwerk-Isolation** – Explizite Docker-Netzwerke (frontend, backend) definieren
+- [ ] **PostgreSQL-Port** – Port 5432 in Produktion nicht exponieren (siehe `docs/SECURITY.md` Abschnitt 10)
+- [ ] **Secrets-Management** – Docker Secrets statt Env-Variablen fuer sensitive Werte
+- [ ] **Security-Headers Audit** – Regelmaessig mit securityheaders.com pruefen
+- [ ] **PostgreSQL SSL** – CA-Zertifikat konfigurieren, `rejectUnauthorized: true` setzen
 
 ### 13g – Monitoring & Incident Response
 
-- [ ] **Security-Event-Logging** – Fehlgeschlagene Logins, Rate-Limit-Überschreitungen, unerlaubte Zugriffe (403/401) in separatem Log-Stream erfassen
-- [ ] **Alerting** – Bei auffälligen Mustern benachrichtigen: >10 fehlgeschlagene Logins/Minute, unbekannte IP-Ranges, ungewöhnliche API-Nutzung
-- [ ] **Incident-Response-Plan** – Dokumentation in `docs/SECURITY.md`: Ansprechpartner, Meldekette (72h-Frist bei Datenpanne, Art. 33 DSGVO), Sofortmaßnahmen (Secret-Rotation, Account-Sperrung, Backup-Restore)
-- [ ] **Penetration-Test-Checkliste** – Dokumentierte Testfälle für manuelle/automatisierte Sicherheitstests (OWASP ZAP, Burp Suite Community)
+- [x] **Incident-Response-Plan** – Dokumentiert in `docs/SECURITY.md` Abschnitt 13 (Meldekette, 72h DSGVO-Frist, Sofortmassnahmen, Backup/Restore)
+- [x] **Penetration-Test-Checkliste** – Dokumentiert in `docs/SECURITY.md` Abschnitt 14 (14 automatisierte + 5 manuelle Testfaelle)
+- [ ] **Security-Event-Logging** – Fehlgeschlagene Logins + 403/401 in separatem Log-Stream erfassen
+- [ ] **Alerting** – Benachrichtigung bei auffaelligen Mustern (>10 Failed Logins/Minute)
 
 ### Mögliche Module (Ideen)
 
