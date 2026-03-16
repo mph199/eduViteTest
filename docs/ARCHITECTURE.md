@@ -11,7 +11,7 @@ Self-hosted school management platform. Docker Compose with 3 services:
 
 ## Module System
 
-Plugin architecture. Modules are independently toggleable via `ENABLED_MODULES` / `VITE_ENABLED_MODULES`.
+Plugin architecture. Modules are independently toggleable via `ENABLED_MODULES` / `VITE_ENABLED_MODULES` (startup) and via the Superadmin UI at runtime (DB-based `module_config` table).
 
 ### Backend Module Loading
 
@@ -105,6 +105,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 | `settings` | Global app settings |
 | `feedback` | User feedback messages |
 | `site_branding` | School branding (colors, name, logo) |
+| `module_config` | Per-module enable/disable state (module_id, enabled, updated_at) |
 
 ### SSW Tables (prefix: `ssw_`)
 
@@ -161,7 +162,7 @@ Centralized fetch wrapper. Namespaced:
 - `api.bl.*` – beratungslehrer module endpoints
 - `api.ssw.*` – schulsozialarbeit module endpoints
 - `api.events.*`, `api.bookings.*` – public endpoints
-- `api.superadmin.*` – school management
+- `api.superadmin.*` – school management, module config (enable/disable)
 
 All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` event.
 
@@ -194,6 +195,7 @@ backend/
       userRoutes.js     # User management, module access
       settingsRoutes.js # Global settings
       feedbackRoutes.js # Feedback CRUD
+    superadmin.js       # Superadmin endpoints (branding, backgrounds, email, text, module config)
     teacher.js          # Teacher endpoints (bookings, requests, password)
   shared/               # Shared factories for SSW/BL deduplication
     counselorService.js       # createCounselorService(config) – DB queries
@@ -244,6 +246,7 @@ Module differences are handled via config parameters (table prefix, topic schema
 7. **Directory-based page components** – large pages split into `Page/index.tsx` + sub-components (AdminTeachers, AdminEvents, SuperadminPage)
 8. **Shared booking UI** – `src/shared/components/CounselorBookingApp.tsx` used by both SSW and BL modules via config
 9. **Structured logging** – Pino logger (`backend/config/logger.js`) for all production backend code; seed/test scripts keep console
+10. **Runtime module toggling** – Superadmin can enable/disable modules via UI (`module_config` table). Backend routes stay mounted (loaded at startup), but frontend hides disabled modules. Public API only exposes enabled modules to non-superadmin callers.
 
 ## Environment Variables
 
