@@ -3,18 +3,9 @@ import { Link } from 'react-router-dom';
 import { modules } from '../modules/registry';
 import { useBranding } from '../contexts/BrandingContext';
 import { useModuleConfig } from '../contexts/ModuleConfigContext';
-import { EduViteLogo } from '../components/EduViteLogo';
+import { renderWithLogo } from '../components/EduViteLogo';
 import api from '../services/api';
 import './LandingPage.css';
-
-/** Replace "eduVite" / "Eduvite" / "EduVite" in text with the logo component */
-function renderWithLogo(text: string) {
-  const parts = text.split(/(eduvite)/i);
-  if (parts.length === 1) return text;
-  return parts.map((part, i) =>
-    /^eduvite$/i.test(part) ? <EduViteLogo key={i} /> : part
-  );
-}
 
 export function LandingPage() {
   const { branding } = useBranding();

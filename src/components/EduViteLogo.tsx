@@ -15,6 +15,15 @@ interface EduViteLogoProps {
   size?: string;
 }
 
+/** Replace {eduvite} placeholder in text with the animated logo component */
+export function renderWithLogo(text: string) {
+  const parts = text.split(/(\{eduvite\})/i);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    /^\{eduvite\}$/i.test(part) ? <EduViteLogo key={i} /> : part
+  );
+}
+
 export function EduViteLogo({ size = '1em' }: EduViteLogoProps) {
   return (
     <span className="ev-logo" style={{ fontSize: size }} aria-label="eduVite">
