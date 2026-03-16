@@ -243,7 +243,7 @@ export function TeacherBookings() {
           </div>
         </div>
 
-        <div className="stat-card" style={{ flex: '0 0 220px', minWidth: 220, padding: '1.1rem 1.1rem' }}>
+        <div className="stat-card" style={{ flex: '1 1 220px', minWidth: 0, padding: '1.1rem 1.1rem' }}>
           <h3>Meine Termine</h3>
           <p className="stat-number">{bookings.length}</p>
           <p className="stat-label">Gebuchte Gespräche</p>

@@ -184,7 +184,6 @@
 
 .sandbox-grid {
   width: 100%;
-  min-width: 1160px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.92rem;
@@ -347,7 +346,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 0.6rem 14px;
+  min-height: 44px;
   cursor: pointer;
   border-radius: 0;
   font-size: 0.88rem;
@@ -1258,10 +1258,10 @@
   }
 
   .sandbox-modal__nav > .sandbox-nav-arrow {
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
-    font-size: 0.8rem;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    font-size: 0.85rem;
     padding: 0;
   }
 
