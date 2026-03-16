@@ -582,6 +582,27 @@ const api = {
         body: JSON.stringify(payload),
       });
     },
+    async uploadBgImage(file: File): Promise<{ bg_url: string }> {
+      const form = new FormData();
+      form.append('bg', file);
+      const res = await fetch(`${API_BASE}/superadmin/bg-image`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
+        throw new Error(err.error || 'Upload fehlgeschlagen');
+      }
+      return res.json();
+    },
+    /** Resolve a background image path to a full URL */
+    resolveBgUrl(bgUrl: string): string {
+      if (!bgUrl) return '';
+      if (bgUrl.startsWith('http')) return bgUrl;
+      if (bgUrl.startsWith('/')) return `${BACKEND_BASE}${bgUrl}`;
+      return `${BACKEND_BASE}/uploads/bg/${bgUrl}`;
+    },
     /** Resolve a tile image path to a full URL */
     resolveTileUrl(tileUrl: string): string {
       if (!tileUrl) return '';

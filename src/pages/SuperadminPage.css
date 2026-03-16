@@ -60,6 +60,13 @@
   margin-bottom: 1.75rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   padding-bottom: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.superadmin__tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .superadmin__tab {
@@ -420,6 +427,176 @@
   color: #94a3b8;
   margin-bottom: 1.5rem;
   line-height: 1.45;
+}
+
+/* ── Module cards ──────────────────────────────────────── */
+
+.superadmin__module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.superadmin__module-card {
+  display: flex;
+  gap: 14px;
+  padding: 1rem 1.15rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.superadmin__module-card--disabled {
+  opacity: 0.5;
+}
+
+.superadmin__module-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 8px;
+}
+
+.superadmin__module-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.superadmin__module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.superadmin__module-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #e2e8f0;
+}
+
+.superadmin__module-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.superadmin__module-status--active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.superadmin__module-status--inactive {
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.superadmin__module-desc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.superadmin__module-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.superadmin__module-meta code {
+  font-size: 0.72rem;
+  padding: 1px 5px;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 3px;
+  color: #94a3b8;
+}
+
+/* ── Background image cards ────────────────────────────── */
+
+.superadmin__bg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.superadmin__bg-card {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+}
+
+.superadmin__bg-preview {
+  width: 120px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background-color: rgba(148, 163, 184, 0.08);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.superadmin__bg-placeholder {
+  font-size: 0.72rem;
+  color: #475569;
+}
+
+.superadmin__bg-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.superadmin__bg-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+}
+
+.superadmin__bg-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.superadmin__bg-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.superadmin__bg-actions .superadmin__btn {
+  font-size: 0.76rem;
+  padding: 4px 10px;
+}
+
+.superadmin__bg-upload-label {
+  cursor: pointer;
 }
 
 /* ── Responsive ─────────────────────────────────────────── */

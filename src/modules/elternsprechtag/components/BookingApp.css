@@ -17,7 +17,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url('/Hintergrund_Sprechtag.png');
+  background-image: var(--booking-bg, url('/Hintergrund_Sprechtag.png'));
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -60,7 +60,7 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(6, 95, 70, 0.90);
+  color: rgba(var(--brand-primary-dark-rgb), 0.90);
 }
 
 .welcomeWindow__headlineRow {

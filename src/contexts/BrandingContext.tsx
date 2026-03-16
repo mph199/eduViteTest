@@ -26,6 +26,7 @@ export interface SiteBranding {
   step_2: string;
   step_3: string;
   tile_images: Record<string, string>;
+  background_images: Record<string, string>;
 }
 
 const DEFAULTS: SiteBranding = {
@@ -45,6 +46,7 @@ const DEFAULTS: SiteBranding = {
   step_2: 'Wunsch-Zeitfenster wählen',
   step_3: 'Daten eingeben und Anfrage absenden',
   tile_images: {},
+  background_images: {},
 };
 
 /** Convert hex "#rrggbb" → "r, g, b" for rgba() usage */
@@ -105,9 +107,12 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
             (merged as any)[key] = data[key];
           }
         }
-        // Parse tile_images if stringified
+        // Parse JSON fields if stringified
         if (typeof merged.tile_images === 'string') {
           try { merged.tile_images = JSON.parse(merged.tile_images); } catch { merged.tile_images = {}; }
+        }
+        if (typeof merged.background_images === 'string') {
+          try { merged.background_images = JSON.parse(merged.background_images); } catch { merged.background_images = {}; }
         }
         setBranding(merged);
         applyToRoot(merged);

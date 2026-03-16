@@ -3,11 +3,20 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { requireSuperadmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
 import logger from '../config/logger.js';
+
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte spaeter erneut versuchen.' },
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -149,10 +158,11 @@ const SITE_BRANDING_DEFAULTS = {
   step_2: 'Wunsch-Zeitfenster wählen',
   step_3: 'Daten eingeben und Anfrage absenden',
   tile_images: {},
+  background_images: {},
 };
 
 // GET /api/superadmin/site-branding  (public — no auth, everyone needs the theme)
-router.get('/site-branding', async (_req, res) => {
+router.get('/site-branding', publicLimiter, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM site_branding WHERE id = 1 LIMIT 1');
     const data = rows[0] || { ...SITE_BRANDING_DEFAULTS };
@@ -189,6 +199,7 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
     step_2:            String(b.step_2 ?? SITE_BRANDING_DEFAULTS.step_2).trim().slice(0, 255),
     step_3:            String(b.step_3 ?? SITE_BRANDING_DEFAULTS.step_3).trim().slice(0, 255),
     tile_images:       typeof b.tile_images === 'object' && b.tile_images !== null ? b.tile_images : {},
+    background_images: typeof b.background_images === 'object' && b.background_images !== null ? b.background_images : {},
   };
 
   try {
@@ -199,27 +210,27 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
         primary_color, primary_dark, primary_darker, secondary_color, ink_color, surface_1, surface_2,
         header_font_color,
         hero_title, hero_text, step_1, step_2, step_3,
-        tile_images, updated_at
+        tile_images, background_images, updated_at
       ) VALUES (
         1, $1, $2,
         $3, $4, $5, $6, $7, $8, $9,
         $10,
         $11, $12, $13, $14, $15,
-        $16, $17
+        $16, $17, $18
       )
       ON CONFLICT (id) DO UPDATE SET
         school_name = $1, logo_url = $2,
         primary_color = $3, primary_dark = $4, primary_darker = $5, secondary_color = $6, ink_color = $7, surface_1 = $8, surface_2 = $9,
         header_font_color = $10,
         hero_title = $11, hero_text = $12, step_1 = $13, step_2 = $14, step_3 = $15,
-        tile_images = $16, updated_at = $17
+        tile_images = $16, background_images = $17, updated_at = $18
       RETURNING *`,
       [
         values.school_name, values.logo_url,
         values.primary_color, values.primary_dark, values.primary_darker, values.secondary_color, values.ink_color, values.surface_1, values.surface_2,
         values.header_font_color,
         values.hero_title, values.hero_text, values.step_1, values.step_2, values.step_3,
-        JSON.stringify(values.tile_images), now,
+        JSON.stringify(values.tile_images), JSON.stringify(values.background_images), now,
       ]
     );
     // ── Sync school_name + primary_color to email_branding ──
@@ -284,7 +295,7 @@ const TEXT_BRANDING_DEFAULTS = {
 const TEXT_BRANDING_FIELDS = Object.keys(TEXT_BRANDING_DEFAULTS);
 
 // GET /api/superadmin/text-branding  (public — booking UI needs these texts)
-router.get('/text-branding', async (_req, res) => {
+router.get('/text-branding', publicLimiter, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM text_branding WHERE id = 1 LIMIT 1');
     return res.json(rows[0] || { ...TEXT_BRANDING_DEFAULTS });
@@ -325,6 +336,44 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
     logger.error({ err: error }, 'Error updating text branding');
     return res.status(500).json({ error: 'Failed to update text branding' });
   }
+});
+
+// POST /api/superadmin/bg-image  (superadmin only — upload background image for a page)
+const bgStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(__dirname, '..', 'uploads', 'bg');
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `bg-${Date.now()}${ext}`);
+  },
+});
+const bgUpload = multer({
+  storage: bgStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB for background images
+  fileFilter: (_req, file, cb) => {
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.webp'];
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Nur Bilddateien (PNG, JPG, WebP) erlaubt'));
+  },
+});
+
+router.post('/bg-image', requireSuperadmin, (req, res) => {
+  bgUpload.single('bg')(req, res, async (err) => {
+    if (err) {
+      const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+        ? 'Datei zu gross (max. 5 MB)'
+        : err.message || 'Upload fehlgeschlagen';
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+    const bgUrl = `/uploads/bg/${req.file.filename}`;
+    return res.json({ success: true, bg_url: bgUrl });
+  });
 });
 
 router.post('/tile-image', requireSuperadmin, (req, res) => {

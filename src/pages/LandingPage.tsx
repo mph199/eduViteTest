@@ -8,7 +8,10 @@ export function LandingPage() {
   const { branding } = useBranding();
 
   return (
-    <div className="landing">
+    <div
+      className="landing"
+      style={branding.background_images?.landing ? { '--landing-bg': `url(${api.superadmin.resolveBgUrl(branding.background_images.landing)})` } as React.CSSProperties : undefined}
+    >
       <div className="landing__inner">
         <h1 className="landing__title">{branding.hero_title}</h1>
         <p className="landing__subtitle">{branding.hero_text}</p>

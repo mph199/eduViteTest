@@ -96,6 +96,9 @@ function getEnabledIds(): string[] | null {
 
 const enabledIds = getEnabledIds();
 
+/** Alle registrierten Module (unabhängig von Aktivierung) */
+export const allModuleDefinitions: ModuleDefinition[] = allModules;
+
 /** Alle aktiven Module */
 export const modules: ModuleDefinition[] = enabledIds
   ? allModules.filter((m) => enabledIds.includes(m.id))

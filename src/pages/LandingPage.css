@@ -9,7 +9,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url('/Hintergrundbild_Landingpage.png');
+  background-image: var(--landing-bg, url('/Hintergrundbild_Landingpage.png'));
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

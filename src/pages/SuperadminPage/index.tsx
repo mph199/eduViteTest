@@ -7,6 +7,8 @@ import api from '../../services/api';
 import { BrandingTab } from './BrandingTab';
 import { EmailBrandingTab } from './EmailBrandingTab';
 import { TextBrandingTab } from './TextBrandingTab';
+import { BackgroundImagesTab } from './BackgroundImagesTab';
+import { ModulesTab } from './ModulesTab';
 import '../SuperadminPage.css';
 
 interface EmailBranding {
@@ -22,6 +24,8 @@ const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   primary_color: '#2d5016',
   footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team',
 };
+
+type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts';
 
 export function SuperadminPage() {
   const { user } = useAuth();
@@ -42,7 +46,7 @@ export function SuperadminPage() {
   const [textSaving, setTextSaving] = useState(false);
   const [textMsg, setTextMsg] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'branding' | 'email' | 'texts'>('email');
+  const [activeTab, setActiveTab] = useState<TabId>('modules');
 
   const loadEmailBranding = useCallback(async () => {
     try {
@@ -72,6 +76,9 @@ export function SuperadminPage() {
         }
         if (typeof merged.tile_images === 'string') {
           try { merged.tile_images = JSON.parse(merged.tile_images as unknown as string); } catch { merged.tile_images = {}; }
+        }
+        if (typeof merged.background_images === 'string') {
+          try { merged.background_images = JSON.parse(merged.background_images as unknown as string); } catch { merged.background_images = {}; }
         }
         setSite(merged);
       }
@@ -114,7 +121,7 @@ export function SuperadminPage() {
     try {
       await api.superadmin.updateSiteBranding(site as unknown as Record<string, unknown>);
       await reloadBranding();
-      setSiteMsg('Gespeichert ✓');
+      setSiteMsg('Gespeichert');
     } catch (e: any) {
       setSiteMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
     } finally {
@@ -143,7 +150,7 @@ export function SuperadminPage() {
     setEmailMsg('');
     try {
       await api.superadmin.updateEmailBranding(emailBranding);
-      setEmailMsg('Gespeichert ✓');
+      setEmailMsg('Gespeichert');
     } catch (e: any) {
       setEmailMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
     } finally {
@@ -158,7 +165,7 @@ export function SuperadminPage() {
     setEmailMsg('');
     try {
       await api.superadmin.sendPreviewEmail(previewEmail.trim());
-      setEmailMsg('Vorschau-Email gesendet ✓');
+      setEmailMsg('Vorschau-Email gesendet');
     } catch (e: any) {
       setEmailMsg(`Fehler: ${e?.message || 'Senden fehlgeschlagen'}`);
     } finally {
@@ -180,20 +187,30 @@ export function SuperadminPage() {
           <h1 className="superadmin__title">Konfiguration</h1>
         </div>
         <p className="superadmin__subtitle">
-          Tenant-Branding und E-Mail-Erscheinungsbild konfigurieren
+          Module, Branding und Systemeinstellungen verwalten
         </p>
 
         <div className="superadmin__tabs">
+          <button type="button" className={`superadmin__tab ${activeTab === 'modules' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('modules')}>
+            Module
+          </button>
           <button type="button" className={`superadmin__tab ${activeTab === 'branding' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('branding')}>
             Erscheinungsbild
           </button>
+          <button type="button" className={`superadmin__tab ${activeTab === 'backgrounds' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('backgrounds')}>
+            Hintergrundbilder
+          </button>
           <button type="button" className={`superadmin__tab ${activeTab === 'email' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('email')}>
-            E-Mail-Branding
+            E-Mail
           </button>
           <button type="button" className={`superadmin__tab ${activeTab === 'texts' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('texts')}>
-            Texte Sprechtag
+            Texte
           </button>
         </div>
+
+        {activeTab === 'modules' && (
+          <ModulesTab />
+        )}
 
         {activeTab === 'branding' && (
           <BrandingTab
@@ -204,6 +221,18 @@ export function SuperadminPage() {
             setSiteMsg={setSiteMsg}
             siteSaving={siteSaving}
             liveBranding={liveBranding}
+            onSave={saveSiteBranding}
+            onReset={() => { setSite({ ...liveBranding }); setSiteMsg(''); }}
+          />
+        )}
+
+        {activeTab === 'backgrounds' && (
+          <BackgroundImagesTab
+            site={site}
+            setSite={setSite}
+            siteMsg={siteMsg}
+            setSiteMsg={setSiteMsg}
+            siteSaving={siteSaving}
             onSave={saveSiteBranding}
             onReset={() => { setSite({ ...liveBranding }); setSiteMsg(''); }}
           />
