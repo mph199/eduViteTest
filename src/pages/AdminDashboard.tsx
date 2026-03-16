@@ -270,7 +270,7 @@ export function AdminDashboard() {
             <h3>Aktive Events</h3>
           </div>
           {activeEvent ? (
-            <div className="admin-resp-table-container">
+            <div className="admin-resp-table-container active-events-table">
               <table className="admin-resp-table">
                 <thead>
                   <tr>

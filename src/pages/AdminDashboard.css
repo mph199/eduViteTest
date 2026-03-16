@@ -1577,6 +1577,7 @@
 
 /* Compound cell helpers */
 .admin-cell-main {
+  display: block;
   font-weight: 800;
   color: var(--color-gray-900);
   overflow: hidden;
@@ -1585,12 +1586,18 @@
 }
 
 .admin-cell-meta {
+  display: block;
   margin-top: 0.2rem;
   color: var(--color-gray-500);
   font-size: 0.85rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Aktive Events Tabelle – auto layout statt fixed */
+.active-events-table .admin-resp-table {
+  table-layout: auto;
 }
 
 /* Allow wrapping in cells that contain long text (e.g. dates) */
