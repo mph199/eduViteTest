@@ -273,3 +273,39 @@
   color: var(--color-text-muted, #6b7280);
   font-style: italic;
 }
+
+.cb-confidential-notice {
+  overflow-wrap: break-word;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+
+/* Tablet */
+@media (max-width: 768px) {
+  .cb-date-input { width: 100%; }
+  .cb-slot {
+    padding: 0.7rem 1rem;
+    min-height: 44px;
+  }
+  .cb-form__group input,
+  .cb-form__group select,
+  .cb-form__group textarea {
+    padding: 0.7rem 0.75rem;
+    min-height: 44px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .cb-actions { flex-direction: column; }
+  .cb-actions .btn-primary,
+  .cb-actions .btn-secondary { width: 100%; min-height: 48px; }
+  .cb-form__urgent { padding: 0.4rem 0; gap: 0.75rem; min-height: 44px; }
+  .cb-app h1 { font-size: clamp(1.3rem, 5vw, 1.7rem); }
+}
+
+/* Kleine Phones */
+@media (max-width: 480px) {
+  .cb-app { padding: 1rem 0.85rem; }
+  .cb-counselors { gap: 0.75rem; }
+}

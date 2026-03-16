@@ -47,6 +47,10 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .cb-layout::before {
+    background-attachment: scroll; /* iOS Safari Workaround */
+  }
+
   .cb-layout {
     padding-top: 1.5rem;
     padding-right: var(--page-gutter, 1.1rem);

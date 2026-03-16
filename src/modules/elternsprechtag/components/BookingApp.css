@@ -597,14 +597,7 @@
   border-radius: 6px;
 }
 
-@media (max-width: 820px) {
-  .header-filters {
-    flex-direction: column;
-  }
-  .filter-actions {
-    padding-top: 0.25rem;
-  }
-}
+/* Entfernt: .header-filters / .filter-actions (nicht mehr verwendet) */
 
 .booking-app .app-content {
   position: relative;
@@ -636,7 +629,7 @@
 .booking-app .sidebar {
   height: fit-content;
   position: sticky;
-  top: 0;
+  top: calc(var(--globalTopHeaderHeight, 72px) + 0.75rem);
   z-index: 5;
 }
 
@@ -985,6 +978,10 @@
 
 /* Tablet */
 @media (max-width: 768px) {
+  .booking-app::before {
+    background-attachment: scroll; /* iOS Safari Workaround */
+  }
+
   .booking-app {
     padding-top: 1.5rem; /* Kein extra Platz für fixierten Header */
     padding-right: var(--page-gutter, 1.1rem);
