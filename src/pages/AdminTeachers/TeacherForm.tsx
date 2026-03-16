@@ -138,7 +138,7 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingT
                     type="text"
                     value={blForm.specializations}
                     onChange={(e) => setBlForm({ ...blForm, specializations: e.target.value })}
-                    placeholder="z.B. Lernberatung, Konfliktloesung"
+                    placeholder="z.B. Lernberatung, Konfliktlösung"
                   />
                 </div>
                 <div className="form-group">

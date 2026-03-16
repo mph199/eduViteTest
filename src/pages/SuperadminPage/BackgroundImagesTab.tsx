@@ -49,8 +49,8 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
       }));
       setSiteMsg(`Hintergrundbild hochgeladen`);
       setTimeout(() => setSiteMsg(''), 3000);
-    } catch (err: any) {
-      setSiteMsg(`Fehler: Upload fehlgeschlagen – ${err.message || 'Unbekannter Fehler'}`);
+    } catch (err: unknown) {
+      setSiteMsg(`Fehler: Upload fehlgeschlagen – ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
       setTimeout(() => setSiteMsg(''), 6000);
     }
   };

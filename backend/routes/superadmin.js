@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import rateLimit from 'express-rate-limit';
-import { requireSuperadmin, verifyToken } from '../middleware/auth.js';
+import { requireSuperadmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
@@ -23,8 +23,9 @@ const __dirname = path.dirname(__filename);
 
 // ── Shared upload helpers ─────────────────────────────────────────────
 
-const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
-const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
+// SVG intentionally excluded — can contain embedded <script> (stored XSS)
+const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
 function createImageUpload(subdir, prefix, { maxSize = 2 * 1024 * 1024, exts = IMAGE_EXTS, mimes = IMAGE_MIMES } = {}) {
   const storage = multer.diskStorage({
@@ -348,20 +349,27 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
 // Module Configuration (enable / disable modules at runtime)
 // ═══════════════════════════════════════════════════════════════════════
 
-// GET /api/superadmin/modules  (public — frontend needs enabled status; superadmin sees all)
-router.get('/modules', publicLimiter, async (req, res) => {
+// GET /api/superadmin/modules/enabled  (public — frontend needs enabled module list)
+router.get('/modules/enabled', publicLimiter, async (_req, res) => {
   try {
-    // Optionally decode token to check role (no 401 if missing/invalid)
-    const token = req.cookies?.token;
-    const decoded = token ? verifyToken(token) : null;
-    const isSuper = decoded?.role === 'superadmin';
-    const sql = isSuper
-      ? 'SELECT module_id, enabled FROM module_config ORDER BY module_id'
-      : 'SELECT module_id, enabled FROM module_config WHERE enabled = TRUE ORDER BY module_id';
-    const { rows } = await query(sql);
+    const { rows } = await query(
+      'SELECT module_id, enabled FROM module_config WHERE enabled = TRUE ORDER BY module_id'
+    );
     return res.json(rows);
   } catch {
     // Table might not exist yet — treat all as enabled
+    return res.json([]);
+  }
+});
+
+// GET /api/superadmin/modules  (superadmin only — sees all including disabled)
+router.get('/modules', requireSuperadmin, async (_req, res) => {
+  try {
+    const { rows } = await query(
+      'SELECT module_id, enabled FROM module_config ORDER BY module_id'
+    );
+    return res.json(rows);
+  } catch {
     return res.json([]);
   }
 });

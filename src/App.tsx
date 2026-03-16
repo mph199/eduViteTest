@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
@@ -29,7 +29,7 @@ const MAINTENANCE_MODE = (() => {
 
 function App() {
   const { isModuleEnabled } = useModuleConfig();
-  const activeModules = modules.filter((m) => isModuleEnabled(m.id));
+  const activeModules = useMemo(() => modules.filter((m) => isModuleEnabled(m.id)), [isModuleEnabled]);
 
   return (
     <BrowserRouter>

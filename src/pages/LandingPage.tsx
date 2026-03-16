@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { modules } from '../modules/registry';
 import { useBranding } from '../contexts/BrandingContext';
@@ -8,7 +9,7 @@ import './LandingPage.css';
 export function LandingPage() {
   const { branding } = useBranding();
   const { isModuleEnabled } = useModuleConfig();
-  const activeModules = modules.filter((m) => isModuleEnabled(m.id));
+  const activeModules = useMemo(() => modules.filter((m) => isModuleEnabled(m.id)), [isModuleEnabled]);
 
   return (
     <div

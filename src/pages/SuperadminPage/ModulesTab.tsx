@@ -30,7 +30,8 @@ export function ModulesTab() {
       await api.superadmin.setModuleEnabled(moduleId, next);
       setModuleConfig((prev) => ({ ...prev, [moduleId]: next }));
       await reloadGlobalConfig();
-      setMsg(`${moduleId} ${next ? 'aktiviert' : 'deaktiviert'}`);
+      const modDef = allModuleDefinitions.find((m) => m.id === moduleId);
+      setMsg(`${modDef?.title ?? moduleId} ${next ? 'aktiviert' : 'deaktiviert'}`);
     } catch (e: unknown) {
       setMsg(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);
     } finally {

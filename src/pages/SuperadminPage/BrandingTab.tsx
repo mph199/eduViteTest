@@ -141,8 +141,8 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                       }));
                       setSiteMsg(`Bild für ${mod.title} hochgeladen`);
                       setTimeout(() => setSiteMsg(''), 3000);
-                    } catch (err: any) {
-                      setSiteMsg(`Fehler: Upload für ${mod.title} fehlgeschlagen – ${err.message || 'Unbekannter Fehler'}`);
+                    } catch (err: unknown) {
+                      setSiteMsg(`Fehler: Upload für ${mod.title} fehlgeschlagen – ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
                       setTimeout(() => setSiteMsg(''), 6000);
                     }
                     e.target.value = '';

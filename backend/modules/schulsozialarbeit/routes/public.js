@@ -1,8 +1,8 @@
 /**
- * Schulsozialarbeit – Oeffentliche Routen
+ * Schulsozialarbeit – Öffentliche Routen
  *
- * Endpunkte fuer Schueler/innen zum Anzeigen von Beratern,
- * Kategorien, verfuegbaren Terminen und zum Buchen.
+ * Endpunkte für Schüler/innen zum Anzeigen von Beratern,
+ * Kategorien, verfügbaren Terminen und zum Buchen.
  */
 
 import { createCounselorPublicRoutes } from '../../../shared/counselorPublicRoutes.js';

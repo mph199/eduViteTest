@@ -83,7 +83,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
                 try {
                   const result = await api.superadmin.uploadLogo(file);
                   setEb('logo_url', result.logo_url);
-                } catch (err: any) {
+                } catch (err: unknown) {
                   // handled by parent
                 }
               }}

@@ -116,8 +116,8 @@ export function SuperadminPage() {
       await api.superadmin.updateSiteBranding(site as unknown as Record<string, unknown>);
       await reloadBranding();
       setSiteMsg('Gespeichert');
-    } catch (e: any) {
-      setSiteMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
+    } catch (e: unknown) {
+      setSiteMsg(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);
     } finally {
       setSiteSaving(false);
       setTimeout(() => setSiteMsg(''), 4000);
@@ -131,8 +131,8 @@ export function SuperadminPage() {
       await api.superadmin.updateTextBranding(text as unknown as Record<string, unknown>);
       await reloadTextBranding();
       setTextMsg('Gespeichert');
-    } catch (e: any) {
-      setTextMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
+    } catch (e: unknown) {
+      setTextMsg(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);
     } finally {
       setTextSaving(false);
       setTimeout(() => setTextMsg(''), 4000);
@@ -145,8 +145,8 @@ export function SuperadminPage() {
     try {
       await api.superadmin.updateEmailBranding(emailBranding);
       setEmailMsg('Gespeichert');
-    } catch (e: any) {
-      setEmailMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
+    } catch (e: unknown) {
+      setEmailMsg(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);
     } finally {
       setEmailSaving(false);
       setTimeout(() => setEmailMsg(''), 4000);
@@ -160,8 +160,8 @@ export function SuperadminPage() {
     try {
       await api.superadmin.sendPreviewEmail(previewEmail.trim());
       setEmailMsg('Vorschau-Email gesendet');
-    } catch (e: any) {
-      setEmailMsg(`Fehler: ${e?.message || 'Senden fehlgeschlagen'}`);
+    } catch (e: unknown) {
+      setEmailMsg(`Fehler: ${e instanceof Error ? e.message : 'Senden fehlgeschlagen'}`);
     } finally {
       setPreviewSending(false);
       setTimeout(() => setEmailMsg(''), 4000);

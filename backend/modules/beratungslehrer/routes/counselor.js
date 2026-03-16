@@ -1,8 +1,8 @@
 /**
  * Beratungslehrer – Berater-Routen (authentifiziert)
  *
- * Endpunkte fuer Beratungslehrer: eigene Termine verwalten,
- * Anfragen bestaetigen/absagen, Notizen pflegen.
+ * Endpunkte für Beratungslehrer: eigene Termine verwalten,
+ * Anfragen bestätigen/absagen, Notizen pflegen.
  */
 
 import express from 'express';
@@ -42,7 +42,7 @@ async function requireBLCounselor(req, res, next) {
     return res.status(403).json({ error: 'Kein Beratungslehrer-Zugang' });
   } catch (err) {
     logger.error({ err }, 'requireBLCounselor error');
-    return res.status(500).json({ error: 'Interner Fehler bei Berechtigungspruefung' });
+    return res.status(500).json({ error: 'Interner Fehler bei Berechtigungsprüfung' });
   }
 }
 

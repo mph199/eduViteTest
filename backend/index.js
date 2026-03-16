@@ -29,7 +29,7 @@ const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:3000'];
 
-// Security headers – CSP als Fallback; in Produktion ueberschreibt nginx die Header
+// Security headers – CSP als Fallback; in Produktion überschreibt nginx die Header
 const cspConnectSrc = ["'self'", ...corsOrigins];
 app.use(helmet({
   contentSecurityPolicy: {
@@ -85,10 +85,14 @@ const adminLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen. Bitte später erneut versuchen.' },
 });
 
-// Serve uploaded files
+// Serve uploaded files (with restrictive CSP to prevent script execution)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (_req, res, next) => {
+  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Request logging
 app.use((req, _res, next) => {

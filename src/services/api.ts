@@ -588,8 +588,14 @@ const api = {
       return `${BACKEND_BASE}/uploads/tiles/${tileUrl}`;
     },
     // ── Module Configuration ──────────────────────────
+    /** All modules (superadmin only) */
     async getModuleConfig(): Promise<{ module_id: string; enabled: boolean }[]> {
       const res = await requestJSON('/superadmin/modules');
+      return Array.isArray(res) ? res : [];
+    },
+    /** Only enabled modules (public, no auth required) */
+    async getEnabledModules(): Promise<{ module_id: string; enabled: boolean }[]> {
+      const res = await requestJSON('/superadmin/modules/enabled');
       return Array.isArray(res) ? res : [];
     },
     async setModuleEnabled(moduleId: string, enabled: boolean) {

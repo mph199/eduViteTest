@@ -115,8 +115,7 @@ export function GlobalTopHeader() {
     }
 
     return groups;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, isSuperadmin, hasTeacherId, userModules.join(','), user?.role]);
+  }, [isAdmin, isSuperadmin, hasTeacherId, userModules, user?.role, activeModules]);
 
   const isActive = (path: string) => {
     if (path === '/admin') return pathname === '/admin' || pathname === '/admin/';

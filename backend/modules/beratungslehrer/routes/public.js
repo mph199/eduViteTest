@@ -1,8 +1,8 @@
 /**
- * Beratungslehrer – Oeffentliche Routen
+ * Beratungslehrer – Öffentliche Routen
  *
- * Endpunkte fuer Schueler/innen zum Anzeigen von Beratungslehrern,
- * Themen, verfuegbaren Terminen und Buchen.
+ * Endpunkte für Schüler/innen zum Anzeigen von Beratungslehrern,
+ * Themen, verfügbaren Terminen und Buchen.
  */
 
 import { createCounselorPublicRoutes } from '../../../shared/counselorPublicRoutes.js';
