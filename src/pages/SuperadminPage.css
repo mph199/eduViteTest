@@ -231,43 +231,6 @@
   border-color: #475569;
 }
 
-/* ── Image upload placeholder ───────────────────────────── */
-
-.superadmin__upload-zone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 120px;
-  border: 1px dashed rgba(148, 163, 184, 0.2);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.3);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.superadmin__upload-zone:hover {
-  border-color: #475569;
-  background: rgba(30, 41, 59, 0.4);
-}
-
-.superadmin__upload-icon {
-  font-size: 1.3rem;
-  color: #475569;
-  font-weight: 300;
-}
-
-.superadmin__upload-text {
-  font-size: 0.82rem;
-  color: #64748b;
-}
-
-.superadmin__upload-hint {
-  font-size: 0.72rem;
-  color: #475569;
-}
-
 /* ── Live preview card ──────────────────────────────────── */
 
 .superadmin__preview {

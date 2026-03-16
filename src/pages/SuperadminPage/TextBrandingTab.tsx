@@ -103,7 +103,7 @@ export function TextBrandingTab({ text, setTextField, textMsg, textSaving, onSav
       <div className="superadmin__actions">
         <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>Zurücksetzen</button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={textSaving}>
-          {textSaving ? 'Speichern...' : 'Änderungen speichern'}
+          {textSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
         </button>
       </div>
     </>

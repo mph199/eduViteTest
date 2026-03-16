@@ -190,3 +190,10 @@ export interface CounselorBookingConfig {
   topicEndpoint: string;
   topicResponseKey: string;
 }
+
+export interface EmailBranding {
+  school_name: string;
+  logo_url: string;
+  primary_color: string;
+  footer_text: string;
+}

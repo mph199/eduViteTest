@@ -21,37 +21,69 @@ const publicLimiter = rateLimit({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Multer config for logo uploads
-const logoStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(__dirname, '..', 'uploads', 'logos');
-    try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `logo-${Date.now()}${ext}`);
-  },
-});
-const logoUpload = multer({
-  storage: logoStorage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
-  fileFilter: (_req, file, cb) => {
-    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
-    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
-  },
+// ── Shared upload helpers ─────────────────────────────────────────────
+
+const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
+
+function createImageUpload(subdir, prefix, { maxSize = 2 * 1024 * 1024, exts = IMAGE_EXTS, mimes = IMAGE_MIMES } = {}) {
+  const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const dir = path.join(__dirname, '..', 'uploads', subdir);
+      try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
+      cb(null, dir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${prefix}-${Date.now()}${ext}`);
+    },
+  });
+  return multer({
+    storage,
+    limits: { fileSize: maxSize },
+    fileFilter: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (exts.includes(ext) && mimes.includes(file.mimetype)) return cb(null, true);
+      cb(new Error(`Nur Bilddateien (${exts.map(e => e.slice(1).toUpperCase()).join(', ')}) erlaubt`));
+    },
+  });
+}
+
+function handleUpload(upload, fieldName, urlPrefix) {
+  return (req, res, next) => {
+    upload.single(fieldName)(req, res, (err) => {
+      if (err) {
+        const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+          ? `Datei zu gross (max. ${Math.round(upload.limits?.fileSize / 1024 / 1024 || 2)} MB)`
+          : err.message || 'Upload fehlgeschlagen';
+        return res.status(400).json({ error: msg });
+      }
+      if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+      req.uploadUrl = `${urlPrefix}${req.file.filename}`;
+      next();
+    });
+  };
+}
+
+const logoUpload = createImageUpload('logos', 'logo');
+const tileUpload = createImageUpload('tiles', 'tile');
+const bgUpload = createImageUpload('bg', 'bg', {
+  maxSize: 5 * 1024 * 1024,
+  exts: ['.png', '.jpg', '.jpeg', '.webp'],
+  mimes: ['image/png', 'image/jpeg', 'image/webp'],
 });
 
 const router = express.Router();
+
+// ═══════════════════════════════════════════════════════════════════════
+// Email Branding
+// ═══════════════════════════════════════════════════════════════════════
 
 // GET /api/superadmin/email-branding
 router.get('/email-branding', requireSuperadmin, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM email_branding WHERE id = 1 LIMIT 1');
-    const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team' };
+    const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Gruessen\n\nIhr BKSB-Team' };
     return res.json(data);
   } catch (error) {
     logger.error({ err: error }, 'Error fetching email branding');
@@ -66,18 +98,16 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
     return res.status(400).json({ error: 'school_name is required' });
   }
   try {
-    const now = new Date().toISOString();
     const { rows } = await query(
       `INSERT INTO email_branding (id, school_name, logo_url, primary_color, footer_text, updated_at)
-       VALUES (1, $1, $2, $3, $4, $5)
-       ON CONFLICT (id) DO UPDATE SET school_name = $1, logo_url = $2, primary_color = $3, footer_text = $4, updated_at = $5
+       VALUES (1, $1, $2, $3, $4, NOW())
+       ON CONFLICT (id) DO UPDATE SET school_name = $1, logo_url = $2, primary_color = $3, footer_text = $4, updated_at = NOW()
        RETURNING *`,
       [
         String(school_name).trim().slice(0, 255),
         String(logo_url || '').trim(),
         String(primary_color || '#2d5016').trim().slice(0, 9),
         String(footer_text || '').trim(),
-        now,
       ]
     );
     return res.json({ success: true, branding: rows[0] });
@@ -88,27 +118,16 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
 });
 
 // POST /api/superadmin/logo
-router.post('/logo', requireSuperadmin, (req, res) => {
-  logoUpload.single('logo')(req, res, async (err) => {
-    if (err) {
-      const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
-        ? 'Datei zu groß (max. 2 MB)'
-        : err.message || 'Upload fehlgeschlagen';
-      return res.status(400).json({ error: msg });
-    }
-    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
-    const logoFilename = req.file.filename;
-    const logoUrl = `/uploads/logos/${logoFilename}`;
-    try {
-      await query(
-        `UPDATE email_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
-        [logoFilename]
-      );
-    } catch (e) {
-      logger.error({ err: e }, 'Error saving logo URL');
-    }
-    return res.json({ success: true, logo_url: logoUrl });
-  });
+router.post('/logo', requireSuperadmin, handleUpload(logoUpload, 'logo', '/uploads/logos/'), async (req, res) => {
+  try {
+    await query(
+      `UPDATE email_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
+      [req.file.filename]
+    );
+  } catch (e) {
+    logger.error({ err: e }, 'Error saving logo URL');
+  }
+  return res.json({ success: true, logo_url: req.uploadUrl });
 });
 
 // POST /api/superadmin/email-branding/preview
@@ -118,7 +137,7 @@ router.post('/email-branding/preview', requireSuperadmin, async (req, res) => {
   }
   const { to } = req.body || {};
   if (!to || typeof to !== 'string') {
-    return res.status(400).json({ error: 'Empfänger-Adresse (to) fehlt' });
+    return res.status(400).json({ error: 'Empfaenger-Adresse (to) fehlt' });
   }
   try {
     const branding = await getEmailBranding();
@@ -153,9 +172,9 @@ const SITE_BRANDING_DEFAULTS = {
   surface_2: '#D9E4F2',
   header_font_color: '',
   hero_title: 'Herzlich willkommen!',
-  hero_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.',
-  step_1: 'Lehrkraft auswählen',
-  step_2: 'Wunsch-Zeitfenster wählen',
+  hero_text: 'Ueber dieses Portal koennen Sie Gespraechstermine fuer den Eltern- und Ausbildersprechtag anfragen.',
+  step_1: 'Lehrkraft auswaehlen',
+  step_2: 'Wunsch-Zeitfenster waehlen',
   step_3: 'Daten eingeben und Anfrage absenden',
   tile_images: {},
   background_images: {},
@@ -203,7 +222,6 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
   };
 
   try {
-    const now = new Date().toISOString();
     const { rows } = await query(
       `INSERT INTO site_branding (
         id, school_name, logo_url,
@@ -216,21 +234,21 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
         $3, $4, $5, $6, $7, $8, $9,
         $10,
         $11, $12, $13, $14, $15,
-        $16, $17, $18
+        $16, $17, NOW()
       )
       ON CONFLICT (id) DO UPDATE SET
         school_name = $1, logo_url = $2,
         primary_color = $3, primary_dark = $4, primary_darker = $5, secondary_color = $6, ink_color = $7, surface_1 = $8, surface_2 = $9,
         header_font_color = $10,
         hero_title = $11, hero_text = $12, step_1 = $13, step_2 = $14, step_3 = $15,
-        tile_images = $16, background_images = $17, updated_at = $18
+        tile_images = $16, background_images = $17, updated_at = NOW()
       RETURNING *`,
       [
         values.school_name, values.logo_url,
         values.primary_color, values.primary_dark, values.primary_darker, values.secondary_color, values.ink_color, values.surface_1, values.surface_2,
         values.header_font_color,
         values.hero_title, values.hero_text, values.step_1, values.step_2, values.step_3,
-        JSON.stringify(values.tile_images), JSON.stringify(values.background_images), now,
+        JSON.stringify(values.tile_images), JSON.stringify(values.background_images),
       ]
     );
     // ── Sync school_name + primary_color to email_branding ──
@@ -248,28 +266,16 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
   }
 });
 
-// POST /api/superadmin/tile-image  (superadmin only — upload tile image for a module)
-const tileStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(__dirname, '..', 'uploads', 'tiles');
-    try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `tile-${Date.now()}${ext}`);
-  },
+// ═══════════════════════════════════════════════════════════════════════
+// Image Uploads (tile + background)
+// ═══════════════════════════════════════════════════════════════════════
+
+router.post('/tile-image', requireSuperadmin, handleUpload(tileUpload, 'tile', '/uploads/tiles/'), (_req, res) => {
+  return res.json({ success: true, tile_url: _req.uploadUrl });
 });
-const tileUpload = multer({
-  storage: tileStorage,
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
-    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
-  },
+
+router.post('/bg-image', requireSuperadmin, handleUpload(bgUpload, 'bg', '/uploads/bg/'), (_req, res) => {
+  return res.json({ success: true, bg_url: _req.uploadUrl });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -278,16 +284,16 @@ const tileUpload = multer({
 
 const TEXT_BRANDING_DEFAULTS = {
   booking_title: 'Herzlich willkommen!',
-  booking_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.\n\nWählen Sie die gewünschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewünschten Zeitfenster zuzuweisen.\n\nSobald Ihr Termin bestätigt wurde, erhalten Sie eine E-Mail mit allen Details.',
+  booking_text: 'Ueber dieses Portal koennen Sie Gespraechstermine fuer den Eltern- und Ausbildersprechtag anfragen.\n\nWaehlen Sie die gewuenschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewuenschten Zeitfenster zuzuweisen.\n\nSobald Ihr Termin bestaetigt wurde, erhalten Sie eine E-Mail mit allen Details.',
   booking_steps_title: 'In drei Schritten zum Termin:',
-  booking_step_1: 'Lehrkraft auswählen',
-  booking_step_2: 'Wunsch-Zeitfenster wählen',
+  booking_step_1: 'Lehrkraft auswaehlen',
+  booking_step_2: 'Wunsch-Zeitfenster waehlen',
   booking_step_3: 'Daten eingeben und Anfrage absenden',
-  booking_hint: 'Die Lehrkraft vergibt nach Möglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.',
-  event_banner_template: 'Der nächste Eltern- und Ausbildersprechtag findet am {weekday}, den {date} von {startTime} bis {endTime} Uhr statt.',
-  event_banner_fallback: 'Der nächste Eltern- und Ausbildersprechtag: Termine folgen.',
+  booking_hint: 'Die Lehrkraft vergibt nach Moeglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.',
+  event_banner_template: 'Der naechste Eltern- und Ausbildersprechtag findet am {weekday}, den {date} von {startTime} bis {endTime} Uhr statt.',
+  event_banner_fallback: 'Der naechste Eltern- und Ausbildersprechtag: Termine folgen.',
   modal_title: 'Fast fertig!',
-  modal_text: 'Vielen Dank für Ihre Terminanfrage!\n\nBitte bestätigen Sie zunächst Ihre E-Mail-Adresse über den zugesandten Link (ggf. im Spam-Ordner prüfen). Anschließend wird die Lehrkraft Ihnen einen Termin im gewünschten Zeitfenster zuweisen. Sie erhalten eine Bestätigungs-E-Mail mit Datum, Uhrzeit und Raum.',
+  modal_text: 'Vielen Dank fuer Ihre Terminanfrage!\n\nBitte bestaetigen Sie zunaechst Ihre E-Mail-Adresse ueber den zugesandten Link (ggf. im Spam-Ordner pruefen). Anschliessend wird die Lehrkraft Ihnen einen Termin im gewuenschten Zeitfenster zuweisen. Sie erhalten eine Bestaetigungs-E-Mail mit Datum, Uhrzeit und Raum.',
   modal_button: 'Verstanden',
   booking_closed_text: 'Buchungen sind aktuell noch nicht freigeschaltet.',
 };
@@ -318,16 +324,15 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
   }
 
   try {
-    const now = new Date().toISOString();
     const cols = TEXT_BRANDING_FIELDS;
-    const placeholders = cols.map((_, i) => `$${i + 2}`);
-    const setClause = cols.map((c, i) => `${c} = $${i + 2}`).join(', ');
-    const params = [now, ...cols.map((c) => values[c])];
+    const placeholders = cols.map((_, i) => `$${i + 1}`);
+    const setClause = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
+    const params = cols.map((c) => values[c]);
 
     const { rows } = await query(
       `INSERT INTO text_branding (id, ${cols.join(', ')}, updated_at)
-       VALUES (1, ${placeholders.join(', ')}, $1)
-       ON CONFLICT (id) DO UPDATE SET ${setClause}, updated_at = $1
+       VALUES (1, ${placeholders.join(', ')}, NOW())
+       ON CONFLICT (id) DO UPDATE SET ${setClause}, updated_at = NOW()
        RETURNING *`,
       params
     );
@@ -336,58 +341,6 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
     logger.error({ err: error }, 'Error updating text branding');
     return res.status(500).json({ error: 'Failed to update text branding' });
   }
-});
-
-// POST /api/superadmin/bg-image  (superadmin only — upload background image for a page)
-const bgStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(__dirname, '..', 'uploads', 'bg');
-    try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { return cb(err); }
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `bg-${Date.now()}${ext}`);
-  },
-});
-const bgUpload = multer({
-  storage: bgStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB for background images
-  fileFilter: (_req, file, cb) => {
-    const allowedExts = ['.png', '.jpg', '.jpeg', '.webp'];
-    const allowedMimes = ['image/png', 'image/jpeg', 'image/webp'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Nur Bilddateien (PNG, JPG, WebP) erlaubt'));
-  },
-});
-
-router.post('/bg-image', requireSuperadmin, (req, res) => {
-  bgUpload.single('bg')(req, res, async (err) => {
-    if (err) {
-      const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
-        ? 'Datei zu gross (max. 5 MB)'
-        : err.message || 'Upload fehlgeschlagen';
-      return res.status(400).json({ error: msg });
-    }
-    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
-    const bgUrl = `/uploads/bg/${req.file.filename}`;
-    return res.json({ success: true, bg_url: bgUrl });
-  });
-});
-
-router.post('/tile-image', requireSuperadmin, (req, res) => {
-  tileUpload.single('tile')(req, res, async (err) => {
-    if (err) {
-      const msg = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
-        ? 'Datei zu groß (max. 2 MB)'
-        : err.message || 'Upload fehlgeschlagen';
-      return res.status(400).json({ error: msg });
-    }
-    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
-    const tileUrl = `/uploads/tiles/${req.file.filename}`;
-    return res.json({ success: true, tile_url: tileUrl });
-  });
 });
 
 export default router;

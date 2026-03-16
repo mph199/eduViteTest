@@ -10,7 +10,6 @@ interface Props {
   siteMsg: string;
   setSiteMsg: (msg: string) => void;
   siteSaving: boolean;
-  liveBranding: SiteBranding;
   onSave: () => void;
   onReset: () => void;
 }
@@ -202,7 +201,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
       <div className="superadmin__actions">
         <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>Zurücksetzen</button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={siteSaving}>
-          {siteSaving ? 'Speichern…' : 'Änderungen speichern'}
+          {siteSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
         </button>
       </div>
     </>

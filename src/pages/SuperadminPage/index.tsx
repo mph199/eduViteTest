@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 import { useBranding, type SiteBranding } from '../../contexts/BrandingContext';
 import { useTextBranding, type TextBranding } from '../../contexts/TextBrandingContext';
+import type { EmailBranding } from '../../types';
 import api from '../../services/api';
 import { BrandingTab } from './BrandingTab';
 import { EmailBrandingTab } from './EmailBrandingTab';
@@ -10,13 +11,6 @@ import { TextBrandingTab } from './TextBrandingTab';
 import { BackgroundImagesTab } from './BackgroundImagesTab';
 import { ModulesTab } from './ModulesTab';
 import '../SuperadminPage.css';
-
-interface EmailBranding {
-  school_name: string;
-  logo_url: string;
-  primary_color: string;
-  footer_text: string;
-}
 
 const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   school_name: 'BKSB',
@@ -220,7 +214,6 @@ export function SuperadminPage() {
             siteMsg={siteMsg}
             setSiteMsg={setSiteMsg}
             siteSaving={siteSaving}
-            liveBranding={liveBranding}
             onSave={saveSiteBranding}
             onReset={() => { setSite({ ...liveBranding }); setSiteMsg(''); }}
           />

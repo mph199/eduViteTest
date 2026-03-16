@@ -1,12 +1,6 @@
+import type { EmailBranding } from '../../types';
 import api from '../../services/api';
 import { ColorField } from './ColorField';
-
-interface EmailBranding {
-  school_name: string;
-  logo_url: string;
-  primary_color: string;
-  footer_text: string;
-}
 
 function esc(str: string) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -168,7 +162,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
                 onClick={onSendPreview}
                 disabled={previewSending || !previewEmail.trim()}
               >
-                {previewSending ? 'Sende…' : 'Senden'}
+                {previewSending ? 'Sende\u2026' : 'Senden'}
               </button>
             </div>
           </div>
@@ -186,7 +180,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
           Zurücksetzen
         </button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={emailSaving}>
-          {emailSaving ? 'Speichern…' : 'Änderungen speichern'}
+          {emailSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
         </button>
       </div>
     </>

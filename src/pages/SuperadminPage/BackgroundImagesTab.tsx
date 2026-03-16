@@ -126,7 +126,7 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
       <div className="superadmin__actions">
         <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>Zuruecksetzen</button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={siteSaving}>
-          {siteSaving ? 'Speichern...' : 'Aenderungen speichern'}
+          {siteSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
         </button>
       </div>
     </>
