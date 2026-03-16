@@ -21,6 +21,8 @@ const beratungslehrerModule: ModuleDefinition = {
   description: 'Sprechstunde buchen oder eine anonyme Anfrage stellen.',
   icon: '',
   basePath: '/beratungslehrer',
+  accent: 'var(--module-accent-beratungslehrer)',
+  accentRgb: '184, 134, 11',
   requiredModule: 'beratungslehrer',
 
   /** Oeffentliche Buchungsseite */
