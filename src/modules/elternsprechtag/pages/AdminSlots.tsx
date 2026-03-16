@@ -175,7 +175,7 @@ export function AdminSlots() {
               style={{ 
                 padding: '0.65rem', 
                 borderRadius: '8px', 
-                border: '2px solid #e5e7eb',
+                border: '2px solid var(--color-gray-200)',
                 fontSize: '1rem',
                 width: '100%',
                 maxWidth: '400px'

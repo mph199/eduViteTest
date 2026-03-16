@@ -375,8 +375,8 @@ export function BLAdmin() {
               <h3>Wochenplan</h3>
             </div>
 
-            <div style={{ padding: '1rem', background: 'var(--bg-muted, #f8fafc)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-              <p style={{ margin: 0, color: 'var(--text-secondary, #64748b)' }}>
+            <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+              <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
                 Legen Sie fest, an welchen Tagen und zu welchen Zeiten Sie fuer Beratungen zur Verfuegung stehen.
                 Termine werden anhand dieses Wochenplans generiert.
               </p>
@@ -438,7 +438,7 @@ export function BLAdmin() {
             </div>
 
             {profile.room && (
-              <div style={{ marginTop: '1rem', color: 'var(--text-secondary, #64748b)', fontSize: '0.9rem' }}>
+              <div style={{ marginTop: '1rem', color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>
                 Raum: <strong>{profile.room}</strong> | Terminlaenge: <strong>{profile.slot_duration_minutes || 30} Min.</strong>
               </div>
             )}
@@ -485,8 +485,8 @@ export function BLAdmin() {
             {requestsLoading ? (
               <p>Lade Anfragen...</p>
             ) : requests.length === 0 ? (
-              <div style={{ padding: '1rem', background: 'var(--bg-muted, #f8fafc)', borderRadius: '0.5rem' }}>
-                <p style={{ margin: 0, color: 'var(--text-secondary, #64748b)' }}>Keine offenen Anfragen vorhanden.</p>
+              <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem' }}>
+                <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>Keine offenen Anfragen vorhanden.</p>
               </div>
             ) : (
               <div className="admin-resp-table-container">
@@ -513,8 +513,8 @@ export function BLAdmin() {
                           <td>
                             <span style={{
                               padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.85rem',
-                              background: a.status === 'requested' ? 'var(--color-warning-bg, #fef3c7)' : 'var(--color-success-bg, #dcfce7)',
-                              color: a.status === 'requested' ? 'var(--color-warning, #d97706)' : 'var(--color-success, #16a34a)',
+                              background: a.status === 'requested' ? 'var(--color-warning-light)' : 'var(--color-success-light)',
+                              color: a.status === 'requested' ? 'var(--color-warning, #d97706)' : 'var(--color-success-accent)',
                             }}>
                               {statusLabel(a.status)}
                             </span>
@@ -556,8 +556,8 @@ export function BLAdmin() {
               <h3>Alle Beratungslehrer</h3>
             </div>
 
-            <div style={{ padding: '1rem', background: 'var(--bg-muted, #f8fafc)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-              <p style={{ margin: 0, color: 'var(--text-secondary, #64748b)' }}>
+            <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+              <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
                 Beratungslehrer werden ueber <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
                 Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrer&quot;.
               </p>
