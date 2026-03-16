@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
-import adminRoutes from './routes/admin.js';
+import adminRoutes from './routes/admin/index.js';
 import superadminRoutes from './routes/superadmin.js';
 import { loadModules } from './moduleLoader.js';
 import { initDatabase } from './migrate.js';
