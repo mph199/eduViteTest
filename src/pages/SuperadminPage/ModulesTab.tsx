@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { allModuleDefinitions } from '../../modules/registry';
+import { useModuleConfig } from '../../contexts/ModuleConfigContext';
 import api from '../../services/api';
 
 export function ModulesTab() {
   const [moduleConfig, setModuleConfig] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
+  const { reload: reloadGlobalConfig } = useModuleConfig();
 
   const loadConfig = useCallback(async () => {
     try {
@@ -27,6 +29,7 @@ export function ModulesTab() {
     try {
       await api.superadmin.setModuleEnabled(moduleId, next);
       setModuleConfig((prev) => ({ ...prev, [moduleId]: next }));
+      await reloadGlobalConfig();
       setMsg(`${moduleId} ${next ? 'aktiviert' : 'deaktiviert'}`);
     } catch (e: unknown) {
       setMsg(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);

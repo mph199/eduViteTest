@@ -17,6 +17,7 @@ import { Footer } from './components/Footer';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { GlobalTopHeader } from './components/GlobalTopHeader';
 import { modules } from './modules/registry';
+import { useModuleConfig } from './contexts/ModuleConfigContext';
 import './App.css'
 
 // Maintenance-Modus via Env: VITE_MAINTENANCE_MODE=true|1|yes
@@ -27,6 +28,9 @@ const MAINTENANCE_MODE = (() => {
 })();
 
 function App() {
+  const { isModuleEnabled } = useModuleConfig();
+  const activeModules = modules.filter((m) => isModuleEnabled(m.id));
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -46,7 +50,7 @@ function App() {
               <Route path="/verify" element={<VerifyEmail />} />
 
               {/* Dynamische Modul-Routen */}
-              {modules.map((mod) => (
+              {activeModules.map((mod) => (
                 <Route
                   key={mod.id}
                   path={mod.basePath}
@@ -55,7 +59,7 @@ function App() {
               ))}
 
               {/* Geschützter Teacher-Bereich (aus Modulen) */}
-              {modules
+              {activeModules
                 .filter((mod) => mod.teacherLayout && mod.teacherRoutes)
                 .map((mod) => {
                   const Layout = mod.teacherLayout!;
@@ -119,7 +123,7 @@ function App() {
                 }
               />
               {/* Admin-Routen aus Modulen */}
-              {modules.flatMap((mod) =>
+              {activeModules.flatMap((mod) =>
                 (mod.adminRoutes ?? []).map((ar) => (
                   <Route
                     key={ar.path}

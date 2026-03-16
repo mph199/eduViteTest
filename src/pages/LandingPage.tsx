@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
 import { modules } from '../modules/registry';
 import { useBranding } from '../contexts/BrandingContext';
+import { useModuleConfig } from '../contexts/ModuleConfigContext';
 import api from '../services/api';
 import './LandingPage.css';
 
 export function LandingPage() {
   const { branding } = useBranding();
+  const { isModuleEnabled } = useModuleConfig();
+  const activeModules = modules.filter((m) => isModuleEnabled(m.id));
 
   return (
     <div
@@ -24,7 +27,7 @@ export function LandingPage() {
         </div>
 
         <div className="landing__grid">
-          {modules.map((mod) => {
+          {activeModules.map((mod) => {
             const tileUrl = branding.tile_images?.[mod.id];
             return (
               <Link

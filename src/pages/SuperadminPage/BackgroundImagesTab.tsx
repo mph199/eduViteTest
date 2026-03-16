@@ -67,7 +67,7 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
     <>
       <div className="superadmin__hint">
         Laden Sie für jede Seite ein eigenes Hintergrundbild hoch. Ohne Upload wird das Standard-Hintergrundbild verwendet.
-        Empfohlene Aufloesung: mindestens 1920x1080 Pixel. Erlaubte Formate: PNG, JPG, WebP (max. 5 MB).
+        Empfohlene Auflösung: mindestens 1920x1080 Pixel. Erlaubte Formate: PNG, JPG, WebP (max. 5 MB).
       </div>
 
       <section className="superadmin__section">

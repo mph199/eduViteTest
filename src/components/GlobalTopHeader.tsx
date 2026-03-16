@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/useAuth';
 import { useBranding } from '../contexts/BrandingContext';
 import { modules } from '../modules/registry';
 import type { SidebarNavItem } from '../modules/registry';
+import { useModuleConfig } from '../contexts/ModuleConfigContext';
 import './GlobalTopHeader.css';
 
 interface NavGroup {
@@ -20,6 +21,8 @@ export function GlobalTopHeader() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const { branding } = useBranding();
+  const { isModuleEnabled } = useModuleConfig();
+  const activeModules = useMemo(() => modules.filter((m) => isModuleEnabled(m.id)), [isModuleEnabled]);
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
@@ -44,8 +47,8 @@ export function GlobalTopHeader() {
   // Find which module the user is currently viewing (public page)
   const activeModule = useMemo(() => {
     if (!showModuleTitle) return null;
-    return modules.find((m) => pathname === m.basePath || pathname === m.basePath + '/') ?? null;
-  }, [pathname, showModuleTitle]);
+    return activeModules.find((m) => pathname === m.basePath || pathname === m.basePath + '/') ?? null;
+  }, [pathname, showModuleTitle, activeModules]);
 
   // Build navigation groups for the slide-out sidebar
   const navGroups = useMemo(() => {
@@ -60,7 +63,7 @@ export function GlobalTopHeader() {
     }
 
     // Module groups from registry
-    for (const mod of modules) {
+    for (const mod of activeModules) {
       if (!mod.sidebarNav) continue;
       if (!hasModuleAccess(mod.requiredModule)) continue;
 
