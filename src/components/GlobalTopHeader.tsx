@@ -211,7 +211,6 @@ export function GlobalTopHeader() {
                           onClick={() => { navigate(item.path); close(); }}
                         >
                           <span>{item.label}</span>
-                          {isActive(item.path) && <span className="dropdown__hint">Aktiv</span>}
                         </button>
                       ))}
                     </div>
