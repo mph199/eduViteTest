@@ -137,7 +137,7 @@ router.post('/email-branding/preview', requireSuperadmin, async (req, res) => {
   }
   const { to } = req.body || {};
   if (!to || typeof to !== 'string') {
-    return res.status(400).json({ error: 'Empfaenger-Adresse (to) fehlt' });
+    return res.status(400).json({ error: 'Empfänger-Adresse (to) fehlt' });
   }
   try {
     const branding = await getEmailBranding();

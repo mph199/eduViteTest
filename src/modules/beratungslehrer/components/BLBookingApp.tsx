@@ -6,11 +6,11 @@ const config: CounselorBookingConfig = {
   subtitle: 'Buche eine Sprechstunde bei einem Beratungslehrer.',
   counselorLabel: 'Beratungslehrer',
   confidentialNotice:
-    'Alle Beratungsgespraeche sind vertraulich. Deine Angaben werden nur an den gewaehlten Beratungslehrer weitergegeben.',
+    'Alle Beratungsgespräche sind vertraulich. Deine Angaben werden nur an den gewählten Beratungslehrer weitergegeben.',
   topicLabel: 'Thema',
   topicFieldKey: 'topic_id',
   successCounselorLabel: 'Beratungslehrer',
-  successMessage: 'Der Beratungslehrer wird sich bei dir melden, um den Termin zu bestaetigen.',
+  successMessage: 'Der Beratungslehrer wird sich bei dir melden, um den Termin zu bestätigen.',
   apiPathPrefix: '/bl',
   topicEndpoint: '/topics',
   topicResponseKey: 'topics',

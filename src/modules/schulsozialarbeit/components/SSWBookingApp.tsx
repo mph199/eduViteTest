@@ -6,11 +6,11 @@ const config: CounselorBookingConfig = {
   subtitle: 'Buche einen vertraulichen Beratungstermin.',
   counselorLabel: 'Berater/in',
   confidentialNotice:
-    'Alle Beratungsgespraeche sind vertraulich. Deine Angaben werden nur an die gewaehlte Beratungsperson weitergegeben.',
+    'Alle Beratungsgespräche sind vertraulich. Deine Angaben werden nur an die gewählte Beratungsperson weitergegeben.',
   topicLabel: 'Thema',
   topicFieldKey: 'category_id',
   successCounselorLabel: 'Berater/in',
-  successMessage: 'Die Beratungsperson wird sich bei dir melden, um den Termin zu bestaetigen.',
+  successMessage: 'Die Beratungsperson wird sich bei dir melden, um den Termin zu bestätigen.',
   apiPathPrefix: '/ssw',
   topicEndpoint: '/categories',
   topicResponseKey: 'categories',

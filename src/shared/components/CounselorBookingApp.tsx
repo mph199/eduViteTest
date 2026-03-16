@@ -168,7 +168,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
         <>
           <div className="cb-confidential-notice">{config.confidentialNotice}</div>
           {counselors.length === 0 ? (
-            <p className="cb-empty">Derzeit sind keine {config.counselorLabel} verfuegbar.</p>
+            <p className="cb-empty">Derzeit sind keine {config.counselorLabel} verfügbar.</p>
           ) : (
             <div className="cb-counselors">
               {counselors.map(c => (

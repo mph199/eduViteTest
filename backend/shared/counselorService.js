@@ -98,7 +98,7 @@ export function createCounselorService(config) {
       );
 
       if (!rows.length) {
-        const err = new Error('Termin nicht mehr verfuegbar');
+        const err = new Error('Termin nicht mehr verfügbar');
         err.statusCode = 409;
         throw err;
       }

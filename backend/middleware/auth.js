@@ -10,7 +10,7 @@ export const ADMIN_USER = adminUsername && adminPasswordHash
   : null;
 
 if (!ADMIN_USER) {
-  logger.warn('[auth] ADMIN_USERNAME / ADMIN_PASSWORD_HASH nicht gesetzt – System-Admin-Login deaktiviert. Nur DB-User koennen sich anmelden.');
+  logger.warn('[auth] ADMIN_USERNAME / ADMIN_PASSWORD_HASH nicht gesetzt – System-Admin-Login deaktiviert. Nur DB-User können sich anmelden.');
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
@@ -149,7 +149,7 @@ export function requireModuleAccess(moduleKey) {
   };
 }
 
-/** Alias fuer requireModuleAccess('beratungslehrer') */
+/** Alias für requireModuleAccess('beratungslehrer') */
 export const requireBeratungslehrer = requireModuleAccess('beratungslehrer');
 
 /**
