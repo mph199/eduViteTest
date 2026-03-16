@@ -76,11 +76,23 @@ Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch"
 
 ## Agents
 
+### Core Workflow (Pflicht)
+
 | Agent | When to spawn | File |
 |-------|---------------|------|
 | **Erkunder** | Before any non-trivial change | `.claude/agents/erkunder.md` |
 | **Architekt** | New features, modules, schema changes | `.claude/agents/architekt.md` |
 | **Pruefer** | Before every commit | `.claude/agents/pruefer.md` |
+
+### Code Hygiene (regelmaessig einsetzen)
+
+| Agent | When to spawn | File |
+|-------|---------------|------|
+| **Waechter** | Before deploys, after dependency updates, security-relevant changes | `.claude/agents/waechter.md` |
+| **Hygieniker** | Before major refactorings, regularly for dead code and duplication | `.claude/agents/hygieniker.md` |
+| **Konsistenzpruefer** | During code reviews, regularly for convention drift | `.claude/agents/konsistenzpruefer.md` |
+| **Testmeister** | After feature implementation, to plan test coverage | `.claude/agents/testmeister.md` |
+| **Dokumentar** | After feature completion, schema changes, release prep | `.claude/agents/dokumentar.md` |
 
 ## Quick Start
 
