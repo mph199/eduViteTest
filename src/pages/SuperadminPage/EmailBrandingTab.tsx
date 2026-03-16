@@ -27,10 +27,11 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
   const logoHtml = logoPreviewSrc
     ? `<div style="background:#fff;border-radius:6px;padding:6px;display:inline-block;margin:0 auto 6px;"><img src="${esc(logoPreviewSrc)}" alt="" style="max-height:50px;max-width:180px;display:block;" /></div>`
     : '';
+  const safeColor = /^#[0-9a-fA-F]{3,8}$/.test(emailBranding.primary_color) ? emailBranding.primary_color : '#2d5016';
   const previewHtmlContent = `
     <div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;background:#f4f4f5;padding:16px;">
       <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-        <div style="background:${esc(emailBranding.primary_color)};padding:14px 18px;text-align:center;color:#fff;">
+        <div style="background:${safeColor};padding:14px 18px;text-align:center;color:#fff;">
           <span style="font-size:15px;font-weight:600;">${esc(emailBranding.school_name)}</span>
         </div>
         ${logoHtml ? `<div style="padding:12px 18px 0;text-align:center;">${logoHtml}</div>` : ''}

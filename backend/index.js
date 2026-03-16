@@ -51,8 +51,8 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (corsOrigins.includes(origin)) return callback(null, true);
-    // Allow GitHub Codespaces forwarded ports
-    if (origin && (origin.endsWith('.app.github.dev') || origin.endsWith('.preview.app.github.dev'))) return callback(null, true);
+    // Allow GitHub Codespaces forwarded ports (development only)
+    if (process.env.NODE_ENV !== 'production' && origin && (origin.endsWith('.app.github.dev') || origin.endsWith('.preview.app.github.dev'))) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -74,7 +74,15 @@ const bookingLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Zu viele Buchungsanfragen. Bitte später erneut versuchen.' },
+  message: { error: 'Zu viele Buchungsanfragen. Bitte spaeter erneut versuchen.' },
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte spaeter erneut versuchen.' },
 });
 
 // Serve uploaded files
@@ -90,8 +98,8 @@ app.use((req, _res, next) => {
 
 // Shared kernel routes
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/superadmin', superadminRoutes);
+app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/superadmin', adminLimiter, superadminRoutes);
 
 // 404 + Error handler werden erst nach dem Laden der Module registriert (s.u.)
 

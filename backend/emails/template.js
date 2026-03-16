@@ -57,6 +57,10 @@ export function wrapEmailHtml({ body, branding }) {
       // logo_url may be a full URL (legacy) or just a filename
       const filename = b.logo_url.includes('/') ? b.logo_url.split('/').pop() : b.logo_url;
       const filePath = path.join(UPLOADS_DIR, filename);
+      // Path containment check — prevent directory traversal
+      if (!path.resolve(filePath).startsWith(path.resolve(UPLOADS_DIR))) {
+        throw new Error('Invalid logo path');
+      }
       if (fs.existsSync(filePath)) {
         const buf = fs.readFileSync(filePath);
         const ext = path.extname(filename).toLowerCase().replace('.', '');
