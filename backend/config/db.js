@@ -50,7 +50,7 @@ pool.on('connect', () => {
     const target = process.env.DATABASE_URL
       ? process.env.DATABASE_URL.replace(/\/\/.*@/, '//***@')
       : `${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`;
-    logger.info(`[db] Connected to PostgreSQL: ${target}`);
+    logger.info({ target }, '[db] Connected to PostgreSQL');
     pool._loggedOnce = true;
   }
 });

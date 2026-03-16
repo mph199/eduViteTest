@@ -53,7 +53,7 @@ async function getTransporter() {
             pass: testAccount.pass,
           },
         });
-        logger.info('[email] Using Ethereal test account: %s', testAccount.user);
+        logger.info({ account: testAccount.user }, '[email] Using Ethereal test account');
         return transporter;
       })();
     }
@@ -93,7 +93,7 @@ export async function sendMail({ to, subject, text, html }) {
   const info = await t.sendMail({ from: fromEmail, to, subject, text, html });
   const previewUrl = nodemailer.getTestMessageUrl(info);
   if (previewUrl) {
-    logger.info('[email] Preview URL: %s', previewUrl);
+    logger.info({ previewUrl }, '[email] Preview URL');
   }
   lastEmail = {
     to,
