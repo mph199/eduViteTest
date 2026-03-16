@@ -310,8 +310,8 @@ export function BLAdmin() {
     return (
       <div className="admin-dashboard">
         <div className="admin-main">
-          <div className="admin-section-header"><h2>Beratungslehrer</h2></div>
-          <div className="admin-error">Kein Beratungslehrer-Profil zugeordnet. Bitte wenden Sie sich an einen Administrator.</div>
+          <div className="admin-section-header"><h2>Beratungslehrkräfte</h2></div>
+          <div className="admin-error">Kein Profil als Beratungslehrkraft zugeordnet. Bitte wenden Sie sich an einen Administrator.</div>
         </div>
       </div>
     );
@@ -321,7 +321,7 @@ export function BLAdmin() {
     <div className="admin-dashboard">
       <div className="admin-main">
         <div className="admin-section-header">
-          <h2>Beratungslehrer</h2>
+          <h2>Beratungslehrkräfte</h2>
         </div>
 
         {flash && <div className="admin-success">{flash}</div>}
@@ -525,13 +525,13 @@ export function BLAdmin() {
         {tab === 'counselors' && isAdmin && (
           <>
             <div className="admin-section-header">
-              <h3>Alle Beratungslehrer</h3>
+              <h3>Alle Beratungslehrkräfte</h3>
             </div>
 
             <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
               <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
-                Beratungslehrer werden über <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
-                Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrer&quot;.
+                Beratungslehrkräfte werden über <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
+                Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrkräfte&quot;.
               </p>
             </div>
 
@@ -547,7 +547,7 @@ export function BLAdmin() {
                 </thead>
                 <tbody>
                   {counselors.length === 0 ? (
-                    <tr><td colSpan={4}>Keine Beratungslehrer vorhanden.</td></tr>
+                    <tr><td colSpan={4}>Keine Beratungslehrkräfte vorhanden.</td></tr>
                   ) : counselors.map(c => (
                     <tr key={c.id}>
                       <td>{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>

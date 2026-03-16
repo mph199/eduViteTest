@@ -1,4 +1,5 @@
 import { CounselorBookingApp } from '../../../shared/components/CounselorBookingApp';
+import { CounselorBookingLayout } from '../../../shared/components/CounselorBookingLayout';
 import type { CounselorBookingConfig } from '../../../shared/components/CounselorBookingApp';
 
 const config: CounselorBookingConfig = {
@@ -17,5 +18,9 @@ const config: CounselorBookingConfig = {
 };
 
 export function SSWBookingApp() {
-  return <CounselorBookingApp config={config} />;
+  return (
+    <CounselorBookingLayout moduleId="schulsozialarbeit">
+      <CounselorBookingApp config={config} />
+    </CounselorBookingLayout>
+  );
 }

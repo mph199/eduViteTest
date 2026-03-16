@@ -116,7 +116,7 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingT
                   checked={blForm.enabled}
                   onChange={(e) => setBlForm({ ...blForm, enabled: e.target.checked })}
                 />
-                Beratungslehrer
+                Beratungslehrkraft
               </label>
             </summary>
             {blForm.enabled && (

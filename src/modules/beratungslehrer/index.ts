@@ -17,7 +17,7 @@ const BLAdmin = lazy(() =>
 
 const beratungslehrerModule: ModuleDefinition = {
   id: 'beratungslehrer',
-  title: 'Beratungslehrer',
+  title: 'Beratungslehrkräfte',
   description: 'Sprechstunde buchen oder eine anonyme Anfrage stellen.',
   icon: '',
   basePath: '/beratungslehrer',
@@ -28,14 +28,14 @@ const beratungslehrerModule: ModuleDefinition = {
   /** Öffentliche Buchungsseite */
   PublicPage: BLBookingApp,
 
-  /** Admin-Bereich: Beratungslehrer verwalten */
+  /** Admin-Bereich: Beratungslehrkräfte verwalten */
   adminRoutes: [
-    { path: '/admin/beratungslehrer', label: 'Beratungslehrer', Component: BLAdmin },
+    { path: '/admin/beratungslehrer', label: 'Beratungslehrkräfte', Component: BLAdmin },
   ],
 
   /** Sidebar-Navigation */
   sidebarNav: {
-    label: 'Beratungslehrer',
+    label: 'Beratungslehrkräfte',
     items: [
       { path: '/admin/beratungslehrer', label: 'Beratungstermine verwalten' },
     ],

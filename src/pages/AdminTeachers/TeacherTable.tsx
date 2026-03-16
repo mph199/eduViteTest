@@ -74,7 +74,7 @@ function ModuleCheckbox({ acct, moduleSaving, toggleModule }: {
         disabled={!!moduleSaving[acct.id]}
         onChange={() => toggleModule(acct, 'beratungslehrer')}
       />
-      Beratungslehrer
+      Beratungslehrkraft
       {moduleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
     </label>
   );

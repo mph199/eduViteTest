@@ -1,0 +1,79 @@
+/* CounselorBookingLayout – Wrapper matching Elternsprechtag booking-app style */
+
+.cb-layout {
+  position: relative;
+  min-height: 100vh;
+  background-color: var(--color-white);
+  padding-top: 1.25rem;
+  padding-left: var(--page-gutter, 1.25rem);
+  padding-right: var(--page-gutter, 1.25rem);
+  padding-bottom: 2rem;
+}
+
+.cb-layout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--cb-bg);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cb-layout__inner {
+  position: relative;
+  z-index: 1;
+  max-width: var(--page-max-width, 1280px);
+  margin: 0 auto;
+}
+
+/* Inner booking app – full width within container */
+.cb-layout .cb-app {
+  max-width: 100%;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 52px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cb-layout {
+    padding-top: 1.5rem;
+    padding-right: var(--page-gutter, 1.1rem);
+    padding-left: var(--page-gutter, 1.1rem);
+    padding-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .cb-layout {
+    padding-top: 1rem;
+    padding-right: var(--page-gutter, 1.1rem);
+    padding-left: var(--page-gutter, 1.1rem);
+    padding-bottom: 1rem;
+  }
+
+  .cb-layout .cb-app {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cb-layout {
+    padding-top: 0.75rem;
+    padding-right: var(--page-gutter, 1rem);
+    padding-left: var(--page-gutter, 1rem);
+    padding-bottom: 0.75rem;
+  }
+}

@@ -1,0 +1,99 @@
+/* EduViteLogo – Inline-Logo fuer Fliesstexte */
+
+.ev-logo {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Outfit', var(--font-heading, sans-serif);
+  font-weight: 300;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+.ev-logo__edu {
+  color: var(--brand-ink, #1a1a1a);
+}
+
+.ev-logo__vite {
+  color: var(--brand-primary, #2563EB);
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.ev-logo__rest {
+  display: inline;
+}
+
+/* V wrapper – holds both the checkmark SVG and the V letter */
+.ev-logo__v-wrap {
+  display: inline-block;
+  position: relative;
+  width: 0.54em;
+  height: 1em;
+  vertical-align: bottom;
+}
+
+.ev-logo__check-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ev-logo__check-path {
+  fill: none;
+  stroke: var(--brand-primary, #2563EB);
+  stroke-width: 5.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 130;
+  stroke-dashoffset: 130;
+  animation:
+    ev-drawCheck 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards,
+    ev-checkFade 0.25s ease 1.8s forwards;
+}
+
+@keyframes ev-drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes ev-checkFade {
+  to { opacity: 0; }
+}
+
+.ev-logo__v-letter {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: var(--brand-primary, #2563EB);
+  letter-spacing: -0.5px;
+  opacity: 0;
+  animation: ev-vFadeIn 0.35s ease 1.9s forwards;
+}
+
+@keyframes ev-vFadeIn {
+  to { opacity: 1; }
+}
+
+/* Reduced motion: skip animation, show final state */
+@media (prefers-reduced-motion: reduce) {
+  .ev-logo__check-path {
+    animation: none;
+    opacity: 0;
+  }
+  .ev-logo__v-letter {
+    animation: none;
+    opacity: 1;
+  }
+}
