@@ -54,7 +54,7 @@ export function TeacherFeedback() {
       <section className="admin-section">
         <div className="stat-card" style={{ maxWidth: 860 }}>
           <h2 style={{ marginTop: 0 }}>Feedback senden</h2>
-          <p style={{ marginTop: 6, marginBottom: 12, color: '#555', lineHeight: 1.35 }}>
+          <p style={{ marginTop: 6, marginBottom: 12, color: 'var(--color-gray-600)', lineHeight: 1.35 }}>
             Ihre Nachricht wird anonym an die Administration weitergeleitet.
           </p>
 

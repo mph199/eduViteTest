@@ -18,7 +18,7 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
         alignItems: 'center',
         height: '100vh',
         fontSize: '1.2rem',
-        color: '#2d5016'
+        color: 'var(--brand-primary)'
       }}>
         Lädt...
       </div>

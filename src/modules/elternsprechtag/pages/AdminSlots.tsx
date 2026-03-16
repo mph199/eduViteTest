@@ -314,7 +314,7 @@ export function AdminSlots() {
                               )}
                             </>
                           ) : (
-                            <span style={{ color: '#9ca3af' }}>—</span>
+                            <span style={{ color: 'var(--color-gray-400)' }}>—</span>
                           )}
                         </td>
                         <td data-label="Aktionen" className="admin-actions-cell">

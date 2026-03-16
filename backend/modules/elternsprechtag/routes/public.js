@@ -7,6 +7,7 @@ import { listTeachers } from '../services/teachersService.js';
 import { reserveBooking, verifyBookingToken } from '../services/slotsService.js';
 import { mapSlotRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
+import logger from '../../../config/logger.js';
 
 const router = express.Router();
 
@@ -83,7 +84,7 @@ router.get('/teachers', async (_req, res) => {
     const teachers = await listTeachers();
     res.json({ teachers });
   } catch (error) {
-    console.error('Error fetching teachers:', error);
+    logger.error({ err: error }, 'Error fetching teachers');
     res.status(500).json({ error: 'Failed to fetch teachers' });
   }
 });
@@ -146,7 +147,7 @@ router.get('/slots', async (req, res) => {
 
     return res.json({ slots: publicSlots });
   } catch (error) {
-    console.error('Error fetching slots:', error);
+    logger.error({ err: error }, 'Error fetching slots');
     res.status(500).json({ error: 'Failed to fetch slots' });
   }
 });
@@ -189,13 +190,13 @@ router.post('/bookings', async (req, res) => {
         }, branding);
         await sendMail({ to: payload.email, subject, text, html });
       } catch (e) {
-        console.warn('Sending verification email failed:', e?.message || e);
+        logger.warn({ err: e }, 'Sending verification email failed');
       }
     }
 
     res.json({ success: true, updatedSlot: mapSlotRow(slotRow) });
   } catch (error) {
-    console.error('Error creating booking:', error);
+    logger.error({ err: error }, 'Error creating booking');
     const status = error?.statusCode || 500;
     res.status(status).json({ error: error?.message || 'Failed to create booking' });
   }
@@ -323,13 +324,13 @@ router.post('/booking-requests', async (req, res) => {
         }, branding);
         await sendMail({ to: email, subject, text, html });
       } catch (e) {
-        console.warn('Sending verification email (request) failed:', e?.message || e);
+        logger.warn({ err: e }, 'Sending verification email (request) failed');
       }
     }
 
     return res.json({ success: true });
   } catch (error) {
-    console.error('Error creating booking request:', error);
+    logger.error({ err: error }, 'Error creating booking request');
     return res.status(500).json({ error: 'Failed to create booking request' });
   }
 });
@@ -371,7 +372,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
           await sendMail({ to: slot.email, subject, text, html });
           await query('UPDATE slots SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, slot.id]);
         } catch (e) {
-          console.warn('Sending confirmation after verify failed:', e?.message || e);
+          logger.warn({ err: e }, 'Sending confirmation after verify failed');
         }
       }
       return res.json({ success: true, message: 'E-Mail bestätigt. Wir informieren Sie bei Bestätigung durch die Lehrkraft.' });
@@ -395,7 +396,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
           await sendMail({ to: request.email, subject, text, html });
           await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, request.id]);
         } catch (e) {
-          console.warn('Sending confirmation after request verify failed:', e?.message || e);
+          logger.warn({ err: e }, 'Sending confirmation after request verify failed');
         }
       }
       return res.json({ success: true, message: 'E-Mail bestätigt. Wir informieren Sie, sobald die Lehrkraft Ihnen einen Termin zuweist.' });
@@ -403,7 +404,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
 
     return res.json({ success: true, message: 'E-Mail bestätigt.' });
   } catch (e) {
-    console.error('Error verifying email:', e);
+    logger.error({ err: e }, 'Error verifying email');
     const status = e?.statusCode || 500;
     return res.status(status).json({ error: e?.message || 'Verifikation fehlgeschlagen' });
   }
@@ -426,7 +427,7 @@ router.get('/events/active', async (_req, res) => {
     const activeEvent = rows && rows.length ? rows[0] : null;
     res.json({ event: activeEvent });
   } catch (error) {
-    console.error('Error fetching active event:', error);
+    logger.error({ err: error }, 'Error fetching active event');
     res.status(500).json({ error: 'Failed to fetch active event' });
   }
 });
@@ -445,7 +446,7 @@ router.get('/events/upcoming', async (_req, res) => {
 
     res.json({ events: rows || [] });
   } catch (error) {
-    console.error('Error fetching upcoming events:', error);
+    logger.error({ err: error }, 'Error fetching upcoming events');
     res.status(500).json({ error: 'Failed to fetch upcoming events' });
   }
 });
@@ -467,7 +468,7 @@ router.get('/health', async (_req, res) => {
       bookedCount: parseInt(bookedResult.rows[0].count, 10) || 0
     });
   } catch (error) {
-    console.error('Error in health check:', error);
+    logger.error({ err: error }, 'Error in health check');
     res.status(500).json({ status: 'error', message: 'Health check failed' });
   }
 });

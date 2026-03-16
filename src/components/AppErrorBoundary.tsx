@@ -24,7 +24,7 @@ export class AppErrorBoundary extends React.Component<Props, State> {
       return (
         <div style={{ padding: 24 }}>
           <h2>Es ist ein Fehler aufgetreten.</h2>
-          <p style={{ color: '#c33' }}>{this.state.message}</p>
+          <p style={{ color: 'var(--color-error)' }}>{this.state.message}</p>
           <button onClick={() => window.location.reload()} style={{ padding: '8px 12px' }}>
             Seite neu laden
           </button>

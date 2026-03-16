@@ -7,6 +7,7 @@ import { requireSuperadmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
+import logger from '../config/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,9 +28,10 @@ const logoUpload = multer({
   storage: logoStorage,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) return cb(null, true);
+    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
     cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
   },
 });
@@ -43,7 +45,7 @@ router.get('/email-branding', requireSuperadmin, async (_req, res) => {
     const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team' };
     return res.json(data);
   } catch (error) {
-    console.error('Error fetching email branding:', error);
+    logger.error({ err: error }, 'Error fetching email branding');
     return res.status(500).json({ error: 'Failed to fetch email branding' });
   }
 });
@@ -71,7 +73,7 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
     );
     return res.json({ success: true, branding: rows[0] });
   } catch (error) {
-    console.error('Error updating email branding:', error);
+    logger.error({ err: error }, 'Error updating email branding');
     return res.status(500).json({ error: 'Failed to update email branding' });
   }
 });
@@ -94,7 +96,7 @@ router.post('/logo', requireSuperadmin, (req, res) => {
         [logoFilename]
       );
     } catch (e) {
-      console.error('Error saving logo URL:', e);
+      logger.error({ err: e }, 'Error saving logo URL');
     }
     return res.json({ success: true, logo_url: logoUrl });
   });
@@ -121,7 +123,7 @@ router.post('/email-branding/preview', requireSuperadmin, async (req, res) => {
     const result = await sendMail({ to: to.trim(), subject: `[VORSCHAU] ${subject}`, text, html });
     return res.json({ success: true, messageId: result.messageId });
   } catch (error) {
-    console.error('Error sending preview email:', error);
+    logger.error({ err: error }, 'Error sending preview email');
     return res.status(500).json({ error: error?.message || 'Fehler beim Senden' });
   }
 });
@@ -230,7 +232,7 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
 
     return res.json({ success: true, branding: rows[0] });
   } catch (error) {
-    console.error('Error updating site branding:', error);
+    logger.error({ err: error }, 'Error updating site branding');
     return res.status(500).json({ error: 'Failed to update site branding' });
   }
 });
@@ -251,9 +253,10 @@ const tileUpload = multer({
   storage: tileStorage,
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) return cb(null, true);
+    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) return cb(null, true);
     cb(new Error('Nur Bilddateien (PNG, JPG, SVG, WebP, GIF) erlaubt'));
   },
 });
@@ -319,7 +322,7 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
     );
     return res.json({ success: true, textBranding: rows[0] });
   } catch (error) {
-    console.error('Error updating text branding:', error);
+    logger.error({ err: error }, 'Error updating text branding');
     return res.status(500).json({ error: 'Failed to update text branding' });
   }
 });

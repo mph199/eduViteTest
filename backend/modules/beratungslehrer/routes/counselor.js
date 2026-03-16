@@ -9,6 +9,7 @@ import express from 'express';
 import { requireAuth, hasModuleAccess } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { generateTimeSlots } from '../services/appointmentService.js';
+import logger from '../../../config/logger.js';
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ async function requireBLCounselor(req, res, next) {
     // No access
     return res.status(403).json({ error: 'Kein Beratungslehrer-Zugang' });
   } catch (err) {
-    console.error('requireBLCounselor error:', err);
+    logger.error({ err }, 'requireBLCounselor error');
     return res.status(500).json({ error: 'Interner Fehler bei Berechtigungspruefung' });
   }
 }
@@ -110,7 +111,7 @@ router.put('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
     );
     res.json({ success: true, schedule: rows });
   } catch (err) {
-    console.error('BL counselor schedule update error:', err);
+    logger.error({ err }, 'BL counselor schedule update error');
     res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
   }
 });
@@ -249,7 +250,7 @@ router.post('/generate-slots', requireAuth, requireBLCounselor, async (req, res)
 
     res.json({ success: true, created: totalCreated, skipped: totalSkipped });
   } catch (err) {
-    console.error('BL generate-slots error:', err);
+    logger.error({ err }, 'BL generate-slots error');
     res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
   }
 });

@@ -1,54 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { Counselor, ScheduleEntry, CounselorTopic as Category, CounselorAppointment as Appointment } from '../../../types';
+import api from '../../../services/api';
 import '../../../pages/AdminDashboard.css';
-
-const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
-
-interface Counselor {
-  id: number;
-  first_name: string;
-  last_name: string;
-  name: string;
-  salutation?: string;
-  email?: string;
-  room?: string;
-  phone?: string;
-  specializations?: string;
-  available_from?: string;
-  available_until?: string;
-  slot_duration_minutes?: number;
-  active?: boolean;
-  user_id?: number;
-}
-
-interface ScheduleEntry {
-  weekday: number;
-  start_time: string;
-  end_time: string;
-  active: boolean;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  description?: string;
-  icon?: string;
-  sort_order?: number;
-  active?: boolean;
-}
-
-interface Appointment {
-  id: number;
-  counselor_id: number;
-  date: string;
-  time: string;
-  duration_minutes: number;
-  status: string;
-  student_name?: string;
-  student_class?: string;
-  concern?: string;
-  category_name?: string;
-  category_icon?: string;
-}
 
 type Tab = 'counselors' | 'categories' | 'termine';
 
@@ -85,18 +38,6 @@ const emptyCategory = {
   sort_order: 0,
 };
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    ...opts,
-    headers: { 'Content-Type': 'application/json', ...opts?.headers },
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error((data as any)?.error || `Fehler ${res.status}`);
-  }
-  return res.json();
-}
 
 export function SSWAdmin() {
   const [tab, setTab] = useState<Tab>('counselors');
@@ -142,19 +83,19 @@ export function SSWAdmin() {
     setLoading(true);
     try {
       const [cData, catData] = await Promise.all([
-        apiFetch('/ssw/admin/counselors'),
-        apiFetch('/ssw/admin/categories'),
+        api.ssw.getAdminCounselors(),
+        api.ssw.getAdminCategories(),
       ]);
-      setCounselors(cData.counselors || []);
-      setCategories(catData.categories || []);
+      setCounselors(Array.isArray(cData?.counselors) ? cData.counselors : []);
+      setCategories(Array.isArray(catData?.categories) ? catData.categories : []);
       // Load schedules for all counselors
-      const cList: Counselor[] = cData.counselors || [];
+      const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
       if (cList.length > 0) {
         const scheduleResults = await Promise.all(
-          cList.map(c => apiFetch(`/ssw/admin/counselors/${c.id}/schedule`).catch(() => ({ schedule: [] })))
+          cList.map(c => api.ssw.getAdminCounselorSchedule(c.id).catch(() => ({ schedule: [] })))
         );
         const map: Record<number, ScheduleEntry[]> = {};
-        cList.forEach((c, i) => { map[c.id] = scheduleResults[i].schedule || []; });
+        cList.forEach((c, i) => { map[c.id] = scheduleResults[i]?.schedule || []; });
         setSchedulesMap(map);
       }
     } catch (err) {
@@ -170,8 +111,8 @@ export function SSWAdmin() {
   const loadSchedule = async (counselorId: number) => {
     setScheduleLoading(true);
     try {
-      const data = await apiFetch(`/ssw/admin/counselors/${counselorId}/schedule`);
-      const rows: ScheduleEntry[] = data.schedule || [];
+      const data = await api.ssw.getAdminCounselorSchedule(counselorId);
+      const rows: ScheduleEntry[] = data?.schedule || [];
       if (rows.length > 0) {
         // Merge with defaults so all 7 days are present
         const merged = defaultSchedule().map(def => {
@@ -190,10 +131,7 @@ export function SSWAdmin() {
   };
 
   const saveSchedule = async (counselorId: number) => {
-    await apiFetch(`/ssw/admin/counselors/${counselorId}/schedule`, {
-      method: 'PUT',
-      body: JSON.stringify({ schedule }),
-    });
+    await api.ssw.updateAdminCounselorSchedule(counselorId, schedule);
   };
 
   const handleSaveCounselor = async (e: React.FormEvent) => {
@@ -204,17 +142,11 @@ export function SSWAdmin() {
     }
     try {
       if (editingCounselorId) {
-        await apiFetch(`/ssw/admin/counselors/${editingCounselorId}`, {
-          method: 'PUT',
-          body: JSON.stringify(counselorForm),
-        });
+        await api.ssw.updateCounselor(editingCounselorId, counselorForm);
         await saveSchedule(editingCounselorId);
         showFlash('Berater/in aktualisiert.');
       } else {
-        const data = await apiFetch('/ssw/admin/counselors', {
-          method: 'POST',
-          body: JSON.stringify(counselorForm),
-        });
+        const data = await api.ssw.createCounselor(counselorForm);
         if (data.counselor?.id) {
           await saveSchedule(data.counselor.id);
         }
@@ -256,7 +188,7 @@ export function SSWAdmin() {
   const handleDeleteCounselor = async (id: number) => {
     if (!confirm('Berater/in wirklich löschen?')) return;
     try {
-      await apiFetch(`/ssw/admin/counselors/${id}`, { method: 'DELETE' });
+      await api.ssw.deleteCounselor(id);
       showFlash('Berater/in gelöscht.');
       loadData();
     } catch (err) {
@@ -270,16 +202,10 @@ export function SSWAdmin() {
     if (!categoryForm.name.trim()) { alert('Name ist Pflicht.'); return; }
     try {
       if (editingCategoryId) {
-        await apiFetch(`/ssw/admin/categories/${editingCategoryId}`, {
-          method: 'PUT',
-          body: JSON.stringify(categoryForm),
-        });
+        await api.ssw.updateCategory(editingCategoryId, categoryForm);
         showFlash('Kategorie aktualisiert.');
       } else {
-        await apiFetch('/ssw/admin/categories', {
-          method: 'POST',
-          body: JSON.stringify(categoryForm),
-        });
+        await api.ssw.createCategory(categoryForm);
         showFlash('Kategorie erstellt.');
       }
       setShowCategoryForm(false);
@@ -310,14 +236,7 @@ export function SSWAdmin() {
     }
     setGenerating(true);
     try {
-      const data = await apiFetch('/ssw/counselor/generate-slots', {
-        method: 'POST',
-        body: JSON.stringify({
-          counselor_id: calCounselorId,
-          date_from: slotGenFrom,
-          date_until: slotGenUntil,
-        }),
-      });
+      const data = await api.ssw.generateSlots(calCounselorId, slotGenFrom, slotGenUntil);
       showFlash(`${data.created || 0} Termine erstellt (${data.skipped || 0} übersprungen).`);
       setSlotGenFrom('');
       setSlotGenUntil('');
@@ -340,8 +259,8 @@ export function SSWAdmin() {
       const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
       const lastDay = new Date(year, month + 1, 0).getDate();
       const dateUntil = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      const data = await apiFetch(`/ssw/admin/appointments?counselor_id=${counselorId}&date_from=${dateFrom}&date_until=${dateUntil}`);
-      setCalAppointments(data.appointments || []);
+      const data = await api.ssw.getAdminAppointments(counselorId, dateFrom, dateUntil);
+      setCalAppointments(Array.isArray(data?.appointments) ? data.appointments : []);
     } catch {
       setCalAppointments([]);
     } finally {
@@ -363,10 +282,7 @@ export function SSWAdmin() {
     if (!confirm(`${count} Termin(e) wirklich löschen?`)) return;
     setCalDeleting(true);
     try {
-      const data = await apiFetch('/ssw/admin/appointments', {
-        method: 'DELETE',
-        body: JSON.stringify({ ids: Array.from(calSelectedIds) }),
-      });
+      const data = await api.ssw.deleteAppointments(Array.from(calSelectedIds));
       showFlash(`${data.deleted || 0} Termin(e) gelöscht.`);
       setCalSelectedIds(new Set());
       if (calCounselorId) loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
@@ -389,13 +305,13 @@ export function SSWAdmin() {
 
         {flash && <div className="admin-success">{flash}</div>}
         {createdCreds && (
-          <div className="admin-success" style={{ background: '#f0f9ff', border: '1px solid #38bdf8', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+          <div className="admin-success" style={{ background: 'var(--color-info-light)', border: '1px solid var(--color-info-accent)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
             <strong>Zugangsdaten erstellt:</strong>
             <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.95rem' }}>
               Benutzername: <strong>{createdCreds.username}</strong><br />
               Passwort: <strong>{createdCreds.tempPassword}</strong>
             </div>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555' }}>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
               Bitte Zugangsdaten notieren — das Passwort wird nicht erneut angezeigt.
             </p>
             <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schließen</button>
@@ -521,11 +437,11 @@ export function SSWAdmin() {
                   {!editingCounselorId && (
                     <>
                       <div className="form-group">
-                        <label htmlFor="ssw-username">Benutzername <span style={{ fontWeight: 'normal', color: '#888' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <label htmlFor="ssw-username">Benutzername <span style={{ fontWeight: 'normal', color: 'var(--color-gray-500)' }}>(optional – wird sonst automatisch generiert)</span></label>
                         <input id="ssw-username" type="text" value={counselorForm.username} onChange={e => setCounselorForm({ ...counselorForm, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="ssw-password">Passwort <span style={{ fontWeight: 'normal', color: '#888' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <label htmlFor="ssw-password">Passwort <span style={{ fontWeight: 'normal', color: 'var(--color-gray-500)' }}>(optional – wird sonst automatisch generiert)</span></label>
                         <input id="ssw-password" type="text" value={counselorForm.password} onChange={e => setCounselorForm({ ...counselorForm, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
                       </div>
                     </>
@@ -700,7 +616,7 @@ export function SSWAdmin() {
                               padding: '0.3rem',
                               textAlign: 'center',
                               cursor: count > 0 ? 'pointer' : 'default',
-                              background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? '#fff' : 'var(--color-gray-50, #f9fafb)',
+                              background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? 'var(--color-white)' : 'var(--color-gray-50)',
                               opacity: isPast ? 0.5 : 1,
                               minHeight: '50px',
                               display: 'flex',

@@ -1,0 +1,111 @@
+import express from 'express';
+import { requireAdmin } from '../../middleware/auth.js';
+import { query } from '../../config/db.js';
+import logger from '../../config/logger.js';
+
+const router = express.Router();
+
+const VALID_MODULE_KEYS = ['beratungslehrer'];
+
+// GET /api/admin/users
+router.get('/users', requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT u.id, u.username, u.role, u.teacher_id, u.created_at, u.updated_at,
+              COALESCE(
+                (SELECT json_agg(uma.module_key ORDER BY uma.module_key)
+                 FROM user_module_access uma WHERE uma.user_id = u.id),
+                '[]'::json
+              ) AS modules
+       FROM users u ORDER BY u.id`
+    );
+    return res.json({ users: rows });
+  } catch (error) {
+    logger.error({ err: error }, 'Error fetching admin users');
+    return res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// PATCH /api/admin/users/:id
+router.patch('/users/:id', requireAdmin, async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  const { role } = req.body || {};
+  const roleStr = String(role || '').trim();
+  if (!['admin', 'teacher', 'superadmin', 'ssw'].includes(roleStr)) {
+    return res.status(400).json({ error: 'role must be "admin", "teacher", "superadmin" or "ssw"' });
+  }
+
+  // Prevent an admin from demoting themselves.
+  try {
+    if (req.user?.username) {
+      const { rows: meRows } = await query('SELECT id, role FROM users WHERE username = $1 LIMIT 1', [req.user.username]);
+      const me = meRows[0] || null;
+      if (me && Number(me.id) === userId && roleStr !== 'admin') {
+        return res.status(400).json({ error: 'You cannot remove your own admin role.' });
+      }
+    }
+  } catch {
+    // ignore safety check failures
+  }
+
+  try {
+    const { rows } = await query(
+      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, username, role, teacher_id, created_at, updated_at',
+      [roleStr, userId]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.json({ success: true, user: rows[0] });
+  } catch (error) {
+    logger.error({ err: error }, 'Error updating admin user role');
+    return res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// PUT /api/admin/users/:id/modules
+router.put('/users/:id/modules', requireAdmin, async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  const { modules } = req.body || {};
+  if (!Array.isArray(modules)) {
+    return res.status(400).json({ error: 'modules must be an array of module keys' });
+  }
+
+  // Validate module keys
+  const invalid = modules.filter(m => !VALID_MODULE_KEYS.includes(m));
+  if (invalid.length > 0) {
+    return res.status(400).json({ error: 'Invalid module keys: ' + invalid.join(', ') });
+  }
+
+  try {
+    await query('BEGIN');
+    try {
+      await query('DELETE FROM user_module_access WHERE user_id = $1', [userId]);
+      for (const moduleKey of modules) {
+        await query(
+          'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, moduleKey]
+        );
+      }
+      await query('COMMIT');
+    } catch (txErr) {
+      await query('ROLLBACK');
+      throw txErr;
+    }
+
+    return res.json({ success: true, modules });
+  } catch (error) {
+    logger.error({ err: error }, 'Error updating user modules');
+    return res.status(500).json({ error: 'Failed to update user modules' });
+  }
+});
+
+export default router;

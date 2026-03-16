@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
-import adminRoutes from './routes/admin.js';
+import adminRoutes from './routes/admin/index.js';
 import superadminRoutes from './routes/superadmin.js';
 import { loadModules } from './moduleLoader.js';
 import { initDatabase } from './migrate.js';
@@ -24,9 +24,21 @@ const PORT = process.env.PORT || 4000;
 // Trust proxy (nginx, Codespaces port forwarding)
 app.set('trust proxy', 1);
 
-// Security headers
+// Security headers – CSP als Fallback; in Produktion ueberschreibt nginx die Header
+const cspConnectSrc = ["'self'", ...corsOrigins];
 app.use(helmet({
-  contentSecurityPolicy: false, // managed by nginx/reverse proxy in production
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: cspConnectSrc,
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
 }));
 
@@ -46,7 +58,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // Rate limiting
 const authLimiter = rateLimit({

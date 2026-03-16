@@ -55,7 +55,7 @@ export function TeacherPassword() {
       <section className="admin-section">
         <div className="stat-card" style={{ maxWidth: 720 }}>
           <h2 style={{ marginTop: 0 }}>Passwort ändern</h2>
-          <p style={{ marginTop: 6, color: '#555', lineHeight: 1.35 }}>
+          <p style={{ marginTop: 6, color: 'var(--color-gray-600)', lineHeight: 1.35 }}>
             Tipp: Verwenden Sie ein langes Passwort (mindestens 8 Zeichen).
           </p>
 

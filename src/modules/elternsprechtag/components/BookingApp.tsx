@@ -4,24 +4,13 @@ import { BookingForm } from './BookingForm';
 import { TeacherCombobox } from './TeacherCombobox';
 import { useBooking } from '../hooks/useBooking';
 import { useTextBranding } from '../../../contexts/TextBrandingContext';
-import type { Teacher } from '../../../types';
+import type { Teacher, AdminEvent } from '../../../types';
 import { teacherDisplayNameAccusative } from '../../../utils/teacherDisplayName';
 import api from '../../../services/api';
 import './BookingApp.css';
 
-type ActiveEvent = {
-  id: number;
-  name: string;
-  school_year: string;
-  starts_at: string;
-  ends_at: string;
-  status: 'draft' | 'published' | 'closed';
-  booking_opens_at?: string | null;
-  booking_closes_at?: string | null;
-} | null;
-
 type ActiveEventResponse = {
-  event: Exclude<ActiveEvent, null> | null;
+  event: AdminEvent | null;
 };
 
 export const BookingApp = () => {
@@ -30,7 +19,7 @@ export const BookingApp = () => {
   const [teachersLoading, setTeachersLoading] = useState<boolean>(true);
   const [teachersError, setTeachersError] = useState<string>('');
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
-  const [activeEvent, setActiveEvent] = useState<ActiveEvent>(null);
+  const [activeEvent, setActiveEvent] = useState<AdminEvent | null>(null);
   const [eventLoading, setEventLoading] = useState<boolean>(true);
   const [eventError, setEventError] = useState<string>('');
 

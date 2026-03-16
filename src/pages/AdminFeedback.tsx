@@ -96,11 +96,11 @@ export function AdminFeedback() {
           <div className="admin-error">{error}</div>
         ) : loading ? (
           <div className="teacher-form-container">
-            <div style={{ color: '#4b5563' }}>Lade Feedback…</div>
+            <div style={{ color: 'var(--color-gray-600)' }}>Lade Feedback…</div>
           </div>
         ) : visibleRows.length === 0 ? (
           <div className="teacher-form-container">
-            <div style={{ color: '#4b5563' }}>Noch kein Feedback vorhanden.</div>
+            <div style={{ color: 'var(--color-gray-600)' }}>Noch kein Feedback vorhanden.</div>
           </div>
         ) : (
           <div className="teacher-form-container">

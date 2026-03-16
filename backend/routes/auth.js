@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/db.js';
 import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../middleware/auth.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ function cookieOptions() {
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: 'lax', // 'lax' statt 'strict' damit E-Mail-Links (Verify, Buchung) funktionieren
     maxAge: 8 * 60 * 60 * 1000, // 8 hours (matches JWT expiry)
     path: '/',
   };
@@ -32,12 +33,12 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    // 1) Harte Admin-Creds (System-Eigentümer → superadmin)
+    // 1) System-Admin Credentials (aus Umgebungsvariablen)
     const isValidAdmin = await verifyCredentials(username, password);
-    if (isValidAdmin) {
+    if (isValidAdmin && ADMIN_USER) {
       const user = { username: ADMIN_USER.username, role: 'superadmin' };
       const token = generateToken(user);
-      console.log('Admin login successful');
+      logger.info('Admin login successful');
       res.cookie('token', token, cookieOptions());
       return res.json({
         success: true,
@@ -96,8 +97,7 @@ router.post('/login', async (req, res) => {
     };
     const token = generateToken(user);
 
-    // Verwendung einfacher Strings statt Template-Literals, um Heredoc-/Encoding-Issues zu vermeiden
-    console.log('DB login successful:', dbUser.username, '(' + role + ')');
+    logger.info({ username: dbUser.username, role }, 'DB login successful');
 
     res.cookie('token', token, cookieOptions());
     return res.json({
@@ -107,7 +107,7 @@ router.post('/login', async (req, res) => {
       user
     });
   } catch (err) {
-    console.error('Login error:', err);
+    logger.error({ err }, 'Login error');
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Login failed'
@@ -141,14 +141,7 @@ router.delete('/logout', (_req, res) => {
  * Checks if token is valid
  */
 router.get('/verify', (req, res) => {
-  const authHeader = req.headers.authorization;
-  let token = null;
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.substring(7);
-  } else if (req.cookies?.token) {
-    token = req.cookies.token;
-  }
+  const token = req.cookies?.token || null;
 
   if (!token) {
     return res.json({ authenticated: false });

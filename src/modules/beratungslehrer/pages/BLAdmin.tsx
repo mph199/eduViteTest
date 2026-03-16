@@ -1,54 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/useAuth';
+import type { Counselor, ScheduleEntry, CounselorTopic as Topic, CounselorAppointment as Appointment } from '../../../types';
 import api from '../../../services/api';
 import '../../../pages/AdminDashboard.css';
-
-interface Counselor {
-  id: number;
-  first_name: string;
-  last_name: string;
-  name: string;
-  salutation?: string;
-  email?: string;
-  room?: string;
-  phone?: string;
-  specializations?: string;
-  available_from?: string;
-  available_until?: string;
-  slot_duration_minutes?: number;
-  active?: boolean;
-  user_id?: number;
-}
-
-interface ScheduleEntry {
-  weekday: number;
-  start_time: string;
-  end_time: string;
-  active: boolean;
-}
-
-interface Topic {
-  id: number;
-  name: string;
-  description?: string;
-  sort_order?: number;
-  active?: boolean;
-}
-
-interface Appointment {
-  id: number;
-  counselor_id: number;
-  date: string;
-  time: string;
-  duration_minutes: number;
-  status: string;
-  student_name?: string;
-  student_class?: string;
-  student_email?: string;
-  concern?: string;
-  topic_name?: string;
-  notes?: string;
-}
 
 type Tab = 'sprechzeiten' | 'termine' | 'anfragen' | 'counselors' | 'topics';
 
@@ -433,8 +387,8 @@ export function BLAdmin() {
                 {schedule.map((entry, idx) => (
                   <div key={entry.weekday} style={{
                     display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem',
-                    background: entry.active ? '#fff' : 'var(--color-gray-50, #f9fafb)',
-                    borderRadius: '0.375rem', border: '1px solid var(--color-gray-200, #e5e7eb)',
+                    background: entry.active ? 'var(--color-white)' : 'var(--color-gray-50)',
+                    borderRadius: '0.375rem', border: '1px solid var(--color-gray-200)',
                   }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '140px', cursor: 'pointer' }}>
                       <input
@@ -789,7 +743,7 @@ function renderCalendar(
                     border: isSelected ? '2px solid var(--brand-primary, #123C73)' : '1px solid var(--color-gray-200, #e5e7eb)',
                     borderRadius: '0.375rem', padding: '0.3rem', textAlign: 'center',
                     cursor: count > 0 ? 'pointer' : 'default',
-                    background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? '#fff' : 'var(--color-gray-50, #f9fafb)',
+                    background: isSelected ? 'var(--brand-surface-2)' : count > 0 ? 'var(--color-white)' : 'var(--color-gray-50)',
                     opacity: isPast ? 0.5 : 1,
                     minHeight: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   }}
