@@ -28,7 +28,7 @@ export function LandingPage() {
     >
       <div className="landing__inner">
         <h1 className="landing__title">{branding.hero_title}</h1>
-        <p className="landing__subtitle">{renderWithLogo(branding.hero_text)}</p>
+        <p className="landing__subtitle">{branding.hero_text ? renderWithLogo(branding.hero_text) : null}</p>
 
         {/* Kurzanleitung */}
         <div className="landing__steps">
