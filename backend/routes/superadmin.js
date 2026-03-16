@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import rateLimit from 'express-rate-limit';
-import { requireSuperadmin } from '../middleware/auth.js';
+import { requireSuperadmin, verifyToken } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
@@ -348,10 +348,17 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
 // Module Configuration (enable / disable modules at runtime)
 // ═══════════════════════════════════════════════════════════════════════
 
-// GET /api/superadmin/modules  (public — frontend needs to know which modules are enabled)
-router.get('/modules', publicLimiter, async (_req, res) => {
+// GET /api/superadmin/modules  (public — frontend needs enabled status; superadmin sees all)
+router.get('/modules', publicLimiter, async (req, res) => {
   try {
-    const { rows } = await query('SELECT module_id, enabled FROM module_config ORDER BY module_id');
+    // Optionally decode token to check role (no 401 if missing/invalid)
+    const token = req.cookies?.token;
+    const decoded = token ? verifyToken(token) : null;
+    const isSuper = decoded?.role === 'superadmin';
+    const sql = isSuper
+      ? 'SELECT module_id, enabled FROM module_config ORDER BY module_id'
+      : 'SELECT module_id, enabled FROM module_config WHERE enabled = TRUE ORDER BY module_id';
+    const { rows } = await query(sql);
     return res.json(rows);
   } catch {
     // Table might not exist yet — treat all as enabled

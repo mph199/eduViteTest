@@ -132,6 +132,10 @@ router.get('/appointments', requireAuth, requireBLCounselor, async (req, res) =>
       params.push(date);
       pIdx++;
     } else if (date_from && date_until) {
+      const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRe.test(String(date_from)) || !dateRe.test(String(date_until))) {
+        return res.status(400).json({ error: 'Ungültiges Datumsformat (YYYY-MM-DD erwartet)' });
+      }
       dateFilter += ` AND a.date >= $${pIdx} AND a.date <= $${pIdx + 1}`;
       params.push(date_from, date_until);
       pIdx += 2;

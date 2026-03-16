@@ -28,8 +28,8 @@ export function ModulesTab() {
       await api.superadmin.setModuleEnabled(moduleId, next);
       setModuleConfig((prev) => ({ ...prev, [moduleId]: next }));
       setMsg(`${moduleId} ${next ? 'aktiviert' : 'deaktiviert'}`);
-    } catch (e: any) {
-      setMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
+    } catch (e: unknown) {
+      setMsg(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);
     } finally {
       setSaving(null);
       setTimeout(() => setMsg(''), 3000);
