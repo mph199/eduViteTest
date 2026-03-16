@@ -247,6 +247,30 @@ Module differences are handled via config parameters (table prefix, topic schema
 8. **Shared booking UI** – `src/shared/components/CounselorBookingApp.tsx` used by both SSW and BL modules via config
 9. **Structured logging** – Pino logger (`backend/config/logger.js`) for all production backend code; seed/test scripts keep console
 10. **Runtime module toggling** – Superadmin can enable/disable modules via UI (`module_config` table). Backend routes stay mounted (loaded at startup), but frontend hides disabled modules. Public API only exposes enabled modules to non-superadmin callers.
+11. **Mobile-first responsive tables** – Admin tables use the `admin-resp-table` CSS pattern with `data-label` attributes on `<td>` elements. On mobile (<768px), `thead` is hidden and rows become cards with label-value pairs via `td::before { content: attr(data-label) }`.
+12. **Touch target minimum 44px** – All interactive elements (buttons, slots, navigation arrows) enforce min-height 44px on mobile viewports per WCAG 2.5.5.
+13. **iOS Safari compatibility** – `background-attachment: fixed` is replaced with `scroll` on viewports <768px to prevent flicker on iOS Safari.
+
+## Responsive Strategy
+
+### Breakpoints
+
+| Breakpoint | Target | Usage |
+|------------|--------|-------|
+| 1024px | Desktop → Tablet | Grid collapse (sidebar becomes static) |
+| 900px | Events table | Desktop table → mobile cards toggle |
+| 768px | Tablet | admin-resp-table card layout, iOS bg-attachment fix, touch targets 44px |
+| 640px | Mobile | Full-width buttons, column layouts, single-column grids |
+| 480px | Small phones | Reduced padding, steps column layout, smaller font sizes |
+| 375px | Very small phones | Minimal padding |
+
+### Patterns
+
+- **Admin tables**: `admin-resp-table` with `data-label` on `<td>` → card layout on mobile
+- **Events**: Desktop table / mobile cards toggle via `.events-table-desktop` / `.events-cards-mobile`
+- **Booking tool**: Media queries in `CounselorBookingApp.css` (shared by SSW + BL)
+- **Landing page**: flex-wrap cards, column steps on small phones
+- **Teacher area**: Desktop/mobile toggle in TeacherRequests, responsive stat-cards
 
 ## Environment Variables
 

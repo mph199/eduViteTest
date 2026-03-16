@@ -663,11 +663,11 @@ export function SSWAdmin() {
 
                       const statusLabel = (s: string) => {
                         switch (s) {
-                          case 'available': return '🟢 Frei';
-                          case 'requested': return '🟡 Angefragt';
-                          case 'confirmed': return '🔵 Bestätigt';
-                          case 'cancelled': return '⚫ Abgesagt';
-                          case 'completed': return '✅ Abgeschlossen';
+                          case 'available': return 'Frei';
+                          case 'requested': return 'Angefragt';
+                          case 'confirmed': return 'Bestaetigt';
+                          case 'cancelled': return 'Abgesagt';
+                          case 'completed': return 'Abgeschlossen';
                           default: return s;
                         }
                       };

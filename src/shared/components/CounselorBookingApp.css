@@ -216,6 +216,7 @@
   font-size: 0.85rem;
   color: var(--brand-ink, #0B2545);
   margin-bottom: 1rem;
+  overflow-wrap: break-word;
 }
 
 /* Buttons */
@@ -272,10 +273,6 @@
   padding: 1rem;
   color: var(--color-text-muted, #6b7280);
   font-style: italic;
-}
-
-.cb-confidential-notice {
-  overflow-wrap: break-word;
 }
 
 /* ── Responsive ──────────────────────────────────── */

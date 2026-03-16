@@ -307,3 +307,36 @@ Empfohlene Standard-Fristen (konfigurierbar):
 - [x] **Modul-Manifest** – `src/modules/schulsozialarbeit/index.ts` (ModuleDefinition mit lazy-loading)
 - [x] **Registry** – In `src/modules/registry.ts` registriert
 - [x] **Docker Build** – Erfolgreich gebaut, Migration 022 automatisch angewandt, Modul geladen
+
+## Phase 14 – UX & Responsive (Mobile/Tablet)
+
+> Ziel: Alle Seiten auf Mobile (<640px) und Tablet (<768px) nutzbar machen.
+> Touch-Targets mindestens 44px (WCAG 2.5.5). Kein horizontales Scrollen.
+
+### 14a – Buchungstool (oeffentliche Seiten)
+
+- [x] **CounselorBookingApp.css** – Media Queries fuer Tablet (768px), Mobile (640px), Small (480px): Touch-Targets 44px, full-width Buttons, responsive Padding, overflow-wrap
+- [x] **BookingApp.css** – Sidebar sticky top-Offset (`calc(var(--globalTopHeaderHeight) + 0.75rem)`), iOS `background-attachment: scroll` Workaround, tote CSS-Klassen entfernt (`.header-filters`, `.filter-actions`)
+- [x] **LandingPage.css** – iOS background-attachment Fix, Steps column-Layout auf <480px, responsive Subtitle
+- [x] **CounselorBookingLayout.css** – iOS background-attachment Fix
+
+### 14b – Adminbereich
+
+- [x] **AdminDashboard.tsx** – Inline `width`-Styles von `<th>` entfernt (CSS-Override moeglich)
+- [x] **AdminDashboard.css** – Touch-Targets 44px, ev-cell-date word-break, Teacher-Bookings Padding <480px
+- [x] **BLAdmin.tsx** – `data-label` auf alle 4 Tabellen (Anfragen, Berater, Themen, Kalender-Detail), `flexWrap` auf Schedule-Rows und Date-Range-Input
+- [x] **SSWAdmin.tsx** – `data-label` auf alle 4 Tabellen (Schedule, Berater, Kalender-Detail, Kategorien), `flexWrap` auf Tab-Buttons und Aktions-Buttons
+- [x] **SuperadminPage.css** – Background-Card column-Layout auf <600px
+
+### 14c – Lehrerbereich
+
+- [x] **TeacherHome.css** – CSS-Syntaxfehler behoben (ueberfluessige `}`)
+- [x] **TeacherRequestsTableSandbox.css** – Modal-Pfeile 44px Touch-Target, Slot-Picker min-height 44px, tote `min-width: 1160px` entfernt
+- [x] **TeacherBookings.tsx** – stat-card flex von `0 0 220px` auf `1 1 220px` fuer Mobile-Umbrechen
+
+### 14d – Backlog (noch offen)
+
+- [ ] **BLAdmin/SSWAdmin Wochenplan** – CSS-Card-Ansicht statt Tabelle auf Mobile
+- [ ] **AdminEvents Datumsstrings** – Langere Strings auf Tablet weiter optimieren
+- [ ] **Inline-Styles in BLAdmin/SSWAdmin** – Schrittweise durch CSS-Klassen ersetzen (aktuell ~44/43 inline-styles)
+- [ ] **Lighthouse Mobile-Audit** – Alle Seiten mit Lighthouse Mobile-Profil testen
