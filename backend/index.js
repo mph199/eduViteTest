@@ -74,7 +74,7 @@ const bookingLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Zu viele Buchungsanfragen. Bitte spaeter erneut versuchen.' },
+  message: { error: 'Zu viele Buchungsanfragen. Bitte später erneut versuchen.' },
 });
 
 const adminLimiter = rateLimit({
@@ -82,7 +82,7 @@ const adminLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Zu viele Anfragen. Bitte spaeter erneut versuchen.' },
+  message: { error: 'Zu viele Anfragen. Bitte später erneut versuchen.' },
 });
 
 // Serve uploaded files

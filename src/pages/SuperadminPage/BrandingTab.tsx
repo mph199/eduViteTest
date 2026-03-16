@@ -128,7 +128,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                     const dotIdx = file.name.lastIndexOf('.');
                     const ext = dotIdx >= 0 ? file.name.slice(dotIdx).toLowerCase() : '';
                     if (!ext || !allowedExts.includes(ext) || !allowedMimes.includes(file.type)) {
-                      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstuetztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, SVG, WebP, GIF.`);
+                      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstütztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, SVG, WebP, GIF.`);
                       setTimeout(() => setSiteMsg(''), 6000);
                       e.target.value = '';
                       return;
@@ -139,10 +139,10 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                         ...prev,
                         tile_images: { ...prev.tile_images, [mod.id]: result.tile_url },
                       }));
-                      setSiteMsg(`Bild fuer ${mod.title} hochgeladen`);
+                      setSiteMsg(`Bild für ${mod.title} hochgeladen`);
                       setTimeout(() => setSiteMsg(''), 3000);
                     } catch (err: any) {
-                      setSiteMsg(`Fehler: Upload fuer ${mod.title} fehlgeschlagen – ${err.message || 'Unbekannter Fehler'}`);
+                      setSiteMsg(`Fehler: Upload für ${mod.title} fehlgeschlagen – ${err.message || 'Unbekannter Fehler'}`);
                       setTimeout(() => setSiteMsg(''), 6000);
                     }
                     e.target.value = '';
@@ -201,7 +201,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
       <div className="superadmin__actions">
         <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>Zurücksetzen</button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={siteSaving}>
-          {siteSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
+          {siteSaving ? 'Speichern\u2026' : 'Änderungen speichern'}
         </button>
       </div>
     </>

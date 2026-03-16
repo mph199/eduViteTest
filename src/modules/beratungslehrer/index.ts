@@ -2,7 +2,7 @@
  * Modul-Manifest: Beratungslehrer
  *
  * Definiert Metadaten, Lazy-geladene Routen und Admin-Eintraege
- * fuer das Beratungslehrer-Modul.
+ * für das Beratungslehrer-Modul.
  */
 
 import { lazy } from 'react';
@@ -25,7 +25,7 @@ const beratungslehrerModule: ModuleDefinition = {
   accentRgb: '184, 134, 11',
   requiredModule: 'beratungslehrer',
 
-  /** Oeffentliche Buchungsseite */
+  /** Öffentliche Buchungsseite */
   PublicPage: BLBookingApp,
 
   /** Admin-Bereich: Beratungslehrer verwalten */

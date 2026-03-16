@@ -15,7 +15,7 @@ const publicLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Zu viele Anfragen. Bitte spaeter erneut versuchen.' },
+  message: { error: 'Zu viele Anfragen. Bitte später erneut versuchen.' },
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -83,7 +83,7 @@ const router = express.Router();
 router.get('/email-branding', requireSuperadmin, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM email_branding WHERE id = 1 LIMIT 1');
-    const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Gruessen\n\nIhr BKSB-Team' };
+    const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team' };
     return res.json(data);
   } catch (error) {
     logger.error({ err: error }, 'Error fetching email branding');
@@ -172,9 +172,9 @@ const SITE_BRANDING_DEFAULTS = {
   surface_2: '#D9E4F2',
   header_font_color: '',
   hero_title: 'Herzlich willkommen!',
-  hero_text: 'Ueber dieses Portal koennen Sie Gespraechstermine fuer den Eltern- und Ausbildersprechtag anfragen.',
-  step_1: 'Lehrkraft auswaehlen',
-  step_2: 'Wunsch-Zeitfenster waehlen',
+  hero_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.',
+  step_1: 'Lehrkraft auswählen',
+  step_2: 'Wunsch-Zeitfenster wählen',
   step_3: 'Daten eingeben und Anfrage absenden',
   tile_images: {},
   background_images: {},
@@ -284,18 +284,19 @@ router.post('/bg-image', requireSuperadmin, handleUpload(bgUpload, 'bg', '/uploa
 
 const TEXT_BRANDING_DEFAULTS = {
   booking_title: 'Herzlich willkommen!',
-  booking_text: 'Ueber dieses Portal koennen Sie Gespraechstermine fuer den Eltern- und Ausbildersprechtag anfragen.\n\nWaehlen Sie die gewuenschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewuenschten Zeitfenster zuzuweisen.\n\nSobald Ihr Termin bestaetigt wurde, erhalten Sie eine E-Mail mit allen Details.',
+  booking_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.\n\nWählen Sie die gewünschte Lehrkraft und Ihren bevorzugten Zeitraum aus. Die Lehrkraft wird versuchen, Ihnen einen Termin im gewünschten Zeitfenster zuzuweisen.\n\nSobald Ihr Termin bestätigt wurde, erhalten Sie eine E-Mail mit allen Details.',
   booking_steps_title: 'In drei Schritten zum Termin:',
-  booking_step_1: 'Lehrkraft auswaehlen',
-  booking_step_2: 'Wunsch-Zeitfenster waehlen',
+  booking_step_1: 'Lehrkraft auswählen',
+  booking_step_2: 'Wunsch-Zeitfenster wählen',
   booking_step_3: 'Daten eingeben und Anfrage absenden',
-  booking_hint: 'Die Lehrkraft vergibt nach Moeglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.',
-  event_banner_template: 'Der naechste Eltern- und Ausbildersprechtag findet am {weekday}, den {date} von {startTime} bis {endTime} Uhr statt.',
-  event_banner_fallback: 'Der naechste Eltern- und Ausbildersprechtag: Termine folgen.',
+  booking_hint: 'Die Lehrkraft vergibt nach Möglichkeit einen Termin in Ihrem Wunschzeitraum – Sie werden per E-Mail benachrichtigt.',
+  event_banner_template: 'Der nächste Eltern- und Ausbildersprechtag findet am {weekday}, den {date} von {startTime} bis {endTime} Uhr statt.',
+  event_banner_fallback: 'Der nächste Eltern- und Ausbildersprechtag: Termine folgen.',
   modal_title: 'Fast fertig!',
-  modal_text: 'Vielen Dank fuer Ihre Terminanfrage!\n\nBitte bestaetigen Sie zunaechst Ihre E-Mail-Adresse ueber den zugesandten Link (ggf. im Spam-Ordner pruefen). Anschliessend wird die Lehrkraft Ihnen einen Termin im gewuenschten Zeitfenster zuweisen. Sie erhalten eine Bestaetigungs-E-Mail mit Datum, Uhrzeit und Raum.',
+  modal_text: 'Vielen Dank für Ihre Terminanfrage!\n\nBitte bestätigen Sie zunächst Ihre E-Mail-Adresse über den zugesandten Link (ggf. im Spam-Ordner prüfen). Anschließend wird die Lehrkraft Ihnen einen Termin im gewünschten Zeitfenster zuweisen. Sie erhalten eine Bestätigungs-E-Mail mit Datum, Uhrzeit und Raum.',
   modal_button: 'Verstanden',
   booking_closed_text: 'Buchungen sind aktuell noch nicht freigeschaltet.',
+
 };
 
 const TEXT_BRANDING_FIELDS = Object.keys(TEXT_BRANDING_DEFAULTS);
@@ -340,6 +341,47 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Error updating text branding');
     return res.status(500).json({ error: 'Failed to update text branding' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Module Configuration (enable / disable modules at runtime)
+// ═══════════════════════════════════════════════════════════════════════
+
+// GET /api/superadmin/modules  (public — frontend needs to know which modules are enabled)
+router.get('/modules', publicLimiter, async (_req, res) => {
+  try {
+    const { rows } = await query('SELECT module_id, enabled FROM module_config ORDER BY module_id');
+    return res.json(rows);
+  } catch {
+    // Table might not exist yet — treat all as enabled
+    return res.json([]);
+  }
+});
+
+// PUT /api/superadmin/modules/:moduleId  (superadmin only)
+router.put('/modules/:moduleId', requireSuperadmin, async (req, res) => {
+  const { moduleId } = req.params;
+  const { enabled } = req.body || {};
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled (boolean) is required' });
+  }
+  // Validate moduleId format (alphanumeric + hyphens/underscores, max 64 chars)
+  if (!/^[a-z0-9_-]{1,64}$/.test(moduleId)) {
+    return res.status(400).json({ error: 'Ungültige Modul-ID' });
+  }
+  try {
+    const { rows } = await query(
+      `INSERT INTO module_config (module_id, enabled, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (module_id) DO UPDATE SET enabled = $2, updated_at = NOW()
+       RETURNING *`,
+      [moduleId, enabled]
+    );
+    return res.json({ success: true, module: rows[0] });
+  } catch (error) {
+    logger.error({ err: error }, 'Error updating module config');
+    return res.status(500).json({ error: 'Failed to update module config' });
   }
 });
 

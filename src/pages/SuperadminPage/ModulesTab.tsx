@@ -1,26 +1,53 @@
-import { modules } from '../../modules/registry';
+import { useState, useEffect, useCallback } from 'react';
 import { allModuleDefinitions } from '../../modules/registry';
+import api from '../../services/api';
 
 export function ModulesTab() {
+  const [moduleConfig, setModuleConfig] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [msg, setMsg] = useState('');
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const rows = await api.superadmin.getModuleConfig();
+      const map: Record<string, boolean> = {};
+      for (const r of rows) map[r.module_id] = r.enabled;
+      setModuleConfig(map);
+    } catch {
+      // keep empty — treat all as enabled
+    }
+  }, []);
+
+  useEffect(() => { loadConfig(); }, [loadConfig]);
+
+  const handleToggle = async (moduleId: string, currentEnabled: boolean) => {
+    const next = !currentEnabled;
+    setSaving(moduleId);
+    setMsg('');
+    try {
+      await api.superadmin.setModuleEnabled(moduleId, next);
+      setModuleConfig((prev) => ({ ...prev, [moduleId]: next }));
+      setMsg(`${moduleId} ${next ? 'aktiviert' : 'deaktiviert'}`);
+    } catch (e: any) {
+      setMsg(`Fehler: ${e?.message || 'Unbekannt'}`);
+    } finally {
+      setSaving(null);
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
   return (
     <>
       <div className="superadmin__hint">
-        Uebersicht aller registrierten Module. Module werden ueber die Umgebungsvariable
-        <code style={{ margin: '0 4px', padding: '2px 6px', background: 'rgba(148, 163, 184, 0.12)', borderRadius: 4, fontSize: '0.82rem' }}>
-          VITE_ENABLED_MODULES
-        </code>
-        (Frontend) und
-        <code style={{ margin: '0 4px', padding: '2px 6px', background: 'rgba(148, 163, 184, 0.12)', borderRadius: 4, fontSize: '0.82rem' }}>
-          ENABLED_MODULES
-        </code>
-        (Backend) gesteuert.
+        Übersicht aller registrierten Module. Aktivieren oder deaktivieren Sie Module über den Schalter.
+        Deaktivierte Module sind für Benutzer nicht sichtbar.
       </div>
 
       <section className="superadmin__section">
         <h2 className="superadmin__section-title">Registrierte Module</h2>
         <div className="superadmin__module-list">
           {allModuleDefinitions.map((mod) => {
-            const isEnabled = modules.some((m) => m.id === mod.id);
+            const isEnabled = moduleConfig[mod.id] !== false;
             return (
               <div key={mod.id} className={`superadmin__module-card ${isEnabled ? '' : 'superadmin__module-card--disabled'}`}>
                 <div className="superadmin__module-icon" aria-hidden="true">{mod.icon}</div>
@@ -43,11 +70,26 @@ export function ModulesTab() {
                     )}
                   </div>
                 </div>
+                <label className="superadmin__toggle">
+                  <input
+                    type="checkbox"
+                    checked={isEnabled}
+                    disabled={saving === mod.id}
+                    onChange={() => handleToggle(mod.id, isEnabled)}
+                  />
+                  <span className="superadmin__toggle-slider" />
+                </label>
               </div>
             );
           })}
         </div>
       </section>
+
+      {msg && (
+        <div className={`superadmin__hint ${msg.startsWith('Fehler') ? 'superadmin__hint--error' : ''}`}>
+          <span>{msg}</span>
+        </div>
+      )}
     </>
   );
 }

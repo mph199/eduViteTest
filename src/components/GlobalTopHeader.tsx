@@ -55,7 +55,7 @@ export function GlobalTopHeader() {
     if (isAdmin) {
       groups.push({
         label: '',
-        items: [{ path: '/admin', label: 'Uebersicht' }],
+        items: [{ path: '/admin', label: 'Übersicht' }],
       });
     }
 
@@ -94,10 +94,10 @@ export function GlobalTopHeader() {
       groups.push({
         label: 'Lehrkraft',
         items: [
-          { path: '/teacher', label: 'Uebersicht' },
+          { path: '/teacher', label: 'Übersicht' },
           { path: '/teacher/requests', label: 'Anfragen' },
           { path: '/teacher/bookings', label: 'Buchungen' },
-          { path: '/teacher/password', label: 'Passwort aendern' },
+          { path: '/teacher/password', label: 'Passwort ändern' },
           { path: '/teacher/feedback', label: 'Feedback' },
         ],
       });
@@ -127,10 +127,10 @@ export function GlobalTopHeader() {
     if (!isArea) return null;
 
     if (inTeacher) {
-      if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft · Uebersicht';
+      if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft · Übersicht';
       if (pathname.includes('/teacher/requests')) return 'Lehrkraft · Anfragen verwalten';
       if (pathname.includes('/teacher/bookings')) return 'Lehrkraft · Meine Buchungen';
-      if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort aendern';
+      if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort ändern';
       if (pathname.includes('/teacher/feedback')) return 'Lehrkraft · Feedback senden';
       return 'Lehrkraft';
     }
@@ -179,8 +179,8 @@ export function GlobalTopHeader() {
         <div className="globalTopHeader__left">
           {showAreaMenu ? (
             <Sidebar
-              label="Menue"
-              ariaLabel="Menue"
+              label="Menü"
+              ariaLabel="Menü"
               variant="icon"
               side="left"
               noWrapper

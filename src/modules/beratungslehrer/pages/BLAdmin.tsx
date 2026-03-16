@@ -196,13 +196,13 @@ export function BLAdmin() {
   // ── Slot generation ────────────────────────────────────────────────
   const handleGenerateSlots = async () => {
     if (!profile || !slotGenFrom || !slotGenUntil) {
-      alert('Bitte Zeitraum waehlen.');
+      alert('Bitte Zeitraum wählen.');
       return;
     }
     setGenerating(true);
     try {
       const data = await api.bl.generateSlots(profile.id, slotGenFrom, slotGenUntil);
-      showFlash(`${data?.created || 0} Termine erstellt (${data?.skipped || 0} uebersprungen).`);
+      showFlash(`${data?.created || 0} Termine erstellt (${data?.skipped || 0} übersprungen).`);
       setSlotGenFrom('');
       setSlotGenUntil('');
       loadCalendarAppointments(calMonth.year, calMonth.month);
@@ -216,15 +216,15 @@ export function BLAdmin() {
   // ── Delete appointments ────────────────────────────────────────────
   const handleDeleteSelectedAppointments = async () => {
     if (calSelectedIds.size === 0) return;
-    if (!confirm(`${calSelectedIds.size} Termin(e) wirklich loeschen?`)) return;
+    if (!confirm(`${calSelectedIds.size} Termin(e) wirklich löschen?`)) return;
     setCalDeleting(true);
     try {
       const data = await api.bl.deleteAppointments(Array.from(calSelectedIds));
-      showFlash(`${data?.deleted || 0} Termin(e) geloescht.`);
+      showFlash(`${data?.deleted || 0} Termin(e) gelöscht.`);
       setCalSelectedIds(new Set());
       loadCalendarAppointments(calMonth.year, calMonth.month);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      alert(err instanceof Error ? err.message : 'Fehler beim Löschen');
     } finally {
       setCalDeleting(false);
     }
@@ -234,7 +234,7 @@ export function BLAdmin() {
   const handleConfirm = async (id: number) => {
     try {
       await api.bl.confirmAppointment(id);
-      showFlash('Termin bestaetigt.');
+      showFlash('Termin bestätigt.');
       loadRequests();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler');
@@ -377,7 +377,7 @@ export function BLAdmin() {
 
             <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
               <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
-                Legen Sie fest, an welchen Tagen und zu welchen Zeiten Sie fuer Beratungen zur Verfuegung stehen.
+                Legen Sie fest, an welchen Tagen und zu welchen Zeiten Sie für Beratungen zur Verfügung stehen.
                 Termine werden anhand dieses Wochenplans generiert.
               </p>
             </div>
@@ -455,7 +455,7 @@ export function BLAdmin() {
             <div className="teacher-form-container" style={{ marginBottom: '1rem' }}>
               <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
                 <div className="form-group">
-                  <label>Termine freischalten fuer Zeitraum</label>
+                  <label>Termine freischalten für Zeitraum</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
                     <span>bis</span>
@@ -558,7 +558,7 @@ export function BLAdmin() {
 
             <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
               <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
-                Beratungslehrer werden ueber <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
+                Beratungslehrer werden über <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
                 Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrer&quot;.
               </p>
             </div>
@@ -807,7 +807,7 @@ function renderCalendar(
                         disabled={calDeleting}
                         onClick={handleDeleteSelected}
                       >
-                        {calDeleting ? 'Loesche...' : `${calSelectedIds.size} loeschen`}
+                        {calDeleting ? 'Lösche...' : `${calSelectedIds.size} löschen`}
                       </button>
                     )}
                   </div>

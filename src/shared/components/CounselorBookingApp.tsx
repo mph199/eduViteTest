@@ -210,7 +210,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
           </p>
 
           <div className="cb-date-section">
-            <label htmlFor="cb-date">Datum waehlen</label>
+            <label htmlFor="cb-date">Datum wählen</label>
             <input
               id="cb-date"
               type="date"
@@ -224,12 +224,12 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
           {selectedDate && (
             <>
               {slotsLoading ? (
-                <p className="cb-loading">Lade verfuegbare Zeiten...</p>
+                <p className="cb-loading">Lade verfügbare Zeiten...</p>
               ) : availableSlots.length === 0 ? (
-                <p className="cb-empty">Keine freien Termine an diesem Tag. Bitte ein anderes Datum waehlen.</p>
+                <p className="cb-empty">Keine freien Termine an diesem Tag. Bitte ein anderes Datum wählen.</p>
               ) : (
                 <>
-                  <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Verfuegbare Zeiten:</p>
+                  <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Verfügbare Zeiten:</p>
                   <div className="cb-slots">
                     {availableSlots.map(slot => (
                       <button
@@ -248,7 +248,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
 
           <div className="cb-actions">
             <button className="btn-secondary" onClick={() => setStep('counselor')}>
-              Zurueck
+              Zurück
             </button>
           </div>
         </>
@@ -274,7 +274,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 type="text"
                 value={formData.student_name}
                 onChange={e => setFormData({ ...formData, student_name: e.target.value })}
-                placeholder="Dein vollstaendiger Name"
+                placeholder="Dein vollständiger Name"
                 required
               />
             </div>
@@ -297,9 +297,9 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 type="email"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Fuer Terminbestaetigung"
+                placeholder="Für Terminbestätigung"
               />
-              <span className="cb-form__hint">Falls du eine Bestaetigung erhalten moechtest</span>
+              <span className="cb-form__hint">Falls du eine Bestätigung erhalten möchtest</span>
             </div>
 
             <div className="cb-form__group">
@@ -309,7 +309,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 value={formData.topic_id}
                 onChange={e => setFormData({ ...formData, topic_id: e.target.value })}
               >
-                <option value="">-- Bitte waehlen --</option>
+                <option value="">-- Bitte wählen --</option>
                 {topics.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
@@ -322,7 +322,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 id="cb-concern"
                 value={formData.concern}
                 onChange={e => setFormData({ ...formData, concern: e.target.value })}
-                placeholder="Worum geht es ungefaehr? (Wird nur der Beratungsperson gezeigt)"
+                placeholder="Worum geht es ungefähr? (Wird nur der Beratungsperson gezeigt)"
                 maxLength={500}
               />
             </div>
@@ -333,12 +333,12 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 checked={formData.is_urgent}
                 onChange={e => setFormData({ ...formData, is_urgent: e.target.checked })}
               />
-              Dringend -- Ich brauche moeglichst schnell Hilfe
+              Dringend -- Ich brauche möglichst schnell Hilfe
             </label>
 
             <div className="cb-actions">
               <button className="btn-secondary" type="button" onClick={() => setStep('datetime')}>
-                Zurueck
+                Zurück
               </button>
               <button className="btn-primary" type="submit" disabled={submitting}>
                 {submitting ? 'Wird gebucht...' : 'Termin anfragen'}
@@ -353,7 +353,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
         <div className="cb-success">
           <div className="cb-success__icon">&#10003;</div>
           <h2>Termin angefragt!</h2>
-          <p>Deine Anfrage wurde erfolgreich uebermittelt.</p>
+          <p>Deine Anfrage wurde erfolgreich übermittelt.</p>
           {selectedCounselor && (
             <dl className="cb-success__details">
               <dt>{config.successCounselorLabel}</dt>

@@ -61,10 +61,10 @@ export interface ModuleDefinition {
   /** Zusätzliche Admin-Routen */
   adminRoutes?: AdminRoute[];
 
-  /** Sidebar-Navigationsgruppe(n) fuer den Admin/Modulbereich */
+  /** Sidebar-Navigationsgruppe(n) für den Admin/Modulbereich */
   sidebarNav?: SidebarNavGroup;
 
-  /** Module-Key fuer Zugangssteuerung (user_module_access) */
+  /** Module-Key für Zugangssteuerung (user_module_access) */
   requiredModule?: string;
 
   /** Lehrkraft-Layout-Komponente */

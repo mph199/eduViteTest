@@ -181,7 +181,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
           Zurücksetzen
         </button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={emailSaving}>
-          {emailSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
+          {emailSaving ? 'Speichern\u2026' : 'Änderungen speichern'}
         </button>
       </div>
     </>

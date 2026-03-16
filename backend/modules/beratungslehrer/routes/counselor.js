@@ -87,10 +87,10 @@ router.put('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
     for (const entry of schedule) {
       const wd = parseInt(entry.weekday, 10);
       if (isNaN(wd) || wd < 1 || wd > 5) {
-        return res.status(400).json({ error: `Ungueltiger Wochentag: ${entry.weekday}` });
+        return res.status(400).json({ error: `Ungültiger Wochentag: ${entry.weekday}` });
       }
       if (entry.active && (!entry.start_time || !entry.end_time)) {
-        return res.status(400).json({ error: `Start- und Endzeit erforderlich fuer Tag ${wd}` });
+        return res.status(400).json({ error: `Start- und Endzeit erforderlich für Tag ${wd}` });
       }
     }
 

@@ -198,7 +198,7 @@ export function SuperadminPage() {
             E-Mail
           </button>
           <button type="button" className={`superadmin__tab ${activeTab === 'texts' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('texts')}>
-            Texte
+            Sprechtagsmodul
           </button>
         </div>
 

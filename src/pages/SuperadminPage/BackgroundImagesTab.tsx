@@ -9,7 +9,7 @@ interface BgSlot {
 }
 
 const bgSlots: BgSlot[] = [
-  { key: 'landing', label: 'Landing Page', description: 'Startseite / Moduluebersicht' },
+  { key: 'landing', label: 'Landing Page', description: 'Startseite / Modulübersicht' },
   ...modules.map((mod) => ({
     key: mod.id,
     label: mod.title,
@@ -37,7 +37,7 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
     }
     const allowedMimes = ['image/png', 'image/jpeg', 'image/webp'];
     if (!allowedMimes.includes(file.type)) {
-      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstuetztes Format. Erlaubt: PNG, JPG, WebP.`);
+      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstütztes Format. Erlaubt: PNG, JPG, WebP.`);
       setTimeout(() => setSiteMsg(''), 6000);
       return;
     }
@@ -66,12 +66,12 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
   return (
     <>
       <div className="superadmin__hint">
-        Laden Sie fuer jede Seite ein eigenes Hintergrundbild hoch. Ohne Upload wird das Standard-Hintergrundbild verwendet.
+        Laden Sie für jede Seite ein eigenes Hintergrundbild hoch. Ohne Upload wird das Standard-Hintergrundbild verwendet.
         Empfohlene Aufloesung: mindestens 1920x1080 Pixel. Erlaubte Formate: PNG, JPG, WebP (max. 5 MB).
       </div>
 
       <section className="superadmin__section">
-        <h2 className="superadmin__section-title">Seitenhintergruende</h2>
+        <h2 className="superadmin__section-title">Seitenhintergründe</h2>
         <div className="superadmin__bg-grid">
           {bgSlots.map((slot) => {
             const bgUrl = site.background_images?.[slot.key] || '';
@@ -89,7 +89,7 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
                   <span className="superadmin__bg-desc">{slot.description}</span>
                   <div className="superadmin__bg-actions">
                     <label className="superadmin__btn superadmin__btn--secondary superadmin__bg-upload-label">
-                      Bild waehlen
+                      Bild wählen
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp"
@@ -124,9 +124,9 @@ export function BackgroundImagesTab({ site, setSite, siteMsg, setSiteMsg, siteSa
         </div>
       )}
       <div className="superadmin__actions">
-        <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>Zuruecksetzen</button>
+        <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>Zurücksetzen</button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={siteSaving}>
-          {siteSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
+          {siteSaving ? 'Speichern\u2026' : 'Änderungen speichern'}
         </button>
       </div>
     </>

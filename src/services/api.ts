@@ -610,6 +610,18 @@ const api = {
       if (tileUrl.startsWith('/')) return `${BACKEND_BASE}${tileUrl}`;
       return `${BACKEND_BASE}/uploads/tiles/${tileUrl}`;
     },
+    // ── Module Configuration ──────────────────────────
+    async getModuleConfig(): Promise<{ module_id: string; enabled: boolean }[]> {
+      const res = await requestJSON('/superadmin/modules');
+      return Array.isArray(res) ? res : [];
+    },
+    async setModuleEnabled(moduleId: string, enabled: boolean) {
+      return requestJSON(`/superadmin/modules/${encodeURIComponent(moduleId)}`, {
+        method: 'PUT',
+        auth: true,
+        body: JSON.stringify({ enabled }),
+      });
+    },
   },
 };
 

@@ -192,9 +192,9 @@ export function createCounselorAdminRoutes(config) {
       res.json({ success: true });
     } catch (err) {
       if (err?.code === '23503') {
-        return res.status(409).json({ error: `${counselorLabel} hat noch Termine. Bitte zuerst Termine loeschen oder deaktivieren.` });
+        return res.status(409).json({ error: `${counselorLabel} hat noch Termine. Bitte zuerst Termine löschen oder deaktivieren.` });
       }
-      res.status(500).json({ error: 'Fehler beim Loeschen' });
+      res.status(500).json({ error: 'Fehler beim Löschen' });
     }
   });
 
@@ -309,7 +309,7 @@ export function createCounselorAdminRoutes(config) {
       res.json({ success: true, deleted: rowCount });
     } catch (err) {
       logger.error({ err }, `${tablePrefix} admin delete appointments error`);
-      res.status(500).json({ error: 'Fehler beim Loeschen' });
+      res.status(500).json({ error: 'Fehler beim Löschen' });
     }
   });
 
@@ -340,10 +340,10 @@ export function createCounselorAdminRoutes(config) {
       for (const entry of schedule) {
         const wd = parseInt(entry.weekday, 10);
         if (isNaN(wd) || wd < 0 || wd > 6) {
-          return res.status(400).json({ error: `Ungueltiger Wochentag: ${entry.weekday}` });
+          return res.status(400).json({ error: `Ungültiger Wochentag: ${entry.weekday}` });
         }
         if (entry.active && (!entry.start_time || !entry.end_time)) {
-          return res.status(400).json({ error: `Start- und Endzeit erforderlich fuer Tag ${wd}` });
+          return res.status(400).json({ error: `Start- und Endzeit erforderlich für Tag ${wd}` });
         }
       }
 
