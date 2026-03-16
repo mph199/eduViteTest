@@ -410,24 +410,24 @@ export function AdminDashboard() {
               <table className="admin-resp-table">
               <thead>
                 <tr>
-                  <th style={{ width: '18%' }}>
+                  <th>
                     <button type="button" className="teacher-sort-button" onClick={() => cycleSort('teacher')} title="Nach Lehrkraft sortieren">
                       Lehrkraft {sort.key === 'teacher' ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
                     </button>
                   </th>
-                  <th style={{ width: '14%' }}>
+                  <th>
                     <button type="button" className="teacher-sort-button" onClick={() => cycleSort('when')} title="Nach Termin sortieren">
                       Termin {sort.key === 'when' ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
                     </button>
                   </th>
-                  <th style={{ width: '22%' }}>
+                  <th>
                     <button type="button" className="teacher-sort-button" onClick={() => cycleSort('visitor')} title="Nach Besuchenden sortieren">
                       Besuchende {sort.key === 'visitor' ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
                     </button>
                   </th>
-                  <th style={{ width: '18%' }}>Schüler*in / Azubi</th>
-                  <th style={{ width: '12%' }}>Nachricht</th>
-                  <th className="admin-actions-header" style={{ width: '16%' }}>Aktionen</th>
+                  <th>Schüler*in / Azubi</th>
+                  <th>Nachricht</th>
+                  <th className="admin-actions-header">Aktionen</th>
                 </tr>
               </thead>
               <tbody>

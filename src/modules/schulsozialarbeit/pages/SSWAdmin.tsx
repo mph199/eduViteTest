@@ -320,7 +320,7 @@ export function SSWAdmin() {
         {error && <div className="admin-error">{error}</div>}
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['categories', 'Themen']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
@@ -398,15 +398,15 @@ export function SSWAdmin() {
                         <tbody>
                           {schedule.map((entry) => (
                             <tr key={entry.weekday} style={{ opacity: entry.active ? 1 : 0.5 }}>
-                              <td style={{ padding: '0.3rem 0.5rem', fontWeight: 500 }}>{WEEKDAY_LABELS[entry.weekday]}</td>
-                              <td style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>
+                              <td data-label="Tag" style={{ padding: '0.3rem 0.5rem', fontWeight: 500 }}>{WEEKDAY_LABELS[entry.weekday]}</td>
+                              <td data-label="Aktiv" style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>
                                 <input
                                   type="checkbox"
                                   checked={entry.active}
                                   onChange={() => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, active: !s.active } : s))}
                                 />
                               </td>
-                              <td style={{ padding: '0.3rem 0.5rem' }}>
+                              <td data-label="Von" style={{ padding: '0.3rem 0.5rem' }}>
                                 <input
                                   type="time"
                                   value={entry.start_time}
@@ -415,7 +415,7 @@ export function SSWAdmin() {
                                   style={{ width: '100%' }}
                                 />
                               </td>
-                              <td style={{ padding: '0.3rem 0.5rem' }}>
+                              <td data-label="Bis" style={{ padding: '0.3rem 0.5rem' }}>
                                 <input
                                   type="time"
                                   value={entry.end_time}
@@ -470,18 +470,18 @@ export function SSWAdmin() {
                     <tr><td colSpan={5}>Keine Berater/innen vorhanden.</td></tr>
                   ) : counselors.map(c => (
                     <tr key={c.id}>
-                      <td>{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
-                      <td>{c.email || '–'}</td>
-                      <td>{c.room || '–'}</td>
-                      <td>
+                      <td data-label="Name">{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
+                      <td data-label="E-Mail">{c.email || '–'}</td>
+                      <td data-label="Raum">{c.room || '–'}</td>
+                      <td data-label="Zeiten">
                         {(() => {
                           const sch = (schedulesMap[c.id] || []).filter(s => s.active);
                           if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '–'} – ${c.available_until?.toString().slice(0, 5) || '–'}`;
                           return sch.map(s => `${WEEKDAY_LABELS[s.weekday]?.slice(0, 2)} ${s.start_time?.toString().slice(0, 5)}–${s.end_time?.toString().slice(0, 5)}`).join(', ');
                         })()}
                       </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <td data-label="Aktionen">
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button className="btn-secondary" onClick={() => handleEditCounselor(c)}>Bearbeiten</button>
                           <button className="btn-secondary" style={{ color: 'var(--color-error, #dc2626)' }} onClick={() => handleDeleteCounselor(c.id)}>Löschen</button>
                         </div>
@@ -718,7 +718,7 @@ export function SSWAdmin() {
                               <tbody>
                                 {dayAppts.map(a => (
                                   <tr key={a.id} style={{ background: calSelectedIds.has(a.id) ? 'var(--brand-surface-2, #eef2f9)' : undefined }}>
-                                    <td>
+                                    <td data-label="">
                                       <input
                                         type="checkbox"
                                         checked={calSelectedIds.has(a.id)}
@@ -729,10 +729,10 @@ export function SSWAdmin() {
                                         })}
                                       />
                                     </td>
-                                    <td style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
-                                    <td>{statusLabel(a.status)}</td>
-                                    <td>{a.student_name || '–'}</td>
-                                    <td>{a.category_name || '–'}</td>
+                                    <td data-label="Uhrzeit" style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                                    <td data-label="Status">{statusLabel(a.status)}</td>
+                                    <td data-label="Name">{a.student_name || '–'}</td>
+                                    <td data-label="Kategorie">{a.category_name || '–'}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -800,10 +800,10 @@ export function SSWAdmin() {
                     <tr><td colSpan={4}>Keine Themen vorhanden.</td></tr>
                   ) : categories.map(cat => (
                     <tr key={cat.id}>
-                      <td>{cat.name}</td>
-                      <td>{cat.description || '–'}</td>
-                      <td>{cat.sort_order}</td>
-                      <td>
+                      <td data-label="Name">{cat.name}</td>
+                      <td data-label="Beschreibung">{cat.description || '–'}</td>
+                      <td data-label="Reihenfolge">{cat.sort_order}</td>
+                      <td data-label="Aktionen">
                         <button className="btn-secondary" onClick={() => handleEditCategory(cat)}>Bearbeiten</button>
                       </td>
                     </tr>

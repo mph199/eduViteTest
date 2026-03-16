@@ -361,6 +361,7 @@ export function BLAdmin() {
                     display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem',
                     background: entry.active ? 'var(--color-white)' : 'var(--color-gray-50)',
                     borderRadius: '0.375rem', border: '1px solid var(--color-gray-200)',
+                    flexWrap: 'wrap',
                   }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '140px', cursor: 'pointer' }}>
                       <input
@@ -428,7 +429,7 @@ export function BLAdmin() {
               <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
                 <div className="form-group">
                   <label>Termine freischalten für Zeitraum</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
                     <span>bis</span>
                     <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
@@ -480,9 +481,9 @@ export function BLAdmin() {
                       const dateStr = typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10);
                       return (
                         <tr key={a.id}>
-                          <td>{new Date(dateStr + 'T00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                          <td style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
-                          <td>
+                          <td data-label="Datum">{new Date(dateStr + 'T00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                          <td data-label="Uhrzeit" style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                          <td data-label="Status">
                             <span style={{
                               padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.85rem',
                               background: a.status === 'requested' ? 'var(--color-warning-light)' : 'var(--color-success-light)',
@@ -491,12 +492,12 @@ export function BLAdmin() {
                               {statusLabel(a.status)}
                             </span>
                           </td>
-                          <td>{a.student_name || '--'}</td>
-                          <td>{a.student_class || '--'}</td>
-                          <td>{a.topic_name || '--'}</td>
-                          <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.concern || '--'}</td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <td data-label="Name">{a.student_name || '--'}</td>
+                          <td data-label="Klasse">{a.student_class || '--'}</td>
+                          <td data-label="Thema">{a.topic_name || '--'}</td>
+                          <td data-label="Anliegen" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.concern || '--'}</td>
+                          <td data-label="Aktionen">
+                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                               {a.status === 'requested' && (
                                 <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
                                   onClick={() => handleConfirm(a.id)}>
@@ -550,10 +551,10 @@ export function BLAdmin() {
                     <tr><td colSpan={4}>Keine Beratungslehrkräfte vorhanden.</td></tr>
                   ) : counselors.map(c => (
                     <tr key={c.id}>
-                      <td>{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
-                      <td>{c.email || '--'}</td>
-                      <td>{c.room || '--'}</td>
-                      <td>
+                      <td data-label="Name">{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
+                      <td data-label="E-Mail">{c.email || '--'}</td>
+                      <td data-label="Raum">{c.room || '--'}</td>
+                      <td data-label="Zeiten">
                         {(() => {
                           const sch = (adminSchedulesMap[c.id] || []).filter(s => s.active);
                           if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '--'} -- ${c.available_until?.toString().slice(0, 5) || '--'}`;
@@ -620,10 +621,10 @@ export function BLAdmin() {
                     <tr><td colSpan={4}>Keine Themen vorhanden.</td></tr>
                   ) : topics.map(t => (
                     <tr key={t.id}>
-                      <td>{t.name}</td>
-                      <td>{t.description || '--'}</td>
-                      <td>{t.sort_order}</td>
-                      <td>
+                      <td data-label="Name">{t.name}</td>
+                      <td data-label="Beschreibung">{t.description || '--'}</td>
+                      <td data-label="Reihenfolge">{t.sort_order}</td>
+                      <td data-label="Aktionen">
                         <button className="btn-secondary" onClick={() => handleEditTopic(t)}>Bearbeiten</button>
                       </td>
                     </tr>
@@ -799,7 +800,7 @@ function renderCalendar(
                     <tbody>
                       {dayAppts.map(a => (
                         <tr key={a.id} style={{ background: calSelectedIds.has(a.id) ? 'var(--brand-surface-2, #eef2f9)' : undefined }}>
-                          <td>
+                          <td data-label="">
                             <input
                               type="checkbox"
                               checked={calSelectedIds.has(a.id)}
@@ -810,10 +811,10 @@ function renderCalendar(
                               })}
                             />
                           </td>
-                          <td style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
-                          <td>{statusLabel(a.status)}</td>
-                          <td>{a.student_name || '--'}</td>
-                          <td>{a.topic_name || '--'}</td>
+                          <td data-label="Uhrzeit" style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                          <td data-label="Status">{statusLabel(a.status)}</td>
+                          <td data-label="Name">{a.student_name || '--'}</td>
+                          <td data-label="Thema">{a.topic_name || '--'}</td>
                         </tr>
                       ))}
                     </tbody>
