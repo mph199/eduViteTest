@@ -21,6 +21,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Trust proxy (nginx, Codespaces port forwarding)
+app.set('trust proxy', 1);
+
 // CORS – origins from env or sensible defaults for development
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
@@ -48,6 +51,8 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (corsOrigins.includes(origin)) return callback(null, true);
+    // Allow GitHub Codespaces forwarded ports
+    if (origin && (origin.endsWith('.app.github.dev') || origin.endsWith('.preview.app.github.dev'))) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
