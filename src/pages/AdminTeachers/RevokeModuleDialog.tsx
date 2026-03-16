@@ -17,9 +17,9 @@ export function RevokeModuleDialog({ conflicts, targetName, onConfirm, onCancel,
           Beim Entfernen des Modul-Zugangs fuer <strong>{targetName}</strong> werden
           folgende Daten unwiderruflich geloescht:
         </p>
-        <ul style={{ margin: '0.75rem 0', paddingLeft: '1.25rem' }}>
+        <ul className="modal-content__list">
           {conflicts.map((c) => (
-            <li key={c.key} style={{ marginBottom: '0.5rem' }}>
+            <li key={c.key}>
               <strong>{c.label}</strong>
               {c.appointmentCount > 0 && (
                 <span> — {c.appointmentCount} aktive Termine</span>
@@ -30,10 +30,10 @@ export function RevokeModuleDialog({ conflicts, targetName, onConfirm, onCancel,
             </li>
           ))}
         </ul>
-        <p style={{ fontWeight: 600 }}>
+        <p className="text-bold">
           Diese Aktion kann nicht rueckgaengig gemacht werden.
         </p>
-        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <div className="form-actions">
           <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>
             Abbrechen
           </button>

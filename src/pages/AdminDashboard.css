@@ -2221,3 +2221,47 @@
   padding: 8px 10px;
   flex: 0 1 200px;
 }
+
+/* ── Generic modal overlay (used by RevokeModuleDialog etc.) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--color-gray-900-rgb, 17, 24, 39), 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--color-white, #fff);
+  border-radius: 14px;
+  padding: 1.75rem 2rem;
+  max-width: 520px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.modal-content h3 {
+  margin: 0 0 0.75rem;
+  color: var(--brand-primary-dark);
+}
+
+.modal-content__list {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+
+.modal-content__list li {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 1.25rem 1rem;
+    max-width: 100%;
+    border-radius: 10px;
+  }
+}

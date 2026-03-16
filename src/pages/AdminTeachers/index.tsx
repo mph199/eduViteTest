@@ -233,6 +233,11 @@ export function AdminTeachers() {
     return { total, adminCount, teacherCount };
   }, [users]);
 
+  const showFlash = (msg: string) => {
+    setFlash(msg);
+    window.setTimeout(() => setFlash(''), 6500);
+  };
+
   const updateRole = async (target: UserAccount, nextRole: string) => {
     const currentRole = target.role;
     if (currentRole === nextRole) return;
@@ -256,8 +261,7 @@ export function AdminTeachers() {
       } else {
         await loadUsers();
       }
-      setFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
-      window.setTimeout(() => setFlash(''), 6500);
+      showFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
     } catch (e) {
       setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: currentRole as UserAccount['role'] } : u)));
       alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
@@ -285,8 +289,7 @@ export function AdminTeachers() {
 
       // Success – update state after confirmed API response
       setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: next } : u)));
-      setFlash(has ? 'Modul-Zugang entfernt. Wird nach erneutem Login wirksam.' : 'Modul-Zugang erteilt. Wird nach erneutem Login wirksam.');
-      window.setTimeout(() => setFlash(''), 6500);
+      showFlash(has ? 'Modul-Zugang entfernt. Wird nach erneutem Login wirksam.' : 'Modul-Zugang erteilt. Wird nach erneutem Login wirksam.');
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Modul-Berechtigungen');
     } finally {
@@ -303,8 +306,7 @@ export function AdminTeachers() {
     try {
       await api.admin.updateUserModules(target.id, nextModules, true);
       setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: nextModules } : u)));
-      setFlash('Modul-Zugang und zugehoerige Daten entfernt. Wird nach erneutem Login wirksam.');
-      window.setTimeout(() => setFlash(''), 6500);
+      showFlash('Modul-Zugang und zugehoerige Daten entfernt. Wird nach erneutem Login wirksam.');
     } catch (e) {
       setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: current } : u)));
       alert(e instanceof Error ? e.message : 'Fehler beim Entfernen des Modul-Zugangs');
