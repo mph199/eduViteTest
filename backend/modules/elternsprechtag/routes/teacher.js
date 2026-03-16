@@ -70,15 +70,6 @@ function isValidSlotTimeRange(value) {
   return /^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/.test(String(value || '').trim());
 }
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function pickPreferredSlot(slotRows, orderedTimes, eventId) {
   const rows = slotRows || [];
 
@@ -107,12 +98,6 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
     const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
-    const teacherMessagePlain = safeTeacherMessage
-      ? `\n\nNachricht der Lehrkraft:\n${safeTeacherMessage}`
-      : '';
-    const teacherMessageHtml = safeTeacherMessage
-      ? `<p><strong>Nachricht der Lehrkraft:</strong><br/>${escapeHtml(safeTeacherMessage).replace(/\n/g, '<br/>')}</p>`
-      : '';
     const branding = await getEmailBranding();
     const { subject, text, html } = buildEmail('confirmation', {
       date: updatedSlot.date, time: updatedSlot.time,
@@ -492,16 +477,6 @@ async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId, teache
     const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
-    const teacherMessagePlain = safeTeacherMessage
-      ? `\n\nNachricht der Lehrkraft:\n${safeTeacherMessage}`
-      : '';
-    const teacherMessageHtml = safeTeacherMessage
-      ? `<p><strong>Nachricht der Lehrkraft:</strong><br/>${escapeHtml(safeTeacherMessage).replace(/\n/g, '<br/>')}</p>`
-      : '';
-
-    const timesFormatted = allSlots.map((s) => s.time).join(', ');
-    const timesListPlain = allSlots.map((s, i) => `  ${i + 1}. ${s.time}`).join('\n');
-    const timesListHtml = allSlots.map((s) => `<li>${s.time}</li>`).join('');
 
     const branding = await getEmailBranding();
     const { subject, text, html } = buildEmail('confirmation-multi', {
@@ -708,59 +683,6 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Error fetching teacher info');
     res.status(500).json({ error: 'Failed to fetch teacher info' });
-  }
-});
-
-/**
- * PUT /api/teacher/room
- * Body: { room?: string | null }
- * Allows logged-in teacher to update their own room.
- */
-router.put('/room', requireAuth, requireTeacher, async (req, res) => {
-  try {
-    // Feature intentionally disabled (historic reasons). Keep endpoint present but unavailable.
-    return res.status(404).json({ error: 'Not found' });
-
-    const teacherId = req.user.teacherId;
-    if (!teacherId) {
-      return res.status(400).json({ error: 'Teacher ID not found in token' });
-    }
-
-    const rawRoom = req.body?.room;
-    const nextRoom = typeof rawRoom === 'string'
-      ? rawRoom.trim()
-      : rawRoom == null
-        ? null
-        : String(rawRoom).trim();
-
-    if (typeof nextRoom === 'string' && nextRoom.length > 60) {
-      return res.status(400).json({ error: 'Raum darf maximal 60 Zeichen lang sein' });
-    }
-
-    const roomValue = nextRoom && nextRoom.length ? nextRoom : null;
-
-    const { rows: roomRows } = await query(
-      'UPDATE teachers SET room = $1 WHERE id = $2 RETURNING id, name, subject, available_from, available_until, room',
-      [roomValue, teacherId]
-    );
-    const data = roomRows[0];
-
-    if (!data) throw new Error('Teacher not found');
-
-    return res.json({
-      success: true,
-      teacher: {
-        id: data.id,
-        name: data.name,
-        subject: data.subject,
-        available_from: data.available_from,
-        available_until: data.available_until,
-        room: data.room,
-      },
-    });
-  } catch (error) {
-    logger.error({ err: error }, 'Error updating teacher room');
-    return res.status(500).json({ error: 'Failed to update teacher room' });
   }
 });
 

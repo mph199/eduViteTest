@@ -44,9 +44,12 @@ router.get('/appointments', requireAuth, requireCounselor, async (req, res) => {
     if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
     const date = req.query.date;
-    const dateFilter = date && /^\d{4}-\d{2}-\d{2}$/.test(String(date))
-      ? ` AND a.date = '${date}'`
-      : '';
+    const params = [counselorId];
+    let dateFilter = '';
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
+      params.push(String(date));
+      dateFilter = ` AND a.date = $${params.length}`;
+    }
 
     const { rows } = await query(
       `SELECT a.*, c.name AS category_name, c.icon AS category_icon
@@ -54,7 +57,7 @@ router.get('/appointments', requireAuth, requireCounselor, async (req, res) => {
        LEFT JOIN ssw_categories c ON c.id = a.category_id
        WHERE a.counselor_id = $1 ${dateFilter}
        ORDER BY a.date, a.time`,
-      [counselorId]
+      params
     );
     res.json({ appointments: rows });
   } catch (err) {
@@ -217,7 +220,7 @@ router.put('/appointments/:id/notes', requireAuth, requireCounselor, async (req,
 
     const { rows } = await query(
       `UPDATE ssw_appointments SET notes = $1, updated_at = NOW()
-       WHERE id = $${counselorId ? '2' : '2'} ${whereClause} RETURNING *`,
+       WHERE id = $2 ${whereClause} RETURNING *`,
       params
     );
 

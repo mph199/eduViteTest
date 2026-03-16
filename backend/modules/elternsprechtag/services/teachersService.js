@@ -7,13 +7,3 @@ export async function listTeachers() {
   );
   return rows;
 }
-
-export async function getTeacherById(id) {
-  const { rows } = await query('SELECT * FROM teachers WHERE id = $1', [id]);
-  if (rows.length === 0) {
-    const err = new Error('Teacher not found');
-    err.statusCode = 404;
-    throw err;
-  }
-  return rows[0];
-}

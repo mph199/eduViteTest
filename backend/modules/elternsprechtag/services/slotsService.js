@@ -1,14 +1,6 @@
 import crypto from 'crypto';
 import { query } from '../../../config/db.js';
-import { mapBookingRowWithTeacher, mapSlotRow } from '../../../utils/mappers.js';
-
-export async function listSlotsByTeacherId(teacherId) {
-  const { rows } = await query(
-    'SELECT * FROM slots WHERE teacher_id = $1 ORDER BY time',
-    [teacherId]
-  );
-  return rows.map(mapSlotRow);
-}
+import { mapBookingRowWithTeacher } from '../../../utils/mappers.js';
 
 export async function reserveBooking({
   slotId,
