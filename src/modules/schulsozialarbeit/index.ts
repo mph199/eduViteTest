@@ -21,6 +21,8 @@ const schulsozialarbeitModule: ModuleDefinition = {
   description: 'Buche einen vertraulichen Beratungstermin bei der Schulsozialarbeit.',
   icon: '',
   basePath: '/schulsozialarbeit',
+  accent: 'var(--module-accent-schulsozialarbeit)',
+  accentRgb: '205, 92, 92',
 
   /** Öffentliche Buchungsseite */
   PublicPage: SSWBookingApp,

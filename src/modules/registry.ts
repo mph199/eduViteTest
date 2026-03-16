@@ -50,6 +50,11 @@ export interface ModuleDefinition {
   /** Basis-Pfad der öffentlichen Seite (z.B. '/elternsprechtag') */
   basePath: string;
 
+  /** CSS custom property name for module accent color (e.g. 'var(--module-accent-elternsprechtag)') */
+  accent?: string;
+  /** RGB triplet for rgba() usage (e.g. '26, 127, 122') */
+  accentRgb?: string;
+
   /** Lazy-geladene öffentliche Hauptseite */
   PublicPage: LazyExoticComponent<ComponentType>;
 

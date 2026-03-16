@@ -97,7 +97,7 @@
 }
 
 .sidebar__close:focus-visible {
-  outline: 3px solid rgba(16, 185, 129, 0.35);
+  outline: 3px solid rgba(var(--brand-primary-rgb), 0.35);
   outline-offset: 3px;
 }
 
@@ -122,6 +122,7 @@
   text-transform: uppercase;
   color: rgba(var(--brand-ink-rgb), 0.85);
   padding: 0.35rem 0.45rem;
+  border-left: 3px solid rgba(var(--group-accent-rgb, var(--brand-primary-rgb)), 0.55);
 }
 
 .dropdown__divider {
@@ -150,11 +151,11 @@
 }
 
 .dropdown__item:hover {
-  background: rgba(var(--brand-primary-rgb), 0.10);
+  background: rgba(var(--group-accent-rgb, var(--brand-primary-rgb)), 0.10);
 }
 
 .dropdown__item--active {
-  background: rgba(var(--brand-primary-rgb), 0.16);
+  background: rgba(var(--group-accent-rgb, var(--brand-primary-rgb)), 0.16);
 }
 
 .dropdown__item--danger {

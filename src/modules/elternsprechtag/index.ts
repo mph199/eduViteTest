@@ -39,6 +39,8 @@ const elternsprechtagModule: ModuleDefinition = {
   description: 'Buchen Sie einen Gesprächstermin mit einer Lehrkraft.',
   icon: '',
   basePath: '/elternsprechtag',
+  accent: 'var(--module-accent-elternsprechtag)',
+  accentRgb: '26, 127, 122',
 
   /** Öffentliche Buchungsseite */
   PublicPage: BookingApp,

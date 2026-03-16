@@ -99,6 +99,33 @@
   line-height: 1.5;
 }
 
+/* Diagonal hatched corner accent (top-left) */
+.landing__card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(var(--module-accent-rgb, var(--brand-primary-rgb)), 0.12) 0px,
+    rgba(var(--module-accent-rgb, var(--brand-primary-rgb)), 0.12) 2px,
+    transparent 2px,
+    transparent 8px
+  );
+  mask-image: linear-gradient(135deg, #000 0%, transparent 70%);
+  -webkit-mask-image: linear-gradient(135deg, #000 0%, transparent 70%);
+  border-radius: 18px 0 0 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.3s ease;
+}
+
+.landing__card:hover::before {
+  opacity: 0;
+}
+
 .landing__card-action {
   margin-top: 0.5rem;
   font-size: 0.9rem;

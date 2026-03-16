@@ -24,7 +24,12 @@ export function LandingPage() {
           {modules.map((mod) => {
             const tileUrl = branding.tile_images?.[mod.id];
             return (
-              <Link key={mod.id} to={mod.basePath} className="landing__card">
+              <Link
+                key={mod.id}
+                to={mod.basePath}
+                className="landing__card"
+                style={mod.accentRgb ? { '--module-accent-rgb': mod.accentRgb } as React.CSSProperties : undefined}
+              >
                 {tileUrl ? (
                   <img
                     src={api.superadmin.resolveTileUrl(tileUrl)}

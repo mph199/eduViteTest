@@ -10,6 +10,7 @@ import './GlobalTopHeader.css';
 
 interface NavGroup {
   label: string;
+  accentRgb?: string;
   items: { path: string; label: string }[];
 }
 
@@ -71,6 +72,7 @@ export function GlobalTopHeader() {
       if (visibleItems.length > 0) {
         groups.push({
           label: mod.sidebarNav.label,
+          accentRgb: mod.accentRgb,
           items: visibleItems,
         });
       }
@@ -195,7 +197,10 @@ export function GlobalTopHeader() {
               {({ close }) => (
                 <>
                   {navGroups.map((group, gi) => (
-                    <div key={gi}>
+                    <div
+                      key={gi}
+                      style={group.accentRgb ? { '--group-accent-rgb': group.accentRgb } as React.CSSProperties : undefined}
+                    >
                       {gi > 0 && <div className="dropdown__divider" role="separator" />}
                       {group.label && <div className="dropdown__sectionTitle">{group.label}</div>}
                       {group.items.map(item => (
