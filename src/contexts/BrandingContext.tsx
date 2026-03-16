@@ -41,7 +41,7 @@ const DEFAULTS: SiteBranding = {
   surface_2: '#D9E4F2',
   header_font_color: '',
   hero_title: 'Herzlich willkommen!',
-  hero_text: 'Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.',
+  hero_text: 'Willkommen bei {eduvite} – Über dieses Portal können Sie Gesprächstermine für den Eltern- und Ausbildersprechtag anfragen.',
   step_1: 'Lehrkraft auswählen',
   step_2: 'Wunsch-Zeitfenster wählen',
   step_3: 'Daten eingeben und Anfrage absenden',
