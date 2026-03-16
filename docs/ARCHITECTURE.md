@@ -159,7 +159,7 @@ Centralized fetch wrapper. Namespaced:
 - `api.admin.*` – teachers, bookings, events, slots, settings, feedback, users
 - `api.teacher.*` – bookings, slots, requests, password, feedback
 - `api.bl.*` – beratungslehrer module endpoints
-- `api.ssw.*` – schulsozialarbeit module endpoints (if present)
+- `api.ssw.*` – schulsozialarbeit module endpoints
 - `api.events.*`, `api.bookings.*` – public endpoints
 - `api.superadmin.*` – school management
 
@@ -169,7 +169,12 @@ All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` eve
 
 Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Settings`, `FeedbackItem`, `UserAccount`.
 
-Module-specific types are defined inline in their components (no separate type files per module).
+Shared domain types (consolidated from previously duplicated local definitions):
+- `AdminEvent`, `EventStatus`, `EventStats` – event management
+- `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared
+- `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI
+
+Component-local `Props` interfaces remain in their component files.
 
 ## Backend Architecture
 
@@ -180,32 +185,47 @@ backend/
   index.js              # Express app setup, core route mounting
   routes/
     auth.js             # Login, logout, verify
-    admin.js            # Admin CRUD (teachers, slots, events, settings, feedback, users)
+    admin/              # Admin CRUD (split by resource)
+      index.js          # Aggregates all sub-routers
+      teacherRoutes.js  # Teacher CRUD, CSV import, BL integration, slot generation
+      eventsRoutes.js   # Event CRUD, stats, slot generation (transactional)
+      slotsRoutes.js    # Slot CRUD with dynamic filtering
+      bookingRoutes.js  # Booking list, cancellation with email
+      userRoutes.js     # User management, module access
+      settingsRoutes.js # Global settings
+      feedbackRoutes.js # Feedback CRUD
     teacher.js          # Teacher endpoints (bookings, requests, password)
+  shared/               # Shared factories for SSW/BL deduplication
+    counselorService.js       # createCounselorService(config) – DB queries
+    counselorPublicRoutes.js  # createCounselorPublicRoutes(service, config) – 4 endpoints
+    counselorAdminRoutes.js   # createCounselorAdminRoutes(config) – full CRUD
   modules/
     elternsprechtag/    # Core module (teacher schedule, events)
-    schulsozialarbeit/  # SSW module
+    schulsozialarbeit/  # SSW module (thin wrappers around shared factories)
       routes/public.js, counselor.js, admin.js
-      services/appointmentService.js
-    beratungslehrer/    # BL module (same structure as SSW)
+      services/appointmentService.js  # Wrapper around shared counselorService
+    beratungslehrer/    # BL module (thin wrappers around shared factories)
       routes/public.js, counselor.js, admin.js
-      services/appointmentService.js
+      services/appointmentService.js  # Wrapper around shared counselorService
   middleware/
     auth.js             # JWT extraction, role checks
   config/
-    db.js               # PostgreSQL pool
+    db.js               # PostgreSQL pool (query + getClient for transactions)
     email.js            # Nodemailer config
-  services/
-    slotsService.js     # Slot CRUD
-    teachersService.js  # Teacher queries
+    logger.js           # Pino logger (JSON in prod, pretty-print in dev)
+  utils/
+    resolveActiveEvent.js  # Shared active-event resolution logic
+    timeWindows.js         # Slot generation helpers
 ```
 
 ### Module Route Pattern (SSW/BL)
 
-Each counseling module follows the same 3-router pattern:
-1. **public.js** – Rate-limited. Counselor list, topics, available slots, booking
-2. **counselor.js** – `requireAuth` + local counselor check. Own appointments, schedule
-3. **admin.js** – `requireModuleAccess`. Full CRUD for counselors, topics, appointments
+Each counseling module follows the same 3-router pattern, built from shared factories in `backend/shared/`:
+1. **public.js** – Rate-limited. Counselor list, topics, available slots, booking → `createCounselorPublicRoutes()`
+2. **counselor.js** – `requireAuth` + local counselor check. Own appointments, schedule (module-specific, not shared)
+3. **admin.js** – `requireModuleAccess`. Full CRUD for counselors, topics, appointments → `createCounselorAdminRoutes()`
+
+Module differences are handled via config parameters (table prefix, topic schema, auth middleware, user creation/deletion callbacks).
 
 ### Email System
 
@@ -218,9 +238,12 @@ Each counseling module follows the same 3-router pattern:
 1. **Request-based booking** (not direct slot booking) – parents request, teachers accept/decline
 2. **Module access via JWT** – `user.modules[]` array baked into token at login time
 3. **No global state library** – React context + local state only
-4. **SSW/BL share identical architecture** – same 3-router backend, same admin page structure
+4. **SSW/BL share identical architecture** – same 3-router backend (via shared factories), same admin page structure
 5. **Flat admin routes** – no nested layout, hamburger menu for navigation
 6. **Lazy loading** – all module pages loaded via `React.lazy()`
+7. **Directory-based page components** – large pages split into `Page/index.tsx` + sub-components (AdminTeachers, AdminEvents, SuperadminPage)
+8. **Shared booking UI** – `src/shared/components/CounselorBookingApp.tsx` used by both SSW and BL modules via config
+9. **Structured logging** – Pino logger (`backend/config/logger.js`) for all production backend code; seed/test scripts keep console
 
 ## Environment Variables
 
