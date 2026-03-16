@@ -271,32 +271,57 @@ export function AdminDashboard() {
             <h3>Aktive Events</h3>
           </div>
           {activeEvent ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div className="text-bold">{activeEvent.name}</div>
-              <div className="text-secondary">
-                Schuljahr: {activeEvent.school_year} • Status: {statusLabel[activeEvent.status]}
-              </div>
-              <div className="text-secondary">
-                Buchungsfenster: {formatDateTime(activeEvent.booking_opens_at) || 'sofort'} – {formatDateTime(activeEvent.booking_closes_at) || 'offen'}
-              </div>
-
-              {(user?.role === 'admin' || user?.role === 'superadmin') && (
-                <div className="text-secondary">
-                  {activeEventStats ? (
-                    <>
-                      Sprechzeiten: {activeEventStats.totalSlots} gesamt • {activeEventStats.availableSlots} verfügbar • {activeEventStats.reservedSlots} reserviert • {activeEventStats.confirmedSlots} bestätigt
-                    </>
-                  ) : activeEventStatsError ? (
-                    <>Sprechzeiten: {activeEventStatsError}</>
-                  ) : (
-                    <>Sprechzeiten: Laden…</>
-                  )}
-                </div>
-              )}
+            <div className="admin-resp-table-container">
+              <table className="admin-resp-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Schuljahr</th>
+                    <th>Buchungsfenster</th>
+                    <th>Status</th>
+                    {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                      <th>Sprechzeiten</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td data-label="Name">
+                      <span className="admin-cell-main">{activeEvent.name}</span>
+                    </td>
+                    <td data-label="Schuljahr">{activeEvent.school_year}</td>
+                    <td data-label="Buchungsfenster">
+                      <span className="admin-cell-main">{formatDateTime(activeEvent.booking_opens_at) || 'sofort'}</span>
+                      <span className="admin-cell-meta"> – {formatDateTime(activeEvent.booking_closes_at) || 'offen'}</span>
+                    </td>
+                    <td data-label="Status">
+                      <span className={`admin-status-pill admin-status-pill--${activeEvent.status === 'published' ? 'success' : activeEvent.status === 'draft' ? 'warning' : 'neutral'}`}>
+                        {statusLabel[activeEvent.status]}
+                      </span>
+                    </td>
+                    {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                      <td data-label="Sprechzeiten">
+                        {activeEventStats ? (
+                          <>
+                            <span className="admin-cell-main">{activeEventStats.totalSlots} gesamt</span>
+                            <span className="admin-cell-meta">
+                              {activeEventStats.availableSlots} frei / {activeEventStats.reservedSlots} reserviert / {activeEventStats.confirmedSlots} bestaetigt
+                            </span>
+                          </>
+                        ) : activeEventStatsError ? (
+                          <span className="admin-cell-meta">{activeEventStatsError}</span>
+                        ) : (
+                          <span className="admin-cell-meta">Laden...</span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="text-secondary">
-              Kein aktives Event gefunden (nicht veröffentlicht oder außerhalb des Buchungsfensters).
+              Kein aktives Event gefunden (nicht veroeffentlicht oder ausserhalb des Buchungsfensters).
             </div>
           )}
         </div>

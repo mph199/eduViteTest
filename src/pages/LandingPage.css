@@ -40,10 +40,11 @@
 }
 
 .landing__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1.5rem;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
 }
 
@@ -54,6 +55,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 2rem 1.5rem;
+  flex: 0 1 280px;
+  max-width: 320px;
   background: rgba(var(--color-white-rgb), 0.86);
   border: 1px solid rgba(var(--color-white-rgb), 0.45);
   border-radius: 18px;
@@ -190,4 +193,12 @@
 .landing__card-action {
   position: relative;
   z-index: 1;
+}
+
+/* Mobile: full-width cards */
+@media (max-width: 640px) {
+  .landing__card {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
 }
