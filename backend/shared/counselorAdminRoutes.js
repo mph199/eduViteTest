@@ -186,11 +186,7 @@ export function createCounselorAdminRoutes(config) {
       if (!rows.length) return res.status(404).json({ error: `${counselorLabel} nicht gefunden` });
 
       if (counselorRow?.user_id && onCounselorDeleted) {
-        try {
-          await onCounselorDeleted(counselorRow);
-        } catch (userErr) {
-          logger.warn({ err: userErr }, `Cleanup for deleted ${counselorLabel} failed`);
-        }
+        await onCounselorDeleted(counselorRow);
       }
 
       res.json({ success: true });
