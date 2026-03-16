@@ -177,6 +177,7 @@ export function createCounselorAdminRoutes(config) {
   router.delete('/counselors/:id', authMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
 
       const { rows: counselorRows } = await query(`SELECT user_id FROM ${counselorsTable} WHERE id = $1`, [id]);
       const counselorRow = counselorRows[0];

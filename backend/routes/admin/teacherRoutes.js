@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { requireAdmin } from '../../middleware/auth.js';
-import { query } from '../../config/db.js';
+import { query, getClient } from '../../config/db.js';
 import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation } from '../../utils/validators.js';
 import { generateTimeSlotsForTeacher } from '../../utils/timeWindows.js';
 import { resolveActiveEvent } from '../../utils/resolveActiveEvent.js';
@@ -563,27 +563,47 @@ router.delete('/teachers/:id', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid teacher ID' });
   }
 
+  const client = await getClient();
   try {
-    const { rows: bookedSlots } = await query('SELECT id, booked FROM slots WHERE teacher_id = $1', [teacherId]);
+    await client.query('BEGIN');
+
+    const { rows: bookedSlots } = await client.query('SELECT id, booked FROM slots WHERE teacher_id = $1', [teacherId]);
     const hasBookedSlots = bookedSlots && bookedSlots.some(slot => slot.booked);
 
     if (hasBookedSlots) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({
         error: 'Lehrkraft kann nicht gelöscht werden, da noch gebuchte Termine existieren. Bitte zuerst alle gebuchten Termine stornieren.'
       });
     }
 
     if (bookedSlots && bookedSlots.length > 0) {
-      await query('DELETE FROM slots WHERE teacher_id = $1', [teacherId]);
+      await client.query('DELETE FROM slots WHERE teacher_id = $1', [teacherId]);
     }
 
-    await query('DELETE FROM users WHERE teacher_id = $1', [teacherId]);
-    await query('DELETE FROM teachers WHERE id = $1', [teacherId]);
+    // Find the user linked to this teacher so we can clean up counselor profiles
+    const { rows: userRows } = await client.query('SELECT id FROM users WHERE teacher_id = $1', [teacherId]);
+    const userId = userRows[0]?.id;
 
+    // Delete BL counselor profile (if any) before deleting the user,
+    // preventing ghost entries from ON DELETE SET NULL
+    if (userId) {
+      await client.query('DELETE FROM bl_counselors WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'beratungslehrer']);
+    }
+
+    await client.query('DELETE FROM users WHERE teacher_id = $1', [teacherId]);
+    await client.query('DELETE FROM teachers WHERE id = $1', [teacherId]);
+
+    await client.query('COMMIT');
     res.json({ success: true, message: 'Teacher deleted successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error({ err: error }, 'Error deleting teacher');
     res.status(500).json({ error: 'Failed to delete teacher' });
+  } finally {
+    client.release();
   }
 });
 
