@@ -245,8 +245,7 @@ export function AdminDashboard() {
         }
         exportBookingsToICal(bookings, undefined, { teacherRoomById });
         return;
-      } catch (e) {
-        console.warn('ICS export: could not load teachers for room mapping', e);
+      } catch {
         // Fallback: export without rooms
       }
     }

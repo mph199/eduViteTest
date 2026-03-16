@@ -131,7 +131,6 @@ export function AdminTeachers() {
       setFormData(defaultFormData());
       setBlForm(defaultBlForm());
     } catch (err) {
-      console.error('Fehler beim Speichern:', err);
       alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
   };
