@@ -60,13 +60,13 @@ Browser (React 19)
 
 | Parameter | Wert | Datei |
 |-----------|------|-------|
-| Algorithmus | HS256 (jsonwebtoken Default) | `backend/middleware/auth.js:36` |
-| Lebensdauer | 8 Stunden | `backend/middleware/auth.js:20` |
-| Cookie maxAge | 8 Stunden | `backend/routes/auth.js:16` |
-| httpOnly | true | `backend/routes/auth.js:13` |
-| secure | true (nur in Production) | `backend/routes/auth.js:14` |
-| sameSite | lax | `backend/routes/auth.js:15` |
-| path | / | `backend/routes/auth.js:17` |
+| Algorithmus | HS256 (jsonwebtoken Default) | `backend/middleware/auth.js` (`generateToken`) |
+| Lebensdauer | 8 Stunden | `backend/middleware/auth.js` (`JWT_EXPIRES_IN`) |
+| Cookie maxAge | 8 Stunden | `backend/routes/auth.js` (`cookieOptions`) |
+| httpOnly | true | `backend/routes/auth.js` (`cookieOptions`) |
+| secure | true (nur in Production) | `backend/routes/auth.js` (`cookieOptions`) |
+| sameSite | lax | `backend/routes/auth.js` (`cookieOptions`) |
+| path | / | `backend/routes/auth.js` (`cookieOptions`) |
 
 ### Token-Payload
 
@@ -82,7 +82,7 @@ Browser (React 19)
 
 ### Token-Extraktion
 
-Bearer-Header-Extraktion wurde bewusst entfernt (`backend/middleware/auth.js:63-68`).
+Bearer-Header-Extraktion wurde bewusst entfernt (siehe `extractToken()` in `backend/middleware/auth.js`).
 Nur httpOnly Cookies werden akzeptiert, um die Angriffsflaeche zu minimieren.
 
 ### System-Admin
@@ -108,11 +108,11 @@ superadmin  -->  Voller Zugriff, alle Module
 
 | Middleware | Erlaubte Rollen | Datei |
 |------------|----------------|-------|
-| `requireAuth` | Alle authentifizierten User | `backend/middleware/auth.js:91` |
-| `requireAdmin` | admin, superadmin | `backend/middleware/auth.js:101` |
-| `requireSuperadmin` | superadmin | `backend/middleware/auth.js:114` |
-| `requireSSW` | ssw, admin, superadmin | `backend/middleware/auth.js:127` |
-| `requireModuleAccess(key)` | User mit Modul-Zugriff oder admin/superadmin | `backend/middleware/auth.js:140` |
+| `requireAuth` | Alle authentifizierten User | `backend/middleware/auth.js` |
+| `requireAdmin` | admin, superadmin | `backend/middleware/auth.js` |
+| `requireSuperadmin` | superadmin | `backend/middleware/auth.js` |
+| `requireSSW` | ssw, admin, superadmin | `backend/middleware/auth.js` |
+| `requireModuleAccess(key)` | User mit Modul-Zugriff oder admin/superadmin | `backend/middleware/auth.js` |
 
 ### Modul-Zugriffskontrolle
 
@@ -305,9 +305,9 @@ services:
 **Default-Secrets in docker-compose.yml:**
 
 ```yaml
-# UNSICHER (aktuelle Defaults)
-SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
-POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sprechtag}
+# UNSICHER (aktuelle Defaults – muessen ersetzt werden)
+SESSION_SECRET: ${SESSION_SECRET:-<sicherer-wert>}
+POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-<sicherer-wert>}
 ```
 
 In Produktion MUESSEN diese Werte ueber `.env` oder Docker Secrets gesetzt werden:
@@ -389,7 +389,7 @@ implementiert und in den meisten Faellen nicht noetig (8h Token-Lebensdauer).
 | Luecke | Risiko | Empfohlene Massnahme |
 |--------|--------|---------------------|
 | Kein API-Versioning | Breaking Changes bei Updates | `/api/v1/` Prefix einfuehren |
-| Kein Dependabot | Veraltete Dependencies | `.github/dependabot.yml` (wird mit dieser Aenderung ergaenzt) |
+| ~~Kein Dependabot~~ | ~~Veraltete Dependencies~~ | Behoben: `.github/dependabot.yml` konfiguriert |
 | Kein Alerting | Keine Echtzeit-Benachrichtigung | Sentry, Datadog oder Webhook-Integration |
 
 ---

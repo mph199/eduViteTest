@@ -8,6 +8,9 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "fix"
+      prefix-development: "chore"
 
   - package-ecosystem: "npm"
     directory: "/backend"
@@ -17,6 +20,9 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "fix"
+      prefix-development: "chore"
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -24,3 +30,6 @@ updates:
       interval: "monthly"
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "fix"
+      prefix-development: "chore"

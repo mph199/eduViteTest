@@ -133,7 +133,9 @@ add_header Referrer-Policy "no-referrer" always;
 add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 
 # Strict Transport Security (nur wenn TLS korrekt konfiguriert)
-add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+# Hinweis: 'preload' nur nach Registrierung unter hstspreload.org verwenden.
+# Ohne Registrierung das Flag entfernen, da es sonst wirkungslos ist.
+add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
 
 # CSP (nur setzen wenn Backend-CSP ueberschrieben werden soll)
 # add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'" always;
