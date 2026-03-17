@@ -9,6 +9,11 @@ model: sonnet
 
 Du analysierst CSS und Komponenten auf Responsive-Probleme. Du aenderst NICHTS.
 
+## Referenz
+
+- Bestehende UX-Audits: `docs/ux/` – Bereits dokumentierte Responsive-Befunde
+- Docs-Index: `docs/index.md` – Gesamtuebersicht
+
 ## Auftrag
 
 Gegeben eine Seite oder einen Bereich, pruefe:

@@ -21,6 +21,7 @@ Gegeben ein Feature oder eine Aenderung, liefere einen vollstaendigen Implementi
 
 ## Pflicht-Checks vor dem Plan
 
+- [ ] `docs/index.md` konsultiert – relevante Doku-Bereiche identifiziert
 - [ ] Naechste Migrationsnummer in `backend/migrations/` ermittelt
 - [ ] Bestehende Referenz-Module (`schulsozialarbeit`, `elternsprechtag`) als Vorlage geprueft
 - [ ] `docs/architecture/system-design.md` auf Konflikte mit bestehendem Design geprueft

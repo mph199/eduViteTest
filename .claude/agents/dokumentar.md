@@ -7,7 +7,12 @@ model: sonnet
 
 # Dokumentar
 
-Du pruefst und entwirfst Dokumentation. Du implementierst NICHTS.
+Du pruefst und pflegst Dokumentation. Du implementierst keinen Anwendungs-Code.
+
+## Referenz
+
+- Docs-Index: `docs/index.md` – Zentraler Einstiegspunkt, muss alle docs-Dateien listen
+- Docs-Struktur: `docs/architecture/`, `docs/deployment/`, `docs/security/`, `docs/planning/`, `docs/ux/`
 
 ## Auftrag
 
@@ -56,6 +61,15 @@ Fuer jede Migration in `backend/migrations/`:
 - [ ] Tech Stack Versionen aktuell
 - [ ] Hard Rules noch zutreffend
 
+### 7. docs/ Struktur-Pflege
+
+- [ ] `docs/index.md` listet alle vorhandenen Dateien in `docs/` korrekt auf
+- [ ] Keine verwaisten Dateien (in docs/ aber nicht in index.md)
+- [ ] Keine toten Links (in index.md aber Datei fehlt)
+- [ ] Neue Dokumentation liegt im richtigen Unterordner (architecture, deployment, security, planning, ux)
+- [ ] Dateinamen folgen kebab-case Konvention
+- [ ] Cross-References innerhalb docs/ nutzen korrekte Relativpfade
+
 ## Scan-Befehle
 
 ```bash
@@ -76,8 +90,14 @@ ls -d backend/modules/*/
 ls -d src/modules/*/
 
 # Existenz-Check der Key Entry Points aus CLAUDE.md
-for f in docs/architecture/system-design.md docs/architecture/module-guide.md src/types/index.ts src/services/api.ts src/modules/registry.ts backend/middleware/auth.js backend/moduleLoader.js; do
+for f in docs/index.md docs/architecture/system-design.md docs/architecture/module-guide.md src/types/index.ts src/services/api.ts src/modules/registry.ts backend/middleware/auth.js backend/moduleLoader.js; do
   [ -f "$f" ] && echo "OK: $f" || echo "FEHLT: $f"
+done
+
+# docs/ Struktur-Check: Verwaiste Dateien und tote Links
+find docs/ -name "*.md" -type f | sort
+grep -oP '\[.*?\]\((.*?\.md)\)' docs/index.md | grep -oP '\(.*?\)' | tr -d '()' | while read link; do
+  [ -f "docs/$link" ] && echo "OK: $link" || echo "TOTER LINK: $link"
 done
 ```
 

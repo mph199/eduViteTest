@@ -65,6 +65,7 @@ Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch"
 
 | What | Where |
 |------|-------|
+| Documentation hub | `docs/index.md` |
 | Architecture doc | `docs/architecture/system-design.md` |
 | Module guide | `docs/architecture/module-guide.md` |
 | Frontend types | `src/types/index.ts` |

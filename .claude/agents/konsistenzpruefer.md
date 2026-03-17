@@ -9,6 +9,11 @@ model: sonnet
 
 Du pruefst Konventionen. Du implementierst NICHTS.
 
+## Referenz
+
+- Docs-Index: `docs/index.md` – Gesamtuebersicht der Dokumentation
+- Architektur: `docs/architecture/system-design.md` – Definierte Patterns und Strukturen
+
 ## Auftrag
 
 Scanne die Codebase auf Abweichungen von den in CLAUDE.md definierten Projekt-Standards. Jeder Verstoss wird als Befund gemeldet. Pruefe sowohl geaenderte Dateien (via `git diff --name-only HEAD~5`) als auch die Gesamtcodebase.
