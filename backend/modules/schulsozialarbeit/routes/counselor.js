@@ -44,18 +44,38 @@ router.get('/appointments', requireAuth, requireCounselor, async (req, res) => {
     if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
     const date = req.query.date;
+    const dateFrom = req.query.date_from;
+    const dateUntil = req.query.date_until;
+    const statusFilter = req.query.status;
     const params = [counselorId];
-    let dateFilter = '';
+    let filters = '';
+
     if (date && /^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
       params.push(String(date));
-      dateFilter = ` AND a.date = $${params.length}`;
+      filters += ` AND a.date = $${params.length}`;
+    }
+    if (dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(String(dateFrom))) {
+      params.push(String(dateFrom));
+      filters += ` AND a.date >= $${params.length}`;
+    }
+    if (dateUntil && /^\d{4}-\d{2}-\d{2}$/.test(String(dateUntil))) {
+      params.push(String(dateUntil));
+      filters += ` AND a.date <= $${params.length}`;
+    }
+    if (statusFilter) {
+      const validStatuses = ['available', 'requested', 'confirmed', 'cancelled', 'completed'];
+      const statuses = String(statusFilter).split(',').filter(s => validStatuses.includes(s));
+      if (statuses.length > 0) {
+        const placeholders = statuses.map(s => { params.push(s); return `$${params.length}`; }).join(', ');
+        filters += ` AND a.status IN (${placeholders})`;
+      }
     }
 
     const { rows } = await query(
       `SELECT a.*, c.name AS category_name, c.icon AS category_icon
        FROM ssw_appointments a
        LEFT JOIN ssw_categories c ON c.id = a.category_id
-       WHERE a.counselor_id = $1 ${dateFilter}
+       WHERE a.counselor_id = $1 ${filters}
        ORDER BY a.date, a.time`,
       params
     );

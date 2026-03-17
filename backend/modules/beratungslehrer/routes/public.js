@@ -9,6 +9,7 @@ import { createCounselorPublicRoutes } from '../../../shared/counselorPublicRout
 import * as service from '../services/appointmentService.js';
 
 export default createCounselorPublicRoutes(service, {
+  tablePrefix: 'bl',
   topicForeignKey: 'topic_id',
   topicEndpoint: '/topics',
   topicResponseKey: 'topics',

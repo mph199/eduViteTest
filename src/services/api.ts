@@ -493,9 +493,12 @@ const api = {
       });
     },
     // Counselor self-service
-    async getAppointments(params: { date?: string } = {}) {
+    async getAppointments(params: { date?: string; date_from?: string; date_until?: string; status?: string } = {}) {
       const qs = new URLSearchParams();
       if (params.date) qs.set('date', params.date);
+      if (params.date_from) qs.set('date_from', params.date_from);
+      if (params.date_until) qs.set('date_until', params.date_until);
+      if (params.status) qs.set('status', params.status);
       const query = qs.toString();
       return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`, {});
     },

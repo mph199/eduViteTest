@@ -17,15 +17,19 @@
 
 import express from 'express';
 import { query } from '../config/db.js';
+import { assertSafeIdentifier } from './sqlGuards.js';
 
 export function createCounselorPublicRoutes(service, config) {
   const {
+    tablePrefix,
     topicForeignKey,
     topicEndpoint,
     topicResponseKey,
     counselorLabel = 'Berater/in',
     moduleName = 'unknown',
   } = config;
+
+  assertSafeIdentifier(tablePrefix, 'tablePrefix');
 
   const router = express.Router();
 
@@ -96,7 +100,20 @@ export function createCounselorPublicRoutes(service, config) {
         is_urgent: !!is_urgent,
       };
 
-      const appointment = await service.bookAppointment(appointmentId, bookingData);
+      // Determine if this counselor requires manual confirmation
+      const appointmentsTable = `${tablePrefix}_appointments`;
+      const counselorsTable = `${tablePrefix}_counselors`;
+      const { rows: [apptRow] } = await query(
+        `SELECT a.counselor_id, c.requires_confirmation
+         FROM ${appointmentsTable} a
+         JOIN ${counselorsTable} c ON c.id = a.counselor_id
+         WHERE a.id = $1 AND a.status = 'available'`,
+        [appointmentId]
+      );
+      if (!apptRow) return res.status(409).json({ error: 'Termin nicht mehr verfügbar' });
+
+      const requiresConfirmation = apptRow.requires_confirmation !== false;
+      const appointment = await service.bookAppointment(appointmentId, bookingData, requiresConfirmation);
 
       // Consent-Receipt (append-only, Art. 7 Abs. 1)
       await query(

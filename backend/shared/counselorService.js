@@ -13,14 +13,7 @@
  */
 
 import { query } from '../config/db.js';
-
-/** Validates that a string is a safe SQL identifier (lowercase letters, digits, underscores). */
-const SAFE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
-function assertSafeIdentifier(value, label) {
-  if (!SAFE_IDENTIFIER.test(value)) {
-    throw new Error(`Invalid SQL identifier for ${label}: "${value}"`);
-  }
-}
+import { assertSafeIdentifier } from './sqlGuards.js';
 
 export function createCounselorService(config) {
   const {
@@ -81,19 +74,22 @@ export function createCounselorService(config) {
       return rows;
     },
 
-    async bookAppointment(appointmentId, bookingData) {
+    async bookAppointment(appointmentId, bookingData, requiresConfirmation = true) {
       const { student_name, student_class, email, phone, is_urgent } = bookingData;
       const topicValue = bookingData[topicForeignKey] || null;
 
+      const targetStatus = requiresConfirmation ? 'requested' : 'confirmed';
+      const confirmedClause = requiresConfirmation ? '' : ', confirmed_at = NOW()';
+
       const { rows } = await query(
         `UPDATE ${appointmentsTable}
-         SET status = 'requested',
-             student_name = $1, student_class = $2, email = $3, phone = $4,
-             ${topicForeignKey} = $5, is_urgent = $6,
-             booked_at = NOW(), updated_at = NOW()
-         WHERE id = $7 AND status = 'available'
+         SET status = $1,
+             student_name = $2, student_class = $3, email = $4, phone = $5,
+             ${topicForeignKey} = $6, is_urgent = $7,
+             booked_at = NOW(), updated_at = NOW()${confirmedClause}
+         WHERE id = $8 AND status = 'available'
          RETURNING *`,
-        [student_name, student_class || null, email || null, phone || null,
+        [targetStatus, student_name, student_class || null, email || null, phone || null,
          topicValue, is_urgent || false, appointmentId]
       );
 
