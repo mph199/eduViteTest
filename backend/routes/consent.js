@@ -86,11 +86,10 @@ router.post('/withdraw', consentLimiter, async (req, res) => {
       ]
     );
 
+    // Einheitliche Antwort (kein Leak ob E-Mail im System existiert)
     res.json({
       success: true,
-      message: anonymizedCount > 0
-        ? `${anonymizedCount} Datensatz/Datensaetze anonymisiert.`
-        : 'Keine Daten unter dieser E-Mail-Adresse gefunden.',
+      message: 'Widerruf verarbeitet. Falls Daten vorhanden waren, wurden diese anonymisiert.',
     });
   } catch (err) {
     logger.error({ err }, 'consent withdraw error');

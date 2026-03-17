@@ -2,7 +2,7 @@
  * Schulsozialarbeit – Berater-Routen (authentifiziert)
  *
  * Endpunkte für Berater/innen: eigene Termine verwalten,
- * Anfragen bestätigen/absagen, Notizen pflegen.
+ * Anfragen bestätigen/absagen.
  */
 
 import express from 'express';

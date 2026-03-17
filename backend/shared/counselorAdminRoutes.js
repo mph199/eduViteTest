@@ -72,7 +72,7 @@ export function createCounselorAdminRoutes(config) {
 
   router.get('/counselors', authMiddleware, async (_req, res) => {
     try {
-      const { rows } = await query(`SELECT * FROM ${counselorsTable} ORDER BY last_name, first_name`);
+      const { rows } = await query(`SELECT id, user_id, first_name, last_name, email, salutation, room, phone, specializations, active, created_at FROM ${counselorsTable} ORDER BY last_name, first_name`);
       res.json({ counselors: rows });
     } catch (err) {
       res.status(500).json({ error: `Fehler beim Laden der ${counselorLabel}` });

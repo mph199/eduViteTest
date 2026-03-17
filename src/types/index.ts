@@ -57,6 +57,16 @@ export interface ConsentReceipt {
   consented_at: string;
 }
 
+export interface BrandingData {
+  responsible_name?: string;
+  responsible_address?: string;
+  responsible_email?: string;
+  responsible_phone?: string;
+  dsb_name?: string;
+  dsb_email?: string;
+  supervisory_authority?: string;
+}
+
 export interface BookingRequest {
   id: number;
   eventId?: number | null;

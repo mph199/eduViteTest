@@ -1,15 +1,6 @@
 import { useState, useEffect } from 'react';
+import type { BrandingData } from '../types';
 import './LegalPage.css';
-
-interface BrandingData {
-  responsible_name?: string;
-  responsible_address?: string;
-  responsible_email?: string;
-  responsible_phone?: string;
-  dsb_name?: string;
-  dsb_email?: string;
-  supervisory_authority?: string;
-}
 
 const API_BASE = String(
   (import.meta as unknown as Record<string, Record<string, unknown>>).env?.VITE_API_URL || '/api'

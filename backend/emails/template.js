@@ -83,8 +83,9 @@ export function wrapEmailHtml({ body, branding }) {
   }
   const footerHtml = esc(b.footer_text).replace(/\n/g, '<br/>');
 
-  // Privacy footer (Art. 13/14 DSGVO)
-  const privacyUrl = b.privacy_policy_url || '/datenschutz';
+  // Privacy footer (Art. 13/14 DSGVO) – URL-Schema-Whitelist (Defense in Depth)
+  const rawPrivacyUrl = b.privacy_policy_url || '/datenschutz';
+  const privacyUrl = rawPrivacyUrl.startsWith('/') || rawPrivacyUrl.startsWith('https://') || rawPrivacyUrl.startsWith('http://') ? rawPrivacyUrl : '/datenschutz';
   const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
   const fullPrivacyUrl = privacyUrl.startsWith('http') ? privacyUrl : `${baseUrl}${privacyUrl}`;
   let privacyFooter = `<a href="${esc(fullPrivacyUrl)}" style="color:#6b7280;text-decoration:underline;">Datenschutzerklaerung</a>`;
