@@ -31,7 +31,7 @@ BEGIN
     EXECUTE 'CREATE POLICY app_full_access_bl ON bl_appointments FOR ALL USING (true) WITH CHECK (true)';
   END IF;
 
-  -- audit_log: nur INSERT fuer nicht-superuser (append-only)
+  -- audit_log: voller Zugriff fuer Pool-User (append-only Enforcement via App-Layer)
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'audit_log' AND policyname = 'app_full_access_audit') THEN
     EXECUTE 'CREATE POLICY app_full_access_audit ON audit_log FOR ALL USING (true) WITH CHECK (true)';
   END IF;

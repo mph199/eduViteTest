@@ -344,7 +344,11 @@ export function DataProtectionTab() {
                                 padding: '0.4rem 0.6rem', borderBottom: '1px solid var(--sa-border-light)',
                                 whiteSpace: 'nowrap', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis',
                               }}>
-                                {val === null ? <span style={{ color: 'var(--sa-text-muted)' }}>NULL</span> : String(val)}
+                                {val === null
+                                  ? <span style={{ color: 'var(--sa-text-muted)' }}>NULL</span>
+                                  : typeof val === 'object'
+                                    ? JSON.stringify(val)
+                                    : String(val)}
                               </td>
                             ))}
                           </tr>
@@ -431,7 +435,7 @@ export function DataProtectionTab() {
                         <span style={{
                           padding: '2px 6px', borderRadius: '3px', fontSize: '0.72rem', fontWeight: 600,
                           background: entry.action.includes('FAIL') || entry.action.includes('DENIED')
-                            ? 'rgba(248,113,113,0.15)' : 'var(--sa-badge-bg)',
+                            ? 'var(--sa-error-bg, rgba(248,113,113,0.15))' : 'var(--sa-badge-bg)',
                           color: entry.action.includes('FAIL') || entry.action.includes('DENIED')
                             ? 'var(--sa-error)' : 'var(--sa-text-mono)',
                         }}>{entry.action}</span>

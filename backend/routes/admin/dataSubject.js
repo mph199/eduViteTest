@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireSuperadmin } from '../../middleware/auth.js';
-import { query } from '../../config/db.js';
+import { query, getClient } from '../../config/db.js';
 import logger from '../../config/logger.js';
 
 const router = express.Router();
@@ -8,6 +8,15 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const SAFE_IDENTIFIER = /^[a-z_]+$/;
+function assertSafeIdentifier(name) {
+  if (!SAFE_IDENTIFIER.test(name)) {
+    throw new Error(`Unsafe SQL identifier: ${name}`);
+  }
+}
 
 /**
  * Log an action to the audit_log table (fire-and-forget).
@@ -132,7 +141,7 @@ function dataToCsv(data) {
 router.get('/data-subject/search', requireSuperadmin, async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
       return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
     }
 
@@ -155,7 +164,7 @@ router.get('/data-subject/search', requireSuperadmin, async (req, res) => {
 router.get('/data-subject/export', requireSuperadmin, async (req, res) => {
   try {
     const { email, format = 'json' } = req.query;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
       return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
     }
 
@@ -193,63 +202,75 @@ router.get('/data-subject/export', requireSuperadmin, async (req, res) => {
 router.delete('/data-subject', requireSuperadmin, async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
       return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
     }
 
     const trimmedEmail = email.trim();
     const protocol = { email: trimmedEmail, timestamp: new Date().toISOString(), actions: [] };
 
-    // 1. Anonymize booking_requests
-    const brResult = await query(
-      `UPDATE booking_requests
-       SET parent_name = NULL, student_name = NULL, company_name = NULL,
-           trainee_name = NULL, representative_name = NULL, email = NULL,
-           message = NULL, updated_at = NOW()
-       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-       RETURNING id`,
-      [trimmedEmail]
-    );
-    if (brResult.rows.length > 0) {
-      protocol.actions.push({ table: 'booking_requests', anonymized: brResult.rows.length, ids: brResult.rows.map(r => r.id) });
-    }
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
 
-    // 2. Anonymize slots
-    const slotsResult = await query(
-      `UPDATE slots
-       SET parent_name = NULL, student_name = NULL, company_name = NULL,
-           trainee_name = NULL, representative_name = NULL, class_name = NULL,
-           email = NULL, message = NULL, updated_at = NOW()
-       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-       RETURNING id`,
-      [trimmedEmail]
-    );
-    if (slotsResult.rows.length > 0) {
-      protocol.actions.push({ table: 'slots', anonymized: slotsResult.rows.length, ids: slotsResult.rows.map(r => r.id) });
-    }
+      // 1. Anonymize booking_requests
+      const brResult = await client.query(
+        `UPDATE booking_requests
+         SET parent_name = NULL, student_name = NULL, company_name = NULL,
+             trainee_name = NULL, representative_name = NULL, email = NULL,
+             message = NULL, updated_at = NOW()
+         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+         RETURNING id`,
+        [trimmedEmail]
+      );
+      if (brResult.rows.length > 0) {
+        protocol.actions.push({ table: 'booking_requests', anonymized: brResult.rows.length, ids: brResult.rows.map(r => r.id) });
+      }
 
-    // 3. Anonymize SSW appointments
-    const sswResult = await query(
-      `UPDATE ssw_appointments
-       SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
-       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-       RETURNING id`,
-      [trimmedEmail]
-    );
-    if (sswResult.rows.length > 0) {
-      protocol.actions.push({ table: 'ssw_appointments', anonymized: sswResult.rows.length, ids: sswResult.rows.map(r => r.id) });
-    }
+      // 2. Anonymize slots
+      const slotsResult = await client.query(
+        `UPDATE slots
+         SET parent_name = NULL, student_name = NULL, company_name = NULL,
+             trainee_name = NULL, representative_name = NULL, class_name = NULL,
+             email = NULL, message = NULL, updated_at = NOW()
+         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+         RETURNING id`,
+        [trimmedEmail]
+      );
+      if (slotsResult.rows.length > 0) {
+        protocol.actions.push({ table: 'slots', anonymized: slotsResult.rows.length, ids: slotsResult.rows.map(r => r.id) });
+      }
 
-    // 4. Anonymize BL appointments
-    const blResult = await query(
-      `UPDATE bl_appointments
-       SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
-       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-       RETURNING id`,
-      [trimmedEmail]
-    );
-    if (blResult.rows.length > 0) {
-      protocol.actions.push({ table: 'bl_appointments', anonymized: blResult.rows.length, ids: blResult.rows.map(r => r.id) });
+      // 3. Anonymize SSW appointments
+      const sswResult = await client.query(
+        `UPDATE ssw_appointments
+         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
+         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+         RETURNING id`,
+        [trimmedEmail]
+      );
+      if (sswResult.rows.length > 0) {
+        protocol.actions.push({ table: 'ssw_appointments', anonymized: sswResult.rows.length, ids: sswResult.rows.map(r => r.id) });
+      }
+
+      // 4. Anonymize BL appointments
+      const blResult = await client.query(
+        `UPDATE bl_appointments
+         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
+         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+         RETURNING id`,
+        [trimmedEmail]
+      );
+      if (blResult.rows.length > 0) {
+        protocol.actions.push({ table: 'bl_appointments', anonymized: blResult.rows.length, ids: blResult.rows.map(r => r.id) });
+      }
+
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
     }
 
     const totalAnonymized = protocol.actions.reduce((sum, a) => sum + a.anonymized, 0);
@@ -274,7 +295,7 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
 router.patch('/data-subject', requireSuperadmin, async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
       return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
     }
 
@@ -293,34 +314,45 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
     };
 
     const results = [];
+    const client = await getClient();
 
-    for (const [table, fields] of Object.entries(allowedFields)) {
-      const updates = {};
-      for (const field of fields) {
-        if (corrections[field] !== undefined) {
-          updates[field] = corrections[field];
+    try {
+      await client.query('BEGIN');
+
+      for (const [table, fields] of Object.entries(allowedFields)) {
+        assertSafeIdentifier(table);
+        const updates = {};
+        for (const field of fields) {
+          if (corrections[field] !== undefined) {
+            updates[field] = corrections[field];
+          }
+        }
+        if (Object.keys(updates).length === 0) continue;
+
+        const updateKeys = Object.keys(updates);
+        for (const k of updateKeys) assertSafeIdentifier(k);
+
+        const setClauses = updateKeys.map((k, i) => `${k} = $${i + 1}`);
+        const values = Object.values(updates);
+        const emailParamIdx = values.length + 1;
+        setClauses.push(`updated_at = NOW()`);
+
+        const result = await client.query(
+          `UPDATE ${table} SET ${setClauses.join(', ')} WHERE LOWER(email) = LOWER($${emailParamIdx}) AND email IS NOT NULL RETURNING id`,
+          [...values, trimmedEmail]
+        );
+
+        if (result.rows.length > 0) {
+          results.push({ table, corrected: result.rows.length, fields: updateKeys });
         }
       }
-      if (Object.keys(updates).length === 0) continue;
 
-      const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`);
-      const values = Object.values(updates);
-      const emailParamIdx = values.length + 1;
-
-      // Add updated_at if table has it
-      const hasUpdatedAt = table !== 'teachers' || true; // all these tables have updated_at
-      if (hasUpdatedAt) {
-        setClauses.push(`updated_at = NOW()`);
-      }
-
-      const result = await query(
-        `UPDATE ${table} SET ${setClauses.join(', ')} WHERE LOWER(email) = LOWER($${emailParamIdx}) AND email IS NOT NULL RETURNING id`,
-        [...values, trimmedEmail]
-      );
-
-      if (result.rows.length > 0) {
-        results.push({ table, corrected: result.rows.length, fields: Object.keys(updates) });
-      }
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
     }
 
     await auditLog(req.user?.id, 'WRITE', 'data_subject', null, {
@@ -348,7 +380,7 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
 router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
       return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
     }
 
@@ -358,6 +390,7 @@ router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
 
     // Set restricted flag on all tables that have it
     for (const table of ['booking_requests', 'ssw_appointments', 'bl_appointments']) {
+      assertSafeIdentifier(table);
       const result = await query(
         `UPDATE ${table} SET restricted = $1, updated_at = NOW() WHERE LOWER(email) = LOWER($2) AND email IS NOT NULL RETURNING id`,
         [restricted, trimmedEmail]
@@ -389,6 +422,9 @@ router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
  * GET /api/admin/audit-log?from=&to=&action=&table=&page=&limit=
  * Audit-Log-Abfrage mit Filterung und Pagination.
  */
+const ALLOWED_AUDIT_ACTIONS = ['READ', 'WRITE', 'DELETE', 'EXPORT', 'RESTRICT', 'LOGIN_FAIL', 'ACCESS_DENIED'];
+const ALLOWED_AUDIT_TABLES = ['data_subject', 'security', 'audit_log', 'booking_requests', 'slots', 'ssw_appointments', 'bl_appointments', 'teachers', 'users'];
+
 router.get('/audit-log', requireSuperadmin, async (req, res) => {
   try {
     const { from, to, action, table, page = '1', limit = '50' } = req.query;
@@ -401,18 +437,22 @@ router.get('/audit-log', requireSuperadmin, async (req, res) => {
     let paramIdx = 1;
 
     if (from) {
+      if (isNaN(Date.parse(from))) return res.status(400).json({ error: 'Ungueltiges Startdatum' });
       conditions.push(`a.created_at >= $${paramIdx++}`);
       params.push(from);
     }
     if (to) {
+      if (isNaN(Date.parse(to))) return res.status(400).json({ error: 'Ungueltiges Enddatum' });
       conditions.push(`a.created_at <= $${paramIdx++}`);
       params.push(to);
     }
     if (action) {
+      if (!ALLOWED_AUDIT_ACTIONS.includes(action)) return res.status(400).json({ error: 'Ungueltige Aktion' });
       conditions.push(`a.action = $${paramIdx++}`);
       params.push(action);
     }
     if (table) {
+      if (!ALLOWED_AUDIT_TABLES.includes(table)) return res.status(400).json({ error: 'Ungueltiger Tabellenname' });
       conditions.push(`a.table_name = $${paramIdx++}`);
       params.push(table);
     }
@@ -458,16 +498,19 @@ router.get('/audit-log', requireSuperadmin, async (req, res) => {
 router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
   try {
     const { from, to, format = 'csv' } = req.query;
+    const EXPORT_LIMIT = 10000;
 
     const conditions = [];
     const params = [];
     let paramIdx = 1;
 
     if (from) {
+      if (isNaN(Date.parse(from))) return res.status(400).json({ error: 'Ungueltiges Startdatum' });
       conditions.push(`a.created_at >= $${paramIdx++}`);
       params.push(from);
     }
     if (to) {
+      if (isNaN(Date.parse(to))) return res.status(400).json({ error: 'Ungueltiges Enddatum' });
       conditions.push(`a.created_at <= $${paramIdx++}`);
       params.push(to);
     }
@@ -480,13 +523,15 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
        FROM audit_log a
        LEFT JOIN users u ON a.user_id = u.id
        ${whereClause}
-       ORDER BY a.created_at DESC`,
+       ORDER BY a.created_at DESC
+       LIMIT ${EXPORT_LIMIT}`,
       params
     );
 
     const rows = Array.isArray(result.rows) ? result.rows : [];
+    const truncated = rows.length >= EXPORT_LIMIT;
 
-    await auditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length }, req.ip);
+    await auditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length, truncated }, req.ip);
 
     if (format === 'csv') {
       const headers = ['id', 'user_id', 'user_name', 'action', 'table_name', 'record_id', 'details', 'ip_address', 'created_at'];

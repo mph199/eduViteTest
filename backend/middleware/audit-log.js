@@ -21,5 +21,9 @@ export async function writeAuditLog(userId, action, tableName, recordId, details
  * Log a security event (failed login, 403, rate limit hit).
  */
 export async function logSecurityEvent(action, details, ipAddress) {
-  await writeAuditLog(null, action, 'security', null, details, ipAddress);
+  try {
+    await writeAuditLog(null, action, 'security', null, details, ipAddress);
+  } catch (err) {
+    logger.error({ err, action }, 'Failed to log security event');
+  }
 }
