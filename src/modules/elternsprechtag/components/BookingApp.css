@@ -55,14 +55,6 @@
   min-width: 0;
 }
 
-.welcomeWindow__kicker {
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(var(--brand-primary-dark-rgb), 0.90);
-}
-
 .welcomeWindow__headlineRow {
   display: inline-flex;
   align-items: center;
@@ -79,19 +71,6 @@
   min-width: 0;
   line-height: 1.15;
   white-space: normal;
-}
-
-.welcomeWindow__badge {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(var(--brand-primary-rgb), 0.10);
-  color: var(--brand-primary-darker);
-  border: 1px solid rgba(var(--brand-primary-rgb), 0.35);
-  font-weight: 700;
-  font-size: 0.8rem;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
 }
 
 .welcomeWindow__eventLine {
@@ -135,15 +114,6 @@
   color: rgba(0, 0, 0, 0.92);
   margin: 0;
   margin-top: 0.55rem;
-  max-width: 70ch;
-}
-
-.welcomeWindow__subtitle {
-  font-size: 0.98rem;
-  font-weight: 750;
-  color: rgba(17, 24, 39, 0.78);
-  margin: 0;
-  margin-top: 0.45rem;
   max-width: 70ch;
 }
 
@@ -226,133 +196,6 @@
     position: relative;
     top: 0.15rem;
   }
-}
-
-.app-header {
-  position: static; /* nicht fixiert, minimaler Header */
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  padding: 1.25rem 1.25rem 1.4rem;
-  text-align: left;
-  color: var(--brand-ink);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 16px;
-  margin-bottom: 1.25rem;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.app-header .header-inner {
-  max-width: 100%;
-  margin: 0;
-}
-
-.app-header .header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  position: relative;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.brand-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--brand-ink);
-  margin: 0;
-}
-
-.subpage-badge {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(var(--brand-primary-rgb), 0.10);
-  color: var(--brand-primary-darker);
-  border: 1px solid rgba(var(--brand-primary-rgb), 0.35);
-  font-weight: 700;
-  font-size: 0.8rem;
-  letter-spacing: 0.2px;
-}
-
-/* Logo entfernt */
-
-.app-header .header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem; /* mehr Abstand zwischen Elementen */
-}
-
-.app-header .header-date {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--brand-primary);
-  margin: 0;
-  padding: 0;
-}
-
-.app-header p {
-  font-size: 1.1rem;
-  color: var(--color-black);
-  margin: 0;
-  padding-top: 0.25rem;
-}
-
-.header-notice {
-  margin-top: 0.5rem;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  background: rgba(var(--brand-primary-rgb), 0.10);
-  border: 1px solid rgba(var(--brand-primary-rgb), 0.25);
-  color: var(--brand-ink);
-  font-weight: 600;
-  font-size: 0.95rem;
-  max-width: 680px;
-}
-
-.header-notice-error {
-  background: rgba(254, 226, 226, 0.90);
-  border-color: rgba(252, 165, 165, 0.90);
-  color: var(--color-error);
-}
-
-.admin-button {
-  position: static;
-  display: inline-block;
-  padding: 0.5rem 1.2rem;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
-  color: var(--color-white);
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  box-shadow: 
-    0 4px 12px rgba(var(--brand-primary-rgb), 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.admin-button:hover {
-  background: linear-gradient(135deg, var(--brand-primary-dark) 0%, var(--brand-primary-darker) 100%);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 
-    0 8px 20px rgba(var(--brand-primary-rgb), 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.admin-button:active {
-  transform: translateY(0) scale(0.98);
 }
 
 /* Lehrkraft Combobox */
@@ -575,30 +418,6 @@
   font-weight: 600;
 }
 
-/* Entfernte alte Filter-Gruppen */
-
-.filter-group label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--brand-ink);
-}
-
-/* Entfernte alte Input-Stile aus Header-Filtern */
-
-/* Entfernte alte Fokus-Stile */
-
-/* Entfernte alte Filter-Actions */
-
-.btn-small {
-  padding: 0.55rem 0.9rem;
-  font-size: 0.8rem;
-  border-radius: 6px;
-}
-
-/* Entfernt: .header-filters / .filter-actions (nicht mehr verwendet) */
-
 .booking-app .app-content {
   position: relative;
   z-index: 1;
@@ -722,48 +541,6 @@
   font-size: 0.85rem;
   color: var(--color-gray-500);
   font-weight: 500;
-}
-
-.slot-status {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  width: fit-content;
-}
-
-.available-status .status-badge {
-  background: var(--color-success-light);
-  color: var(--brand-ink);
-}
-
-.booked-status .status-badge {
-  background: var(--color-error-light);
-  color: var(--color-error);
-}
-
-.reserved-status .status-badge {
-  background: var(--color-warning-light); /* amber-100 */
-  color: var(--color-warning);      /* amber-800 */
-}
-
-.booking-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  margin-top: 0.25rem;
-}
-
-.booking-info small {
-  font-size: 0.8rem;
-  color: var(--color-gray-500);
 }
 
 /* Booking Form */
@@ -960,11 +737,6 @@
   line-height: 1.45;
 }
 
-.booking-notice-important {
-  text-decoration: underline;
-  font-weight: 700;
-}
-
 /* Responsive Design */
 @media (max-width: 1024px) {
   .booking-app .app-content {
@@ -989,32 +761,8 @@
     padding-bottom: 1.5rem;
   }
 
-  .app-header {
-    padding: 1.25rem 1.5rem;
-    position: static; /* Header nicht fixiert auf Tablet */
-    margin-bottom: 1.5rem; /* Abstand zum Content */
-  }
-
-  .app-header .header-content {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
   .booking-app .sidebar {
-    margin-bottom: 1.5rem; /* Abstand zur Slot-Liste */
-  }
-
-  .app-header .header-logo {
-    width: 200px;
-    max-width: 200px;
-    flex: 0 0 200px;
-  }
-
-  .admin-button {
-    position: static;
-    margin-top: 1rem;
-    width: 100%;
-    text-align: center;
+    margin-bottom: 1.5rem;
   }
 
   .slots-container {
@@ -1034,42 +782,6 @@
     padding-right: var(--page-gutter, 1.1rem);
     padding-left: var(--page-gutter, 1.1rem);
     padding-bottom: 1rem;
-  }
-
-  .app-header {
-    padding: 1rem;
-    position: static; /* Header nicht fixiert auf Mobile */
-    margin-bottom: 1.5rem; /* Abstand zum Content */
-  }
-
-  .app-header .header-content {
-    align-items: flex-start;
-  }
-
-  .brand {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .brand-title {
-    font-size: 1.15rem;
-  }
-
-  .subpage-badge {
-    font-size: 0.75rem;
-    padding: 0.22rem 0.5rem;
-  }
-
-  .app-header .header-title {
-    font-size: 1.25rem;
-  }
-
-  .app-header .header-date {
-    font-size: 1rem;
-  }
-
-  .app-header p {
-    font-size: 0.95rem;
   }
 
   .booking-app .app-content {
@@ -1139,10 +851,6 @@
     padding-bottom: 0.75rem;
   }
 
-  .app-header .header-title {
-    font-size: 1.1rem;
-  }
-
   .slot-card {
     padding: 0.875rem;
   }
@@ -1165,13 +873,6 @@
     padding-bottom: 0.5rem;
   }
 
-  .app-header {
-    padding: 0.75rem;
-  }
-
-  .app-header .header-title {
-    font-size: 1rem;
-  }
 }
 
 /* Loading and Error Messages */

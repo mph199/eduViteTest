@@ -40,98 +40,6 @@
     linear-gradient(135deg, var(--brand-surface-1) 0%, var(--color-white) 62%, var(--brand-surface-2) 100%);
 }
 
-.admin-header {
-  background: transparent;
-  color: var(--brand-ink);
-  padding: 1.25rem 0 0;
-}
-
-.admin-header-content {
-  max-width: 1280px;
-  margin: 0 auto 1rem;
-  padding: 0.9rem 1rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 12px;
-}
-
-/* Teacher dashboard header: keep actions on one row on wider screens */
-.admin-header-content--teacher {
-  flex-wrap: nowrap;
-}
-
-.admin-header-meta {
-  flex: 1 1 auto;
-  min-width: 260px;
-}
-
-.admin-header-content--teacher .header-actions {
-  margin-left: auto;
-}
-
-@media (max-width: 960px) {
-  .admin-header-content--teacher {
-    flex-wrap: wrap;
-  }
-}
-
-.admin-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.8rem;
-}
-
-.admin-user {
-  margin: 0;
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-.admin-user strong {
-  font-weight: 600;
-}
-
-.logout-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
-  padding: 0.65rem 1.5rem;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.logout-button:hover {
-  background: white;
-  color: var(--brand-primary);
-}
-
-/* Red variant (used for teacher logout) */
-.logout-button.logout-button-danger {
-  background: transparent;
-  border: 1.5px solid rgba(185, 28, 28, 0.35);
-  color: var(--color-error-dark);
-}
-
-.logout-button.logout-button-danger:hover {
-  background: rgba(185, 28, 28, 0.06);
-  border-color: var(--color-error-dark);
-  color: var(--color-error-dark);
-}
-
 /* Ensure edit buttons inside action rows use outlined style */
 .action-buttons .edit-button {
   background: transparent;
@@ -148,50 +56,6 @@
 }
 
 /* Table Styles */
-
-.admin-actions {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.admin-action-button {
-  background: white;
-  border: 2px solid var(--color-gray-200);
-  padding: 1.5rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  text-align: left;
-  flex: 1;
-  max-width: 400px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.admin-action-button:hover {
-  border-color: var(--brand-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--brand-primary-rgb), 0.15);
-}
-
-.action-icon {
-  font-size: 2.5rem;
-}
-
-.action-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--brand-primary);
-  margin-bottom: 0.25rem;
-}
-
-.action-desc {
-  font-size: 0.9rem;
-  color: var(--color-gray-500);
-}
 
 .admin-stats {
   display: flex;
@@ -212,18 +76,6 @@
   font-weight: 700;
   color: var(--brand-primary);
   margin-bottom: 0.5rem;
-}
-
-.admin-feedback-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.admin-feedback-title {
-  margin: 0;
 }
 
 .admin-feedback-actions {
@@ -355,11 +207,6 @@
   border-bottom: none;
 }
 
-.teacher-name {
-  font-weight: 600;
-  color: var(--brand-primary);
-}
-
 .cancel-button {
   background: transparent;
   color: var(--color-error-dark);
@@ -375,12 +222,6 @@
 .cancel-button:hover {
   background: rgba(185, 28, 28, 0.06);
   border-color: var(--color-error-dark);
-}
-
-.header-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
 }
 
 .back-button {
@@ -618,15 +459,6 @@
   margin: 0;
 }
 
-.teachers-table-container {
-  background: transparent;
-  border-radius: 12px;
-  border: 1px solid var(--color-gray-200);
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
 /* ── Desktop table / Mobile cards toggle ──────────────── */
 .teachers-table-desktop {
   display: block;
@@ -733,26 +565,6 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
-}
-
-.teacher-card__tag--dual {
-  background: var(--color-info-light);
-  color: var(--color-info);
-}
-
-.teacher-card__tag--vollzeit {
-  background: var(--color-success-light);
-  color: var(--brand-ink);
-}
-
-.teacher-card__tag--time {
-  background: var(--color-gray-100);
-  color: var(--color-gray-600);
-}
-
-.teacher-card__tag--room {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
 }
 
 .teacher-card__tag--admin {
@@ -1286,23 +1098,6 @@
   border-color: var(--color-info-dark);
 }
 
-.logout-button {
-  background: transparent;
-  color: var(--brand-primary-dark, #15803d);
-  border: 1.5px solid rgba(var(--brand-primary-rgb), 0.45);
-  padding: 0.5rem 0.9rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.logout-button:hover {
-  background: rgba(var(--brand-primary-rgb), 0.07);
-  border-color: var(--brand-primary);
-}
-
 @media (max-width: 1200px) {
   .admin-dashboard:not(.admin-dashboard--teacher) .bookings-table-container {
     overflow-x: auto;
@@ -1347,38 +1142,8 @@
     gap: 1rem;
   }
 
-  .header-actions {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .header-actions .back-button,
-  .header-actions .logout-button {
-    flex: 1;
-    min-width: 10.5rem;
-  }
-
-  .admin-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .logout-button {
-    align-self: stretch;
-  }
-
   .admin-main {
     padding: 1rem;
-  }
-
-  .admin-actions {
-    flex-direction: column;
-  }
-
-  .admin-action-button {
-    max-width: none;
-    width: 100%;
   }
 
   .stat-card {
@@ -1652,10 +1417,6 @@
   border-color: rgba(245, 158, 11, 0.35);
 }
 
-.admin-status-pill--info {
-  border-color: rgba(59, 130, 246, 0.30);
-}
-
 .admin-status-pill--neutral {
   border-color: rgba(107, 114, 128, 0.25);
 }
@@ -1787,15 +1548,10 @@
 }
 
 @media (max-width: 480px) {
-  .admin-header h1 { font-size: 1.35rem; }
-  .back-button, .logout-button, .btn-primary, .btn-secondary {
+  .back-button, .btn-primary, .btn-secondary {
     font-size: 0.9rem;
     padding: 0.55rem 0.9rem;
     min-height: 44px;
-  }
-
-  .admin-header-content {
-    padding: 0.75rem 0.75rem 0.85rem;
   }
 
   .teacher-form-container {
@@ -2115,7 +1871,7 @@
   }
 }
 
-/* keep old ev-card styles as fallback (unused but harmless) */
+/* Event detail grid styles */
 
 /* ── Detail panel (expanded) ── */.ev-detail-grid {
   display: grid;
@@ -2220,7 +1976,6 @@
 .text-muted { color: var(--color-gray-500); }
 .text-secondary { color: var(--color-gray-600); }
 .text-bold { font-weight: 800; color: var(--color-gray-900); }
-.text-center { text-align: center; }
 
 .empty-state {
   color: var(--color-gray-600);
