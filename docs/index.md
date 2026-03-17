@@ -30,6 +30,7 @@
 - [Docker Roadmap](planning/docker-roadmap.md) -- Docker-Infrastruktur, Phasen 1-4
 - [Slot-Vorschlaege UX](planning/slot-suggestions-ux.md) -- Terminanzeige: 5 Vorschlaege + "Weitere anzeigen"
 - [DSGVO Consent-Checkbox](planning/dsgvo-consent-checkbox.md) -- Datenverarbeitungs-Einwilligung fuer Buchungsmodule
+- [P0 Sprint-Plan](planning/p0-sprint-plan.md) -- 4 Sprints fuer Go-Live-Blocker (DSGVO P0)
 
 ## UX
 
