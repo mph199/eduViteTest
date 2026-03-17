@@ -39,7 +39,9 @@ const poolConfig = process.env.DATABASE_URL
     };
 
 if (process.env.DB_SSL === 'true') {
-  poolConfig.ssl = { rejectUnauthorized: false };
+  poolConfig.ssl = {
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+  };
 }
 
 const pool = new pg.Pool(poolConfig);

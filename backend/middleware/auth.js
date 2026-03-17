@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import logger from '../config/logger.js';
+import { logSecurityEvent } from './audit-log.js';
 
 // Admin User Credentials – aus Umgebungsvariablen laden
 const adminUsername = process.env.ADMIN_USERNAME;
@@ -102,6 +103,7 @@ export function requireAdmin(req, res, next) {
   const decoded = authenticate(req, res);
   if (!decoded) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
+    logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'admin', path: req.path }, req.ip);
     return res.status(403).json({ error: 'Forbidden', message: 'Admin access required' });
   }
   req.user = decoded;
@@ -115,6 +117,7 @@ export function requireSuperadmin(req, res, next) {
   const decoded = authenticate(req, res);
   if (!decoded) return;
   if (decoded.role !== 'superadmin') {
+    logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'superadmin', path: req.path }, req.ip);
     return res.status(403).json({ error: 'Forbidden', message: 'Superadmin access required' });
   }
   req.user = decoded;
@@ -128,6 +131,7 @@ export function requireSSW(req, res, next) {
   const decoded = authenticate(req, res);
   if (!decoded) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
+    logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'ssw', path: req.path }, req.ip);
     return res.status(403).json({ error: 'Forbidden', message: 'SSW access required' });
   }
   req.user = decoded;
@@ -142,6 +146,7 @@ export function requireModuleAccess(moduleKey) {
     const decoded = authenticate(req, res);
     if (!decoded) return;
     if (!hasModuleAccess(decoded, moduleKey)) {
+      logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: moduleKey, path: req.path }, req.ip);
       return res.status(403).json({ error: 'Forbidden', message: `${moduleKey} access required` });
     }
     req.user = decoded;

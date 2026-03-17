@@ -15,6 +15,6 @@ export default {
   /** Express-Routen registrieren */
   register(app, { rateLimiters }) {
     app.use('/api', rateLimiters.booking, publicRouter);
-    app.use('/api/teacher', teacherRouter);
+    app.use('/api/teacher', rateLimiters.admin, teacherRouter);
   },
 };

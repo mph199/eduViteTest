@@ -10,6 +10,7 @@ import { EmailBrandingTab } from './EmailBrandingTab';
 import { TextBrandingTab } from './TextBrandingTab';
 import { BackgroundImagesTab } from './BackgroundImagesTab';
 import { ModulesTab } from './ModulesTab';
+import { DataProtectionTab } from './DataProtectionTab';
 import '../SuperadminPage.css';
 
 const DEFAULT_EMAIL_BRANDING: EmailBranding = {
@@ -19,7 +20,7 @@ const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team',
 };
 
-type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts';
+type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts' | 'datenschutz';
 
 export function SuperadminPage() {
   const { user } = useAuth();
@@ -200,6 +201,9 @@ export function SuperadminPage() {
           <button type="button" className={`superadmin__tab ${activeTab === 'texts' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('texts')}>
             Sprechtagsmodul
           </button>
+          <button type="button" className={`superadmin__tab ${activeTab === 'datenschutz' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('datenschutz')}>
+            Datenschutz
+          </button>
         </div>
 
         {activeTab === 'modules' && (
@@ -255,6 +259,10 @@ export function SuperadminPage() {
             onSave={saveTextBranding}
             onReset={() => { setText({ ...liveTextBranding }); setTextMsg(''); }}
           />
+        )}
+
+        {activeTab === 'datenschutz' && (
+          <DataProtectionTab />
         )}
       </div>
     </div>

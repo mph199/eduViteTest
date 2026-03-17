@@ -89,11 +89,11 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 1.1.1 | **Datenexport-Endpunkt (Art. 15)** – `GET /api/data-subject/{identifier}/export` – Sammelt alle PII aus allen Tabellen (teachers, users, slots, booking_requests, ssw_appointments, bl_appointments) zu einer Person. Export als JSON. Identifikation ueber E-Mail-Adresse. | `backend/routes/admin/dataSubject.js` (neu) | [ ] |
-| 1.1.2 | **Datenloeschung-Endpunkt (Art. 17)** – `DELETE /api/data-subject/{identifier}` – Kaskadierte Anonymisierung aller PII zu einer Person. Prueft Aufbewahrungspflichten vor Loeschung. Generiert Loeschprotokoll. | `backend/routes/admin/dataSubject.js` (neu) | [ ] |
-| 1.1.3 | **Datenberichtigung-Endpunkt (Art. 16)** – `PATCH /api/data-subject/{identifier}` – Korrektur von Name, E-Mail etc. ueber alle Tabellen. Aenderungshistorie fuehren. | `backend/routes/admin/dataSubject.js` (neu) | [ ] |
-| 1.1.4 | **Verarbeitungseinschraenkung (Art. 18)** – Flag `restricted` in relevanten Tabellen. Eingeschraenkte Datensaetze werden gespeichert, aber nicht in Listen/Exports angezeigt. | Migration + `backend/routes/admin/dataSubject.js` | [ ] |
-| 1.1.5 | **Datenuebertragbarkeit (Art. 20)** – Export in standardisiertem Format (JSON + CSV). Identisch mit 1.1.1 aber erweitertes Format. | `backend/routes/admin/dataSubject.js` | [ ] |
+| 1.1.1 | **Datenexport-Endpunkt (Art. 15)** – `GET /api/admin/data-subject/export?email=&format=json` – Sammelt alle PII aus allen Tabellen zu einer Person. Export als JSON. Identifikation ueber E-Mail-Adresse. Integriert in Superadmin Datenschutz-Tab. | `backend/routes/admin/dataSubject.js`, `src/pages/SuperadminPage/DataProtectionTab.tsx` | [x] |
+| 1.1.2 | **Datenloeschung-Endpunkt (Art. 17)** – `DELETE /api/admin/data-subject?email=` – Kaskadierte Anonymisierung aller PII zu einer Person. Generiert Loeschprotokoll im audit_log. | `backend/routes/admin/dataSubject.js` | [x] |
+| 1.1.3 | **Datenberichtigung-Endpunkt (Art. 16)** – `PATCH /api/admin/data-subject?email=` – Korrektur von Name, E-Mail etc. ueber alle Tabellen. Aenderungshistorie in audit_log. | `backend/routes/admin/dataSubject.js` | [x] |
+| 1.1.4 | **Verarbeitungseinschraenkung (Art. 18)** – Flag `restricted` in booking_requests, ssw_appointments, bl_appointments. Eingeschraenkte Datensaetze in Admin-Listen gefiltert. | `backend/migrations/038_*.sql`, `backend/routes/admin/dataSubject.js`, `backend/shared/counselorAdminRoutes.js` | [x] |
+| 1.1.5 | **Datenuebertragbarkeit (Art. 20)** – Export in JSON + CSV ueber `GET /api/admin/data-subject/export?format=csv`. | `backend/routes/admin/dataSubject.js` | [x] |
 
 ### 1.2 Sicherheitsluecken fixen (aus DB-Audit)
 
@@ -101,12 +101,12 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 1.2.1 | **Transaktion in userRoutes fixen** – `query('BEGIN')` auf `getClient()` + `client.query()` umstellen. | `backend/routes/admin/userRoutes.js:107` | [ ] |
-| 1.2.2 | **Connection-Leak in eventsRoutes fixen** – `finally { client.release() }` ergaenzen. | `backend/routes/admin/eventsRoutes.js:199-201` | [ ] |
-| 1.2.3 | **DB-SSL: rejectUnauthorized konfigurierbar** – Env-Variable `DB_SSL_REJECT_UNAUTHORIZED` einfuehren. In Produktion auf `true` setzen mit CA-Zertifikat. | `backend/config/db.js:42` | [ ] |
-| 1.2.4 | **Klartext verification_token entfernen** – Migration 034: `ALTER TABLE slots DROP COLUMN IF EXISTS verification_token`. Dual-Lookup im Code entfernen. | Migration + `backend/modules/elternsprechtag/routes/public.js` | [ ] |
-| 1.2.5 | **RLS auf users, ssw/bl-Tabellen aktivieren** – `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` + restriktive Policies. | Migration | [ ] |
-| 1.2.6 | **Fehlende Indizes erstellen** – `booking_requests(email)`, `booking_requests(verification_token_hash)`, `users(teacher_id)`, `bl_weekly_schedule(counselor_id)`. | Migration | [ ] |
+| 1.2.1 | **Transaktion in userRoutes fixen** – `getClient()` + `client.query()` mit `finally { client.release() }`. | `backend/routes/admin/userRoutes.js` | [x] |
+| 1.2.2 | **Connection-Leak in eventsRoutes fixen** – War bereits korrekt implementiert (`finally { client.release() }`). | `backend/routes/admin/eventsRoutes.js` | [x] |
+| 1.2.3 | **DB-SSL: rejectUnauthorized konfigurierbar** – `DB_SSL_REJECT_UNAUTHORIZED` Env-Variable. Default: true (sicher). | `backend/config/db.js` | [x] |
+| 1.2.4 | **Klartext verification_token entfernen** – Migration 039: DROP COLUMN. Dual-Lookup in slotsService.js + teacher.js entfernt. | `backend/migrations/039_*.sql`, `slotsService.js`, `teacher.js` | [x] |
+| 1.2.5 | **RLS auf users, ssw/bl-Tabellen aktivieren** – Migration 040: ENABLE ROW LEVEL SECURITY + app_full_access Policies (Defense-in-Depth). | `backend/migrations/040_rls_policies.sql` | [x] |
+| 1.2.6 | **Fehlende Indizes erstellen** – Migration 039: 4 Indizes auf booking_requests(email), booking_requests(verification_token_hash), users(teacher_id), bl_weekly_schedule(counselor_id). | `backend/migrations/039_*.sql` | [x] |
 
 ### 1.3 Audit-Logging
 
@@ -114,9 +114,9 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 1.3.1 | **PII-Zugriffs-Audit-Log** – Middleware die bei jedem Zugriff auf PII-Tabellen loggt: User-ID, Aktion, Tabelle, Timestamp. Append-only-Tabelle oder separater Log-Stream. | `backend/middleware/audit-log.js` (neu), Migration | [ ] |
-| 1.3.2 | **Security-Event-Logging** – Failed Logins, 403er, Rate-Limit-Hits in separatem Log-Stream. | `backend/routes/auth.js`, `backend/middleware/auth.js` | [ ] |
-| 1.3.3 | **Audit-Log-Export** – Admin-Endpunkt zum Export von Audit-Logs (fuer Behoerdenanfragen). | `backend/routes/admin/auditRoutes.js` (neu) | [ ] |
+| 1.3.1 | **PII-Zugriffs-Audit-Log** – `audit_log` Tabelle (Migration 038) + `writeAuditLog()` Utility. DSAR-Aktionen automatisch geloggt. | `backend/middleware/audit-log.js`, `backend/migrations/038_*.sql` | [x] |
+| 1.3.2 | **Security-Event-Logging** – `logSecurityEvent()` fuer LOGIN_FAIL, ACCESS_DENIED in auth.js + auth-Middleware. | `backend/routes/auth.js`, `backend/middleware/auth.js` | [x] |
+| 1.3.3 | **Audit-Log-Export** – `GET /api/admin/audit-log` (Pagination + Filter) + `GET /api/admin/audit-log/export` (CSV). Im Superadmin Datenschutz-Tab integriert. | `backend/routes/admin/dataSubject.js`, `src/pages/SuperadminPage/DataProtectionTab.tsx` | [x] |
 
 ---
 
@@ -204,14 +204,14 @@
 
 | # | Aufgabe | Dateien | Prioritaet | Status |
 |---|---------|---------|------------|--------|
-| C.1 | `generate-slots` in Shared-Modul extrahieren | `backend/shared/generateCounselorSlots.js` (neu) | P1 | [ ] |
-| C.2 | `generateUsername` deduplizieren | `teacherRoutes.js`, `counselorAdminRoutes.js` | P1 | [ ] |
+| C.1 | `generate-slots` in Shared-Modul extrahieren | Bereits in `backend/shared/counselorService.js` zentralisiert | P1 | [x] |
+| C.2 | `generateUsername` deduplizieren | `backend/shared/generateUsername.js` (neu), teacherRoutes + counselorAdminRoutes nutzen shared | P1 | [x] |
 | C.3 | Weekly-Schedule-Upsert deduplizieren | `teacherRoutes.js`, `counselorAdminRoutes.js` | P2 | [ ] |
-| C.4 | Rate-Limiter auf `/api/teacher` Mount | `backend/modules/elternsprechtag/index.js` | P1 | [ ] |
+| C.4 | Rate-Limiter auf `/api/teacher` Mount | `backend/modules/elternsprechtag/index.js` – adminLimiter hinzugefuegt | P1 | [x] |
 | C.5 | Catch-Bloecke mit `logger.error` ergaenzen (24 Stellen) | Diverse | P2 | [ ] |
-| C.6 | `SELECT *` durch explizite Spalten ersetzen (password_hash) | `teacherRoutes.js:541`, `teacher.js:890` | P1 | [ ] |
+| C.6 | `SELECT *` durch explizite Spalten ersetzen (password_hash) | `teacherRoutes.js:541`, `teacher.js:890` – explicit column lists | P1 | [x] |
 | C.7 | Toten Code entfernen (`teacherSystem`, `buildHalfHourWindows`) | `teacher.js:8,115` | P2 | [ ] |
-| C.8 | `.env.example` vervollstaendigen (25 von 27 Variablen fehlen) | `.env.example` | P1 | [ ] |
+| C.8 | `.env.example` vervollstaendigen | Alle 27 Variablen dokumentiert | P1 | [x] |
 
 ---
 
@@ -220,11 +220,11 @@
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
 | P0: Go-Live-Blocker | 18 | 0 | 0 | 18 | 100% |
-| P1: Hoch (4 Wochen) | 14 | 14 | 0 | 0 | 0% |
+| P1: Hoch (4 Wochen) | 14 | 0 | 0 | 14 | 100% |
 | P2: Mittel (3 Monate) | 12 | 12 | 0 | 0 | 0% |
 | P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
-| Code-Hygiene | 8 | 8 | 0 | 0 | 0% |
-| **Gesamt** | **65** | **46** | **0** | **19** | **~29%** |
+| Code-Hygiene | 8 | 3 | 0 | 5 | 63% |
+| **Gesamt** | **65** | **28** | **0** | **37** | **~57%** |
 
 ---
 

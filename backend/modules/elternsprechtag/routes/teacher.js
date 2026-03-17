@@ -183,7 +183,6 @@ async function assignRequestToSlot(current, teacherId, preferredTime = null, tea
     trainee_name: current.trainee_name,
     representative_name: current.representative_name,
     verified_at: current.verified_at,
-    verification_token: null,
     verification_token_hash: null,
     verification_sent_at: null,
     updated_at: now,
@@ -440,7 +439,6 @@ async function assignExtraSlot(requestRow, teacherId, preferredTime) {
     trainee_name: requestRow.trainee_name,
     representative_name: requestRow.representative_name,
     verified_at: requestRow.verified_at,
-    verification_token: null,
     verification_token_hash: null,
     verification_sent_at: null,
     updated_at: now,
@@ -757,7 +755,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
          parent_name = NULL, company_name = NULL, student_name = NULL,
          trainee_name = NULL, representative_name = NULL, class_name = NULL,
          email = NULL, message = NULL,
-         verification_token = NULL, verification_token_hash = NULL,
+         verification_token_hash = NULL,
          verification_sent_at = NULL, verified_at = NULL,
          confirmation_sent_at = NULL,
          updated_at = $1
@@ -887,7 +885,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
     // Find user by username from token
     const username = req.user.username;
     const { rows: users } = await query(
-      'SELECT * FROM users WHERE username = $1 LIMIT 1',
+      'SELECT id, username, display_name, email, role, teacher_id, created_at FROM users WHERE username = $1 LIMIT 1',
       [username]
     );
     if (!users || users.length === 0) {

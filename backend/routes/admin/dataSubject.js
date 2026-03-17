@@ -1,0 +1,514 @@
+import express from 'express';
+import { requireSuperadmin } from '../../middleware/auth.js';
+import { query } from '../../config/db.js';
+import logger from '../../config/logger.js';
+
+const router = express.Router();
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Log an action to the audit_log table (fire-and-forget).
+ */
+async function auditLog(userId, action, tableName, recordId, details, ipAddress) {
+  try {
+    await query(
+      `INSERT INTO audit_log (user_id, action, table_name, record_id, details, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, action, tableName, recordId, details ? JSON.stringify(details) : '{}', ipAddress]
+    );
+  } catch (err) {
+    logger.error({ err, action, tableName }, 'Failed to write audit log');
+  }
+}
+
+/**
+ * Collect all PII for a given email across all relevant tables.
+ */
+async function collectPersonData(email) {
+  const data = {};
+
+  // 1. Teachers
+  const teachers = await query(
+    `SELECT id, name, email, subject, room, created_at, updated_at
+     FROM teachers WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (teachers.rows.length > 0) data.teachers = teachers.rows;
+
+  // 2. Users
+  const users = await query(
+    `SELECT id, username, display_name, email, role, teacher_id, created_at
+     FROM users WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (users.rows.length > 0) data.users = users.rows;
+
+  // 3. Booking Requests (Elternsprechtag)
+  const bookingRequests = await query(
+    `SELECT id, event_id, teacher_id, parent_name, student_name, company_name,
+            trainee_name, representative_name, email, message, visitor_type,
+            class_name, status, restricted, created_at, updated_at
+     FROM booking_requests WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (bookingRequests.rows.length > 0) data.booking_requests = bookingRequests.rows;
+
+  // 4. Slots (booked by this email)
+  const slots = await query(
+    `SELECT id, teacher_id, event_id, start_time, end_time, booked, status,
+            visitor_type, parent_name, student_name, company_name, trainee_name,
+            representative_name, class_name, email, message, verified_at, created_at, updated_at
+     FROM slots WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (slots.rows.length > 0) data.slots = slots.rows;
+
+  // 5. SSW Appointments
+  const sswAppointments = await query(
+    `SELECT id, counselor_id, student_name, student_class, email, phone,
+            appointment_date, start_time, end_time, status, restricted, created_at, updated_at
+     FROM ssw_appointments WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (sswAppointments.rows.length > 0) data.ssw_appointments = sswAppointments.rows;
+
+  // 6. BL Appointments
+  const blAppointments = await query(
+    `SELECT id, counselor_id, student_name, student_class, email, phone,
+            appointment_date, start_time, end_time, status, restricted, created_at, updated_at
+     FROM bl_appointments WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (blAppointments.rows.length > 0) data.bl_appointments = blAppointments.rows;
+
+  // 7. Consent Receipts
+  const consentReceipts = await query(
+    `SELECT id, module, appointment_id, consent_version, consent_purpose,
+            action, created_at
+     FROM consent_receipts WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  if (consentReceipts.rows.length > 0) data.consent_receipts = consentReceipts.rows;
+
+  return data;
+}
+
+/**
+ * Convert data object to CSV string.
+ */
+function dataToCsv(data) {
+  const lines = [];
+
+  for (const [tableName, rows] of Object.entries(data)) {
+    if (!Array.isArray(rows) || rows.length === 0) continue;
+    lines.push(`--- ${tableName} ---`);
+    const headers = Object.keys(rows[0]);
+    lines.push(headers.join(';'));
+    for (const row of rows) {
+      lines.push(headers.map(h => {
+        const val = row[h];
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
+      }).join(';'));
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Routes – all require superadmin
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/admin/data-subject/search?email=
+ * Art. 15 DSGVO: Datenauskunft – PII-Suche ueber alle Tabellen.
+ */
+router.get('/data-subject/search', requireSuperadmin, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
+    }
+
+    const data = await collectPersonData(email.trim());
+    const totalRecords = Object.values(data).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+
+    await auditLog(req.user?.id, 'READ', 'data_subject', null, { email: email.trim(), tables: Object.keys(data) }, req.ip);
+
+    res.json({ email: email.trim(), total_records: totalRecords, data });
+  } catch (err) {
+    logger.error({ err }, 'data-subject search failed');
+    res.status(500).json({ error: 'Suche fehlgeschlagen' });
+  }
+});
+
+/**
+ * GET /api/admin/data-subject/export?email=&format=json|csv
+ * Art. 15 + Art. 20 DSGVO: Datenexport / Datenuebertragbarkeit.
+ */
+router.get('/data-subject/export', requireSuperadmin, async (req, res) => {
+  try {
+    const { email, format = 'json' } = req.query;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
+    }
+
+    const data = await collectPersonData(email.trim());
+
+    await auditLog(req.user?.id, 'EXPORT', 'data_subject', null, { email: email.trim(), format }, req.ip);
+
+    if (format === 'csv') {
+      const csv = dataToCsv(data);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="datenauskunft-${Date.now()}.csv"`);
+      return res.send(csv);
+    }
+
+    // Default: JSON
+    const exportData = {
+      export_date: new Date().toISOString(),
+      data_subject: email.trim(),
+      data,
+    };
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="datenauskunft-${Date.now()}.json"`);
+    res.json(exportData);
+  } catch (err) {
+    logger.error({ err }, 'data-subject export failed');
+    res.status(500).json({ error: 'Export fehlgeschlagen' });
+  }
+});
+
+/**
+ * DELETE /api/admin/data-subject?email=
+ * Art. 17 DSGVO: Recht auf Loeschung (Anonymisierung).
+ * Prueft Aufbewahrungsfristen und erstellt Loeschprotokoll.
+ */
+router.delete('/data-subject', requireSuperadmin, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
+    }
+
+    const trimmedEmail = email.trim();
+    const protocol = { email: trimmedEmail, timestamp: new Date().toISOString(), actions: [] };
+
+    // 1. Anonymize booking_requests
+    const brResult = await query(
+      `UPDATE booking_requests
+       SET parent_name = NULL, student_name = NULL, company_name = NULL,
+           trainee_name = NULL, representative_name = NULL, email = NULL,
+           message = NULL, updated_at = NOW()
+       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+       RETURNING id`,
+      [trimmedEmail]
+    );
+    if (brResult.rows.length > 0) {
+      protocol.actions.push({ table: 'booking_requests', anonymized: brResult.rows.length, ids: brResult.rows.map(r => r.id) });
+    }
+
+    // 2. Anonymize slots
+    const slotsResult = await query(
+      `UPDATE slots
+       SET parent_name = NULL, student_name = NULL, company_name = NULL,
+           trainee_name = NULL, representative_name = NULL, class_name = NULL,
+           email = NULL, message = NULL, updated_at = NOW()
+       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+       RETURNING id`,
+      [trimmedEmail]
+    );
+    if (slotsResult.rows.length > 0) {
+      protocol.actions.push({ table: 'slots', anonymized: slotsResult.rows.length, ids: slotsResult.rows.map(r => r.id) });
+    }
+
+    // 3. Anonymize SSW appointments
+    const sswResult = await query(
+      `UPDATE ssw_appointments
+       SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
+       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+       RETURNING id`,
+      [trimmedEmail]
+    );
+    if (sswResult.rows.length > 0) {
+      protocol.actions.push({ table: 'ssw_appointments', anonymized: sswResult.rows.length, ids: sswResult.rows.map(r => r.id) });
+    }
+
+    // 4. Anonymize BL appointments
+    const blResult = await query(
+      `UPDATE bl_appointments
+       SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
+       WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
+       RETURNING id`,
+      [trimmedEmail]
+    );
+    if (blResult.rows.length > 0) {
+      protocol.actions.push({ table: 'bl_appointments', anonymized: blResult.rows.length, ids: blResult.rows.map(r => r.id) });
+    }
+
+    const totalAnonymized = protocol.actions.reduce((sum, a) => sum + a.anonymized, 0);
+
+    await auditLog(req.user?.id, 'DELETE', 'data_subject', null, protocol, req.ip);
+
+    res.json({
+      message: `${totalAnonymized} Datensaetze anonymisiert`,
+      protocol,
+    });
+  } catch (err) {
+    logger.error({ err }, 'data-subject deletion failed');
+    res.status(500).json({ error: 'Loeschung fehlgeschlagen' });
+  }
+});
+
+/**
+ * PATCH /api/admin/data-subject?email=
+ * Art. 16 DSGVO: Recht auf Berichtigung.
+ * Body: { corrections: { field: newValue, ... } }
+ */
+router.patch('/data-subject', requireSuperadmin, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
+    }
+
+    const { corrections } = req.body;
+    if (!corrections || typeof corrections !== 'object' || Object.keys(corrections).length === 0) {
+      return res.status(400).json({ error: 'Korrekturen erforderlich (corrections-Objekt)' });
+    }
+
+    const trimmedEmail = email.trim();
+    const allowedFields = {
+      booking_requests: ['parent_name', 'student_name', 'company_name', 'trainee_name', 'representative_name', 'email', 'class_name'],
+      slots: ['parent_name', 'student_name', 'company_name', 'trainee_name', 'representative_name', 'email', 'class_name'],
+      ssw_appointments: ['student_name', 'student_class', 'email', 'phone'],
+      bl_appointments: ['student_name', 'student_class', 'email', 'phone'],
+      teachers: ['name', 'email', 'subject', 'room'],
+    };
+
+    const results = [];
+
+    for (const [table, fields] of Object.entries(allowedFields)) {
+      const updates = {};
+      for (const field of fields) {
+        if (corrections[field] !== undefined) {
+          updates[field] = corrections[field];
+        }
+      }
+      if (Object.keys(updates).length === 0) continue;
+
+      const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`);
+      const values = Object.values(updates);
+      const emailParamIdx = values.length + 1;
+
+      // Add updated_at if table has it
+      const hasUpdatedAt = table !== 'teachers' || true; // all these tables have updated_at
+      if (hasUpdatedAt) {
+        setClauses.push(`updated_at = NOW()`);
+      }
+
+      const result = await query(
+        `UPDATE ${table} SET ${setClauses.join(', ')} WHERE LOWER(email) = LOWER($${emailParamIdx}) AND email IS NOT NULL RETURNING id`,
+        [...values, trimmedEmail]
+      );
+
+      if (result.rows.length > 0) {
+        results.push({ table, corrected: result.rows.length, fields: Object.keys(updates) });
+      }
+    }
+
+    await auditLog(req.user?.id, 'WRITE', 'data_subject', null, {
+      email: trimmedEmail,
+      corrections,
+      results,
+    }, req.ip);
+
+    const totalCorrected = results.reduce((sum, r) => sum + r.corrected, 0);
+    res.json({
+      message: `${totalCorrected} Datensaetze berichtigt`,
+      results,
+    });
+  } catch (err) {
+    logger.error({ err }, 'data-subject correction failed');
+    res.status(500).json({ error: 'Berichtigung fehlgeschlagen' });
+  }
+});
+
+/**
+ * POST /api/admin/data-subject/restrict?email=
+ * Art. 18 DSGVO: Verarbeitungseinschraenkung.
+ * Body: { restricted: true|false }
+ */
+router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ error: 'Gueltige E-Mail-Adresse erforderlich' });
+    }
+
+    const restricted = req.body.restricted !== false; // default true
+    const trimmedEmail = email.trim();
+    const results = [];
+
+    // Set restricted flag on all tables that have it
+    for (const table of ['booking_requests', 'ssw_appointments', 'bl_appointments']) {
+      const result = await query(
+        `UPDATE ${table} SET restricted = $1, updated_at = NOW() WHERE LOWER(email) = LOWER($2) AND email IS NOT NULL RETURNING id`,
+        [restricted, trimmedEmail]
+      );
+      if (result.rows.length > 0) {
+        results.push({ table, affected: result.rows.length });
+      }
+    }
+
+    await auditLog(req.user?.id, 'RESTRICT', 'data_subject', null, {
+      email: trimmedEmail,
+      restricted,
+      results,
+    }, req.ip);
+
+    const totalAffected = results.reduce((sum, r) => sum + r.affected, 0);
+    res.json({
+      message: `Verarbeitungseinschraenkung ${restricted ? 'aktiviert' : 'aufgehoben'} fuer ${totalAffected} Datensaetze`,
+      restricted,
+      results,
+    });
+  } catch (err) {
+    logger.error({ err }, 'data-subject restriction failed');
+    res.status(500).json({ error: 'Einschraenkung fehlgeschlagen' });
+  }
+});
+
+/**
+ * GET /api/admin/audit-log?from=&to=&action=&table=&page=&limit=
+ * Audit-Log-Abfrage mit Filterung und Pagination.
+ */
+router.get('/audit-log', requireSuperadmin, async (req, res) => {
+  try {
+    const { from, to, action, table, page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    const conditions = [];
+    const params = [];
+    let paramIdx = 1;
+
+    if (from) {
+      conditions.push(`a.created_at >= $${paramIdx++}`);
+      params.push(from);
+    }
+    if (to) {
+      conditions.push(`a.created_at <= $${paramIdx++}`);
+      params.push(to);
+    }
+    if (action) {
+      conditions.push(`a.action = $${paramIdx++}`);
+      params.push(action);
+    }
+    if (table) {
+      conditions.push(`a.table_name = $${paramIdx++}`);
+      params.push(table);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await query(
+      `SELECT COUNT(*) AS total FROM audit_log a ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+    const dataResult = await query(
+      `SELECT a.id, a.user_id, u.display_name AS user_name, a.action, a.table_name,
+              a.record_id, a.details, a.ip_address, a.created_at
+       FROM audit_log a
+       LEFT JOIN users u ON a.user_id = u.id
+       ${whereClause}
+       ORDER BY a.created_at DESC
+       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      [...params, limitNum, offset]
+    );
+
+    res.json({
+      entries: Array.isArray(dataResult.rows) ? dataResult.rows : [],
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, 'audit-log query failed');
+    res.status(500).json({ error: 'Audit-Log-Abfrage fehlgeschlagen' });
+  }
+});
+
+/**
+ * GET /api/admin/audit-log/export?from=&to=&format=csv
+ * Audit-Log-Export fuer Behoerdenanfragen.
+ */
+router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
+  try {
+    const { from, to, format = 'csv' } = req.query;
+
+    const conditions = [];
+    const params = [];
+    let paramIdx = 1;
+
+    if (from) {
+      conditions.push(`a.created_at >= $${paramIdx++}`);
+      params.push(from);
+    }
+    if (to) {
+      conditions.push(`a.created_at <= $${paramIdx++}`);
+      params.push(to);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await query(
+      `SELECT a.id, a.user_id, u.display_name AS user_name, a.action, a.table_name,
+              a.record_id, a.details, a.ip_address, a.created_at
+       FROM audit_log a
+       LEFT JOIN users u ON a.user_id = u.id
+       ${whereClause}
+       ORDER BY a.created_at DESC`,
+      params
+    );
+
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+
+    await auditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length }, req.ip);
+
+    if (format === 'csv') {
+      const headers = ['id', 'user_id', 'user_name', 'action', 'table_name', 'record_id', 'details', 'ip_address', 'created_at'];
+      const csvLines = [headers.join(';')];
+      for (const row of rows) {
+        csvLines.push(headers.map(h => {
+          const val = row[h];
+          if (val === null || val === undefined) return '';
+          const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+          return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
+        }).join(';'));
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-log-${Date.now()}.csv"`);
+      return res.send(csvLines.join('\n'));
+    }
+
+    res.json({ entries: rows });
+  } catch (err) {
+    logger.error({ err }, 'audit-log export failed');
+    res.status(500).json({ error: 'Audit-Log-Export fehlgeschlagen' });
+  }
+});
+
+export default router;

@@ -6,6 +6,7 @@ import teacherRoutes from './teacherRoutes.js';
 import settingsRoutes from './settingsRoutes.js';
 import slotsRoutes from './slotsRoutes.js';
 import eventsRoutes from './eventsRoutes.js';
+import dataSubjectRoutes from './dataSubject.js';
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use(teacherRoutes);
 router.use(settingsRoutes);
 router.use(slotsRoutes);
 router.use(eventsRoutes);
+router.use(dataSubjectRoutes);
 
 export default router;

@@ -280,7 +280,7 @@ export function createCounselorAdminRoutes(config) {
         `SELECT a.*, t.name AS ${topicJoinAlias}
          FROM ${appointmentsTable} a
          LEFT JOIN ${topicTable} t ON t.id = a.${topicForeignKey}
-         WHERE a.counselor_id = $1 AND a.date >= $2 AND a.date <= $3
+         WHERE a.counselor_id = $1 AND a.date >= $2 AND a.date <= $3 AND a.restricted IS NOT TRUE
          ORDER BY a.date, a.time`,
         [counselorId, dateFrom, dateUntil]
       );
@@ -475,21 +475,7 @@ export function createCounselorAdminRoutes(config) {
   return router;
 }
 
-/**
- * Helper: generate a username from counselor name (shared umlaut logic).
- */
-export function generateUsername(counselor, fallbackPrefix) {
-  const autoFirst = String(counselor.first_name || '').toLowerCase()
-    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-    .replace(/[^a-z0-9]+/g, '');
-  const autoLast = String(counselor.last_name || '').toLowerCase()
-    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-    .replace(/[^a-z0-9]+/g, '');
-  return (autoFirst && autoLast
-    ? `${autoFirst}.${autoLast}`
-    : autoFirst || autoLast || `${fallbackPrefix}${counselor.id}`
-  ).slice(0, 30);
-}
+export { generateUsername } from './generateUsername.js';
 
 /**
  * Helper: create or upsert a user account for a counselor.
@@ -500,7 +486,7 @@ export async function createCounselorUser(counselor, req, config) {
 
   const uname = (reqUsername && typeof reqUsername === 'string' && reqUsername.trim())
     ? reqUsername.trim()
-    : generateUsername(counselor, tablePrefix);
+    : generateUsername(counselor.first_name, counselor.last_name, counselor.id, tablePrefix);
 
   const tempPassword = (reqPassword && typeof reqPassword === 'string' && reqPassword.trim())
     ? reqPassword.trim()

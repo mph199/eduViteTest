@@ -615,6 +615,59 @@ const api = {
       });
     },
   },
+
+  // Data Subject / DSGVO (Art. 15-21)
+  dataSubject: {
+    async search(email: string) {
+      return requestJSON(`/admin/data-subject/search?email=${encodeURIComponent(email)}`);
+    },
+    async exportData(email: string, format: 'json' | 'csv' = 'json') {
+      const response = await fetch(
+        `${API_BASE}/admin/data-subject/export?email=${encodeURIComponent(email)}&format=${format}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Export fehlgeschlagen');
+      return response;
+    },
+    async deleteData(email: string) {
+      return requestJSON(`/admin/data-subject?email=${encodeURIComponent(email)}`, {
+        method: 'DELETE',
+      });
+    },
+    async correctData(email: string, corrections: Record<string, string>) {
+      return requestJSON(`/admin/data-subject?email=${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ corrections }),
+      });
+    },
+    async restrict(email: string, restricted: boolean) {
+      return requestJSON(`/admin/data-subject/restrict?email=${encodeURIComponent(email)}`, {
+        method: 'POST',
+        body: JSON.stringify({ restricted }),
+      });
+    },
+    async getAuditLog(params: { from?: string; to?: string; action?: string; table?: string; page?: number; limit?: number } = {}) {
+      const searchParams = new URLSearchParams();
+      if (params.from) searchParams.set('from', params.from);
+      if (params.to) searchParams.set('to', params.to);
+      if (params.action) searchParams.set('action', params.action);
+      if (params.table) searchParams.set('table', params.table);
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.limit) searchParams.set('limit', String(params.limit));
+      return requestJSON(`/admin/audit-log?${searchParams.toString()}`);
+    },
+    async exportAuditLog(from?: string, to?: string) {
+      const searchParams = new URLSearchParams({ format: 'csv' });
+      if (from) searchParams.set('from', from);
+      if (to) searchParams.set('to', to);
+      const response = await fetch(
+        `${API_BASE}/admin/audit-log/export?${searchParams.toString()}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Audit-Log-Export fehlgeschlagen');
+      return response;
+    },
+  },
 };
 
 export { API_BASE };

@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/db.js';
 import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../middleware/auth.js';
+import { logSecurityEvent } from '../middleware/audit-log.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -57,6 +58,7 @@ router.post('/login', async (req, res) => {
     );
 
     if (!users || users.length === 0) {
+      logSecurityEvent('LOGIN_FAIL', { username, reason: 'user_not_found' }, req.ip);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid credentials'
@@ -67,6 +69,7 @@ router.post('/login', async (req, res) => {
 
     const passwordOk = await bcrypt.compare(password, dbUser.password_hash || '');
     if (!passwordOk) {
+      logSecurityEvent('LOGIN_FAIL', { username, reason: 'wrong_password' }, req.ip);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid credentials'

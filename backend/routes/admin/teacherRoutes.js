@@ -8,6 +8,7 @@ import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation
 import { generateTimeSlotsForTeacher } from '../../utils/timeWindows.js';
 import { resolveActiveEvent } from '../../utils/resolveActiveEvent.js';
 import logger from '../../config/logger.js';
+import { generateUsername } from '../../shared/generateUsername.js';
 
 const router = express.Router();
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
@@ -76,9 +77,7 @@ function mapColumns(headers) {
 // ── Helper: create user account for teacher ─────────────────────────────
 
 function generateTeacherUsername(firstName, lastName, teacherId) {
-  const autoFirst = String(firstName || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
-  const autoLast  = String(lastName  || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '');
-  return (autoFirst && autoLast ? `${autoFirst}.${autoLast}` : autoFirst || autoLast || `teacher${teacherId}`).slice(0, 30);
+  return generateUsername(firstName, lastName, teacherId, 'teacher');
 }
 
 // ── Helper: insert slots for a teacher ──────────────────────────────────
@@ -538,7 +537,7 @@ router.put('/teachers/:id/reset-login', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { rows: users } = await query('SELECT * FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
+    const { rows: users } = await query('SELECT id, username, display_name, email, role, teacher_id, created_at FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
     if (!users || users.length === 0) {
       return res.status(404).json({ error: 'Kein Benutzer für diese Lehrkraft gefunden' });
     }

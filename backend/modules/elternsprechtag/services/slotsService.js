@@ -52,9 +52,6 @@ export async function reserveBooking({
     class_name: className,
     email: email,
     message: message || null,
-    // Best practice: store only a hash of the verification token.
-    // Keep legacy verification_token for backwards compatibility (older bookings).
-    verification_token: null,
     verification_token_hash: verificationTokenHash,
     verification_sent_at: nowIso,
     verified_at: null,
@@ -110,9 +107,9 @@ export async function verifyBookingToken(token) {
   const { rows } = await query(
     `SELECT * FROM slots
      WHERE booked = true
-       AND (verification_token_hash = $1 OR verification_token = $2)
+       AND verification_token_hash = $1
      LIMIT 1`,
-    [tokenHash, token]
+    [tokenHash]
   );
   const slot = rows[0] || null;
 
@@ -131,7 +128,7 @@ export async function verifyBookingToken(token) {
     // Also invalidate any remaining token fields.
     try {
       await query(
-        'UPDATE slots SET verification_token = NULL, verification_token_hash = NULL, updated_at = $1 WHERE id = $2',
+        'UPDATE slots SET verification_token_hash = NULL, updated_at = $1 WHERE id = $2',
         [new Date().toISOString(), slot.id]
       );
     } catch {}
@@ -154,7 +151,7 @@ export async function verifyBookingToken(token) {
   const now = new Date().toISOString();
   await query(
     `UPDATE slots
-     SET verified_at = $1, verification_token = NULL, verification_token_hash = NULL, updated_at = $1
+     SET verified_at = $1, verification_token_hash = NULL, updated_at = $1
      WHERE id = $2`,
     [now, slot.id]
   );
@@ -198,7 +195,7 @@ export async function cancelBookingAdmin(slotId) {
        parent_name = NULL, company_name = NULL, student_name = NULL,
        trainee_name = NULL, representative_name = NULL, class_name = NULL,
        email = NULL, message = NULL,
-       verification_token = NULL, verification_token_hash = NULL,
+       verification_token_hash = NULL,
        verification_sent_at = NULL, verified_at = NULL,
        confirmation_sent_at = NULL,
        updated_at = $1

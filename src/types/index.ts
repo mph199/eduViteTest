@@ -225,3 +225,64 @@ export interface EmailBranding {
   primary_color: string;
   footer_text: string;
 }
+
+// ---------------------------------------------------------------------------
+// Data Subject / DSGVO (Art. 15-21)
+// ---------------------------------------------------------------------------
+
+export interface DataSubjectSearchResult {
+  email: string;
+  total_records: number;
+  data: Record<string, Record<string, unknown>[]>;
+}
+
+export interface DataSubjectDeletionResult {
+  message: string;
+  protocol: {
+    email: string;
+    timestamp: string;
+    actions: { table: string; anonymized: number; ids: number[] }[];
+  };
+}
+
+export interface DataSubjectCorrectionResult {
+  message: string;
+  results: { table: string; corrected: number; fields: string[] }[];
+}
+
+export interface DataSubjectRestrictionResult {
+  message: string;
+  restricted: boolean;
+  results: { table: string; affected: number }[];
+}
+
+export interface AuditLogEntry {
+  id: number;
+  user_id: number | null;
+  user_name: string | null;
+  action: string;
+  table_name: string | null;
+  record_id: number | null;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface AuditLogResponse {
+  entries: AuditLogEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface AuditLogFilter {
+  from?: string;
+  to?: string;
+  action?: string;
+  table?: string;
+  page?: number;
+  limit?: number;
+}
