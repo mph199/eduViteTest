@@ -53,7 +53,11 @@ router.put('/events/:id', requireAdmin, async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
   try {
     const patch = { ...(req.body || {}), updated_at: new Date().toISOString() };
-    const ALLOWED = [...EVENT_UPDATABLE_FIELDS, 'updated_at'];
+    // Set closed_at when transitioning to 'closed'
+    if (patch.status === 'closed') {
+      patch.closed_at = new Date().toISOString();
+    }
+    const ALLOWED = [...EVENT_UPDATABLE_FIELDS, 'updated_at', 'closed_at'];
     const setCols = [];
     const setParams = [];
     let pi = 1;
@@ -69,7 +73,28 @@ router.put('/events/:id', requireAdmin, async (req, res) => {
       setParams
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Event not found' });
-    res.json({ success: true, event: rows[0] });
+
+    const event = rows[0];
+
+    // Auto-anonymize booking_requests when event is closed
+    if (event.status === 'closed' && patch.status === 'closed') {
+      try {
+        const { rows: anonRows } = await query(
+          'SELECT anonymize_booking_requests($1) AS affected',
+          [id]
+        );
+        const anonymized = anonRows[0]?.affected || 0;
+        if (anonymized > 0) {
+          logger.info({ eventId: id, anonymized }, 'Auto-anonymized booking requests on event close');
+        }
+        return res.json({ success: true, event, anonymizedBookingRequests: anonymized });
+      } catch (anonErr) {
+        // Non-fatal: event update succeeded, anonymization can be retried
+        logger.warn({ err: anonErr, eventId: id }, 'Auto-anonymization failed, event still closed');
+      }
+    }
+
+    res.json({ success: true, event });
   } catch (error) {
     logger.error({ err: error }, 'Error updating event');
     res.status(500).json({ error: 'Failed to update event' });

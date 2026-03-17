@@ -12,6 +12,7 @@ import superadminRoutes from './routes/superadmin.js';
 import { loadModules } from './moduleLoader.js';
 import { initDatabase } from './migrate.js';
 import logger from './config/logger.js';
+import { startRetentionSchedule } from './jobs/retention-cleanup.js';
 
 dotenv.config();
 
@@ -110,9 +111,15 @@ app.use('/api/superadmin', adminLimiter, superadminRoutes);
 // Graceful shutdown
 const HOST = process.env.HOST || '0.0.0.0';
 let server;
+let retentionTimers;
 
 function shutdown(signal) {
   logger.info({ signal }, 'Shutdown signal received, closing server…');
+  // Clear retention timers if running
+  if (retentionTimers) {
+    clearInterval(retentionTimers.timer);
+    clearTimeout(retentionTimers.initialDelay);
+  }
   if (server) {
     server.close(() => {
       logger.info('HTTP server closed');
@@ -156,6 +163,10 @@ initDatabase()
         ...(isProduction ? {} : { detail: err.message }),
       });
     });
+
+    // Start retention cleanup schedule (DSGVO data hygiene)
+    retentionTimers = startRetentionSchedule();
+    logger.info('Retention cleanup job scheduled');
 
     server = app.listen(PORT, HOST, () => {
       const printedHost = HOST === '0.0.0.0' ? 'localhost' : HOST;

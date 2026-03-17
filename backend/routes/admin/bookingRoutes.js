@@ -62,4 +62,60 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE /api/admin/booking-requests/:id — anonymize a single booking request
+router.delete('/booking-requests/:id', requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid id' });
+  }
+
+  try {
+    const { rows } = await query(
+      'SELECT anonymize_booking_request($1) AS success',
+      [id]
+    );
+    if (!rows[0]?.success) {
+      return res.status(404).json({ error: 'Booking request not found or already anonymized' });
+    }
+
+    logger.info({ bookingRequestId: id }, 'Booking request anonymized');
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ err: error }, 'Error anonymizing booking request');
+    res.status(500).json({ error: 'Failed to anonymize booking request' });
+  }
+});
+
+// POST /api/admin/bookings/anonymize/:eventId
+// Anonymizes all PII in booking_requests for a closed event.
+router.post('/bookings/anonymize/:eventId', requireAdmin, async (req, res) => {
+  const eventId = parseInt(req.params.eventId, 10);
+  if (isNaN(eventId)) {
+    return res.status(400).json({ error: 'Invalid eventId' });
+  }
+
+  try {
+    // Verify event exists and is closed
+    const { rows: eventRows } = await query(
+      'SELECT id, status FROM events WHERE id = $1',
+      [eventId]
+    );
+    if (!eventRows.length) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    if (eventRows[0].status !== 'closed') {
+      return res.status(400).json({ error: 'Event must be closed before anonymization' });
+    }
+
+    const { rows } = await query('SELECT anonymize_booking_requests($1) AS affected', [eventId]);
+    const affected = rows[0]?.affected || 0;
+
+    logger.info({ eventId, affected }, 'Booking requests anonymized for event');
+    res.json({ success: true, anonymized: affected });
+  } catch (error) {
+    logger.error({ err: error }, 'Error anonymizing booking requests');
+    res.status(500).json({ error: 'Failed to anonymize booking requests' });
+  }
+});
+
 export default router;

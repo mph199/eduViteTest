@@ -30,11 +30,11 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 0.1.1 | **PII-Anonymisierung in `booking_requests` bei Event-Abschluss** – Migration: Funktion `anonymize_booking_requests(event_id)` die `parent_name`, `student_name`, `trainee_name`, `representative_name`, `company_name`, `email`, `message` auf NULL setzt. Admin-Endpunkt + automatischer Trigger bei Event-Status `completed`. | `backend/migrations/034_*.sql`, `backend/routes/admin/bookingRoutes.js` | [ ] |
-| 0.1.2 | **PII-Anonymisierung bei Cancel in SSW/BL** – Bei `status='cancelled'`: `student_name`, `student_class`, `email`, `phone`, `concern`, `notes` auf NULL setzen (analog `cancelBookingAdmin()` bei slots). | `backend/modules/schulsozialarbeit/routes/counselor.js`, `backend/modules/beratungslehrer/routes/counselor.js`, `backend/shared/counselorAdminRoutes.js` | [ ] |
-| 0.1.3 | **Retention-Cron-Job** – Automatische Anonymisierung abgelaufener Daten. Fristen: Elternsprechtag 6 Monate nach Event, SSW/BL 12 Monate nach Termin, stornierte Termine 30 Tage. | `backend/jobs/retention-cleanup.js` (neu), `backend/index.js` (Job registrieren) | [ ] |
-| 0.1.4 | **DELETE-Endpunkt fuer booking_requests** – Admin-Route zum manuellen Loeschen/Anonymisieren einzelner Anfragen. | `backend/routes/admin/bookingRoutes.js` | [ ] |
-| 0.1.5 | **Aufbewahrungsfristen konfigurierbar machen** – Fristen in `module_config` oder Environment-Variablen, nicht hardcoded. | `backend/config/retention.js` (neu) | [ ] |
+| 0.1.1 | **PII-Anonymisierung in `booking_requests` bei Event-Abschluss** – Migration: Funktion `anonymize_booking_requests(event_id)` die `parent_name`, `student_name`, `trainee_name`, `representative_name`, `company_name`, `email`, `message` auf NULL setzt. Admin-Endpunkt + automatischer Trigger bei Event-Status `closed`. | `backend/migrations/034_*.sql`, `backend/routes/admin/bookingRoutes.js` | [x] |
+| 0.1.2 | **PII-Anonymisierung bei Cancel in SSW/BL** – Bei `status='cancelled'`: `student_name`, `student_class`, `email`, `phone`, `concern`, `notes` auf NULL setzen (analog `cancelBookingAdmin()` bei slots). | `backend/modules/schulsozialarbeit/routes/counselor.js`, `backend/modules/beratungslehrer/routes/counselor.js`, `backend/shared/counselorAdminRoutes.js` | [x] |
+| 0.1.3 | **Retention-Cron-Job** – Automatische Anonymisierung abgelaufener Daten. Fristen: Elternsprechtag 6 Monate nach Event, SSW/BL 12 Monate nach Termin, stornierte Termine 30 Tage. | `backend/jobs/retention-cleanup.js` (neu), `backend/index.js` (Job registrieren) | [x] |
+| 0.1.4 | **DELETE-Endpunkt fuer booking_requests** – Admin-Route zum manuellen Loeschen/Anonymisieren einzelner Anfragen. | `backend/routes/admin/bookingRoutes.js` | [x] |
+| 0.1.5 | **Aufbewahrungsfristen konfigurierbar machen** – Fristen in `module_config` oder Environment-Variablen, nicht hardcoded. | `backend/config/retention.js` (neu) | [x] |
 
 ### 0.2 Art.-9-Daten schuetzen (SSW/BL concern/notes)
 
@@ -216,12 +216,12 @@
 
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
-| P0: Go-Live-Blocker | 18 | 17 | 1 | 0 | ~3% |
+| P0: Go-Live-Blocker | 18 | 12 | 1 | 5 | ~31% |
 | P1: Hoch (4 Wochen) | 14 | 14 | 0 | 0 | 0% |
 | P2: Mittel (3 Monate) | 12 | 12 | 0 | 0 | 0% |
 | P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
 | Code-Hygiene | 8 | 8 | 0 | 0 | 0% |
-| **Gesamt** | **65** | **64** | **1** | **0** | **~1%** |
+| **Gesamt** | **65** | **59** | **1** | **5** | **~9%** |
 
 ---
 

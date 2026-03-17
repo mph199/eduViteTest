@@ -190,7 +190,15 @@ router.put('/appointments/:id/cancel', requireAuth, requireCounselor, async (req
     if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
     const { rows } = await query(
-      `UPDATE ssw_appointments SET status = 'cancelled', updated_at = NOW()
+      `UPDATE ssw_appointments
+       SET status = 'cancelled',
+           student_name = NULL,
+           student_class = NULL,
+           email = NULL,
+           phone = NULL,
+           concern = NULL,
+           notes = NULL,
+           updated_at = NOW()
        WHERE id = $1 AND status IN ('requested', 'confirmed', 'available') AND counselor_id = $2 RETURNING *`,
       [id, counselorId]
     );
