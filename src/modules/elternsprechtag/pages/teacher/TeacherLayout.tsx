@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useActiveView } from '../../../../hooks/useActiveView';
+import { useBranding } from '../../../../contexts/BrandingContext';
 import api from '../../../../services/api';
 import '../../../../pages/AdminDashboard.css';
 
@@ -22,6 +23,7 @@ export type TeacherOutletContext = {
 export function TeacherLayout() {
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
   useActiveView('teacher');
+  const { branding } = useBranding();
 
   const refreshTeacher = async () => {
     try {
@@ -42,7 +44,10 @@ export function TeacherLayout() {
   };
 
   return (
-    <div className="admin-dashboard admin-dashboard--teacher">
+    <div
+      className="admin-dashboard admin-dashboard--teacher"
+      style={branding.background_images?.admin ? { '--admin-bg': `url(${api.superadmin.resolveBgUrl(branding.background_images.admin)})` } as React.CSSProperties : undefined}
+    >
       <main className="admin-main">
         <Outlet context={outletContext} />
       </main>
