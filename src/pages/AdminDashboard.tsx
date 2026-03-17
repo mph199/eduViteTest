@@ -4,6 +4,7 @@ import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import type { TimeSlot as ApiBooking, AdminEvent, EventStats } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
+import { formatDateTime } from '../utils/formatters';
 import './AdminDashboard.css';
 
 type SortKey = 'teacher' | 'when' | 'visitor';
@@ -58,18 +59,7 @@ export function AdminDashboard() {
   const { user } = useAuth();
   useActiveView('admin');
 
-  const formatDateTime = (iso?: string | null) => {
-    if (!iso) return null;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return null;
-    return new Intl.DateTimeFormat('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
-  };
+
 
   const statusLabel: Record<AdminEvent['status'], string> = {
     draft: 'Entwurf',

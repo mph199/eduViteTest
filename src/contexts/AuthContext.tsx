@@ -51,26 +51,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(VIEW_KEY, next);
   };
 
+  async function enrichWithTeacherName(baseUser: User): Promise<User> {
+    if (!baseUser.teacherId) return baseUser;
+    try {
+      const teacher = await api.teacher.getInfo();
+      if (teacher?.name) {
+        const fullName = teacherPersonName(teacher);
+        if (fullName) return { ...baseUser, fullName };
+      }
+    } catch {
+      // ignore (not all roles/tokens can access teacher info)
+    }
+    return baseUser;
+  }
+
   // Check authentication status on mount
   useEffect(() => {
     const verifyAuth = async () => {
       try {
         const response = await api.auth.verify();
         if (response.authenticated && response.user) {
-          let nextUser = response.user as User;
-
-          if (nextUser.teacherId) {
-            try {
-              const teacher = await api.teacher.getInfo();
-              if (teacher?.name) {
-                const fullName = teacherPersonName(teacher);
-                if (fullName) nextUser = { ...nextUser, fullName };
-              }
-            } catch {
-              // ignore (not all roles/tokens can access teacher info)
-            }
-          }
-
+          const nextUser = await enrichWithTeacherName(response.user as User);
           setIsAuthenticated(true);
           setUser(nextUser);
           setActiveViewState(computeInitialView(nextUser));
@@ -79,8 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setActiveViewState(null);
         }
-      } catch (error) {
-        console.error('Auth verification failed:', error);
+      } catch {
         setIsAuthenticated(false);
         setUser(null);
         setActiveViewState(null);
@@ -107,20 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.auth.login(username, password);
       if (response.success && response.user) {
-        let nextUser = response.user as User;
-
-        if (nextUser.teacherId) {
-          try {
-            const teacher = await api.teacher.getInfo();
-            if (teacher?.name) {
-              const fullName = teacherPersonName(teacher);
-              if (fullName) nextUser = { ...nextUser, fullName };
-            }
-          } catch {
-            // ignore
-          }
-        }
-
+        const nextUser = await enrichWithTeacherName(response.user as User);
         setIsAuthenticated(true);
         setUser(nextUser);
         setActiveViewState(computeInitialView(nextUser));

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
 import type { FeedbackItem } from '../types';
+import { formatDateTime } from '../utils/formatters';
 import './AdminDashboard.css';
 
 export function AdminFeedback() {
@@ -14,18 +15,7 @@ export function AdminFeedback() {
   const { user } = useAuth();
   useActiveView('admin');
 
-  const formatDateTime = useCallback((iso?: string | null) => {
-    if (!iso) return null;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return null;
-    return new Intl.DateTimeFormat('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
-  }, []);
+
 
   const loadFeedback = useCallback(async () => {
     if (user?.role !== 'admin') {
