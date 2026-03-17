@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { BookingRequest } from '../types';
-import './TeacherRequestsTableSandbox.css';
+import './TeacherRequestsTable.css';
 
 function buildAssignableSlots(timeWindow: string): string[] {
   const m = String(timeWindow || '').trim().match(/^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/);
@@ -139,7 +139,7 @@ function formatCreatedAt(createdAt?: string): string {
   return `vor ${days}d`;
 }
 
-type TeacherRequestsTableSandboxProps = {
+type TeacherRequestsTableProps = {
   requests: BookingRequest[];
   selectedAssignTimes: Record<number, string[]>;
   teacherMessages: Record<number, string>;
@@ -149,7 +149,7 @@ type TeacherRequestsTableSandboxProps = {
   onDeclineRequest: (requestId: number) => void;
 };
 
-export function TeacherRequestsTableSandbox({
+export function TeacherRequestsTable({
   requests,
   selectedAssignTimes,
   teacherMessages,
@@ -157,7 +157,7 @@ export function TeacherRequestsTableSandbox({
   onTeacherMessageChange,
   onAcceptRequest,
   onDeclineRequest,
-}: TeacherRequestsTableSandboxProps) {
+}: TeacherRequestsTableProps) {
   const CARD_ACCENT_CLASSES = ['is-accent-1', 'is-accent-2', 'is-accent-3', 'is-accent-4'];
 
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});

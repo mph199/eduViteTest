@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../../../services/api';
 import type { BookingRequest } from '../../../../types';
-import { TeacherRequestsTableSandbox } from '../../../../components/TeacherRequestsTableSandbox';
+import { TeacherRequestsTable } from '../../../../components/TeacherRequestsTable';
 
 export function TeacherRequests() {
   const [requests, setRequests] = useState<BookingRequest[]>([]);
@@ -100,7 +100,7 @@ export function TeacherRequests() {
           </button>
         </div>
 
-        <TeacherRequestsTableSandbox
+        <TeacherRequestsTable
           requests={requests}
           selectedAssignTimes={selectedAssignTimes}
           teacherMessages={teacherMessages}
