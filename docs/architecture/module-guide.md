@@ -278,6 +278,8 @@ Module können diese geteilten Dienste nutzen:
 | `import { buildEmail, getEmailBranding } from '../../../emails/template.js'` | E-Mail-Templates |
 | `import { mapSlotRow } from '../../../utils/mappers.js'` | Daten-Mapper |
 | `import logger from '../../../config/logger.js'` | Pino Logger |
+| `import { writeAuditLog } from '../../../middleware/audit-log.js'` | PII-Zugriffs-Logging |
+| `import { generateUsername } from '../../../shared/generateUsername.js'` | Benutzernamen-Generierung (Umlaut-Transliteration) |
 
 ### Frontend (von `src/modules/<id>/components/`)
 
@@ -334,3 +336,53 @@ interface TeacherRoute {
 - [ ] Backend-Logs prüfen: Modul wird geladen
 - [ ] Landing Page: Kachel erscheint
 - [ ] Route erreichbar: `/<id>` zeigt die Seite
+
+---
+
+## Audit-Logging in Modulen
+
+Wenn ein Modul personenbezogene Daten (PII) verarbeitet, muss der Zugriff protokolliert werden.
+
+### writeAuditLog
+
+```js
+import { writeAuditLog } from '../../../middleware/audit-log.js';
+
+// Fire-and-forget – blockiert die Response nicht
+writeAuditLog(
+  req.user?.id,       // userId (null fuer System-Events)
+  'READ',             // action: READ | WRITE | DELETE | EXPORT | RESTRICT
+  'ssw_appointments', // tableName
+  appointment.id,     // recordId (optional)
+  { email },          // details (JSONB, optional)
+  req.ip              // ipAddress
+);
+```
+
+### logSecurityEvent
+
+Fuer sicherheitsrelevante Events (fehlgeschlagene Logins, 403-Zugriffe):
+
+```js
+import { logSecurityEvent } from '../../../middleware/audit-log.js';
+
+logSecurityEvent('LOGIN_FAIL', { username }, req.ip);
+```
+
+### restricted-Flag
+
+Tabellen mit `restricted BOOLEAN`-Spalte (Art. 18 DSGVO):
+- Admin-Listen filtern standardmaessig mit `WHERE restricted IS NOT TRUE`
+- Superadmin sieht alle Daten uneingeschraenkt
+- Gesetzt/aufgehoben ueber den Datenschutz-Tab in der Superadmin-Oberflaeche
+
+---
+
+## Shared Utilities (`backend/shared/`)
+
+| Datei | Funktion | Genutzt von |
+|-------|----------|-------------|
+| `counselorService.js` | DB-Queries fuer Berater-Module | SSW, BL |
+| `counselorPublicRoutes.js` | Oeffentliche Routen (Slots, Buchung) | SSW, BL |
+| `counselorAdminRoutes.js` | Admin-CRUD fuer Berater | SSW, BL |
+| `generateUsername.js` | `generateUsername(firstName, lastName, fallbackId, prefix)` – Umlaut-Transliteration | teacherRoutes, counselorAdminRoutes |

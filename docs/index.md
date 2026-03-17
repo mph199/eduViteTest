@@ -31,6 +31,7 @@
 - [Slot-Vorschlaege UX](planning/slot-suggestions-ux.md) -- Terminanzeige: 5 Vorschlaege + "Weitere anzeigen"
 - [DSGVO Consent-Checkbox](planning/dsgvo-consent-checkbox.md) -- Datenverarbeitungs-Einwilligung fuer Buchungsmodule
 - [P0 Sprint-Plan](planning/p0-sprint-plan.md) -- 4 Sprints fuer Go-Live-Blocker (DSGVO P0)
+- [DSAR-Endpunkte](api/dsar-endpoints.md) -- API-Referenz Betroffenenrechte Art. 15-21 + Audit-Log
 
 ## UX
 

@@ -125,6 +125,24 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 | `bl_appointments` | Appointment slots and bookings |
 | `bl_weekly_schedule` | Recurring weekly availability |
 
+### DSGVO / Audit Tables
+
+| Table | Purpose |
+|-------|---------|
+| `audit_log` | Append-only PII-Zugriffs- und Security-Event-Log (Art. 30 DSGVO) |
+| `consent_receipts` | Einwilligungsnachweise pro Modul/Termin |
+
+### DSGVO-Spalten auf bestehenden Tabellen
+
+| Spalte | Tabellen | Zweck |
+|--------|----------|-------|
+| `restricted` (BOOLEAN) | `booking_requests`, `ssw_appointments`, `bl_appointments` | Art. 18 Verarbeitungseinschraenkung. `WHERE restricted IS NOT TRUE` filtert in Admin-Listen. |
+| `verification_token_hash` | `slots`, `booking_requests` | Gehashter Token fuer E-Mail-Verifikation (Klartext-Token entfernt) |
+
+### Row-Level Security (RLS)
+
+RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktiviert (Migration 040). Da die Applikation einen einzelnen Pool-User nutzt, dient RLS als Defense-in-Depth. Permissive `app_full_access`-Policies erlauben vollen Zugriff fuer den Pool-User. Bei Wechsel zu Multi-Tenancy werden diese durch tenant_id-basierte Policies ersetzt.
+
 ## Frontend Architecture
 
 ### Routing (`App.tsx`)
@@ -136,7 +154,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 | Teacher | `/teacher/*` (layout + sub-routes from modules) | `requireAuth` |
 | Admin | `/admin`, `/admin/teachers`, `/admin/events`, `/admin/feedback` | `requireAdmin` |
 | Module admin | `{mod.adminRoutes[].path}` per module | `requireModuleAccess` |
-| Superadmin | `/superadmin` | `requireSuperadmin` |
+| Superadmin | `/superadmin` (Tabs: Module, Branding, Hintergruende, E-Mail, Texte, Datenschutz) | `requireSuperadmin` |
 
 ### Navigation
 
@@ -163,6 +181,7 @@ Centralized fetch wrapper. Namespaced:
 - `api.ssw.*` – schulsozialarbeit module endpoints
 - `api.events.*`, `api.bookings.*` – public endpoints
 - `api.superadmin.*` – school management, module config (enable/disable)
+- `api.dataSubject.*` – DSAR-Endpunkte: `search`, `exportData`, `deleteData`, `correctData`, `restrict`, `getAuditLog`, `exportAuditLog`
 
 All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` event.
 
@@ -174,6 +193,10 @@ Shared domain types (consolidated from previously duplicated local definitions):
 - `AdminEvent`, `EventStatus`, `EventStats` – event management
 - `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared
 - `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI. `CounselorBookingConfig.moduleId` identifiziert das Modul fuer die `ConsentCheckbox`
+
+DSGVO types:
+- `DataSubjectSearchResult`, `DataSubjectDeletionResult`, `DataSubjectCorrectionResult`, `DataSubjectRestrictionResult` – DSAR-Antworttypen
+- `AuditLogEntry`, `AuditLogResponse`, `AuditLogFilter` – Audit-Log-Datenstrukturen
 
 Component-local `Props` interfaces remain in their component files.
 
@@ -206,12 +229,14 @@ backend/
       userRoutes.js     # User management, module access
       settingsRoutes.js # Global settings
       feedbackRoutes.js # Feedback CRUD
+      dataSubject.js    # DSAR-Endpunkte Art. 15-21 (Suche, Export, Loeschung, Berichtigung, Einschraenkung)
     superadmin.js       # Superadmin endpoints (branding, backgrounds, email, text, module config)
     teacher.js          # Teacher endpoints (bookings, requests, password)
   shared/               # Shared factories for SSW/BL deduplication
     counselorService.js       # createCounselorService(config) – DB queries
     counselorPublicRoutes.js  # createCounselorPublicRoutes(service, config) – 4 endpoints
     counselorAdminRoutes.js   # createCounselorAdminRoutes(config) – full CRUD
+    generateUsername.js       # Umlaut-Transliteration fuer Benutzernamen (dedupliziert)
   modules/
     elternsprechtag/    # Core module (teacher schedule, events)
     schulsozialarbeit/  # SSW module (thin wrappers around shared factories)
@@ -221,7 +246,8 @@ backend/
       routes/public.js, counselor.js, admin.js
       services/appointmentService.js  # Wrapper around shared counselorService
   middleware/
-    auth.js             # JWT extraction, role checks
+    auth.js             # JWT extraction, role checks (+ Security-Event-Logging bei 403)
+    audit-log.js        # writeAuditLog(), logSecurityEvent() – fire-and-forget PII-Zugriffs-Logging
   config/
     db.js               # PostgreSQL pool (query + getClient for transactions)
     email.js            # Nodemailer config
@@ -295,3 +321,6 @@ Module differences are handled via config parameters (table prefix, topic schema
 | `MAIL_TRANSPORT` | No | `ethereal` (dev) or `smtp` (prod) |
 | `VITE_API_URL` | No | Frontend API base URL (default: `/api`) |
 | `VITE_MAINTENANCE_MODE` | No | `true`/`1`/`yes` to enable maintenance page |
+| `DB_SSL` | No | `true` to enable SSL for PostgreSQL connection |
+| `DB_SSL_REJECT_UNAUTHORIZED` | No | `false` to allow self-signed certs (development only, default: `true`) |
+| `RETENTION_*_DAYS` | No | DSGVO Aufbewahrungsfristen (z.B. `RETENTION_BOOKING_REQUESTS_DAYS=180`) |
