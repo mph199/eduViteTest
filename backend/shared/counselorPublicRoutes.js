@@ -83,12 +83,15 @@ export function createCounselorPublicRoutes(service, config) {
       if (!consent_version) {
         return res.status(400).json({ error: 'Einwilligung ist erforderlich' });
       }
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email).trim())) {
+        return res.status(400).json({ error: 'Ungueltiges E-Mail-Format' });
+      }
 
       const bookingData = {
-        student_name: String(student_name).trim(),
-        student_class: student_class ? String(student_class).trim() : null,
-        email: email ? String(email).trim().toLowerCase() : null,
-        phone: phone ? String(phone).trim() : null,
+        student_name: String(student_name).trim().slice(0, 255),
+        student_class: student_class ? String(student_class).trim().slice(0, 50) : null,
+        email: email ? String(email).trim().toLowerCase().slice(0, 254) : null,
+        phone: phone ? String(phone).trim().slice(0, 50) : null,
         [topicForeignKey]: body[topicForeignKey] ? parseInt(body[topicForeignKey], 10) : null,
         is_urgent: !!is_urgent,
       };
@@ -102,7 +105,7 @@ export function createCounselorPublicRoutes(service, config) {
         [
           moduleName,
           appointment.id,
-          String(consent_version),
+          String(consent_version).slice(0, 20),
           'Terminbuchung und Kontaktaufnahme',
           req.ip || null,
           req.get('user-agent') || null,

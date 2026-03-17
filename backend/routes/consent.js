@@ -33,7 +33,13 @@ router.post('/withdraw', consentLimiter, async (req, res) => {
     if (!email || typeof email !== 'string') {
       return res.status(400).json({ error: 'E-Mail-Adresse erforderlich' });
     }
+    if (email.length > 254) {
+      return res.status(400).json({ error: 'E-Mail-Adresse zu lang' });
+    }
     const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Ungueltiges E-Mail-Format' });
+    }
 
     const ALLOWED_MODULES = ['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer'];
     if (!moduleName || !ALLOWED_MODULES.includes(moduleName)) {
@@ -73,18 +79,20 @@ router.post('/withdraw', consentLimiter, async (req, res) => {
       anonymizedCount = rowCount;
     }
 
-    // Log the withdrawal (append-only)
-    await query(
-      `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
-       VALUES ($1, NULL, $2, $3, $4, $5)`,
-      [
-        moduleName,
-        'withdrawal',
-        'Widerruf der Einwilligung',
-        req.ip || null,
-        req.get('user-agent') || null,
-      ]
-    );
+    // Log the withdrawal (append-only) – only if data was actually anonymized
+    if (anonymizedCount > 0) {
+      await query(
+        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
+         VALUES ($1, NULL, $2, $3, $4, $5)`,
+        [
+          moduleName,
+          'withdrawal',
+          'Widerruf der Einwilligung',
+          req.ip || null,
+          req.get('user-agent') || null,
+        ]
+      );
+    }
 
     // Einheitliche Antwort (kein Leak ob E-Mail im System existiert)
     res.json({
