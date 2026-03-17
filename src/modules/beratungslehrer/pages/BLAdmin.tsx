@@ -328,7 +328,7 @@ export function BLAdmin() {
         {error && <div className="admin-error">{error}</div>}
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="module-tabs">
           {allTabs.map(([key, label]) => (
             <button
               key={key}
@@ -347,23 +347,18 @@ export function BLAdmin() {
               <h3>Wochenplan</h3>
             </div>
 
-            <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-              <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
+            <div className="info-banner">
+              <p>
                 Legen Sie fest, an welchen Tagen und zu welchen Zeiten Sie für Beratungen zur Verfügung stehen.
                 Termine werden anhand dieses Wochenplans generiert.
               </p>
             </div>
 
             <div className="teacher-form-container">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="schedule-list">
                 {schedule.map((entry, idx) => (
-                  <div key={entry.weekday} style={{
-                    display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem',
-                    background: entry.active ? 'var(--color-white)' : 'var(--color-gray-50)',
-                    borderRadius: '0.375rem', border: '1px solid var(--color-gray-200)',
-                    flexWrap: 'wrap',
-                  }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '140px', cursor: 'pointer' }}>
+                  <div key={entry.weekday} className={`schedule-row ${entry.active ? 'schedule-row--active' : 'schedule-row--inactive'}`}>
+                    <label className="schedule-row__label">
                       <input
                         type="checkbox"
                         checked={entry.active}
@@ -373,10 +368,10 @@ export function BLAdmin() {
                           setSchedule(next);
                         }}
                       />
-                      <span style={{ fontWeight: 500 }}>{WEEKDAY_LABELS[idx]}</span>
+                      <span>{WEEKDAY_LABELS[idx]}</span>
                     </label>
                     {entry.active && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div className="schedule-row__times">
                         <input
                           type="time"
                           value={entry.start_time}
@@ -385,7 +380,6 @@ export function BLAdmin() {
                             next[idx] = { ...entry, start_time: e.target.value };
                             setSchedule(next);
                           }}
-                          style={{ padding: '0.25rem 0.5rem' }}
                         />
                         <span>bis</span>
                         <input
@@ -396,7 +390,6 @@ export function BLAdmin() {
                             next[idx] = { ...entry, end_time: e.target.value };
                             setSchedule(next);
                           }}
-                          style={{ padding: '0.25rem 0.5rem' }}
                         />
                       </div>
                     )}
@@ -411,7 +404,7 @@ export function BLAdmin() {
             </div>
 
             {profile.room && (
-              <div style={{ marginTop: '1rem', color: 'var(--color-gray-500)', fontSize: '0.9rem' }}>
+              <div className="profile-meta">
                 Raum: <strong>{profile.room}</strong> | Terminlänge: <strong>{profile.slot_duration_minutes || 30} Min.</strong>
               </div>
             )}
@@ -429,7 +422,7 @@ export function BLAdmin() {
               <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
                 <div className="form-group">
                   <label>Termine freischalten für Zeitraum</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div className="date-range-row">
                     <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
                     <span>bis</span>
                     <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
@@ -458,8 +451,8 @@ export function BLAdmin() {
             {requestsLoading ? (
               <p>Lade Anfragen...</p>
             ) : requests.length === 0 ? (
-              <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem' }}>
-                <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>Keine offenen Anfragen vorhanden.</p>
+              <div className="info-banner">
+                <p>Keine offenen Anfragen vorhanden.</p>
               </div>
             ) : (
               <div className="admin-resp-table-container">
@@ -482,30 +475,26 @@ export function BLAdmin() {
                       return (
                         <tr key={a.id}>
                           <td data-label="Datum">{new Date(dateStr + 'T00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                          <td data-label="Uhrzeit" style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                          <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
                           <td data-label="Status">
-                            <span style={{
-                              padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.85rem',
-                              background: a.status === 'requested' ? 'var(--color-warning-light)' : 'var(--color-success-light)',
-                              color: a.status === 'requested' ? 'var(--color-warning, #d97706)' : 'var(--color-success-accent)',
-                            }}>
+                            <span className={`status-pill ${a.status === 'requested' ? 'status-pill--requested' : 'status-pill--confirmed'}`}>
                               {statusLabel(a.status)}
                             </span>
                           </td>
                           <td data-label="Name">{a.student_name || '--'}</td>
                           <td data-label="Klasse">{a.student_class || '--'}</td>
                           <td data-label="Thema">{a.topic_name || '--'}</td>
-                          <td data-label="Anliegen" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.concern || '--'}</td>
+                          <td data-label="Anliegen" className="cell-concern">{a.concern || '--'}</td>
                           <td data-label="Aktionen">
-                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                            <div className="action-btns action-btns--sm">
                               {a.status === 'requested' && (
-                                <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                                <button className="btn-primary btn--sm"
                                   onClick={() => handleConfirm(a.id)}>
                                   Bestätigen
                                 </button>
                               )}
                               {(a.status === 'requested' || a.status === 'confirmed') && (
-                                <button className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', color: 'var(--color-error, #dc2626)' }}
+                                <button className="btn-secondary btn--sm btn--danger"
                                   onClick={() => handleCancel(a.id)}>
                                   Absagen
                                 </button>
@@ -529,8 +518,8 @@ export function BLAdmin() {
               <h3>Alle Beratungslehrkräfte</h3>
             </div>
 
-            <div style={{ padding: '1rem', background: 'var(--brand-surface-1)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-              <p style={{ margin: 0, color: 'var(--color-gray-500)' }}>
+            <div className="info-banner">
+              <p>
                 Beratungslehrkräfte werden über <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
                 Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrkräfte&quot;.
               </p>
@@ -659,12 +648,12 @@ function renderCalendar(
   return (
     <>
       {/* Month navigator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+      <div className="cal-nav">
         <button className="btn-secondary" onClick={() => setCalMonth(prev => {
           const d = new Date(prev.year, prev.month - 1, 1);
           return { year: d.getFullYear(), month: d.getMonth() };
         })}>&lt;</button>
-        <span style={{ fontWeight: 600, fontSize: '1.1rem', minWidth: '160px', textAlign: 'center' }}>
+        <span className="cal-nav__label">
           {new Date(year, month).toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
         </span>
         <button className="btn-secondary" onClick={() => setCalMonth(prev => {
@@ -692,7 +681,7 @@ function renderCalendar(
             const cells: React.ReactNode[] = [];
             for (const label of ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']) {
               cells.push(
-                <div key={`h-${label}`} style={{ fontWeight: 600, textAlign: 'center', padding: '0.3rem', fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
+                <div key={`h-${label}`} className="cal-grid__header">
                   {label}
                 </div>
               );
@@ -708,24 +697,23 @@ function renderCalendar(
               const hasBooked = dayAppts.some(a => a.status !== 'available');
               const isPast = ds < today;
 
+              const dayCls = ['cal-day',
+                count > 0 && 'cal-day--has-appts',
+                isSelected && 'cal-day--selected',
+                isPast && 'cal-day--past',
+              ].filter(Boolean).join(' ');
+
               cells.push(
                 <div
                   key={d}
                   onClick={() => { setCalSelectedDate(isSelected ? null : ds); setCalSelectedIds(new Set()); }}
-                  style={{
-                    border: isSelected ? '2px solid var(--brand-primary, #123C73)' : '1px solid var(--color-gray-200, #e5e7eb)',
-                    borderRadius: '0.375rem', padding: '0.3rem', textAlign: 'center',
-                    cursor: count > 0 ? 'pointer' : 'default',
-                    background: isSelected ? 'var(--brand-surface-2)' : count > 0 ? 'var(--color-white)' : 'var(--color-gray-50)',
-                    opacity: isPast ? 0.5 : 1,
-                    minHeight: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  }}
+                  className={dayCls}
                 >
-                  <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>{d}</div>
+                  <div className="cal-day__number">{d}</div>
                   {count > 0 && (
-                    <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>
-                      <span style={{ color: 'var(--brand-primary, #123C73)' }}>{count} Termin{count !== 1 ? 'e' : ''}</span>
-                      {hasBooked && <span style={{ color: 'var(--color-warning, #d97706)', marginLeft: '2px' }}>*</span>}
+                    <div className="cal-day__count">
+                      <span className="cal-day__count-text">{count} Termin{count !== 1 ? 'e' : ''}</span>
+                      {hasBooked && <span className="cal-day__booked-marker">*</span>}
                     </div>
                   )}
                 </div>
@@ -733,7 +721,7 @@ function renderCalendar(
             }
 
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '1.5rem' }}>
+              <div className="cal-grid">
                 {cells}
               </div>
             );
@@ -749,7 +737,7 @@ function renderCalendar(
               .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
             if (dayAppts.length === 0) return (
-              <div style={{ padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem' }}>
+              <div className="cal-day-panel">
                 <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
                 <p style={{ marginTop: '0.5rem', color: 'var(--color-gray-500)' }}>Keine Termine an diesem Tag.</p>
               </div>
@@ -758,11 +746,11 @@ function renderCalendar(
             const allSelected = dayAppts.every(a => calSelectedIds.has(a.id));
 
             return (
-              <div style={{ padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div className="cal-day-panel">
+                <div className="cal-day-panel__header">
                   <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div className="cal-day-panel__actions">
+                    <label className="cal-day-panel__select-all">
                       <input
                         type="checkbox"
                         checked={allSelected}
@@ -775,8 +763,7 @@ function renderCalendar(
                     </label>
                     {calSelectedIds.size > 0 && (
                       <button
-                        className="btn-secondary"
-                        style={{ color: 'var(--color-error, #dc2626)', fontSize: '0.85rem' }}
+                        className="btn-secondary btn--sm btn--danger"
                         disabled={calDeleting}
                         onClick={handleDeleteSelected}
                       >
@@ -787,10 +774,10 @@ function renderCalendar(
                 </div>
 
                 <div className="admin-resp-table-container">
-                  <table className="admin-resp-table" style={{ fontSize: '0.9rem' }}>
+                  <table className="admin-resp-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '30px' }}></th>
+                        <th></th>
                         <th>Uhrzeit</th>
                         <th>Status</th>
                         <th>Schüler/in</th>
@@ -799,7 +786,7 @@ function renderCalendar(
                     </thead>
                     <tbody>
                       {dayAppts.map(a => (
-                        <tr key={a.id} style={{ background: calSelectedIds.has(a.id) ? 'var(--brand-surface-2, #eef2f9)' : undefined }}>
+                        <tr key={a.id} className={calSelectedIds.has(a.id) ? 'row--selected' : undefined}>
                           <td data-label="">
                             <input
                               type="checkbox"
@@ -811,7 +798,7 @@ function renderCalendar(
                               })}
                             />
                           </td>
-                          <td data-label="Uhrzeit" style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                          <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
                           <td data-label="Status">{statusLabel(a.status)}</td>
                           <td data-label="Name">{a.student_name || '--'}</td>
                           <td data-label="Thema">{a.topic_name || '--'}</td>

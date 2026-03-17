@@ -305,13 +305,13 @@ export function SSWAdmin() {
 
         {flash && <div className="admin-success">{flash}</div>}
         {createdCreds && (
-          <div className="admin-success" style={{ background: 'var(--color-info-light)', border: '1px solid var(--color-info-accent)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+          <div className="creds-box">
             <strong>Zugangsdaten erstellt:</strong>
-            <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+            <div className="creds-box__mono">
               Benutzername: <strong>{createdCreds.username}</strong><br />
               Passwort: <strong>{createdCreds.tempPassword}</strong>
             </div>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
+            <p className="creds-box__hint">
               Bitte Zugangsdaten notieren — das Passwort wird nicht erneut angezeigt.
             </p>
             <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schließen</button>
@@ -320,7 +320,7 @@ export function SSWAdmin() {
         {error && <div className="admin-error">{error}</div>}
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="module-tabs">
           {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['categories', 'Themen']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
@@ -386,42 +386,40 @@ export function SSWAdmin() {
                     {scheduleLoading ? (
                       <p>Lade Wochenplan…</p>
                     ) : (
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <table className="schedule-table">
                         <thead>
                           <tr>
-                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Tag</th>
-                            <th style={{ textAlign: 'center', padding: '0.3rem 0.5rem' }}>Aktiv</th>
-                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Von</th>
-                            <th style={{ textAlign: 'left', padding: '0.3rem 0.5rem' }}>Bis</th>
+                            <th>Tag</th>
+                            <th>Aktiv</th>
+                            <th>Von</th>
+                            <th>Bis</th>
                           </tr>
                         </thead>
                         <tbody>
                           {schedule.map((entry) => (
-                            <tr key={entry.weekday} style={{ opacity: entry.active ? 1 : 0.5 }}>
-                              <td data-label="Tag" style={{ padding: '0.3rem 0.5rem', fontWeight: 500 }}>{WEEKDAY_LABELS[entry.weekday]}</td>
-                              <td data-label="Aktiv" style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>
+                            <tr key={entry.weekday} className={entry.active ? undefined : 'tr--inactive'}>
+                              <td data-label="Tag">{WEEKDAY_LABELS[entry.weekday]}</td>
+                              <td data-label="Aktiv">
                                 <input
                                   type="checkbox"
                                   checked={entry.active}
                                   onChange={() => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, active: !s.active } : s))}
                                 />
                               </td>
-                              <td data-label="Von" style={{ padding: '0.3rem 0.5rem' }}>
+                              <td data-label="Von">
                                 <input
                                   type="time"
                                   value={entry.start_time}
                                   disabled={!entry.active}
                                   onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, start_time: e.target.value } : s))}
-                                  style={{ width: '100%' }}
                                 />
                               </td>
-                              <td data-label="Bis" style={{ padding: '0.3rem 0.5rem' }}>
+                              <td data-label="Bis">
                                 <input
                                   type="time"
                                   value={entry.end_time}
                                   disabled={!entry.active}
                                   onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, end_time: e.target.value } : s))}
-                                  style={{ width: '100%' }}
                                 />
                               </td>
                             </tr>
@@ -437,11 +435,11 @@ export function SSWAdmin() {
                   {!editingCounselorId && (
                     <>
                       <div className="form-group">
-                        <label htmlFor="ssw-username">Benutzername <span style={{ fontWeight: 'normal', color: 'var(--color-gray-500)' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <label htmlFor="ssw-username">Benutzername <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
                         <input id="ssw-username" type="text" value={counselorForm.username} onChange={e => setCounselorForm({ ...counselorForm, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="ssw-password">Passwort <span style={{ fontWeight: 'normal', color: 'var(--color-gray-500)' }}>(optional – wird sonst automatisch generiert)</span></label>
+                        <label htmlFor="ssw-password">Passwort <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
                         <input id="ssw-password" type="text" value={counselorForm.password} onChange={e => setCounselorForm({ ...counselorForm, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
                       </div>
                     </>
@@ -481,9 +479,9 @@ export function SSWAdmin() {
                         })()}
                       </td>
                       <td data-label="Aktionen">
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div className="action-btns">
                           <button className="btn-secondary" onClick={() => handleEditCounselor(c)}>Bearbeiten</button>
-                          <button className="btn-secondary" style={{ color: 'var(--color-error, #dc2626)' }} onClick={() => handleDeleteCounselor(c.id)}>Löschen</button>
+                          <button className="btn-secondary btn--danger" onClick={() => handleDeleteCounselor(c.id)}>Löschen</button>
                         </div>
                       </td>
                     </tr>
@@ -522,7 +520,7 @@ export function SSWAdmin() {
                 </div>
                 <div className="form-group">
                   <label>Slots freischalten für Zeitraum</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="date-range-row">
                     <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
                     <span>bis</span>
                     <input type="date" min={slotGenFrom || today} value={slotGenUntil} onChange={e => setSlotGenUntil(e.target.value)} />
@@ -539,7 +537,7 @@ export function SSWAdmin() {
             {calCounselorId && (
               <>
                 {/* Month navigator */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="cal-nav">
                   <button
                     className="btn-secondary"
                     onClick={() => setCalMonth(prev => {
@@ -547,9 +545,9 @@ export function SSWAdmin() {
                       return { year: d.getFullYear(), month: d.getMonth() };
                     })}
                   >
-                    ◀
+                    &lt;
                   </button>
-                  <span style={{ fontWeight: 600, fontSize: '1.1rem', minWidth: '160px', textAlign: 'center' }}>
+                  <span className="cal-nav__label">
                     {new Date(calMonth.year, calMonth.month).toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
                   </span>
                   <button
@@ -559,7 +557,7 @@ export function SSWAdmin() {
                       return { year: d.getFullYear(), month: d.getMonth() };
                     })}
                   >
-                    ▶
+                    &gt;
                   </button>
                 </div>
 
@@ -588,7 +586,7 @@ export function SSWAdmin() {
                       // Header row
                       for (const label of ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']) {
                         cells.push(
-                          <div key={`h-${label}`} style={{ fontWeight: 600, textAlign: 'center', padding: '0.3rem', fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
+                          <div key={`h-${label}`} className="cal-grid__header">
                             {label}
                           </div>
                         );
@@ -606,30 +604,23 @@ export function SSWAdmin() {
                         const hasBooked = dayAppts.some(a => a.status !== 'available');
                         const isPast = ds < today;
 
+                        const dayCls = ['cal-day',
+                          count > 0 && 'cal-day--has-appts',
+                          isSelected && 'cal-day--selected',
+                          isPast && 'cal-day--past',
+                        ].filter(Boolean).join(' ');
+
                         cells.push(
                           <div
                             key={d}
                             onClick={() => { setCalSelectedDate(isSelected ? null : ds); setCalSelectedIds(new Set()); }}
-                            style={{
-                              border: isSelected ? '2px solid var(--brand-primary, #123C73)' : '1px solid var(--color-gray-200, #e5e7eb)',
-                              borderRadius: '0.375rem',
-                              padding: '0.3rem',
-                              textAlign: 'center',
-                              cursor: count > 0 ? 'pointer' : 'default',
-                              background: isSelected ? 'var(--brand-surface-2, #f0f4fa)' : count > 0 ? 'var(--color-white)' : 'var(--color-gray-50)',
-                              opacity: isPast ? 0.5 : 1,
-                              minHeight: '50px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
+                            className={dayCls}
                           >
-                            <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>{d}</div>
+                            <div className="cal-day__number">{d}</div>
                             {count > 0 && (
-                              <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>
-                                <span style={{ color: 'var(--brand-primary, #123C73)' }}>{count} Termin{count !== 1 ? 'e' : ''}</span>
-                                {hasBooked && <span style={{ color: 'var(--color-warning, #d97706)', marginLeft: '2px' }}>*</span>}
+                              <div className="cal-day__count">
+                                <span className="cal-day__count-text">{count} Termin{count !== 1 ? 'e' : ''}</span>
+                                {hasBooked && <span className="cal-day__booked-marker">*</span>}
                               </div>
                             )}
                           </div>
@@ -637,7 +628,7 @@ export function SSWAdmin() {
                       }
 
                       return (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '1.5rem' }}>
+                        <div className="cal-grid">
                           {cells}
                         </div>
                       );
@@ -653,7 +644,7 @@ export function SSWAdmin() {
                         .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
                       if (dayAppts.length === 0) return (
-                        <div style={{ padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem' }}>
+                        <div className="cal-day-panel">
                           <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
                           <p style={{ marginTop: '0.5rem', color: 'var(--color-gray-500)' }}>Keine Termine an diesem Tag.</p>
                         </div>
@@ -665,7 +656,7 @@ export function SSWAdmin() {
                         switch (s) {
                           case 'available': return 'Frei';
                           case 'requested': return 'Angefragt';
-                          case 'confirmed': return 'Bestaetigt';
+                          case 'confirmed': return 'Bestätigt';
                           case 'cancelled': return 'Abgesagt';
                           case 'completed': return 'Abgeschlossen';
                           default: return s;
@@ -673,11 +664,11 @@ export function SSWAdmin() {
                       };
 
                       return (
-                        <div style={{ padding: '1rem', background: 'var(--color-gray-50, #f9fafb)', borderRadius: '0.5rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div className="cal-day-panel">
+                          <div className="cal-day-panel__header">
                             <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <div className="cal-day-panel__actions">
+                              <label className="cal-day-panel__select-all">
                                 <input
                                   type="checkbox"
                                   checked={allSelected}
@@ -693,8 +684,7 @@ export function SSWAdmin() {
                               </label>
                               {calSelectedIds.size > 0 && (
                                 <button
-                                  className="btn-secondary"
-                                  style={{ color: 'var(--color-error, #dc2626)', fontSize: '0.85rem' }}
+                                  className="btn-secondary btn--sm btn--danger"
                                   disabled={calDeleting}
                                   onClick={handleDeleteSelectedAppointments}
                                 >
@@ -705,10 +695,10 @@ export function SSWAdmin() {
                           </div>
 
                           <div className="admin-resp-table-container">
-                            <table className="admin-resp-table" style={{ fontSize: '0.9rem' }}>
+                            <table className="admin-resp-table">
                               <thead>
                                 <tr>
-                                  <th style={{ width: '30px' }}></th>
+                                  <th></th>
                                   <th>Uhrzeit</th>
                                   <th>Status</th>
                                   <th>Schüler/in</th>
@@ -717,7 +707,7 @@ export function SSWAdmin() {
                               </thead>
                               <tbody>
                                 {dayAppts.map(a => (
-                                  <tr key={a.id} style={{ background: calSelectedIds.has(a.id) ? 'var(--brand-surface-2, #eef2f9)' : undefined }}>
+                                  <tr key={a.id} className={calSelectedIds.has(a.id) ? 'row--selected' : undefined}>
                                     <td data-label="">
                                       <input
                                         type="checkbox"
@@ -729,7 +719,7 @@ export function SSWAdmin() {
                                         })}
                                       />
                                     </td>
-                                    <td data-label="Uhrzeit" style={{ fontWeight: 500 }}>{a.time?.toString().slice(0, 5)}</td>
+                                    <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
                                     <td data-label="Status">{statusLabel(a.status)}</td>
                                     <td data-label="Name">{a.student_name || '–'}</td>
                                     <td data-label="Kategorie">{a.category_name || '–'}</td>
