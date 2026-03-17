@@ -250,6 +250,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                     ))}
                     {!showAllSlots && availableSlots.length > INITIAL_SLOT_COUNT && (
                       <button
+                        type="button"
                         className="cb-slot cb-slot--show-more"
                         onClick={() => setShowAllSlots(true)}
                         aria-label={`${availableSlots.length - INITIAL_SLOT_COUNT} weitere Zeiten anzeigen`}
