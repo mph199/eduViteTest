@@ -31,7 +31,7 @@ Gegeben eine Aenderungsanfrage, liefere:
 
 | Was | Wo |
 |-----|-----|
-| Architektur | `docs/ARCHITECTURE.md` |
+| Architektur | `docs/architecture/system-design.md` |
 | API-Client | `src/services/api.ts` |
 | Typen | `src/types/index.ts` |
 | Modul-Registry | `src/modules/registry.ts` |

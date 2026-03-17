@@ -17,7 +17,7 @@ Vergleiche den aktuellen Code-Stand mit der bestehenden Dokumentation. Finde Lue
 
 ### 1. Architektur-Dokumentation abgleichen
 
-- [ ] `docs/ARCHITECTURE.md` lesen und gegen aktuelle Verzeichnisstruktur pruefen
+- [ ] `docs/architecture/system-design.md` lesen und gegen aktuelle Verzeichnisstruktur pruefen
 - [ ] Aufgefuehrte Module vs. tatsaechlich vorhandene Module
 - [ ] Aufgefuehrte Tabellen vs. tatsaechliche Migrationen
 - [ ] Aufgefuehrte API-Endpunkte vs. tatsaechliche Routen
@@ -76,7 +76,7 @@ ls -d backend/modules/*/
 ls -d src/modules/*/
 
 # Existenz-Check der Key Entry Points aus CLAUDE.md
-for f in docs/ARCHITECTURE.md docs/MODULE_GUIDE.md src/types/index.ts src/services/api.ts src/modules/registry.ts backend/middleware/auth.js backend/moduleLoader.js; do
+for f in docs/architecture/system-design.md docs/architecture/module-guide.md src/types/index.ts src/services/api.ts src/modules/registry.ts backend/middleware/auth.js backend/moduleLoader.js; do
   [ -f "$f" ] && echo "OK: $f" || echo "FEHLT: $f"
 done
 ```

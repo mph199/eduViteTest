@@ -1,7 +1,7 @@
 # Sicherheitsdokumentation
 
 > Zentrale Security-Referenz fuer das Schulverwaltungssystem.
-> Stand: 2026-03-16 | Bezug: Phase 13 (Security Hardening) aus `docs/ToDo_Docker`
+> Stand: 2026-03-16 | Bezug: Phase 13 (Security Hardening) aus `../planning/docker-roadmap.md`
 
 ---
 
@@ -465,8 +465,8 @@ docker exec -i postgres psql -U sprechtag sprechtag < backup_20260316.sql
 
 | Dokument | Pfad |
 |----------|------|
-| Architektur | `docs/ARCHITECTURE.md` |
-| Reverse-Proxy-Beispiele | `docs/reverse-proxy-examples.md` |
+| Architektur | `../architecture/system-design.md` |
+| Reverse-Proxy-Beispiele | `../deployment/reverse-proxy-examples.md` |
 | Auth-Middleware | `backend/middleware/auth.js` |
 | Auth-Routen | `backend/routes/auth.js` |
 | Server-Setup (Helmet, CORS, Rate Limiting) | `backend/index.js` |

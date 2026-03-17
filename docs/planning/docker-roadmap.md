@@ -43,10 +43,10 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ## Phase 5 – Betrieb & Dokumentation
 
-- [x] **Admin-Installationsanleitung** – `docs/INSTALL.md` – Schritt-für-Schritt: VPS → Docker → `.env` → `docker compose up -d` → HTTPS → Backup → Monitoring → Troubleshooting
+- [x] **Admin-Installationsanleitung** – `../deployment/install.md` – Schritt-für-Schritt: VPS → Docker → `.env` → `docker compose up -d` → HTTPS → Backup → Monitoring → Troubleshooting
 - [x] **Backup-Strategie** – `scripts/backup.sh` – DB-Dump + Uploads-Volume, Retention 30 Tage, Cron-ready
-- [x] **Update-Prozess** – In INSTALL.md dokumentiert: `docker compose pull && docker compose up -d`
-- [x] **Monitoring** – Health-Endpoint-Cron + Uptime Kuma Empfehlung in INSTALL.md
+- [x] **Update-Prozess** – In install.md dokumentiert: `docker compose pull && docker compose up -d`
+- [x] **Monitoring** – Health-Endpoint-Cron + Uptime Kuma Empfehlung in install.md
 - [x] **Ressourcen-Empfehlung** – Min. 1 vCPU / 1 GB RAM, empfohlen 2 vCPU / 2 GB RAM
 
 ## Phase 6 – Login-Cookies (httpOnly)
@@ -111,7 +111,7 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 - [ ] **Frontend: Login-Button** – "Mit Microsoft anmelden"-Button auf der Login-Seite, leitet zu `/api/auth/microsoft` weiter
 - [ ] **Frontend: Callback-Route** – Redirect nach erfolgreichem Microsoft-Login verarbeiten, JWT-Cookie setzen (Phase 6)
 - [ ] **Admin Consent** – Dokumentation für Schul-IT: Welche Berechtigungen die App braucht (`User.Read`, `openid`, `profile`, `email`), wie Admin Consent erteilt wird
-- [ ] **HTTPS Pflicht** – Microsoft erlaubt nur HTTPS-Redirect-URIs (außer localhost); in INSTALL.md als Voraussetzung dokumentieren
+- [ ] **HTTPS Pflicht** – Microsoft erlaubt nur HTTPS-Redirect-URIs (außer localhost); in install.md als Voraussetzung dokumentieren
 - [ ] **Fallback** – Klassischer Username/Passwort-Login bleibt parallel bestehen für Schulen ohne Microsoft 365
 
 ## Phase 9 – DSGVO & Datenhygiene
@@ -168,7 +168,7 @@ Empfohlene Standard-Fristen (konfigurierbar):
 
 ### 9e – Technische Datenschutzmaßnahmen
 
-- [ ] **Verschlüsselung at Rest** – PostgreSQL-Volume mit LUKS/dm-crypt verschlüsseln (Dokumentation in INSTALL.md), alternativ: Managed PostgreSQL mit Encryption at Rest
+- [ ] **Verschlüsselung at Rest** – PostgreSQL-Volume mit LUKS/dm-crypt verschlüsseln (Dokumentation in install.md), alternativ: Managed PostgreSQL mit Encryption at Rest
 - [ ] **Verschlüsselung in Transit** – HTTPS-Pflicht dokumentieren (Reverse-Proxy mit TLS), interne Docker-Kommunikation über isoliertes Netzwerk
 - [ ] **Minimale Datenerhebung** – Prüfung: Welche Felder sind wirklich nötig? `company_name` und `message` in Slots als optional markieren, nicht-benötigte Felder entfernen
 - [ ] **Pseudonymisierung SSW-Daten** – Besonders sensible SSW-Beratungsdaten (`notes`): Verschlüsselung auf Anwendungsebene (AES-256-GCM), Schlüssel pro Schule, nur autorisierte SSW-Berater können entschlüsseln
@@ -228,8 +228,8 @@ Empfohlene Standard-Fristen (konfigurierbar):
 
 ### 13b – Cross-Site Request Forgery (CSRF)
 
-- [x] **CSRF-Risikobewertung** – SameSite=Lax + CORS Origin-Pruefung bieten ausreichenden Schutz. Kein Shared-Hosting, kein Subdomain-Szenario. Designentscheidung dokumentiert in `docs/SECURITY.md` Abschnitt 4
-- [x] ~~**Double-Submit-Cookie**~~ – SKIP: SameSite=Lax + CORS reicht fuer unser Deployment-Szenario. Siehe `docs/SECURITY.md` fuer Begruendung
+- [x] **CSRF-Risikobewertung** – SameSite=Lax + CORS Origin-Pruefung bieten ausreichenden Schutz. Kein Shared-Hosting, kein Subdomain-Szenario. Designentscheidung dokumentiert in `../security/security-baseline.md` Abschnitt 4
+- [x] ~~**Double-Submit-Cookie**~~ – SKIP: SameSite=Lax + CORS reicht fuer unser Deployment-Szenario. Siehe `../security/security-baseline.md` fuer Begruendung
 - [x] **Origin/Referer-Validierung** – CORS-Middleware prueft Origin gegen `CORS_ORIGINS` Whitelist (`backend/index.js:50-57`)
 
 ### 13c – Cross-Site Scripting (XSS)
@@ -241,7 +241,7 @@ Empfohlene Standard-Fristen (konfigurierbar):
 
 ### 13d – Authentifizierung & Session-Management
 
-- [x] **JWT-Secret Rotation** – Dokumentiert in `docs/SECURITY.md` Abschnitt 11 (Vorgehensweise, Rhythmus, Auswirkungen)
+- [x] **JWT-Secret Rotation** – Dokumentiert in `../security/security-baseline.md` Abschnitt 11 (Vorgehensweise, Rhythmus, Auswirkungen)
 - [x] **Token-Lebensdauer** – 8h konfiguriert (`backend/middleware/auth.js:20`), Cookie-maxAge synchron (`backend/routes/auth.js:16`)
 - [x] **Cookie-Security** – httpOnly, secure (Prod), sameSite=lax. Bearer-Header-Extraktion entfernt (`backend/middleware/auth.js:63-68`)
 - [ ] **Token-Lebensdauer verkürzen** – Von 8h auf 4h (Standard) / 2h (Admin) reduzieren
@@ -266,15 +266,15 @@ Empfohlene Standard-Fristen (konfigurierbar):
 - [x] **Dependency-Scanning** – GitHub Dependabot konfiguriert (`.github/dependabot.yml`) fuer npm + Docker
 - [ ] **Docker non-root** – `USER node` in `Dockerfile.backend` ergaenzen
 - [ ] **Netzwerk-Isolation** – Explizite Docker-Netzwerke (frontend, backend) definieren
-- [ ] **PostgreSQL-Port** – Port 5432 in Produktion nicht exponieren (siehe `docs/SECURITY.md` Abschnitt 10)
+- [ ] **PostgreSQL-Port** – Port 5432 in Produktion nicht exponieren (siehe `../security/security-baseline.md` Abschnitt 10)
 - [ ] **Secrets-Management** – Docker Secrets statt Env-Variablen fuer sensitive Werte
 - [ ] **Security-Headers Audit** – Regelmaessig mit securityheaders.com pruefen
 - [ ] **PostgreSQL SSL** – CA-Zertifikat konfigurieren, `rejectUnauthorized: true` setzen
 
 ### 13g – Monitoring & Incident Response
 
-- [x] **Incident-Response-Plan** – Dokumentiert in `docs/SECURITY.md` Abschnitt 13 (Meldekette, 72h DSGVO-Frist, Sofortmassnahmen, Backup/Restore)
-- [x] **Penetration-Test-Checkliste** – Dokumentiert in `docs/SECURITY.md` Abschnitt 14 (14 automatisierte + 5 manuelle Testfaelle)
+- [x] **Incident-Response-Plan** – Dokumentiert in `../security/security-baseline.md` Abschnitt 13 (Meldekette, 72h DSGVO-Frist, Sofortmassnahmen, Backup/Restore)
+- [x] **Penetration-Test-Checkliste** – Dokumentiert in `../security/security-baseline.md` Abschnitt 14 (14 automatisierte + 5 manuelle Testfaelle)
 - [ ] **Security-Event-Logging** – Fehlgeschlagene Logins + 403/401 in separatem Log-Stream erfassen
 - [ ] **Alerting** – Benachrichtigung bei auffaelligen Mustern (>10 Failed Logins/Minute)
 

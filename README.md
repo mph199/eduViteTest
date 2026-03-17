@@ -2,7 +2,7 @@
 
 React + TypeScript + Vite Frontend mit Node/Express Backend (Supabase). Siehe den AI-/Developer-Guide für Architektur, Setup und Konventionen.
 
-- Projektleitfaden: [docs/AI_GUIDE.md](./docs/AI_GUIDE.md)
+- Architektur & Leitfaden: [docs/architecture/system-design.md](./docs/architecture/system-design.md)
 - Frontend starten:
   ```bash
   npm install

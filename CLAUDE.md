@@ -65,8 +65,8 @@ Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch"
 
 | What | Where |
 |------|-------|
-| Architecture doc | `docs/ARCHITECTURE.md` |
-| Module guide | `docs/MODULE_GUIDE.md` |
+| Architecture doc | `docs/architecture/system-design.md` |
+| Module guide | `docs/architecture/module-guide.md` |
 | Frontend types | `src/types/index.ts` |
 | API client | `src/services/api.ts` |
 | Module registry | `src/modules/registry.ts` |

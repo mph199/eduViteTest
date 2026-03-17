@@ -23,7 +23,7 @@ Gegeben ein Feature oder eine Aenderung, liefere einen vollstaendigen Implementi
 
 - [ ] Naechste Migrationsnummer in `backend/migrations/` ermittelt
 - [ ] Bestehende Referenz-Module (`schulsozialarbeit`, `elternsprechtag`) als Vorlage geprueft
-- [ ] `docs/ARCHITECTURE.md` auf Konflikte mit bestehendem Design geprueft
+- [ ] `docs/architecture/system-design.md` auf Konflikte mit bestehendem Design geprueft
 - [ ] Auth-Rollen und Middleware-Bedarf geklaert
 
 ## Konventionen fuer Entwuerfe
