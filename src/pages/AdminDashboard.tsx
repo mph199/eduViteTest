@@ -59,8 +59,6 @@ export function AdminDashboard() {
   const { user } = useAuth();
   useActiveView('admin');
 
-
-
   const statusLabel: Record<AdminEvent['status'], string> = {
     draft: 'Entwurf',
     published: 'Veröffentlicht',

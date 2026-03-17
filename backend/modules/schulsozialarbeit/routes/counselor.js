@@ -167,14 +167,12 @@ router.put('/appointments/:id/confirm', requireAuth, requireCounselor, async (re
   try {
     const id = parseInt(req.params.id, 10);
     const counselorId = req.counselor?.id;
-
-    const whereClause = counselorId ? 'AND counselor_id = $2' : '';
-    const params = counselorId ? [id, counselorId] : [id];
+    if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
     const { rows } = await query(
       `UPDATE ssw_appointments SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW()
-       WHERE id = $1 AND status = 'requested' ${whereClause} RETURNING *`,
-      params
+       WHERE id = $1 AND status = 'requested' AND counselor_id = $2 RETURNING *`,
+      [id, counselorId]
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden oder nicht im Status "angefragt"' });
@@ -189,14 +187,12 @@ router.put('/appointments/:id/cancel', requireAuth, requireCounselor, async (req
   try {
     const id = parseInt(req.params.id, 10);
     const counselorId = req.counselor?.id;
-
-    const whereClause = counselorId ? 'AND counselor_id = $2' : '';
-    const params = counselorId ? [id, counselorId] : [id];
+    if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
     const { rows } = await query(
       `UPDATE ssw_appointments SET status = 'cancelled', updated_at = NOW()
-       WHERE id = $1 AND status IN ('requested', 'confirmed', 'available') ${whereClause} RETURNING *`,
-      params
+       WHERE id = $1 AND status IN ('requested', 'confirmed', 'available') AND counselor_id = $2 RETURNING *`,
+      [id, counselorId]
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden' });
@@ -212,16 +208,12 @@ router.put('/appointments/:id/notes', requireAuth, requireCounselor, async (req,
     const id = parseInt(req.params.id, 10);
     const { notes } = req.body || {};
     const counselorId = req.counselor?.id;
-
-    const whereClause = counselorId ? 'AND counselor_id = $2' : '';
-    const params = counselorId
-      ? [typeof notes === 'string' ? notes : '', id, counselorId]
-      : [typeof notes === 'string' ? notes : '', id];
+    if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
     const { rows } = await query(
       `UPDATE ssw_appointments SET notes = $1, updated_at = NOW()
-       WHERE id = $2 ${whereClause} RETURNING *`,
-      params
+       WHERE id = $2 AND counselor_id = $3 RETURNING *`,
+      [typeof notes === 'string' ? notes : '', id, counselorId]
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden' });

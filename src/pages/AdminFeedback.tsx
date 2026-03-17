@@ -15,8 +15,6 @@ export function AdminFeedback() {
   const { user } = useAuth();
   useActiveView('admin');
 
-
-
   const loadFeedback = useCallback(async () => {
     if (user?.role !== 'admin') {
       setFeedback([]);
