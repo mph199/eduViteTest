@@ -1,6 +1,6 @@
 # DSGVO-Einwilligungs-Checkbox fuer Buchungsmodule
 
-> Status: Entwurf | Erstellt: 2026-03-17
+> Status: Phase 2-4 implementiert, Phase 1 (DB-Audit) ausstehend | Erstellt: 2026-03-17 | Teilumsetzung: 2026-03-17
 
 ## Problem
 
@@ -58,40 +58,35 @@ Bevor die Checkbox implementiert wird, muss ein vollstaendiges Dateninventar ers
 4. Aufbewahrungsfristen definieren
 5. Loeschkonzept entwerfen
 
-### Phase 2: Shared Consent-Komponente
+### Phase 2: Shared Consent-Komponente – IMPLEMENTIERT
 
-Eine wiederverwendbare Komponente. Ablageort muss im Architekt-Schritt entschieden werden (neues `shared`-Modul oder inline in jedem Modul):
+`src/components/ConsentCheckbox.tsx` wurde als globale Shared Component angelegt.
 
-```
-# Vorschlag – erfordert Architekt-Entscheidung:
-src/components/ConsentCheckbox.tsx    # Globale Shared-Komponente
-```
+**Implementierte Props:**
+- `moduleId: 'elternsprechtag' | 'schulsozialarbeit' | 'beratungslehrer'`
+- `checked: boolean`
+- `onChange: (checked: boolean) => void`
 
-**Props:**
-- `moduleId: string` – Welches Modul (fuer modulspezifischen Text)
-- `onConsent: (consented: boolean) => void`
-- `datenschutzUrl?: string` – Link zur Datenschutzerklaerung
+Modulspezifische Texte sind in `MODULE_TEXTS` innerhalb der Komponente definiert. Der Datenschutz-Link zeigt auf `/datenschutz` (`target="_blank"`, `rel="noopener noreferrer"`).
 
-**Verhalten:**
-- Checkbox muss aktiviert sein, bevor Formular abgesendet werden kann
-- Text beschreibt welche Daten verarbeitet werden (modulspezifisch)
-- Link zur Datenschutzerklaerung (oeffnet in neuem Tab)
+Submit-Button wird `disabled` solange Checkbox nicht angehakt ist.
 
-**Offene Entscheidung:** Soll die Einwilligung mit Zeitstempel in der DB protokolliert werden? Art. 7 Abs. 1 DSGVO verlangt Nachweis der Einwilligung – reine Frontend-Checkbox reicht moeglicherweise nicht. Rechtsberatung empfohlen.
+**Offene Entscheidung:** Einwilligungs-Protokollierung in DB (Art. 7 Abs. 1 DSGVO) ist noch nicht umgesetzt. Rechtsberatung ausstehend.
 
-### Phase 3: Integration in Buchungsformulare
+### Phase 3: Integration in Buchungsformulare – IMPLEMENTIERT
 
-| Modul | Formular-Komponente | Aenderung |
-|-------|-------------------|-----------|
-| elternsprechtag | `src/modules/elternsprechtag/components/BookingForm.tsx` | ConsentCheckbox vor Submit-Button |
-| schulsozialarbeit | `src/modules/schulsozialarbeit/components/SSWBookingApp.tsx` | ConsentCheckbox vor Submit-Button |
-| beratungslehrer | `src/modules/beratungslehrer/components/BLBookingApp.tsx` | ConsentCheckbox vor Submit-Button |
+| Modul | Formular-Komponente | Status |
+|-------|-------------------|--------|
+| elternsprechtag | `src/modules/elternsprechtag/components/BookingForm.tsx` | ConsentCheckbox integriert, Submit disabled ohne Consent |
+| schulsozialarbeit + beratungslehrer | `src/shared/components/CounselorBookingApp.tsx` | ConsentCheckbox integriert via `config.moduleId`, Submit disabled ohne Consent |
 
-### Phase 4: Datenschutzseite aktivieren
+`moduleId` wurde als Pflichtfeld in `CounselorBookingConfig` (src/types/index.ts) ergaenzt.
 
-- Footer-Link `/datenschutz` von `<span>` zu `<a>` aendern
-- Datenschutzerklaerung aktualisieren mit modulspezifischen Abschnitten
-- Aufbewahrungsfristen und Loeschrechte dokumentieren
+### Phase 4: Datenschutzseite aktivieren – TEILWEISE IMPLEMENTIERT
+
+- Footer-Link `/datenschutz` aktiviert (von `<span>` zu `<a href="/datenschutz">`)
+- **Ausstehend:** Datenschutzerklaerung mit modulspezifischen Abschnitten fuer SSW und BL erweitern
+- **Ausstehend:** Aufbewahrungsfristen und Loeschrechte dokumentieren
 
 ## Abhaengigkeiten
 

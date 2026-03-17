@@ -173,9 +173,20 @@ Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Se
 Shared domain types (consolidated from previously duplicated local definitions):
 - `AdminEvent`, `EventStatus`, `EventStats` – event management
 - `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared
-- `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI
+- `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI. `CounselorBookingConfig.moduleId` identifiziert das Modul fuer die `ConsentCheckbox`
 
 Component-local `Props` interfaces remain in their component files.
+
+### Shared Components (`src/components/`)
+
+Globale wiederverwendbare Komponenten ausserhalb des Modulsystems:
+
+| Komponente | Datei | Genutzt von |
+|-----------|-------|-------------|
+| `ConsentCheckbox` | `src/components/ConsentCheckbox.tsx` | `BookingForm.tsx` (Elternsprechtag), `CounselorBookingApp.tsx` (SSW + BL) |
+| `Footer` | `src/components/Footer.tsx` | App-Layout |
+
+`ConsentCheckbox` rendert modulspezifischen Einwilligungstext und Link zur `/datenschutz`-Seite. Blockiert Form-Submit solange nicht angehakt.
 
 ## Backend Architecture
 

@@ -1,6 +1,6 @@
 # Terminvorschlaege-UX
 
-> Status: Entwurf | Erstellt: 2026-03-17
+> Status: Implementiert (Variante A) | Erstellt: 2026-03-17 | Umgesetzt: 2026-03-17
 
 ## Problem
 
@@ -19,6 +19,17 @@ Nutzer sehen initial 5 vorgeschlagene Termine. Auf Wunsch koennen alle weiteren 
 | beratungslehrer | `BLBookingApp.tsx` | Backend liefert Termine | variabel |
 
 Keine Paginierung, kein Limit, alle Slots werden per `.map()` gerendert.
+
+## Umgesetzter Stand
+
+Variante A wurde implementiert. `INITIAL_SLOT_COUNT = 5` ist hardcoded.
+
+| Modul | Komponente | Aenderung |
+|-------|-----------|-----------|
+| elternsprechtag | `src/modules/elternsprechtag/components/SlotList.tsx` | `showAll`-State + "Weitere X Zeitfenster anzeigen"-Button |
+| ssw + beratungslehrer | `src/shared/components/CounselorBookingApp.tsx` | `showAllSlots`-State + "+X weitere"-Button |
+
+Reset: `showAll` wird bei Lehrer-/Berater-/Datumswechsel zurueckgesetzt.
 
 ## Umsetzungsvorschlaege
 
@@ -82,6 +93,6 @@ Backend liefert max. 5 Slots, weitere per "Load More" nachladen.
 
 ## Offene Fragen
 
-- Soll die Anzahl (5) konfigurierbar sein oder hardcoded?
+- ~~Soll die Anzahl (5) konfigurierbar sein oder hardcoded?~~ Entschieden: hardcoded als `INITIAL_SLOT_COUNT = 5`
 - Soll der "Weitere anzeigen"-Button die Anzahl restlicher Slots anzeigen?
 - Gilt das Limit auch fuer Desktop oder nur Mobile?
