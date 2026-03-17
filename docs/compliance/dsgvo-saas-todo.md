@@ -36,16 +36,19 @@
 | 0.1.4 | **DELETE-Endpunkt fuer booking_requests** – Admin-Route zum manuellen Loeschen/Anonymisieren einzelner Anfragen. | `backend/routes/admin/bookingRoutes.js` | [x] |
 | 0.1.5 | **Aufbewahrungsfristen konfigurierbar machen** – Fristen in `module_config` oder Environment-Variablen, nicht hardcoded. | `backend/config/retention.js` (neu) | [x] |
 
-### 0.2 Art.-9-Daten schuetzen (SSW/BL concern/notes)
+### 0.2 Art.-9-Daten: Erhebung eingestellt
 
 > **Bezug:** DSFA-001, BK-001, K2 aus DB-Audit
+> **Entscheidung (2026-03-17):** Psychosoziale Daten (concern/notes in SSW/BL) werden nicht mehr erhoben.
+> Die Felder wurden aus Frontend, Backend und Datenbank entfernt (Migration 035).
+> Damit entfallen DSFA, spezielle Zugriffsbeschraenkung, Art.-9-Consent und Audit-Log fuer diese Felder.
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 0.2.1 | **DSFA (Datenschutz-Folgenabschaetzung) durchfuehren** – Pflicht wegen Art.-9-Daten (concern/notes) und Minderjaehrigen-Daten. Formales Dokument erstellen. | `docs/compliance/dsfa-ssw-bl.md` (neu) | [ ] |
-| 0.2.2 | **Zugriffsbeschraenkung auf zugewiesenen Berater** – SSW/BL-Termine: Nur der zugewiesene Berater und Admin/Superadmin duerfen `concern` und `notes` sehen. Andere SSW-User sehen nur Metadaten. | `backend/modules/schulsozialarbeit/routes/counselor.js`, `backend/modules/beratungslehrer/routes/counselor.js` | [ ] |
-| 0.2.3 | **Explizite Einwilligung fuer Art.-9-Daten** – Separate, ausdrueckliche Einwilligungserklaerung fuer psychosoziale Beratung (nicht nur Standard-Consent-Checkbox). Muss speziell auf Art. 9 Abs. 2 lit. a hinweisen. | `src/components/ConsentCheckbox.tsx` (erweitern oder separate Komponente) | [ ] |
-| 0.2.4 | **Audit-Log fuer Zugriff auf concern/notes** – Wer hat wann welche Beratungsdaten eingesehen/geaendert. Append-only. | `backend/middleware/audit-log.js` (neu) | [ ] |
+| 0.2.1 | ~~DSFA~~ → **Entfaellt** – Keine Art.-9-Daten mehr erhoben. Entscheidung dokumentiert. | -- | [x] |
+| 0.2.2 | ~~Zugriffsbeschraenkung~~ → **Entfaellt** – concern/notes-Spalten entfernt (Migration 035). | `backend/migrations/035_remove_art9_data.sql` | [x] |
+| 0.2.3 | ~~Art.-9-Einwilligung~~ → **Entfaellt** – Kein Art.-9-Consent noetig ohne Art.-9-Daten. | -- | [x] |
+| 0.2.4 | ~~Audit-Log fuer concern/notes~~ → **Entfaellt** – Felder existieren nicht mehr. | -- | [x] |
 
 ### 0.3 Consent Management
 
@@ -53,7 +56,7 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 0.3.1 | **Consent-Receipt in DB speichern** – Bei Buchung: Timestamp, IP, User-Agent, Consent-Version, Zweck. Unveraenderbar (append-only). Migration fuer `consent_receipts`-Tabelle. | `backend/migrations/035_*.sql`, `backend/modules/*/routes/public.js` | [ ] |
+| 0.3.1 | **Consent-Receipt in DB speichern** – Bei Buchung: Timestamp, IP, User-Agent, Consent-Version, Zweck. Unveraenderbar (append-only). Migration fuer `consent_receipts`-Tabelle. | `backend/migrations/036_*.sql`, `backend/modules/*/routes/public.js` | [ ] |
 | 0.3.2 | **Consent-Checkbox: Version und Zweck speichern** – Aktuell wird nur `checked=true` geprueft. Consent-Version und Verarbeitungszweck muessen nachweisbar sein (Art. 7 Abs. 1). | `src/components/ConsentCheckbox.tsx`, `backend/modules/*/routes/public.js` | [~] |
 | 0.3.3 | **Widerruf-Endpunkt** – Betroffene muessen Einwilligung widerrufen koennen. Bei Widerruf: Daten anonymisieren oder loeschen (abhaengig von Rechtsgrundlage). | `backend/routes/public/consent.js` (neu) | [ ] |
 
@@ -216,12 +219,12 @@
 
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
-| P0: Go-Live-Blocker | 18 | 12 | 1 | 5 | ~31% |
+| P0: Go-Live-Blocker | 18 | 8 | 1 | 9 | ~53% |
 | P1: Hoch (4 Wochen) | 14 | 14 | 0 | 0 | 0% |
 | P2: Mittel (3 Monate) | 12 | 12 | 0 | 0 | 0% |
 | P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
 | Code-Hygiene | 8 | 8 | 0 | 0 | 0% |
-| **Gesamt** | **65** | **59** | **1** | **5** | **~9%** |
+| **Gesamt** | **65** | **55** | **1** | **9** | **~15%** |
 
 ---
 

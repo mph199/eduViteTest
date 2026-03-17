@@ -465,7 +465,6 @@ export function BLAdmin() {
                       <th>Schüler/in</th>
                       <th>Klasse</th>
                       <th>Thema</th>
-                      <th>Anliegen</th>
                       <th>Aktionen</th>
                     </tr>
                   </thead>
@@ -484,7 +483,6 @@ export function BLAdmin() {
                           <td data-label="Name">{a.student_name || '--'}</td>
                           <td data-label="Klasse">{a.student_class || '--'}</td>
                           <td data-label="Thema">{a.topic_name || '--'}</td>
-                          <td data-label="Anliegen" className="cell-concern">{a.concern || '--'}</td>
                           <td data-label="Aktionen">
                             <div className="action-btns action-btns--sm">
                               {a.status === 'requested' && (

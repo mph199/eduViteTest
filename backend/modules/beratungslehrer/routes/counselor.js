@@ -293,8 +293,6 @@ router.put('/appointments/:id/cancel', requireAuth, requireBLCounselor, async (r
            student_class = NULL,
            email = NULL,
            phone = NULL,
-           concern = NULL,
-           notes = NULL,
            updated_at = NOW()
        WHERE id = $1 AND status IN ('requested', 'confirmed', 'available') AND counselor_id = $2 RETURNING *`,
       [id, counselorId]
@@ -304,27 +302,6 @@ router.put('/appointments/:id/cancel', requireAuth, requireBLCounselor, async (r
     res.json({ success: true, appointment: rows[0] });
   } catch (err) {
     res.status(500).json({ error: 'Fehler beim Absagen' });
-  }
-});
-
-// PUT /api/bl/counselor/appointments/:id/notes
-router.put('/appointments/:id/notes', requireAuth, requireBLCounselor, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    const { notes } = req.body || {};
-    const counselorId = req.counselor?.id;
-    if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
-
-    const { rows } = await query(
-      `UPDATE bl_appointments SET notes = $1, updated_at = NOW()
-       WHERE id = $2 AND counselor_id = $3 RETURNING *`,
-      [typeof notes === 'string' ? notes : '', id, counselorId]
-    );
-
-    if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden' });
-    res.json({ success: true, appointment: rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Fehler beim Speichern der Notiz' });
   }
 });
 

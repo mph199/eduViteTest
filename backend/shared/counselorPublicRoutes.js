@@ -73,7 +73,7 @@ export function createCounselorPublicRoutes(service, config) {
       if (isNaN(appointmentId)) return res.status(400).json({ error: 'Ungueltige Termin-ID' });
 
       const body = req.body || {};
-      const { student_name, student_class, email, phone, concern, is_urgent } = body;
+      const { student_name, student_class, email, phone, is_urgent } = body;
 
       if (!student_name || !String(student_name).trim()) {
         return res.status(400).json({ error: 'Name ist erforderlich' });
@@ -84,7 +84,6 @@ export function createCounselorPublicRoutes(service, config) {
         student_class: student_class ? String(student_class).trim() : null,
         email: email ? String(email).trim().toLowerCase() : null,
         phone: phone ? String(phone).trim() : null,
-        concern: concern ? String(concern).trim() : null,
         [topicForeignKey]: body[topicForeignKey] ? parseInt(body[topicForeignKey], 10) : null,
         is_urgent: !!is_urgent,
       };

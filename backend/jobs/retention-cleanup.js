@@ -49,8 +49,6 @@ async function cleanupSswAppointments() {
          student_class = NULL,
          email = NULL,
          phone = NULL,
-         concern = NULL,
-         notes = NULL,
          updated_at = NOW()
      WHERE status = 'cancelled'
        AND updated_at < NOW() - MAKE_INTERVAL(days => $1)
@@ -71,8 +69,6 @@ async function cleanupBlAppointments() {
          student_class = NULL,
          email = NULL,
          phone = NULL,
-         concern = NULL,
-         notes = NULL,
          updated_at = NOW()
      WHERE status = 'cancelled'
        AND updated_at < NOW() - MAKE_INTERVAL(days => $1)
@@ -93,8 +89,6 @@ async function cleanupExpiredSswAppointments() {
          student_class = NULL,
          email = NULL,
          phone = NULL,
-         concern = NULL,
-         notes = NULL,
          updated_at = NOW()
      WHERE date::date < CURRENT_DATE - MAKE_INTERVAL(days => $1)
        AND (student_name IS NOT NULL OR email IS NOT NULL)
@@ -111,8 +105,6 @@ async function cleanupExpiredBlAppointments() {
          student_class = NULL,
          email = NULL,
          phone = NULL,
-         concern = NULL,
-         notes = NULL,
          updated_at = NOW()
      WHERE date::date < CURRENT_DATE - MAKE_INTERVAL(days => $1)
        AND (student_name IS NOT NULL OR email IS NOT NULL)

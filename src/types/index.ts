@@ -154,8 +154,6 @@ export interface CounselorAppointment {
   student_name?: string;
   student_class?: string;
   student_email?: string;
-  concern?: string;
-  notes?: string;
   category_name?: string;
   category_icon?: string;
   topic_name?: string;

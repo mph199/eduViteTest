@@ -46,7 +46,6 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     student_name: '',
     student_class: '',
     email: '',
-    concern: '',
     topic_id: '',
     is_urgent: false,
   });
@@ -136,7 +135,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     setSelectedDate('');
     setAvailableSlots([]);
     setSelectedSlot(null);
-    setFormData({ student_name: '', student_class: '', email: '', concern: '', topic_id: '', is_urgent: false });
+    setFormData({ student_name: '', student_class: '', email: '', topic_id: '', is_urgent: false });
     setConsented(false);
   };
 
@@ -332,17 +331,6 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
-            </div>
-
-            <div className="cb-form__group">
-              <label htmlFor="cb-concern">Kurze Beschreibung (optional)</label>
-              <textarea
-                id="cb-concern"
-                value={formData.concern}
-                onChange={e => setFormData({ ...formData, concern: e.target.value })}
-                placeholder="Worum geht es ungefähr? (Wird nur der Beratungsperson gezeigt)"
-                maxLength={500}
-              />
             </div>
 
             <label className="cb-form__urgent">

@@ -48,40 +48,27 @@ Das Projekt hat 18 offene P0-Aufgaben (Go-Live-Blocker) aus dem DSGVO SaaS-ToDo,
 
 ---
 
-## Sprint 2: Art.-9-Datenschutz (Aufgaben 0.2.1–0.2.4)
+## Sprint 2: Art.-9-Daten entfernen (Aufgaben 0.2.1–0.2.4) – ERLEDIGT
 
-**Fokus:** Besondere Datenkategorien (psychosoziale Beratung) schuetzen – DSGVO Art. 9, Art. 35.
+**Entscheidung:** Psychosoziale Daten (concern/notes) werden nicht mehr erhoben.
+Statt Schutzmechanismen aufzubauen, wurden die Felder komplett entfernt.
 
-### Aufgaben
+### Umgesetzte Massnahmen
 
-| # | Aufgabe | Dateien |
-|---|---------|---------|
-| 0.2.1 | DSFA (Datenschutz-Folgenabschaetzung) erstellen | `docs/compliance/dsfa-ssw-bl.md` (neu) |
-| 0.2.2 | Zugriffsbeschraenkung auf zugewiesenen Berater | `backend/modules/schulsozialarbeit/routes/counselor.js`, `backend/modules/beratungslehrer/routes/counselor.js` |
-| 0.2.4 | Audit-Log fuer concern/notes-Zugriff | `backend/middleware/audit-log.js` (neu), Migration |
-| 0.2.3 | Explizite Art.-9-Einwilligung | `src/components/ConsentCheckbox.tsx` (erweitern) |
+| # | Massnahme | Dateien |
+|---|-----------|---------|
+| 035 | Migration: Altdaten anonymisiert + Spalten entfernt | `backend/migrations/035_remove_art9_data.sql` |
+| -- | concern aus Buchungsflow entfernt | `counselorPublicRoutes.js`, `counselorService.js` |
+| -- | notes-Endpunkte entfernt | SSW/BL `counselor.js` |
+| -- | Frontend: Eingabefeld + Anzeige entfernt | `CounselorBookingApp.tsx`, `BLAdmin.tsx` |
+| -- | Types bereinigt | `src/types/index.ts` |
+| -- | Dateninventar aktualisiert | `dsgvo-dateninventar.md` |
 
-### Reihenfolge
+### Ergebnis
 
-1. **0.2.1** – DSFA-Dokument (formale Pflicht, informiert technische Umsetzung)
-2. **0.2.2** – Backend: Zugriffsbeschraenkung implementieren
-3. **0.2.4** – Audit-Log-Middleware + Migration (setzt auf 0.2.2 auf)
-4. **0.2.3** – Frontend: Art.-9-Consent-Komponente (Backend vor Frontend)
-
-### Review & Security
-
-- **Waechter-Agent** fuer Zugriffskontroll-Logik
-- **Pruefer-Agent** vor Commits
-- Test: Berater A darf concern/notes von Berater B NICHT sehen
-- Test: Admin/Superadmin sieht alle Daten
-- Test: Audit-Log-Eintraege bei Zugriff auf concern/notes pruefen
-- DSFA-Dokument von DSB oder Rechtsberatung gegenlesen lassen
-
-### Dokumentation
-
-- DSFA-Dokument (`docs/compliance/dsfa-ssw-bl.md`)
-- Audit-Log-Schema dokumentieren
-- `dsgvo-saas-todo.md` Checkboxen aktualisieren
+- Keine Art.-9-Daten mehr in der Anwendung
+- DSFA, Zugriffsbeschraenkung, Art.-9-Consent und Audit-Log entfallen
+- Alle 4 Original-Aufgaben (0.2.1–0.2.4) als erledigt markiert
 
 ---
 

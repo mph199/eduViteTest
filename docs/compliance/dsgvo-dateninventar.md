@@ -57,11 +57,11 @@
 | student_class | Klasse | Indirekt | Nein | Nur DELETE | Unbegrenzt |
 | email | E-Mail-Adresse | Direkt | Nein | Nur DELETE | Unbegrenzt |
 | phone | Telefonnummer | Direkt | Nein | Nur DELETE | Unbegrenzt |
-| concern | Beratungsanliegen (Freitext) | Direkt – sensitiv | **JA** | Nur DELETE | Unbegrenzt |
-| notes | Interne Berater-Notizen | Direkt – sensitiv | **JA** | Nur DELETE | Unbegrenzt |
+| ~~concern~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
+| ~~notes~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
 | is_urgent | Dringlichkeit | Indirekt | Nein | Nur DELETE | Unbegrenzt |
 
-**KRITISCH:** `concern` und `notes` sind Art.-9-Daten (psychosoziale Beratung). Cancel loescht PII nicht.
+**Entscheidung (2026-03-17):** `concern` und `notes` wurden entfernt. Keine Art.-9-Daten mehr in der Anwendung. Cancel nullt verbleibende PII (Sprint 1).
 
 #### Tabelle: `ssw_counselors`
 
@@ -84,11 +84,11 @@
 | student_class | Klasse | Indirekt | Nein | Nur DELETE | Unbegrenzt |
 | email | E-Mail-Adresse | Direkt | Nein | Nur DELETE | Unbegrenzt |
 | phone | Telefonnummer | Direkt | Nein | Nur DELETE | Unbegrenzt |
-| concern | Beratungsanliegen (Freitext) | Direkt – sensitiv | **JA** | Nur DELETE | Unbegrenzt |
-| notes | Interne Berater-Notizen | Direkt – sensitiv | **JA** | Nur DELETE | Unbegrenzt |
+| ~~concern~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
+| ~~notes~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
 | is_urgent | Dringlichkeit | Indirekt | Nein | Nur DELETE | Unbegrenzt |
 
-**KRITISCH:** Identisch zu SSW – gleiche Luecken.
+**Entscheidung (2026-03-17):** `concern` und `notes` wurden entfernt. Keine Art.-9-Daten mehr. Cancel nullt verbleibende PII (Sprint 1).
 
 #### Tabelle: `bl_counselors`
 

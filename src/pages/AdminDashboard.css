@@ -2327,14 +2327,6 @@
   color: var(--color-success-accent);
 }
 
-/* ── Concern Cell ──────────────────────────────────────────────────── */
-
-.cell-concern {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ── Font-weight 500 cells ─────────────────────────────────────────── */
 
 .cell-bold {
