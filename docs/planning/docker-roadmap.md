@@ -22,7 +22,7 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 ## Phase 2 – Konfiguration & Multi-Tenancy-Vorbereitung
 
 - [x] **Zentrale Config** – E-Mail-Branding (Schulname, Logo, Farben) ist bereits über die Superadmin-UI + `email_branding`-Tabelle steuerbar
-- [x] **Reverse-Proxy-Setup** – Beispiel-Configs für Caddy, Traefik und nginx in `docs/reverse-proxy-examples.md`
+- [x] **Reverse-Proxy-Setup** – Beispiel-Configs für Caddy, Traefik und nginx in `../deployment/reverse-proxy-examples.md`
 - [x] **CORS / Trusted Origins** – Env-Variable `CORS_ORIGINS` (kommasepariert) statt Hardcode in `index.js`
 - [x] **Secrets-Management** – Alle Secrets über `.env`-Datei, mit Sicherheitshinweisen und Generierungs-Befehl in `.env.example`
 
@@ -224,7 +224,7 @@ Empfohlene Standard-Fristen (konfigurierbar):
 - [x] ~~**CSP-Report-Only**~~ – SKIP: CSP ist direkt enforced und funktioniert, Report-Only nicht noetig
 - [x] ~~**Nonce-basiertes Script-Loading**~~ – SKIP: Vite generiert statische Module, kein Inline-JS vorhanden
 - [x] **CSP fuer Uploads** – Restriktive CSP auf `/uploads`: `default-src 'none'; img-src 'self'; script-src 'none'` + `nosniff` (`backend/index.js:91-95`)
-- [ ] **Nginx-Template** – CSP-Header in `docs/reverse-proxy-examples.md` als Referenz-Config ergänzen
+- [ ] **Nginx-Template** – CSP-Header in `../deployment/reverse-proxy-examples.md` als Referenz-Config ergänzen
 
 ### 13b – Cross-Site Request Forgery (CSRF)
 

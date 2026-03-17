@@ -89,7 +89,7 @@ curl http://localhost:4000/api/health
 
 ## 5. HTTPS einrichten
 
-Siehe [docs/reverse-proxy-examples.md](reverse-proxy-examples.md) für Beispiel-Configs.
+Siehe [Reverse-Proxy-Beispiele](reverse-proxy-examples.md) fuer Beispiel-Configs.
 
 **Schnellster Weg (Caddy):**
 
