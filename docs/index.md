@@ -13,9 +13,16 @@
 - [Installation](deployment/install.md) -- Docker-Compose-Deployment, Ersteinrichtung
 - [Reverse Proxy](deployment/reverse-proxy-examples.md) -- Nginx, Caddy, Traefik Konfigurationen
 
+## Compliance (DSGVO)
+
+- [DSGVO-Anforderungen](compliance/dsgvo-anforderungen.md) -- Vollstaendiger Anforderungskatalog (Art. 5-49)
+- [Dateninventar](compliance/dsgvo-dateninventar.md) -- PII-Verzeichnis aller Tabellen, Datenfluss, Loeschkonzept
+- [SaaS-ToDo](compliance/dsgvo-saas-todo.md) -- 65 priorisierte Aufgaben (P0-P3) fuer DSGVO-Konformitaet
+
 ## Security
 
 - [Security Baseline](security/security-baseline.md) -- Auth, CSRF, XSS, Rate Limiting, Haertung
+- [DB-Audit](security/db-audit-2026-03-17.md) -- Schema-Inventar, Hygiene-Befunde, DSGVO-Gaps
 
 ## Planung
 
