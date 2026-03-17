@@ -72,37 +72,23 @@ Statt Schutzmechanismen aufzubauen, wurden die Felder komplett entfernt.
 
 ---
 
-## Sprint 3: Consent Management (Aufgaben 0.3.1–0.3.3)
+## Sprint 3: Consent Management (Aufgaben 0.3.1–0.3.3) – ERLEDIGT
 
-**Fokus:** Nachweisbare Einwilligung gemaess Art. 7 – Consent speichern, versionieren, widerrufen.
+### Umgesetzte Massnahmen
 
-### Aufgaben
+| # | Massnahme | Dateien |
+|---|-----------|---------|
+| 036 | Migration: `consent_receipts` Tabelle (append-only) | `backend/migrations/036_consent_receipts.sql` |
+| 0.3.1 | Consent-Receipt bei jeder Buchung (SSW/BL/EST) | `counselorPublicRoutes.js`, `elternsprechtag/routes/public.js` |
+| 0.3.2 | Frontend sendet consent_version (ssw-v2, bl-v2, est-v2) | `ConsentCheckbox.tsx`, `CounselorBookingApp.tsx`, `BookingForm.tsx` |
+| 0.3.3 | Widerruf-Endpunkt POST /api/consent/withdraw | `backend/routes/consent.js` |
 
-| # | Aufgabe | Dateien |
-|---|---------|---------|
-| 0.3.1 | Consent-Receipt in DB (append-only) | `backend/migrations/035_consent_receipts.sql`, `backend/modules/*/routes/public.js` |
-| 0.3.2 | Consent-Version und Zweck speichern | `src/components/ConsentCheckbox.tsx`, `backend/modules/*/routes/public.js` |
-| 0.3.3 | Widerruf-Endpunkt | `backend/routes/public/consent.js` (neu) |
+### Ergebnis
 
-### Reihenfolge
-
-1. **0.3.1** – Migration + Backend-Logik fuer consent_receipts
-2. **0.3.2** – Frontend + Backend: Version/Zweck in Consent-Flow integrieren
-3. **0.3.3** – Widerruf-Endpunkt (baut auf consent_receipts-Tabelle auf)
-
-### Review & Security
-
-- **Pruefer-Agent** vor Commits
-- Rate-Limiting auf Widerruf-Endpunkt (oeffentlich zugaenglich)
-- Test: Buchung → consent_receipts-Eintrag mit Timestamp, IP, Version pruefen
-- Test: Widerruf → Daten anonymisiert/geloescht, consent_receipt unveraendert
-- Consent-Receipts muessen append-only sein (kein UPDATE/DELETE)
-
-### Dokumentation
-
-- Consent-Schema in Dateninventar aufnehmen
-- Consent-Version-Strategie dokumentieren
-- `dsgvo-saas-todo.md` Checkboxen aktualisieren
+- Jede Buchung erzeugt einen nachweisbaren Consent-Receipt (Art. 7 Abs. 1)
+- Consent-Version versioniert (ssw-v2, bl-v2, est-v2) + Zweck dokumentiert
+- Widerruf anonymisiert Buchungsdaten, Receipt bleibt erhalten
+- Rate-Limiting auf Widerruf-Endpunkt
 
 ---
 

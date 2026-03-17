@@ -157,6 +157,11 @@ router.get('/slots', async (req, res) => {
 router.post('/bookings', async (req, res) => {
   try {
     const payload = req.body || {};
+    const consentVersion = typeof payload.consent_version === 'string' ? payload.consent_version.trim() : '';
+
+    if (!consentVersion) {
+      return res.status(400).json({ error: 'Einwilligung ist erforderlich' });
+    }
 
     // Require active published event before accepting booking requests
     const nowIso = new Date().toISOString();
@@ -174,6 +179,22 @@ router.post('/bookings', async (req, res) => {
     // If the slot is linked to an event, enforce it matches active event
     if (slotRow?.event_id && slotRow.event_id !== activeEventId) {
       return res.status(409).json({ error: 'Dieser Termin gehört nicht zum aktuell freigegebenen Elternsprechtag' });
+    }
+
+    // Consent-Receipt (append-only, Art. 7 Abs. 1)
+    if (slotRow) {
+      await query(
+        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          'elternsprechtag',
+          slotRow.id,
+          consentVersion,
+          'Terminbuchung Elternsprechtag',
+          req.ip || null,
+          req.get('user-agent') || null,
+        ]
+      );
     }
 
     // Send verification email (best-effort)
@@ -239,9 +260,13 @@ router.post('/booking-requests', async (req, res) => {
     const className = typeof payload.className === 'string' ? payload.className.trim() : '';
     const email = typeof payload.email === 'string' ? payload.email.trim() : '';
     const message = typeof payload.message === 'string' ? payload.message.trim() : '';
+    const consentVersion = typeof payload.consent_version === 'string' ? payload.consent_version.trim() : '';
 
     if (!visitorType || !className || !email) {
       return res.status(400).json({ error: 'visitorType, className, email required' });
+    }
+    if (!consentVersion) {
+      return res.status(400).json({ error: 'Einwilligung ist erforderlich' });
     }
 
     const normalize = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -309,6 +334,22 @@ router.post('/booking-requests', async (req, res) => {
       insertValues
     );
     const created = createdRows[0] || null;
+
+    // Consent-Receipt (append-only, Art. 7 Abs. 1)
+    if (created) {
+      await query(
+        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          'elternsprechtag',
+          created.id,
+          consentVersion,
+          'Terminbuchung Elternsprechtag',
+          req.ip || null,
+          req.get('user-agent') || null,
+        ]
+      );
+    }
 
     // Send verification email (best-effort)
     if (created && isEmailConfigured()) {

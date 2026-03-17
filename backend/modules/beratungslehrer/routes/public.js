@@ -13,4 +13,5 @@ export default createCounselorPublicRoutes(service, {
   topicEndpoint: '/topics',
   topicResponseKey: 'topics',
   counselorLabel: 'Beratungslehrer',
+  moduleName: 'beratungslehrer',
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { BookingFormData } from '../../../types';
-import { ConsentCheckbox } from '../../../components/ConsentCheckbox';
+import { ConsentCheckbox, CONSENT_VERSIONS } from '../../../components/ConsentCheckbox';
 
 interface BookingFormProps {
   selectedSlotId: number | null;
@@ -50,7 +50,7 @@ export const BookingForm = ({
     if (visitorType !== 'parent' && visitorType !== 'company') return;
 
     const { visitorType: _, ...rest } = formData;
-    onSubmit({ visitorType, ...rest });
+    onSubmit({ visitorType, ...rest, consent_version: CONSENT_VERSIONS.elternsprechtag });
 
     // Reset form after successful submission
     setFormData(getInitialFormData());

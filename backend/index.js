@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin/index.js';
 import superadminRoutes from './routes/superadmin.js';
+import consentRoutes from './routes/consent.js';
 import { loadModules } from './moduleLoader.js';
 import { initDatabase } from './migrate.js';
 import logger from './config/logger.js';
@@ -105,6 +106,7 @@ app.use((req, _res, next) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/superadmin', adminLimiter, superadminRoutes);
+app.use('/api/consent', bookingLimiter, consentRoutes);
 
 // 404 + Error handler werden erst nach dem Laden der Module registriert (s.u.)
 

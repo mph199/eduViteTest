@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, AppointmentSlot, CounselorBookingConfig, CounselorTopic } from '../../types';
-import { ConsentCheckbox } from '../../components/ConsentCheckbox';
+import { ConsentCheckbox, CONSENT_VERSIONS } from '../../components/ConsentCheckbox';
 import './CounselorBookingApp.css';
 
 export type { CounselorBookingConfig };
@@ -119,6 +119,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
         body: JSON.stringify({
           ...formData,
           [config.topicFieldKey]: formData.topic_id ? parseInt(formData.topic_id) : null,
+          consent_version: CONSENT_VERSIONS[config.moduleId],
         }),
       });
       setStep('success');

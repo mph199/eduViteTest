@@ -16,6 +16,7 @@
  */
 
 import express from 'express';
+import { query } from '../config/db.js';
 
 export function createCounselorPublicRoutes(service, config) {
   const {
@@ -23,6 +24,7 @@ export function createCounselorPublicRoutes(service, config) {
     topicEndpoint,
     topicResponseKey,
     counselorLabel = 'Berater/in',
+    moduleName = 'unknown',
   } = config;
 
   const router = express.Router();
@@ -73,10 +75,13 @@ export function createCounselorPublicRoutes(service, config) {
       if (isNaN(appointmentId)) return res.status(400).json({ error: 'Ungueltige Termin-ID' });
 
       const body = req.body || {};
-      const { student_name, student_class, email, phone, is_urgent } = body;
+      const { student_name, student_class, email, phone, is_urgent, consent_version } = body;
 
       if (!student_name || !String(student_name).trim()) {
         return res.status(400).json({ error: 'Name ist erforderlich' });
+      }
+      if (!consent_version) {
+        return res.status(400).json({ error: 'Einwilligung ist erforderlich' });
       }
 
       const bookingData = {
@@ -89,6 +94,21 @@ export function createCounselorPublicRoutes(service, config) {
       };
 
       const appointment = await service.bookAppointment(appointmentId, bookingData);
+
+      // Consent-Receipt (append-only, Art. 7 Abs. 1)
+      await query(
+        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          moduleName,
+          appointment.id,
+          String(consent_version),
+          'Terminbuchung und Kontaktaufnahme',
+          req.ip || null,
+          req.get('user-agent') || null,
+        ]
+      );
+
       res.json({ success: true, appointment });
     } catch (err) {
       const status = err.statusCode || 500;

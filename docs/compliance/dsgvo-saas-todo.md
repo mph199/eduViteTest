@@ -56,9 +56,9 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 0.3.1 | **Consent-Receipt in DB speichern** – Bei Buchung: Timestamp, IP, User-Agent, Consent-Version, Zweck. Unveraenderbar (append-only). Migration fuer `consent_receipts`-Tabelle. | `backend/migrations/036_*.sql`, `backend/modules/*/routes/public.js` | [ ] |
-| 0.3.2 | **Consent-Checkbox: Version und Zweck speichern** – Aktuell wird nur `checked=true` geprueft. Consent-Version und Verarbeitungszweck muessen nachweisbar sein (Art. 7 Abs. 1). | `src/components/ConsentCheckbox.tsx`, `backend/modules/*/routes/public.js` | [~] |
-| 0.3.3 | **Widerruf-Endpunkt** – Betroffene muessen Einwilligung widerrufen koennen. Bei Widerruf: Daten anonymisieren oder loeschen (abhaengig von Rechtsgrundlage). | `backend/routes/public/consent.js` (neu) | [ ] |
+| 0.3.1 | **Consent-Receipt in DB speichern** – Append-only `consent_receipts`-Tabelle. Bei jeder Buchung (SSW/BL/EST): Timestamp, IP, User-Agent, consent_version, Zweck. | `backend/migrations/036_consent_receipts.sql`, `counselorPublicRoutes.js`, `elternsprechtag/routes/public.js` | [x] |
+| 0.3.2 | **Consent-Checkbox: Version und Zweck speichern** – Frontend sendet `consent_version` (z.B. `ssw-v2`, `est-v2`) im Body mit. Backend validiert Pflichtfeld. | `src/components/ConsentCheckbox.tsx`, `CounselorBookingApp.tsx`, `BookingForm.tsx` | [x] |
+| 0.3.3 | **Widerruf-Endpunkt** – `POST /api/consent/withdraw` anonymisiert Buchungsdaten anhand E-Mail + Modul. Rate-Limited. Widerruf wird in consent_receipts protokolliert. | `backend/routes/consent.js` | [x] |
 
 ### 0.4 Datenschutzerklaerung und Informationspflichten
 
@@ -219,12 +219,12 @@
 
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
-| P0: Go-Live-Blocker | 18 | 8 | 1 | 9 | ~53% |
+| P0: Go-Live-Blocker | 18 | 5 | 0 | 13 | ~72% |
 | P1: Hoch (4 Wochen) | 14 | 14 | 0 | 0 | 0% |
 | P2: Mittel (3 Monate) | 12 | 12 | 0 | 0 | 0% |
 | P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
 | Code-Hygiene | 8 | 8 | 0 | 0 | 0% |
-| **Gesamt** | **65** | **55** | **1** | **9** | **~15%** |
+| **Gesamt** | **65** | **51** | **0** | **14** | **~22%** |
 
 ---
 

@@ -6,13 +6,19 @@ interface ConsentCheckboxProps {
   moduleId: 'elternsprechtag' | 'schulsozialarbeit' | 'beratungslehrer';
 }
 
+export const CONSENT_VERSIONS: Record<string, string> = {
+  elternsprechtag: 'est-v2',
+  schulsozialarbeit: 'ssw-v2',
+  beratungslehrer: 'bl-v2',
+};
+
 const MODULE_TEXTS: Record<string, string> = {
   elternsprechtag:
     'Name, Klasse und E-Mail-Adresse werden zur Terminvergabe verarbeitet und nach Abschluss des Sprechtags geloescht.',
   schulsozialarbeit:
-    'Name, Klasse, Kontaktdaten und Anliegen werden vertraulich verarbeitet und nur der Beratungsperson zugaenglich gemacht.',
+    'Name, Klasse und Kontaktdaten werden vertraulich verarbeitet und nur der Beratungsperson zugaenglich gemacht.',
   beratungslehrer:
-    'Name, Klasse, Kontaktdaten und Anliegen werden vertraulich verarbeitet und nur der Beratungslehrkraft zugaenglich gemacht.',
+    'Name, Klasse und Kontaktdaten werden vertraulich verarbeitet und nur der Beratungslehrkraft zugaenglich gemacht.',
 };
 
 export function ConsentCheckbox({ checked, onChange, moduleId }: ConsentCheckboxProps) {

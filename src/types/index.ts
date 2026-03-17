@@ -43,6 +43,18 @@ export interface BookingFormData {
   className: string;
   email: string;
   message?: string;
+  consent_version?: string;
+}
+
+export interface ConsentReceipt {
+  id: number;
+  module: string;
+  appointment_id: number;
+  consent_version: string;
+  consent_purpose: string;
+  ip_address?: string;
+  user_agent?: string;
+  consented_at: string;
 }
 
 export interface BookingRequest {

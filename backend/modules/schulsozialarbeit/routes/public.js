@@ -13,4 +13,5 @@ export default createCounselorPublicRoutes(service, {
   topicEndpoint: '/categories',
   topicResponseKey: 'categories',
   counselorLabel: 'Berater/innen',
+  moduleName: 'schulsozialarbeit',
 });
