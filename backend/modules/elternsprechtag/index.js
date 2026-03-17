@@ -14,7 +14,15 @@ export default {
 
   /** Express-Routen registrieren */
   register(app, { rateLimiters }) {
-    app.use('/api', rateLimiters.booking, publicRouter);
     app.use('/api/teacher', rateLimiters.admin, teacherRouter);
+    // Rate-Limit nur auf oeffentliche Buchungs-Pfade (nicht alle /api/*)
+    app.use('/api/teachers', rateLimiters.booking);
+    app.use('/api/slots', rateLimiters.booking);
+    app.use('/api/bookings', rateLimiters.booking);
+    app.use('/api/booking-requests', rateLimiters.booking);
+    app.use('/api/events', rateLimiters.booking);
+    app.use('/api/health', rateLimiters.booking);
+    app.use('/api/dev', rateLimiters.booking);
+    app.use('/api', publicRouter);
   },
 };
