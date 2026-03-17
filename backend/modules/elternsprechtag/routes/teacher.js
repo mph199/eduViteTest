@@ -885,7 +885,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
     // Find user by username from token
     const username = req.user.username;
     const { rows: users } = await query(
-      'SELECT id, username, email, role, teacher_id, created_at FROM users WHERE username = $1 LIMIT 1',
+      'SELECT id, username, email, role, teacher_id, password_hash, created_at FROM users WHERE username = $1 LIMIT 1',
       [username]
     );
     if (!users || users.length === 0) {
