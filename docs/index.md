@@ -21,6 +21,8 @@
 
 - [IONOS Migration](planning/ionos-migration.md) -- Migrationsfahrplan Supabase → IONOS
 - [Docker Roadmap](planning/docker-roadmap.md) -- Docker-Infrastruktur, Phasen 1-4
+- [Slot-Vorschlaege UX](planning/slot-suggestions-ux.md) -- Terminanzeige: 5 Vorschlaege + "Weitere anzeigen"
+- [DSGVO Consent-Checkbox](planning/dsgvo-consent-checkbox.md) -- Datenverarbeitungs-Einwilligung fuer Buchungsmodule
 
 ## UX
 

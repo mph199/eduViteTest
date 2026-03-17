@@ -94,6 +94,7 @@ Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch"
 | **Konsistenzpruefer** | During code reviews, regularly for convention drift | `.claude/agents/konsistenzpruefer.md` |
 | **Testmeister** | After feature implementation, to plan test coverage | `.claude/agents/testmeister.md` |
 | **Dokumentar** | After feature completion, schema changes, release prep | `.claude/agents/dokumentar.md` |
+| **DB-Analyst** | Before migrations, for DB hygiene, DSGVO data inventory | `.claude/agents/db-analyst.md` |
 
 ## Quick Start
 
