@@ -157,6 +157,7 @@ export interface Counselor {
   slot_duration_minutes?: number;
   active?: boolean;
   user_id?: number;
+  requires_confirmation?: boolean;
 }
 
 export interface ScheduleEntry {

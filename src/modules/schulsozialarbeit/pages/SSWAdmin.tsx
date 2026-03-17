@@ -3,7 +3,7 @@ import type { Counselor, ScheduleEntry, CounselorTopic as Category, CounselorApp
 import api from '../../../services/api';
 import '../../../pages/AdminDashboard.css';
 
-type Tab = 'counselors' | 'categories' | 'termine';
+type Tab = 'counselors' | 'categories' | 'termine' | 'anfragen';
 
 const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
@@ -27,6 +27,7 @@ const emptyCounselor = {
   available_from: '08:00',
   available_until: '14:00',
   slot_duration_minutes: 30,
+  requires_confirmation: true,
   username: '',
   password: '',
 };
@@ -64,6 +65,10 @@ export function SSWAdmin() {
   const [slotGenFrom, setSlotGenFrom] = useState('');
   const [slotGenUntil, setSlotGenUntil] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  // Anfragen (requested/confirmed bookings)
+  const [requests, setRequests] = useState<Appointment[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   // Schedules overview for table display
   const [schedulesMap, setSchedulesMap] = useState<Record<number, ScheduleEntry[]>>({});
@@ -177,6 +182,7 @@ export function SSWAdmin() {
       available_from: c.available_from?.toString().slice(0, 5) || '08:00',
       available_until: c.available_until?.toString().slice(0, 5) || '14:00',
       slot_duration_minutes: c.slot_duration_minutes || 30,
+      requires_confirmation: c.requires_confirmation !== false,
       username: '',
       password: '',
     });
@@ -191,6 +197,44 @@ export function SSWAdmin() {
       await api.ssw.deleteCounselor(id);
       showFlash('Berater/in gelöscht.');
       loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Fehler');
+    }
+  };
+
+  // ── Anfragen (Requests) ───────────────────────────────────────────
+  const loadRequests = useCallback(async () => {
+    setRequestsLoading(true);
+    try {
+      const data = await api.ssw.getAppointments({ status: 'requested,confirmed' }) as { appointments?: Appointment[] };
+      setRequests(Array.isArray(data?.appointments) ? data.appointments : []);
+    } catch {
+      setRequests([]);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'anfragen') loadRequests();
+  }, [tab, loadRequests]);
+
+  const handleConfirm = async (id: number) => {
+    try {
+      await api.ssw.confirmAppointment(id);
+      showFlash('Termin bestaetigt.');
+      loadRequests();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Fehler');
+    }
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!confirm('Termin wirklich absagen?')) return;
+    try {
+      await api.ssw.cancelAppointment(id);
+      showFlash('Termin abgesagt.');
+      loadRequests();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler');
     }
@@ -321,7 +365,7 @@ export function SSWAdmin() {
 
         {/* Tabs */}
         <div className="module-tabs">
-          {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['categories', 'Themen']] as [Tab, string][]).map(([key, label]) => (
+          {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['anfragen', 'Anfragen'], ['categories', 'Themen']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -431,6 +475,17 @@ export function SSWAdmin() {
                   <div className="form-group">
                     <label htmlFor="ssw-duration">Termindauer (Minuten)</label>
                     <input id="ssw-duration" type="number" min={10} max={120} value={counselorForm.slot_duration_minutes} onChange={e => setCounselorForm({ ...counselorForm, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
+                  </div>
+                  <div className="form-group">
+                    <label className="cb-form__urgent">
+                      <input
+                        type="checkbox"
+                        checked={counselorForm.requires_confirmation}
+                        onChange={e => setCounselorForm({ ...counselorForm, requires_confirmation: e.target.checked })}
+                      />
+                      Manuelle Bestaetigung erforderlich
+                    </label>
+                    <span className="cb-form__hint">Wenn deaktiviert, werden Buchungen direkt bestaetigt.</span>
                   </div>
                   {!editingCounselorId && (
                     <>
@@ -734,6 +789,74 @@ export function SSWAdmin() {
                   </>
                 )}
               </>
+            )}
+          </>
+        )}
+
+        {/* ── Anfragen Tab ──────────────────────────────────────── */}
+        {tab === 'anfragen' && (
+          <>
+            <div className="admin-section-header">
+              <h3>Buchungsanfragen</h3>
+            </div>
+
+            {requestsLoading ? (
+              <p>Lade Anfragen...</p>
+            ) : requests.length === 0 ? (
+              <div className="info-banner">
+                <p>Keine offenen Anfragen vorhanden.</p>
+              </div>
+            ) : (
+              <div className="admin-resp-table-container">
+                <table className="admin-resp-table">
+                  <thead>
+                    <tr>
+                      <th>Datum</th>
+                      <th>Uhrzeit</th>
+                      <th>Status</th>
+                      <th>Schueler/in</th>
+                      <th>Klasse</th>
+                      <th>Kategorie</th>
+                      <th>Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.map(a => {
+                      const dateStr = typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10);
+                      return (
+                        <tr key={a.id}>
+                          <td data-label="Datum">{new Date(dateStr + 'T00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                          <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
+                          <td data-label="Status">
+                            <span className={`status-pill ${a.status === 'requested' ? 'status-pill--requested' : 'status-pill--confirmed'}`}>
+                              {a.status === 'requested' ? 'Angefragt' : a.status === 'confirmed' ? 'Bestaetigt' : a.status}
+                            </span>
+                          </td>
+                          <td data-label="Name">{a.student_name || '--'}</td>
+                          <td data-label="Klasse">{a.student_class || '--'}</td>
+                          <td data-label="Kategorie">{a.category_name || '--'}</td>
+                          <td data-label="Aktionen">
+                            <div className="action-btns action-btns--sm">
+                              {a.status === 'requested' && (
+                                <button className="btn-primary btn--sm"
+                                  onClick={() => handleConfirm(a.id)}>
+                                  Bestaetigen
+                                </button>
+                              )}
+                              {(a.status === 'requested' || a.status === 'confirmed') && (
+                                <button className="btn-secondary btn--sm btn--danger"
+                                  onClick={() => handleCancel(a.id)}>
+                                  Absagen
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </>
         )}

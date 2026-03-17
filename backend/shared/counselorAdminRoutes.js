@@ -72,7 +72,7 @@ export function createCounselorAdminRoutes(config) {
 
   router.get('/counselors', authMiddleware, async (_req, res) => {
     try {
-      const { rows } = await query(`SELECT id, user_id, first_name, last_name, email, salutation, room, phone, specializations, active, created_at FROM ${counselorsTable} ORDER BY last_name, first_name`);
+      const { rows } = await query(`SELECT id, user_id, first_name, last_name, email, salutation, room, phone, specializations, active, requires_confirmation, created_at FROM ${counselorsTable} ORDER BY last_name, first_name`);
       res.json({ counselors: rows });
     } catch (err) {
       res.status(500).json({ error: `Fehler beim Laden der ${counselorLabel}` });
@@ -82,14 +82,14 @@ export function createCounselorAdminRoutes(config) {
   router.post('/counselors', authMiddleware, async (req, res) => {
     try {
       const { first_name, last_name, email, salutation, room, phone, specializations,
-              available_from, available_until, slot_duration_minutes } = req.body || {};
+              available_from, available_until, slot_duration_minutes, requires_confirmation } = req.body || {};
 
       if (!last_name?.trim()) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
       const { rows } = await query(
         `INSERT INTO ${counselorsTable} (first_name, last_name, email, salutation, room, phone,
-         specializations, available_from, available_until, slot_duration_minutes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+         specializations, available_from, available_until, slot_duration_minutes, requires_confirmation)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
         [
           (first_name || '').trim(),
           last_name.trim(),
@@ -101,6 +101,7 @@ export function createCounselorAdminRoutes(config) {
           available_from || '08:00',
           available_until || '14:00',
           slot_duration_minutes || 30,
+          requires_confirmation !== false,
         ]
       );
 
@@ -126,7 +127,7 @@ export function createCounselorAdminRoutes(config) {
     try {
       const id = parseInt(req.params.id, 10);
       const { first_name, last_name, email, salutation, room, phone, specializations,
-              available_from, available_until, slot_duration_minutes, active } = req.body || {};
+              available_from, available_until, slot_duration_minutes, active, requires_confirmation } = req.body || {};
 
       if (!last_name?.trim()) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
@@ -135,8 +136,8 @@ export function createCounselorAdminRoutes(config) {
            first_name = $1, last_name = $2, email = $3, salutation = $4,
            room = $5, phone = $6, specializations = $7,
            available_from = $8, available_until = $9,
-           slot_duration_minutes = $10, active = $11
-         WHERE id = $12 RETURNING *`,
+           slot_duration_minutes = $10, active = $11, requires_confirmation = $12
+         WHERE id = $13 RETURNING *`,
         [
           (first_name || '').trim(),
           last_name.trim(),
@@ -149,6 +150,7 @@ export function createCounselorAdminRoutes(config) {
           available_until || '14:00',
           slot_duration_minutes || 30,
           active !== false,
+          requires_confirmation !== false,
           id,
         ]
       );

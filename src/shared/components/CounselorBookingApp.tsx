@@ -51,6 +51,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
   });
   const [submitting, setSubmitting] = useState(false);
   const [consented, setConsented] = useState(false);
+  const [bookingResult, setBookingResult] = useState<{ status: string } | null>(null);
 
   // Load counselors and topics
   useEffect(() => {
@@ -114,7 +115,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
 
     setSubmitting(true);
     try {
-      await requestJSON(`${config.apiPathPrefix}/appointments/${selectedSlot.id}/book`, {
+      const result = await requestJSON(`${config.apiPathPrefix}/appointments/${selectedSlot.id}/book`, {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
@@ -122,6 +123,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
           consent_version: CONSENT_VERSIONS[config.moduleId],
         }),
       });
+      setBookingResult(result?.appointment ? { status: result.appointment.status } : null);
       setStep('success');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler beim Buchen');
@@ -138,6 +140,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     setSelectedSlot(null);
     setFormData({ student_name: '', student_class: '', email: '', topic_id: '', is_urgent: false });
     setConsented(false);
+    setBookingResult(null);
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -354,7 +357,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 Zurück
               </button>
               <button className="btn-primary" type="submit" disabled={submitting || !consented}>
-                {submitting ? 'Wird gebucht...' : 'Termin anfragen'}
+                {submitting ? 'Wird gebucht...' : (selectedCounselor?.requires_confirmation === false ? 'Termin buchen' : 'Termin anfragen')}
               </button>
             </div>
           </form>
@@ -365,8 +368,10 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
       {step === 'success' && (
         <div className="cb-success">
           <div className="cb-success__icon">&#10003;</div>
-          <h2>Termin angefragt!</h2>
-          <p>Deine Anfrage wurde erfolgreich übermittelt.</p>
+          <h2>{bookingResult?.status === 'confirmed' ? 'Termin bestaetigt!' : 'Termin angefragt!'}</h2>
+          <p>{bookingResult?.status === 'confirmed'
+            ? 'Dein Termin wurde direkt bestaetigt.'
+            : 'Deine Anfrage wurde erfolgreich uebermittelt.'}</p>
           {selectedCounselor && (
             <dl className="cb-success__details">
               <dt>{config.successCounselorLabel}</dt>
@@ -384,7 +389,9 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
             </dl>
           )}
           <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>
-            {config.successMessage}
+            {bookingResult?.status === 'confirmed'
+              ? 'Du kannst direkt zum Termin erscheinen.'
+              : config.successMessage}
           </p>
           <div className="cb-actions" style={{ justifyContent: 'center', marginTop: '1rem' }}>
             <button className="btn-primary" onClick={handleReset}>
