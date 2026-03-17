@@ -26,15 +26,8 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/db.js';
 import { createCounselorService } from './counselorService.js';
+import { assertSafeIdentifier } from './sqlGuards.js';
 import logger from '../config/logger.js';
-
-/** Validates that a string is a safe SQL identifier (lowercase letters, digits, underscores). */
-const SAFE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
-function assertSafeIdentifier(value, label) {
-  if (!SAFE_IDENTIFIER.test(value)) {
-    throw new Error(`Invalid SQL identifier for ${label}: "${value}"`);
-  }
-}
 
 export function createCounselorAdminRoutes(config) {
   const {

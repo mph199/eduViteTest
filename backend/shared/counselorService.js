@@ -13,14 +13,7 @@
  */
 
 import { query } from '../config/db.js';
-
-/** Validates that a string is a safe SQL identifier (lowercase letters, digits, underscores). */
-const SAFE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
-function assertSafeIdentifier(value, label) {
-  if (!SAFE_IDENTIFIER.test(value)) {
-    throw new Error(`Invalid SQL identifier for ${label}: "${value}"`);
-  }
-}
+import { assertSafeIdentifier } from './sqlGuards.js';
 
 export function createCounselorService(config) {
   const {
@@ -46,7 +39,7 @@ export function createCounselorService(config) {
     async listCounselors() {
       const { rows } = await query(
         `SELECT id, first_name, last_name, name, salutation, room, specializations,
-                available_from, available_until, slot_duration_minutes, requires_confirmation
+                available_from, available_until, slot_duration_minutes
          FROM ${counselorsTable} WHERE active = TRUE ORDER BY last_name, first_name`
       );
       return rows;

@@ -17,14 +17,7 @@
 
 import express from 'express';
 import { query } from '../config/db.js';
-
-/** Validates that a string is a safe SQL identifier (lowercase letters, digits, underscores). */
-const SAFE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
-function assertSafeIdentifier(value, label) {
-  if (!SAFE_IDENTIFIER.test(value)) {
-    throw new Error(`Invalid SQL identifier for ${label}: "${value}"`);
-  }
-}
+import { assertSafeIdentifier } from './sqlGuards.js';
 
 export function createCounselorPublicRoutes(service, config) {
   const {
