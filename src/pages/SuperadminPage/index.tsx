@@ -236,7 +236,6 @@ export function SuperadminPage() {
             emailBranding={emailBranding}
             setEb={setEb}
             emailMsg={emailMsg}
-            setEmailMsg={setEmailMsg}
             emailSaving={emailSaving}
             previewEmail={previewEmail}
             setPreviewEmail={setPreviewEmail}

@@ -228,7 +228,7 @@ export function AdminEvents() {
                             </td>
                             <td className="admin-actions-cell" onClick={(e) => e.stopPropagation()}>
                               <div className="action-buttons">
-                                <button type="button" className="btn-secondary btn-sm" onClick={() => toggleExpand(ev.id)}>
+                                <button type="button" className="btn-secondary btn-secondary--sm" onClick={() => toggleExpand(ev.id)}>
                                   {isExpanded ? 'Schließen' : 'Details'}
                                 </button>
                               </div>

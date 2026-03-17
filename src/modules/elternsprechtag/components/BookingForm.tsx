@@ -46,8 +46,7 @@ export const BookingForm = ({
     const visitorType = formData.visitorType;
     if (visitorType !== 'parent' && visitorType !== 'company') return;
 
-    const { visitorType: _visitorType, ...rest } = formData;
-    void _visitorType;
+    const { visitorType: _, ...rest } = formData;
     onSubmit({ visitorType, ...rest });
     
     // Reset form after successful submission

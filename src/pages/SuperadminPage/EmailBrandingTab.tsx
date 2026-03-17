@@ -10,7 +10,6 @@ interface Props {
   emailBranding: EmailBranding;
   setEb: <K extends keyof EmailBranding>(key: K, value: EmailBranding[K]) => void;
   emailMsg: string;
-  setEmailMsg: (msg: string) => void;
   emailSaving: boolean;
   previewEmail: string;
   setPreviewEmail: (v: string) => void;

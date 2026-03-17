@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import api from '../services/api';
@@ -76,8 +76,6 @@ export function AdminFeedback() {
     }
   };
 
-  const visibleRows = useMemo(() => feedback, [feedback]);
-
   return (
     <div className="admin-dashboard">
       <main className="admin-main">
@@ -98,7 +96,7 @@ export function AdminFeedback() {
           <div className="teacher-form-container">
             <div style={{ color: 'var(--color-gray-600)' }}>Lade Feedback…</div>
           </div>
-        ) : visibleRows.length === 0 ? (
+        ) : feedback.length === 0 ? (
           <div className="teacher-form-container">
             <div style={{ color: 'var(--color-gray-600)' }}>Noch kein Feedback vorhanden.</div>
           </div>
@@ -114,7 +112,7 @@ export function AdminFeedback() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map((f) => (
+                  {feedback.map((f) => (
                     <tr key={f.id}>
                       <td>{formatDateTime(f.created_at) || f.created_at}</td>
                       <td className="message-cell">{f.message}</td>

@@ -25,23 +25,11 @@ export const Datenschutz = () => {
         </section>
 
         <section>
-          <h2>2. Hosting und Content Delivery Networks (CDN)</h2>
-          
-          <h3>Vercel</h3>
+          <h2>2. Hosting</h2>
           <p>
-            Diese Website wird auf Servern von Vercel Inc. gehostet. Anbieter ist die 
-            Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, USA.
-          </p>
-          <p>
-            Vercel erhebt folgende Daten: IP-Adresse, Browserinformationen, Betriebssystem, 
-            Zugriffszeitpunkt. Diese Daten werden zur Bereitstellung und Verbesserung des 
-            Dienstes verwendet.
-          </p>
-          <p>
-            Weitere Informationen finden Sie in der Datenschutzerklärung von Vercel: 
-            <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">
-              https://vercel.com/legal/privacy-policy
-            </a>
+            Diese Website wird auf eigenen Servern (Self-Hosting via Docker) betrieben.
+            Dabei werden technisch notwendige Daten wie IP-Adresse, Browserinformationen,
+            Betriebssystem und Zugriffszeitpunkt in Server-Logfiles erfasst.
           </p>
         </section>
 

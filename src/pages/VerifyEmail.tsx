@@ -120,8 +120,8 @@ export function VerifyEmail() {
     <div style={{ maxWidth: 600, margin: '40px auto', padding: '24px', background: 'white', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
       <h2>E-Mail-Verifikation</h2>
       {status === 'idle' && <p>Bitte warten…</p>}
-      {status === 'ok' && <p style={{ color: 'green' }}>{message}</p>}
-      {status === 'error' && <p style={{ color: 'crimson' }}>{message}</p>}
+      {status === 'ok' && <p style={{ color: 'var(--color-success)' }}>{message}</p>}
+      {status === 'error' && <p style={{ color: 'var(--color-error)' }}>{message}</p>}
     </div>
   );
 }

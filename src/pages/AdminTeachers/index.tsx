@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
 import api from '../../services/api';
@@ -55,15 +55,6 @@ export function AdminTeachers() {
       setLoading(false);
     }
   };
-
-  const loadUsers = useCallback(async () => {
-    try {
-      const data = await api.admin.getUsers();
-      setUsers((data || []) as UserAccount[]);
-    } catch {
-      // users are supplementary, don't block on failure
-    }
-  }, []);
 
   useEffect(() => {
     loadTeachers();
@@ -258,7 +249,7 @@ export function AdminTeachers() {
       if (updated) {
         setUsers((prev) => prev.map((u) => (u.id === target.id ? (updated as UserAccount) : u)));
       } else {
-        await loadUsers();
+        await loadTeachers();
       }
       showFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
     } catch (e) {

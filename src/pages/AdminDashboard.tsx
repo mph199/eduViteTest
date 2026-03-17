@@ -325,10 +325,6 @@ export function AdminDashboard() {
           )}
         </div>
 
-        {/* Navigation ist im Menü gebündelt */}
-
-        {/* Counter removed per request */}
-
         {error && (
           <div className="admin-error">
             {error}
