@@ -33,19 +33,7 @@ export function TeacherLayout() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const t = await api.teacher.getInfo().catch(() => null);
-        if (!cancelled) setTeacher((t as TeacherInfo) || null);
-      } catch {
-        if (!cancelled) setTeacher(null);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    refreshTeacher();
   }, []);
 
   const outletContext: TeacherOutletContext = {

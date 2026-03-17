@@ -9,7 +9,7 @@ export function TeacherHome() {
 
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
-  const [activeEventLabel, setActiveEventLabel] = useState('3. März');
+  const [activeEventLabel, setActiveEventLabel] = useState('Termin folgt');
   const [upcomingEventDates, setUpcomingEventDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,7 +19,7 @@ export function TeacherHome() {
 
   const formatEventDateLabel = (isoDate: string) => {
     const parsed = new Date(String(isoDate || ''));
-    if (Number.isNaN(parsed.getTime())) return '3. März';
+    if (Number.isNaN(parsed.getTime())) return 'Termin folgt';
     return new Intl.DateTimeFormat('de-DE', {
       day: 'numeric',
       month: 'long',

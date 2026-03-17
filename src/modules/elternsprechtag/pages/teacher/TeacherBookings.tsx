@@ -340,9 +340,7 @@ export function TeacherBookings() {
                           className={
                             booking.status === 'confirmed'
                               ? 'teacher-status-pill teacher-status-pill--confirmed'
-                              : booking.status === 'reserved'
-                                ? 'teacher-status-pill teacher-status-pill--reserved'
-                                : 'teacher-status-pill teacher-status-pill--reserved'
+                              : 'teacher-status-pill teacher-status-pill--reserved'
                           }
                         >
                           {statusLabel(booking.status)}

@@ -42,7 +42,6 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     student_name: '',
     student_class: '',
     email: '',
-    phone: '',
     concern: '',
     topic_id: '',
     is_urgent: false,
@@ -129,7 +128,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     setSelectedDate('');
     setAvailableSlots([]);
     setSelectedSlot(null);
-    setFormData({ student_name: '', student_class: '', email: '', phone: '', concern: '', topic_id: '', is_urgent: false });
+    setFormData({ student_name: '', student_class: '', email: '', concern: '', topic_id: '', is_urgent: false });
   };
 
   const today = new Date().toISOString().slice(0, 10);
