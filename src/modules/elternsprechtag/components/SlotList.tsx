@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import type { TimeSlot } from '../../../types';
 
+const INITIAL_SLOT_COUNT = 5;
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
 /** Turn "DD.MM.YYYY" into "Freitag, 27.02.2027" */
@@ -29,6 +31,10 @@ export const SlotList = ({
   eventId,
   onSelectSlot,
 }: SlotListProps) => {
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => { setShowAll(false); }, [selectedTeacherId]);
+
   const emptyMessage = !selectedTeacherId
     ? 'Bitte wählen Sie eine Lehrkraft aus, um verfügbare Zeitfenster zu sehen.'
     : eventId === null
@@ -48,25 +54,39 @@ export const SlotList = ({
             {emptyMessage}
           </p>
         ) : (
-          slots.map((slot) => (
-            <button
-              key={slot.id}
-              className={`slot-card ${selectedSlotId === slot.id ? 'selected' : ''}`}
-              type="button"
-              onClick={() => onSelectSlot(slot.id)}
-              role="listitem"
-              aria-pressed={selectedSlotId === slot.id}
-              aria-label={`Zeitfenster ${slot.time} am ${slot.date}`}
-            >
-              <div className="slot-kicker">Zeitraum</div>
-              <div className="slot-time" aria-label="Zeitraum">
-                {slot.time || 'Uhrzeit folgt'}
-              </div>
-              <div className="slot-meta" aria-label="Datum">
-                <span className="slot-date">{formatDateWithWeekday(slot.date)}</span>
-              </div>
-            </button>
-          ))
+          <>
+            {(showAll ? slots : slots.slice(0, INITIAL_SLOT_COUNT)).map((slot) => (
+              <button
+                key={slot.id}
+                className={`slot-card ${selectedSlotId === slot.id ? 'selected' : ''}`}
+                type="button"
+                onClick={() => onSelectSlot(slot.id)}
+                role="listitem"
+                aria-pressed={selectedSlotId === slot.id}
+                aria-label={`Zeitfenster ${slot.time} am ${slot.date}`}
+              >
+                <div className="slot-kicker">Zeitraum</div>
+                <div className="slot-time" aria-label="Zeitraum">
+                  {slot.time || 'Uhrzeit folgt'}
+                </div>
+                <div className="slot-meta" aria-label="Datum">
+                  <span className="slot-date">{formatDateWithWeekday(slot.date)}</span>
+                </div>
+              </button>
+            ))}
+            {!showAll && slots.length > INITIAL_SLOT_COUNT && (
+              <button
+                type="button"
+                className="slot-card slot-show-more"
+                onClick={() => setShowAll(true)}
+                aria-label={`${slots.length - INITIAL_SLOT_COUNT} weitere Zeitfenster anzeigen`}
+              >
+                <div className="slot-show-more-text">
+                  +{slots.length - INITIAL_SLOT_COUNT} weitere Zeitfenster anzeigen
+                </div>
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

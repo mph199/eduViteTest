@@ -531,6 +531,25 @@
   opacity: 0.7;
 }
 
+.slot-card.slot-show-more {
+  border-style: dashed;
+  border-color: var(--brand-primary);
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-card.slot-show-more:hover {
+  background: rgba(var(--brand-primary-rgb), 0.05);
+  transform: translateY(-2px);
+}
+
+.slot-show-more-text {
+  color: var(--brand-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 .slot-time {
   font-weight: 600;
   font-size: 1rem;

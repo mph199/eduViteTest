@@ -156,6 +156,18 @@
   border-color: var(--brand-primary, #123C73);
 }
 
+.cb-slot--show-more {
+  border-style: dashed;
+  border-color: var(--brand-primary, #123C73);
+  color: var(--brand-primary, #123C73);
+  font-weight: 600;
+  background: transparent;
+}
+
+.cb-slot--show-more:hover {
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.05);
+}
+
 .cb-slot--selected {
   border-color: var(--brand-primary, #123C73);
   background: var(--brand-primary, #123C73);

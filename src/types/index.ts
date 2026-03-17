@@ -189,6 +189,7 @@ export interface CounselorBookingConfig {
   apiPathPrefix: string;
   topicEndpoint: string;
   topicResponseKey: string;
+  moduleId: 'schulsozialarbeit' | 'beratungslehrer';
 }
 
 export interface RevokedModuleConflict {

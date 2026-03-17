@@ -15,6 +15,7 @@ const config: CounselorBookingConfig = {
   apiPathPrefix: '/ssw',
   topicEndpoint: '/categories',
   topicResponseKey: 'categories',
+  moduleId: 'schulsozialarbeit',
 };
 
 export function SSWBookingApp() {

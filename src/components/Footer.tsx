@@ -7,7 +7,7 @@ export const Footer = () => {
         <div className="footer-links">
           <span className="footer-link-disabled">Impressum</span>
           <span className="separator">|</span>
-          <span className="footer-link-disabled">Datenschutz</span>
+          <a href="/datenschutz" className="footer-link">Datenschutz</a>
           <span className="separator">|</span>
           <span className="footer-link-disabled">Kontakt</span>
         </div>

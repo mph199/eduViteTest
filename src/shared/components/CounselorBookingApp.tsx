@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, AppointmentSlot, CounselorBookingConfig, CounselorTopic } from '../../types';
+import { ConsentCheckbox } from '../../components/ConsentCheckbox';
 import './CounselorBookingApp.css';
 
 export type { CounselorBookingConfig };
@@ -37,6 +38,9 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
   const [availableSlots, setAvailableSlots] = useState<AppointmentSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AppointmentSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [showAllSlots, setShowAllSlots] = useState(false);
+
+  const INITIAL_SLOT_COUNT = 5;
 
   const [formData, setFormData] = useState({
     student_name: '',
@@ -47,6 +51,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     is_urgent: false,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [consented, setConsented] = useState(false);
 
   // Load counselors and topics
   useEffect(() => {
@@ -85,10 +90,12 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     setSelectedDate('');
     setAvailableSlots([]);
     setSelectedSlot(null);
+    setShowAllSlots(false);
   };
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
+    setShowAllSlots(false);
     if (selectedCounselor && date) loadSlots(selectedCounselor.id, date);
   };
 
@@ -99,6 +106,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consented) return;
     if (!selectedSlot) return;
     if (!formData.student_name.trim()) {
       alert('Bitte gib deinen Namen ein.');
@@ -129,6 +137,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     setAvailableSlots([]);
     setSelectedSlot(null);
     setFormData({ student_name: '', student_class: '', email: '', concern: '', topic_id: '', is_urgent: false });
+    setConsented(false);
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -230,7 +239,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                 <>
                   <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Verfügbare Zeiten:</p>
                   <div className="cb-slots">
-                    {availableSlots.map(slot => (
+                    {(showAllSlots ? availableSlots : availableSlots.slice(0, INITIAL_SLOT_COUNT)).map(slot => (
                       <button
                         key={slot.id}
                         className={`cb-slot${selectedSlot?.id === slot.id ? ' cb-slot--selected' : ''}`}
@@ -239,6 +248,15 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                         {slot.time?.toString().slice(0, 5)} Uhr
                       </button>
                     ))}
+                    {!showAllSlots && availableSlots.length > INITIAL_SLOT_COUNT && (
+                      <button
+                        className="cb-slot cb-slot--show-more"
+                        onClick={() => setShowAllSlots(true)}
+                        aria-label={`${availableSlots.length - INITIAL_SLOT_COUNT} weitere Zeiten anzeigen`}
+                      >
+                        +{availableSlots.length - INITIAL_SLOT_COUNT} weitere
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -335,11 +353,17 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
               Dringend -- Ich brauche möglichst schnell Hilfe
             </label>
 
+            <ConsentCheckbox
+              checked={consented}
+              onChange={setConsented}
+              moduleId={config.moduleId}
+            />
+
             <div className="cb-actions">
               <button className="btn-secondary" type="button" onClick={() => setStep('datetime')}>
                 Zurück
               </button>
-              <button className="btn-primary" type="submit" disabled={submitting}>
+              <button className="btn-primary" type="submit" disabled={submitting || !consented}>
                 {submitting ? 'Wird gebucht...' : 'Termin anfragen'}
               </button>
             </div>

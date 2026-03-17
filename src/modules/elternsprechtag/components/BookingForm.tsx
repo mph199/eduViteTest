@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { BookingFormData } from '../../../types';
+import { ConsentCheckbox } from '../../../components/ConsentCheckbox';
 
 interface BookingFormProps {
   selectedSlotId: number | null;
@@ -31,11 +32,13 @@ export const BookingForm = ({
   });
 
   const [formData, setFormData] = useState<BookingFormState>(getInitialFormData);
+  const [consented, setConsented] = useState(false);
 
   const visitorTypeSelected = formData.visitorType === 'parent' || formData.visitorType === 'company';
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!consented) return;
 
     const formEl = e.currentTarget;
     if (!formEl.checkValidity()) {
@@ -48,13 +51,15 @@ export const BookingForm = ({
 
     const { visitorType: _, ...rest } = formData;
     onSubmit({ visitorType, ...rest });
-    
+
     // Reset form after successful submission
     setFormData(getInitialFormData());
+    setConsented(false);
   };
 
   const handleCancel = () => {
     setFormData(getInitialFormData());
+    setConsented(false);
     onCancel();
   };
 
@@ -229,8 +234,14 @@ export const BookingForm = ({
           </>
         )}
 
+        <ConsentCheckbox
+          checked={consented}
+          onChange={setConsented}
+          moduleId="elternsprechtag"
+        />
+
         <div className="form-actions">
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={!consented}>
             Buchungsanfrage senden
           </button>
           <button

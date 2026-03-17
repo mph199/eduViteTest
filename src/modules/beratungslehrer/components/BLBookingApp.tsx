@@ -15,6 +15,7 @@ const config: CounselorBookingConfig = {
   apiPathPrefix: '/bl',
   topicEndpoint: '/topics',
   topicResponseKey: 'topics',
+  moduleId: 'beratungslehrer',
 };
 
 export function BLBookingApp() {
