@@ -111,7 +111,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 
 | Table | Purpose |
 |-------|---------|
-| `ssw_counselors` | Social worker profiles |
+| `ssw_counselors` | Social worker profiles. Includes `requires_confirmation BOOLEAN NOT NULL DEFAULT TRUE` – when FALSE, bookings are confirmed immediately without manual approval. |
 | `ssw_categories` | Consultation categories |
 | `ssw_appointments` | Appointment slots and bookings |
 | `ssw_weekly_schedule` | Recurring weekly availability |
@@ -120,7 +120,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 
 | Table | Purpose |
 |-------|---------|
-| `bl_counselors` | Guidance counselor profiles |
+| `bl_counselors` | Guidance counselor profiles. Includes `requires_confirmation BOOLEAN NOT NULL DEFAULT TRUE` – when FALSE, bookings are confirmed immediately without manual approval. |
 | `bl_topics` | Consultation topics |
 | `bl_appointments` | Appointment slots and bookings |
 | `bl_weekly_schedule` | Recurring weekly availability |
@@ -191,7 +191,7 @@ Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Se
 
 Shared domain types (consolidated from previously duplicated local definitions):
 - `AdminEvent`, `EventStatus`, `EventStats` – event management
-- `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared
+- `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared. `Counselor.requires_confirmation` controls whether bookings need manual approval.
 - `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI. `CounselorBookingConfig.moduleId` identifiziert das Modul fuer die `ConsentCheckbox`
 
 DSGVO types:
@@ -260,9 +260,9 @@ backend/
 ### Module Route Pattern (SSW/BL)
 
 Each counseling module follows the same 3-router pattern, built from shared factories in `backend/shared/`:
-1. **public.js** – Rate-limited. Counselor list, topics, available slots, booking → `createCounselorPublicRoutes()`
-2. **counselor.js** – `requireAuth` + local counselor check. Own appointments, schedule (module-specific, not shared)
-3. **admin.js** – `requireModuleAccess`. Full CRUD for counselors, topics, appointments → `createCounselorAdminRoutes()`
+1. **public.js** – Rate-limited. Counselor list, topics, available slots, booking → `createCounselorPublicRoutes()`. Booking checks `counselor.requires_confirmation`: when `FALSE`, sets status directly to `confirmed` instead of `requested`.
+2. **counselor.js** – `requireAuth` + local counselor check. Own appointments (with `?status=` and `?date_from=`/`?date_until=` filters for requests tab), schedule (module-specific, not shared)
+3. **admin.js** – `requireModuleAccess`. Full CRUD for counselors (including `requires_confirmation`), topics, appointments → `createCounselorAdminRoutes()`
 
 Module differences are handled via config parameters (table prefix, topic schema, auth middleware, user creation/deletion callbacks).
 
@@ -274,7 +274,7 @@ Module differences are handled via config parameters (table prefix, topic schema
 
 ## Key Design Decisions
 
-1. **Request-based booking** (not direct slot booking) – parents request, teachers accept/decline
+1. **Request-based booking** (not direct slot booking) – parents request, teachers accept/decline. For counseling modules (SSW/BL), the `requires_confirmation` flag on each counselor controls this: when `FALSE`, bookings skip the request step and are immediately set to `confirmed` status.
 2. **Module access via JWT** – `user.modules[]` array baked into token at login time
 3. **No global state library** – React context + local state only
 4. **SSW/BL share identical architecture** – same 3-router backend (via shared factories), same admin page structure

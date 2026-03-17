@@ -71,6 +71,7 @@
 | email | E-Mail-Adresse | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | phone | Telefonnummer | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | salutation | Anrede | Indirekt (Geschlecht) | Grenzwertig | Ja (CASCADE) | Unbegrenzt |
+| requires_confirmation | Konfiguration (Boolean) | Nein | Nein | Ja (CASCADE) | Unbegrenzt |
 
 ---
 
@@ -98,6 +99,7 @@
 | email | E-Mail-Adresse | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | phone | Telefonnummer | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | salutation | Anrede | Indirekt (Geschlecht) | Grenzwertig | Ja (CASCADE) | Unbegrenzt |
+| requires_confirmation | Konfiguration (Boolean) | Nein | Nein | Ja (CASCADE) | Unbegrenzt |
 
 ---
 
