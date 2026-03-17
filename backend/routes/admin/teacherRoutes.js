@@ -537,7 +537,7 @@ router.put('/teachers/:id/reset-login', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { rows: users } = await query('SELECT id, username, display_name, email, role, teacher_id, created_at FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
+    const { rows: users } = await query('SELECT id, username, email, role, teacher_id, created_at FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
     if (!users || users.length === 0) {
       return res.status(404).json({ error: 'Kein Benutzer für diese Lehrkraft gefunden' });
     }

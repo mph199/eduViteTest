@@ -41,7 +41,7 @@ async function collectPersonData(email) {
 
   // 1. Teachers
   const teachers = await query(
-    `SELECT id, name, email, subject, room, created_at, updated_at
+    `SELECT id, name, email, subject, room, created_at
      FROM teachers WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
@@ -49,7 +49,7 @@ async function collectPersonData(email) {
 
   // 2. Users
   const users = await query(
-    `SELECT id, username, display_name, email, role, teacher_id, created_at
+    `SELECT id, username, email, role, teacher_id, created_at
      FROM users WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
@@ -461,7 +461,7 @@ router.get('/audit-log', requireSuperadmin, async (req, res) => {
     const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
     const dataResult = await query(
-      `SELECT a.id, a.user_id, u.display_name AS user_name, a.action, a.table_name,
+      `SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
               a.record_id, a.details, a.ip_address, a.created_at
        FROM audit_log a
        LEFT JOIN users u ON a.user_id = u.id
@@ -513,7 +513,7 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await query(
-      `SELECT a.id, a.user_id, u.display_name AS user_name, a.action, a.table_name,
+      `SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
               a.record_id, a.details, a.ip_address, a.created_at
        FROM audit_log a
        LEFT JOIN users u ON a.user_id = u.id
