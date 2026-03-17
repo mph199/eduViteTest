@@ -21,6 +21,17 @@ export async function getEmailBranding() {
   } catch {
     cachedBranding = null;
   }
+
+  // Merge DSB fields from site_branding
+  try {
+    const { rows: sbRows } = await query(
+      'SELECT dsb_name, dsb_email, responsible_name, privacy_policy_url FROM site_branding WHERE id = 1 LIMIT 1'
+    );
+    if (sbRows[0]) {
+      cachedBranding = { ...cachedBranding, ...sbRows[0] };
+    }
+  } catch { /* site_branding may not have new columns yet */ }
+
   cacheExpiry = now + 60_000;
   return cachedBranding;
 }
@@ -72,6 +83,18 @@ export function wrapEmailHtml({ body, branding }) {
   }
   const footerHtml = esc(b.footer_text).replace(/\n/g, '<br/>');
 
+  // Privacy footer (Art. 13/14 DSGVO)
+  const privacyUrl = b.privacy_policy_url || '/datenschutz';
+  const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
+  const fullPrivacyUrl = privacyUrl.startsWith('http') ? privacyUrl : `${baseUrl}${privacyUrl}`;
+  let privacyFooter = `<a href="${esc(fullPrivacyUrl)}" style="color:#6b7280;text-decoration:underline;">Datenschutzerklaerung</a>`;
+  if (b.responsible_name) {
+    privacyFooter = `Verantwortlich: ${esc(b.responsible_name)} | ${privacyFooter}`;
+  }
+  if (b.dsb_email) {
+    privacyFooter += ` | DSB: <a href="mailto:${esc(b.dsb_email)}" style="color:#6b7280;text-decoration:underline;">${esc(b.dsb_email)}</a>`;
+  }
+
   return `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
@@ -97,6 +120,12 @@ export function wrapEmailHtml({ body, branding }) {
     <tr>
       <td style="padding:16px 24px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280;text-align:center;">
         ${footerHtml}
+      </td>
+    </tr>
+    <!-- Privacy Footer (Art. 13/14 DSGVO) -->
+    <tr>
+      <td style="padding:8px 24px 16px;font-size:11px;color:#9ca3af;text-align:center;">
+        ${privacyFooter}
       </td>
     </tr>
   </table>

@@ -179,6 +179,14 @@ const SITE_BRANDING_DEFAULTS = {
   step_3: 'Daten eingeben und Anfrage absenden',
   tile_images: {},
   background_images: {},
+  dsb_name: '',
+  dsb_email: '',
+  responsible_name: '',
+  responsible_address: '',
+  responsible_email: '',
+  responsible_phone: '',
+  supervisory_authority: '',
+  privacy_policy_url: '/datenschutz',
 };
 
 // GET /api/superadmin/site-branding  (public — no auth, everyone needs the theme)
@@ -220,6 +228,14 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
     step_3:            String(b.step_3 ?? SITE_BRANDING_DEFAULTS.step_3).trim().slice(0, 255),
     tile_images:       typeof b.tile_images === 'object' && b.tile_images !== null ? b.tile_images : {},
     background_images: typeof b.background_images === 'object' && b.background_images !== null ? b.background_images : {},
+    dsb_name:              String(b.dsb_name ?? '').trim().slice(0, 255),
+    dsb_email:             String(b.dsb_email ?? '').trim().slice(0, 255),
+    responsible_name:      String(b.responsible_name ?? '').trim().slice(0, 255),
+    responsible_address:   String(b.responsible_address ?? '').trim().slice(0, 500),
+    responsible_email:     String(b.responsible_email ?? '').trim().slice(0, 255),
+    responsible_phone:     String(b.responsible_phone ?? '').trim().slice(0, 50),
+    supervisory_authority: String(b.supervisory_authority ?? '').trim().slice(0, 500),
+    privacy_policy_url:    (() => { const u = String(b.privacy_policy_url ?? '/datenschutz').trim().slice(0, 500); return u.startsWith('/') || u.startsWith('https://') || u.startsWith('http://') ? u : '/datenschutz'; })(),
   };
 
   try {
@@ -229,20 +245,29 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
         primary_color, primary_dark, primary_darker, secondary_color, ink_color, surface_1, surface_2,
         header_font_color,
         hero_title, hero_text, step_1, step_2, step_3,
-        tile_images, background_images, updated_at
+        tile_images, background_images,
+        dsb_name, dsb_email, responsible_name, responsible_address,
+        responsible_email, responsible_phone, supervisory_authority, privacy_policy_url,
+        updated_at
       ) VALUES (
         1, $1, $2,
         $3, $4, $5, $6, $7, $8, $9,
         $10,
         $11, $12, $13, $14, $15,
-        $16, $17, NOW()
+        $16, $17,
+        $18, $19, $20, $21,
+        $22, $23, $24, $25,
+        NOW()
       )
       ON CONFLICT (id) DO UPDATE SET
         school_name = $1, logo_url = $2,
         primary_color = $3, primary_dark = $4, primary_darker = $5, secondary_color = $6, ink_color = $7, surface_1 = $8, surface_2 = $9,
         header_font_color = $10,
         hero_title = $11, hero_text = $12, step_1 = $13, step_2 = $14, step_3 = $15,
-        tile_images = $16, background_images = $17, updated_at = NOW()
+        tile_images = $16, background_images = $17,
+        dsb_name = $18, dsb_email = $19, responsible_name = $20, responsible_address = $21,
+        responsible_email = $22, responsible_phone = $23, supervisory_authority = $24, privacy_policy_url = $25,
+        updated_at = NOW()
       RETURNING *`,
       [
         values.school_name, values.logo_url,
@@ -250,6 +275,8 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
         values.header_font_color,
         values.hero_title, values.hero_text, values.step_1, values.step_2, values.step_3,
         JSON.stringify(values.tile_images), JSON.stringify(values.background_images),
+        values.dsb_name, values.dsb_email, values.responsible_name, values.responsible_address,
+        values.responsible_email, values.responsible_phone, values.supervisory_authority, values.privacy_policy_url,
       ]
     );
     // ── Sync school_name + primary_color to email_branding ──

@@ -92,19 +92,18 @@ Statt Schutzmechanismen aufzubauen, wurden die Felder komplett entfernt.
 
 ---
 
-## Sprint 4: Informationspflichten & Verarbeitungsverzeichnis (0.4.1–0.4.3, 0.5.1–0.5.2)
+## Sprint 4+5: Informationspflichten & Verarbeitungsverzeichnis – ERLEDIGT
 
-**Fokus:** Rechtliche Dokumente und Transparenzpflichten – Art. 13/14, Art. 30.
+### Umgesetzte Massnahmen
 
-### Aufgaben
-
-| # | Aufgabe | Dateien |
-|---|---------|---------|
-| 0.4.1 | Datenschutzseite vervollstaendigen | `src/pages/Datenschutz.tsx` |
-| 0.4.2 | Datenschutz-Footer in E-Mail-Templates | `backend/emails/template.js` |
-| 0.4.3 | DSB-Kontaktdaten konfigurierbar | `backend/config/` oder `site_branding` |
-| 0.5.1 | Verarbeitungsverzeichnis (Art. 30 Abs. 1) | `docs/compliance/verarbeitungsverzeichnis.md` (neu) |
-| 0.5.2 | AV-Verzeichnis (Art. 30 Abs. 2) | `docs/compliance/av-verzeichnis.md` (neu) |
+| # | Massnahme | Dateien |
+|---|-----------|---------|
+| 037 | Migration: DSB-Kontaktfelder in site_branding | `backend/migrations/037_dsb_contact_fields.sql` |
+| 0.4.3 | DSB/Verantwortlicher konfigurierbar via Superadmin | `backend/routes/superadmin.js` |
+| 0.4.2 | Datenschutz-Footer in allen E-Mails (Art. 13/14) | `backend/emails/template.js` |
+| 0.4.1 | Datenschutzseite dynamisch: alle Module, DSB aus API | `src/pages/Datenschutz.tsx` |
+| 0.5.1 | Verarbeitungsverzeichnis (6 Taetigkeiten + TOM) | `docs/compliance/verarbeitungsverzeichnis.md` |
+| 0.5.2 | AV-Verzeichnis als Vorlage | `docs/compliance/av-verzeichnis.md` |
 
 ### Reihenfolge
 

@@ -66,9 +66,9 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 0.4.1 | **Datenschutzseite vervollstaendigen** – Modulspezifische Abschnitte fuer Elternsprechtag, SSW, BL. Erhobene Daten, Zweck, Rechtsgrundlage, Speicherdauer, Loeschrechte. | `src/pages/Datenschutz.tsx` | [~] |
-| 0.4.2 | **Datenschutz-Footer in alle E-Mail-Templates** – Transaktionale E-Mails muessen Datenschutzhinweis und Link zur Datenschutzerklaerung enthalten. | `backend/emails/template.js` | [ ] |
-| 0.4.3 | **DSB-Kontaktdaten konfigurierbar** – Datenschutzbeauftragter-Kontakt pro Mandant (bei SaaS) oder global. In Datenschutzerklaerung und Impressum. | `backend/config/` oder `site_branding` | [ ] |
+| 0.4.1 | **Datenschutzseite vervollstaendigen** – Alle Module (EST/SSW/BL) mit Daten, Zweck, Rechtsgrundlage, Speicherdauer. Dynamisch aus site_branding (DSB, Verantwortlicher). | `src/pages/Datenschutz.tsx` | [x] |
+| 0.4.2 | **Datenschutz-Footer in alle E-Mail-Templates** – Link zur Datenschutzerklaerung, Verantwortlicher, DSB-Kontakt in jedem transaktionalen E-Mail. | `backend/emails/template.js` | [x] |
+| 0.4.3 | **DSB-Kontaktdaten konfigurierbar** – Migration 037: dsb_name, dsb_email, responsible_*, supervisory_authority, privacy_policy_url in site_branding. Superadmin kann pflegen. | `backend/migrations/037_dsb_contact_fields.sql`, `backend/routes/superadmin.js` | [x] |
 
 ### 0.5 Verarbeitungsverzeichnis (Art. 30)
 
@@ -76,8 +76,8 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 0.5.1 | **Verarbeitungsverzeichnis erstellen** – Formales Dokument gemaess Art. 30 Abs. 1: Verantwortlicher, Zwecke, Kategorien betroffener Personen, Datenkategorien, Empfaenger, Loeschfristen, TOM. Ausgangsbasis: `dsgvo-dateninventar.md`. | `docs/compliance/verarbeitungsverzeichnis.md` (neu) | [ ] |
-| 0.5.2 | **AV-Verzeichnis erstellen** – Separates Verzeichnis als Auftragsverarbeiter (Art. 30 Abs. 2). | `docs/compliance/av-verzeichnis.md` (neu) | [ ] |
+| 0.5.1 | **Verarbeitungsverzeichnis erstellen** – 6 Verarbeitungstaetigkeiten (EST, SSW, BL, Benutzer, Consent, Feedback), TOM-Abschnitt, Aenderungshistorie. | `docs/compliance/verarbeitungsverzeichnis.md` | [x] |
+| 0.5.2 | **AV-Verzeichnis erstellen** – Vorlage fuer Self-Hosted-Deployments mit Unterauftragsverarbeiter-Tabelle. | `docs/compliance/av-verzeichnis.md` | [x] |
 
 ---
 
@@ -219,12 +219,12 @@
 
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
-| P0: Go-Live-Blocker | 18 | 5 | 0 | 13 | ~72% |
+| P0: Go-Live-Blocker | 18 | 0 | 0 | 18 | 100% |
 | P1: Hoch (4 Wochen) | 14 | 14 | 0 | 0 | 0% |
 | P2: Mittel (3 Monate) | 12 | 12 | 0 | 0 | 0% |
 | P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
 | Code-Hygiene | 8 | 8 | 0 | 0 | 0% |
-| **Gesamt** | **65** | **51** | **0** | **14** | **~22%** |
+| **Gesamt** | **65** | **46** | **0** | **19** | **~29%** |
 
 ---
 
