@@ -67,7 +67,7 @@ async function collectPersonData(email) {
 
   // 4. Slots (booked by this email)
   const slots = await query(
-    `SELECT id, teacher_id, event_id, start_time, end_time, booked, status,
+    `SELECT id, teacher_id, event_id, date, time, booked, status,
             visitor_type, parent_name, student_name, company_name, trainee_name,
             representative_name, class_name, email, message, verified_at, created_at, updated_at
      FROM slots WHERE LOWER(email) = LOWER($1)`,
@@ -78,7 +78,7 @@ async function collectPersonData(email) {
   // 5. SSW Appointments
   const sswAppointments = await query(
     `SELECT id, counselor_id, student_name, student_class, email, phone,
-            appointment_date, start_time, end_time, status, restricted, created_at, updated_at
+            date, time, duration_minutes, status, restricted, created_at, updated_at
      FROM ssw_appointments WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
@@ -87,20 +87,15 @@ async function collectPersonData(email) {
   // 6. BL Appointments
   const blAppointments = await query(
     `SELECT id, counselor_id, student_name, student_class, email, phone,
-            appointment_date, start_time, end_time, status, restricted, created_at, updated_at
+            date, time, duration_minutes, status, restricted, created_at, updated_at
      FROM bl_appointments WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
   if (blAppointments.rows.length > 0) data.bl_appointments = blAppointments.rows;
 
-  // 7. Consent Receipts
-  const consentReceipts = await query(
-    `SELECT id, module, appointment_id, consent_version, consent_purpose,
-            action, created_at
-     FROM consent_receipts WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (consentReceipts.rows.length > 0) data.consent_receipts = consentReceipts.rows;
+  // 7. Consent Receipts (no email column – lookup via related appointments)
+  // consent_receipts has no direct email reference; skip for now
+  // TODO: Add email column to consent_receipts or join via appointment tables
 
   return data;
 }
