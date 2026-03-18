@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
-
-const WEEKDAY_LABELS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+import { WEEKDAY_LABELS_FULL } from '../../../shared/constants/weekdays';
 
 function defaultSchedule(): ScheduleEntry[] {
-  return WEEKDAY_LABELS.map((_, i) => ({
+  return WEEKDAY_LABELS_FULL.map((_, i) => ({
     weekday: i,
     start_time: '08:00',
     end_time: '14:00',
@@ -183,7 +182,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
             <div className="form-group">
               <label>Wochenplan</label>
               {scheduleLoading ? (
-                <p>Lade Wochenplan…</p>
+                <p>Lade Wochenplan...</p>
               ) : (
                 <table className="schedule-table">
                   <thead>
@@ -197,7 +196,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                   <tbody>
                     {schedule.map((entry) => (
                       <tr key={entry.weekday} className={entry.active ? undefined : 'tr--inactive'}>
-                        <td data-label="Tag">{WEEKDAY_LABELS[entry.weekday]}</td>
+                        <td data-label="Tag">{WEEKDAY_LABELS_FULL[entry.weekday]}</td>
                         <td data-label="Aktiv">
                           <input
                             type="checkbox"
@@ -285,7 +284,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                   {(() => {
                     const sch = (schedulesMap[c.id] || []).filter(s => s.active);
                     if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '–'} – ${c.available_until?.toString().slice(0, 5) || '–'}`;
-                    return sch.map(s => `${WEEKDAY_LABELS[s.weekday]?.slice(0, 2)} ${s.start_time?.toString().slice(0, 5)}–${s.end_time?.toString().slice(0, 5)}`).join(', ');
+                    return sch.map(s => `${WEEKDAY_LABELS_FULL[s.weekday]?.slice(0, 2)} ${s.start_time?.toString().slice(0, 5)}–${s.end_time?.toString().slice(0, 5)}`).join(', ');
                   })()}
                 </td>
                 <td data-label="Aktionen">

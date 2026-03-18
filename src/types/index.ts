@@ -287,3 +287,13 @@ export interface AuditLogFilter {
   page?: number;
   limit?: number;
 }
+
+/** Response from slot generation endpoints (elternsprechtag, events). */
+export interface GenerateSlotsResponse {
+  success?: boolean;
+  created?: number;
+  skipped?: number;
+  eventDate?: string | null;
+  error?: string;
+  message?: string;
+}

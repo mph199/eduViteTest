@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, CounselorAppointment as Appointment } from '../../../types';
 import api from '../../../services/api';
+import { CalendarPanel } from '../../../shared/components/CalendarPanel';
 
 interface Props {
   counselors: Counselor[];
@@ -129,185 +130,29 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
           </div>
           <div className="form-actions">
             <button className="btn-primary" type="submit" disabled={generating || !calCounselorId}>
-              {generating ? 'Generiere…' : 'Termine freischalten'}
+              {generating ? 'Generiere...' : 'Termine freischalten'}
             </button>
           </div>
         </form>
       </div>
 
       {calCounselorId && (
-        <>
-          <div className="cal-nav">
-            <button
-              className="btn-secondary"
-              onClick={() => setCalMonth(prev => {
-                const d = new Date(prev.year, prev.month - 1, 1);
-                return { year: d.getFullYear(), month: d.getMonth() };
-              })}
-            >
-              &lt;
-            </button>
-            <span className="cal-nav__label">
-              {new Date(calMonth.year, calMonth.month).toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
-            </span>
-            <button
-              className="btn-secondary"
-              onClick={() => setCalMonth(prev => {
-                const d = new Date(prev.year, prev.month + 1, 1);
-                return { year: d.getFullYear(), month: d.getMonth() };
-              })}
-            >
-              &gt;
-            </button>
-          </div>
-
-          {calLoading ? (
-            <p>Lade Termine…</p>
-          ) : (
-            <>
-              {(() => {
-                const year = calMonth.year;
-                const month = calMonth.month;
-                const firstDay = new Date(year, month, 1);
-                const lastDay = new Date(year, month + 1, 0).getDate();
-                let startOffset = firstDay.getDay() - 1;
-                if (startOffset < 0) startOffset = 6;
-
-                const byDate: Record<string, Appointment[]> = {};
-                for (const a of calAppointments) {
-                  const ds = typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10);
-                  (byDate[ds] ||= []).push(a);
-                }
-
-                const cells: React.ReactNode[] = [];
-                for (const label of ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']) {
-                  cells.push(<div key={`h-${label}`} className="cal-grid__header">{label}</div>);
-                }
-                for (let i = 0; i < startOffset; i++) {
-                  cells.push(<div key={`e-${i}`} />);
-                }
-                for (let d = 1; d <= lastDay; d++) {
-                  const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                  const dayAppts = byDate[ds] || [];
-                  const count = dayAppts.length;
-                  const isSelected = calSelectedDate === ds;
-                  const hasBooked = dayAppts.some(a => a.status !== 'available');
-                  const isPast = ds < today;
-
-                  const dayCls = ['cal-day',
-                    count > 0 && 'cal-day--has-appts',
-                    isSelected && 'cal-day--selected',
-                    isPast && 'cal-day--past',
-                  ].filter(Boolean).join(' ');
-
-                  cells.push(
-                    <div
-                      key={d}
-                      onClick={() => { setCalSelectedDate(isSelected ? null : ds); setCalSelectedIds(new Set()); }}
-                      className={dayCls}
-                    >
-                      <div className="cal-day__number">{d}</div>
-                      {count > 0 && (
-                        <div className="cal-day__count">
-                          <span className="cal-day__count-text">{count} Termin{count !== 1 ? 'e' : ''}</span>
-                          {hasBooked && <span className="cal-day__booked-marker">*</span>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                return <div className="cal-grid">{cells}</div>;
-              })()}
-
-              {calSelectedDate && (() => {
-                const dayAppts = calAppointments
-                  .filter(a => {
-                    const ds = typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10);
-                    return ds === calSelectedDate;
-                  })
-                  .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-
-                if (dayAppts.length === 0) return (
-                  <div className="cal-day-panel">
-                    <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-                    <p style={{ marginTop: '0.5rem', color: 'var(--color-gray-500)' }}>Keine Termine an diesem Tag.</p>
-                  </div>
-                );
-
-                const allSelected = dayAppts.every(a => calSelectedIds.has(a.id));
-
-                return (
-                  <div className="cal-day-panel">
-                    <div className="cal-day-panel__header">
-                      <strong>{new Date(calSelectedDate + 'T00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-                      <div className="cal-day-panel__actions">
-                        <label className="cal-day-panel__select-all">
-                          <input
-                            type="checkbox"
-                            checked={allSelected}
-                            onChange={() => {
-                              if (allSelected) {
-                                setCalSelectedIds(new Set());
-                              } else {
-                                setCalSelectedIds(new Set(dayAppts.map(a => a.id)));
-                              }
-                            }}
-                          />
-                          Alle
-                        </label>
-                        {calSelectedIds.size > 0 && (
-                          <button
-                            className="btn-secondary btn--sm btn--danger"
-                            disabled={calDeleting}
-                            onClick={handleDeleteSelectedAppointments}
-                          >
-                            {calDeleting ? 'Loesche…' : `${calSelectedIds.size} loeschen`}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="admin-resp-table-container">
-                      <table className="admin-resp-table">
-                        <thead>
-                          <tr>
-                            <th></th>
-                            <th>Uhrzeit</th>
-                            <th>Status</th>
-                            <th>Schueler/in</th>
-                            <th>Kategorie</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dayAppts.map(a => (
-                            <tr key={a.id} className={calSelectedIds.has(a.id) ? 'row--selected' : undefined}>
-                              <td data-label="">
-                                <input
-                                  type="checkbox"
-                                  checked={calSelectedIds.has(a.id)}
-                                  onChange={() => setCalSelectedIds(prev => {
-                                    const next = new Set(prev);
-                                    if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
-                                    return next;
-                                  })}
-                                />
-                              </td>
-                              <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
-                              <td data-label="Status">{statusLabel(a.status)}</td>
-                              <td data-label="Name">{a.student_name || '–'}</td>
-                              <td data-label="Kategorie">{a.category_name || '–'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })()}
-            </>
-          )}
-        </>
+        <CalendarPanel
+          calMonth={calMonth}
+          setCalMonth={setCalMonth}
+          appointments={calAppointments}
+          loading={calLoading}
+          selectedDate={calSelectedDate}
+          setSelectedDate={setCalSelectedDate}
+          selectedIds={calSelectedIds}
+          setSelectedIds={setCalSelectedIds}
+          deleting={calDeleting}
+          onDeleteSelected={handleDeleteSelectedAppointments}
+          statusLabel={statusLabel}
+          today={today}
+          detailColumnLabel="Kategorie"
+          detailColumnValue={a => a.category_name}
+        />
       )}
     </>
   );
