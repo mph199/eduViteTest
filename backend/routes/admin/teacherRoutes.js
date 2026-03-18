@@ -10,6 +10,7 @@ import { resolveActiveEvent } from '../../utils/resolveActiveEvent.js';
 import logger from '../../config/logger.js';
 import { generateUsername, generateUniqueUsername } from '../../shared/generateUsername.js';
 import { validatePassword } from '../../shared/validatePassword.js';
+import { parseCSV, mapColumns } from '../../utils/csvImport.js';
 
 const router = express.Router();
 const csvUpload = multer({
@@ -25,67 +26,6 @@ const csvUpload = multer({
     }
   },
 });
-
-// ── CSV helpers ─────────────────────────────────────────────────────────
-
-function parseCSV(text) {
-  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  if (lines.length < 2) return { headers: [], rows: [] };
-
-  const parseLine = (line) => {
-    const fields = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQuotes) {
-        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-        else if (ch === '"') { inQuotes = false; }
-        else { current += ch; }
-      } else {
-        if (ch === '"') { inQuotes = true; }
-        else if (ch === ';' || ch === ',') { fields.push(current.trim()); current = ''; }
-        else { current += ch; }
-      }
-    }
-    fields.push(current.trim());
-    return fields;
-  };
-
-  const headerLine = lines.findIndex(l => l.trim().length > 0);
-  if (headerLine < 0) return { headers: [], rows: [] };
-  const headers = parseLine(lines[headerLine]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
-  const rows = [];
-  for (let i = headerLine + 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const vals = parseLine(line);
-    const row = {};
-    headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
-    rows.push(row);
-  }
-  return { headers, rows };
-}
-
-const COL_ALIASES = {
-  last_name:  ['nachname', 'last_name', 'lastname', 'familienname', 'name'],
-  first_name: ['vorname', 'first_name', 'firstname'],
-  email:      ['email', 'e-mail', 'e_mail', 'mail'],
-  salutation: ['anrede', 'salutation'],
-  room:       ['raum', 'room', 'zimmer'],
-  subject:    ['fach', 'subject', 'fächer'],
-  available_from:  ['von', 'from', 'available_from', 'sprechzeit_von'],
-  available_until: ['bis', 'until', 'available_until', 'sprechzeit_bis'],
-};
-
-function mapColumns(headers) {
-  const mapping = {};
-  for (const [field, aliases] of Object.entries(COL_ALIASES)) {
-    const found = headers.find(h => aliases.includes(h));
-    if (found) mapping[field] = found;
-  }
-  return mapping;
-}
 
 // ── Helper: create user account for teacher ─────────────────────────────
 

@@ -3,6 +3,7 @@ import type { Counselor, CounselorAppointment as Appointment } from '../../../ty
 import api from '../../../services/api';
 import { CalendarPanel } from '../../../shared/components/CalendarPanel';
 import { statusLabel } from '../../../shared/utils/statusLabel';
+import { getMonthRange } from '../../../shared/utils/dateRange';
 
 interface Props {
   counselors: Counselor[];
@@ -28,9 +29,7 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
   const loadCalendarAppointments = useCallback(async (counselorId: number, year: number, month: number) => {
     setCalLoading(true);
     try {
-      const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      const dateUntil = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const { dateFrom, dateUntil } = getMonthRange(year, month);
       const data = await api.ssw.getAdminAppointments(counselorId, dateFrom, dateUntil);
       setCalAppointments(Array.isArray(data?.appointments) ? data.appointments : []);
     } catch {

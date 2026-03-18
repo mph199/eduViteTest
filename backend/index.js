@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -96,9 +97,16 @@ app.use('/uploads', (_req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
+// Request-ID for correlation (I-03)
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || crypto.randomUUID();
+  res.setHeader('X-Request-Id', req.id);
+  next();
+});
+
 // Request logging
 app.use((req, _res, next) => {
-  logger.info({ method: req.method, url: req.url }, 'request');
+  logger.info({ method: req.method, url: req.url, reqId: req.id }, 'request');
   next();
 });
 
