@@ -1,34 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const RAW_API_BASE =
-  (import.meta as any).env?.VITE_API_URL || '/api';
-const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
-const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
-
-/**
- * Resolve an image path to a full URL, sanitized for safe CSS url() embedding.
- * Prevents CSS injection by encoding characters that could break out of url().
- * Returns a bare URL string (not wrapped in CSS url()).
- */
-function resolveCssUrl(value: string, uploadPrefix: string): string {
-  if (!value) return '';
-  let resolved: string;
-  if (/^https?:\/\//i.test(value)) {
-    resolved = value;
-  } else if (value.startsWith('/uploads/') || value.startsWith('/api/')) {
-    // Block path traversal (.. or percent-encoded variants)
-    if (/\.\.|%2e/i.test(value)) return '';
-    resolved = `${BACKEND_BASE}${value}`;
-  } else if (/^[\w.\-]+$/.test(value)) {
-    // Bare filename (alphanumerics, dots, hyphens, underscores only)
-    resolved = `${BACKEND_BASE}${uploadPrefix}${value}`;
-  } else {
-    // Reject data:, javascript:, ftp:, path traversal, etc.
-    return '';
-  }
-  // Encode chars that can break out of CSS url() context
-  return resolved.replace(/[)"'\\(;\s{}]/g, (ch) => encodeURIComponent(ch));
-}
+import { API_BASE } from './apiBase';
+import { resolveLogoUrl, resolveBgUrl, resolveTileUrl } from './mediaUtils';
 
 async function uploadFile(endpoint: string, fieldName: string, file: File): Promise<any> {
   const form = new FormData();
@@ -130,13 +103,12 @@ const api = {
     async login(username: string, password: string) {
       return requestJSON('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
     },
     async verify() {
       try {
-        const data = await requestJSON('/auth/verify', {});
+        const data = await requestJSON('/auth/verify');
         return data || { authenticated: false } as any;
       } catch {
         return { authenticated: false } as any;
@@ -150,7 +122,7 @@ const api = {
   // Admin endpoints
   admin: {
     async getBookings() {
-      const res = await requestJSON('/admin/bookings', {});
+      const res = await requestJSON('/admin/bookings');
       return (res && (res as any).bookings) || [];
     },
     async cancelBooking(bookingId: number, cancellationMessage: string) {
@@ -161,7 +133,7 @@ const api = {
       });
     },
     async getTeachers() {
-      const res = await requestJSON('/admin/teachers', {});
+      const res = await requestJSON('/admin/teachers');
       return (res && (res as any).teachers) || [];
     },
     async createTeacher(payload: any) {
@@ -182,7 +154,7 @@ const api = {
       return requestJSON(`/admin/teachers/${id}`, { method: 'DELETE'});
     },
     async getTeacherBL(teacherId: number) {
-      return requestJSON(`/admin/teachers/${teacherId}/bl`, {});
+      return requestJSON(`/admin/teachers/${teacherId}/bl`);
     },
     async importTeachersCSV(file: File) {
       const formData = new FormData();
@@ -199,7 +171,7 @@ const api = {
       return data;
     },
     async getSlots() {
-      return requestJSON('/admin/slots', {});
+      return requestJSON('/admin/slots');
     },
     async createSlot(payload: any) {
       return requestJSON('/admin/slots', {
@@ -227,7 +199,7 @@ const api = {
 
     // Events
     async getEvents() {
-      const res = await requestJSON('/admin/events', {});
+      const res = await requestJSON('/admin/events');
       return (res && (res as any).events) || [];
     },
     async createEvent(payload: any) {
@@ -248,7 +220,7 @@ const api = {
       return requestJSON(`/admin/events/${id}`, { method: 'DELETE'});
     },
     async getEventStats(eventId: number) {
-      return requestJSON(`/admin/events/${eventId}/stats`, {});
+      return requestJSON(`/admin/events/${eventId}/stats`);
     },
     async generateEventSlots(eventId: number, payload: any) {
       return requestJSON(`/admin/events/${eventId}/generate-slots`, {
@@ -260,7 +232,7 @@ const api = {
 
     // Feedback (anonymous)
     async listFeedback() {
-      const res = await requestJSON('/admin/feedback', {});
+      const res = await requestJSON('/admin/feedback');
       return (res && (res as any).feedback) || [];
     },
 
@@ -271,7 +243,7 @@ const api = {
 
     // Users / Roles
     async getUsers() {
-      const res = await requestJSON('/admin/users', {});
+      const res = await requestJSON('/admin/users');
       return (res && (res as any).users) || [];
     },
     async updateUserRole(id: number, role: string) {
@@ -303,15 +275,15 @@ const api = {
   // Teacher endpoints
   teacher: {
     async getBookings() {
-      const res = await requestJSON('/teacher/bookings', {});
+      const res = await requestJSON('/teacher/bookings');
       return (res && (res as any).bookings) || [];
     },
     async getSlots() {
-      const res = await requestJSON('/teacher/slots', {});
+      const res = await requestJSON('/teacher/slots');
       return (res && (res as any).slots) || [];
     },
     async getInfo() {
-      const res = await requestJSON('/teacher/info', {});
+      const res = await requestJSON('/teacher/info');
       return (res && (res as any).teacher) || null;
     },
     async updateRoom(room: string | null) {
@@ -335,7 +307,7 @@ const api = {
     },
 
     async getRequests() {
-      const res = await requestJSON('/teacher/requests', {});
+      const res = await requestJSON('/teacher/requests');
       return (res && (res as any).requests) || [];
     },
 
@@ -376,10 +348,10 @@ const api = {
   // Beratungslehrer (counselor) endpoints
   bl: {
     async getProfile() {
-      return requestJSON('/bl/counselor/profile', {});
+      return requestJSON('/bl/counselor/profile');
     },
     async getSchedule() {
-      return requestJSON('/bl/counselor/schedule', {});
+      return requestJSON('/bl/counselor/schedule');
     },
     async updateSchedule(schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON('/bl/counselor/schedule', {
@@ -394,7 +366,7 @@ const api = {
       if (params.date_until) qs.set('date_until', params.date_until);
       if (params.status) qs.set('status', params.status);
       const query = qs.toString();
-      return requestJSON(`/bl/counselor/appointments${query ? `?${query}` : ''}`, {});
+      return requestJSON(`/bl/counselor/appointments${query ? `?${query}` : ''}`);
     },
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
       return requestJSON('/bl/counselor/generate-slots', {
@@ -417,10 +389,10 @@ const api = {
     },
     // Admin-only
     async getAdminCounselors() {
-      return requestJSON('/bl/admin/counselors', {});
+      return requestJSON('/bl/admin/counselors');
     },
     async getAdminTopics() {
-      return requestJSON('/bl/admin/topics', {});
+      return requestJSON('/bl/admin/topics');
     },
     async createTopic(payload: { name: string; description?: string; sort_order?: number }) {
       return requestJSON('/bl/admin/topics', {
@@ -437,7 +409,7 @@ const api = {
       });
     },
     async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON(`/bl/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, {});
+      return requestJSON(`/bl/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`);
     },
     async deleteAppointments(ids: number[]) {
       return requestJSON('/bl/admin/appointments', {
@@ -447,7 +419,7 @@ const api = {
       });
     },
     async getAdminCounselorSchedule(counselorId: number) {
-      return requestJSON(`/bl/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {});
+      return requestJSON(`/bl/admin/counselors/${encodeURIComponent(counselorId)}/schedule`);
     },
   },
 
@@ -455,7 +427,7 @@ const api = {
   ssw: {
     // Admin
     async getAdminCounselors() {
-      return requestJSON('/ssw/admin/counselors', {});
+      return requestJSON('/ssw/admin/counselors');
     },
     async createCounselor(payload: any) {
       return requestJSON('/ssw/admin/counselors', {
@@ -478,7 +450,7 @@ const api = {
       });
     },
     async getAdminCategories() {
-      return requestJSON('/ssw/admin/categories', {});
+      return requestJSON('/ssw/admin/categories');
     },
     async createCategory(payload: { name: string; description?: string; icon?: string; sort_order?: number }) {
       return requestJSON('/ssw/admin/categories', {
@@ -495,10 +467,10 @@ const api = {
       });
     },
     async getAdminStats() {
-      return requestJSON('/ssw/admin/stats', {});
+      return requestJSON('/ssw/admin/stats');
     },
     async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON(`/ssw/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`, {});
+      return requestJSON(`/ssw/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`);
     },
     async deleteAppointments(ids: number[]) {
       return requestJSON('/ssw/admin/appointments', {
@@ -508,7 +480,7 @@ const api = {
       });
     },
     async getAdminCounselorSchedule(counselorId: number) {
-      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {});
+      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`);
     },
     async updateAdminCounselorSchedule(counselorId: number, schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {
@@ -525,7 +497,7 @@ const api = {
       if (params.date_until) qs.set('date_until', params.date_until);
       if (params.status) qs.set('status', params.status);
       const query = qs.toString();
-      return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`, {});
+      return requestJSON(`/ssw/counselor/appointments${query ? `?${query}` : ''}`);
     },
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/generate-slots`, {
@@ -551,7 +523,7 @@ const api = {
   // Superadmin endpoints
   superadmin: {
     async getEmailBranding() {
-      return requestJSON('/superadmin/email-branding', {});
+      return requestJSON('/superadmin/email-branding');
     },
     async updateEmailBranding(payload: {
       school_name: string;
@@ -575,14 +547,7 @@ const api = {
     async uploadLogo(file: File) {
       return uploadFile('/superadmin/logo', 'logo', file);
     },
-    /** Resolve a relative upload path to a full URL for preview (bare URL, not CSS-wrapped) */
-    resolveLogoUrl(logoUrl: string): string {
-      if (!logoUrl) return '';
-      if (/^https?:\/\//i.test(logoUrl)) return logoUrl;
-      if (logoUrl.startsWith('/') && !/\.\.|%2e/i.test(logoUrl)) return `${BACKEND_BASE}${logoUrl}`;
-      if (/^[\w.\-]+$/.test(logoUrl)) return `${BACKEND_BASE}/uploads/logos/${logoUrl}`;
-      return '';
-    },
+    resolveLogoUrl,
     // ── Site Branding ──────────────────────────────────
     async getSiteBranding() {
       return requestJSON('/superadmin/site-branding');
@@ -611,14 +576,8 @@ const api = {
     async uploadBgImage(file: File): Promise<{ bg_url: string }> {
       return uploadFile('/superadmin/bg-image', 'bg', file);
     },
-    /** Resolve a background image path to a full URL, sanitized for CSS url() */
-    resolveBgUrl(bgUrl: string): string {
-      return resolveCssUrl(bgUrl, '/uploads/bg/');
-    },
-    /** Resolve a tile image path to a full URL, sanitized for CSS url() */
-    resolveTileUrl(tileUrl: string): string {
-      return resolveCssUrl(tileUrl, '/uploads/tiles/');
-    },
+    resolveBgUrl,
+    resolveTileUrl,
     // ── Module Configuration ──────────────────────────
     /** All modules (superadmin only) */
     async getModuleConfig(): Promise<{ module_id: string; enabled: boolean }[]> {
@@ -693,5 +652,6 @@ const api = {
   },
 };
 
-export { API_BASE };
+export { API_BASE } from './apiBase';
+export { BACKEND_BASE } from './apiBase';
 export default api;

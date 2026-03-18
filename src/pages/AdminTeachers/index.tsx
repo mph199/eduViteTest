@@ -289,7 +289,7 @@ export function AdminTeachers() {
         <div className="admin-section-header">
           <h2>Benutzer & Rechte verwalten</h2>
           {!showForm && !csvImport.show && (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="admin-actions-row">
               <button onClick={() => setShowForm(true)} className="btn-primary">
                 + Neuer Nutzer
               </button>

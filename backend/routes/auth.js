@@ -18,6 +18,14 @@ const loginLimiter = rateLimit({
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Account lockout configuration
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+// In-memory lockout for ADMIN_USER (no DB row to track against)
+let adminFailedAttempts = 0;
+let adminLockedUntil = 0;
+
 function cookieOptions() {
   return {
     httpOnly: true,
@@ -42,18 +50,53 @@ router.post('/login', loginLimiter, async (req, res) => {
     });
   }
 
+  // Cap password length to prevent bcrypt DoS (bcrypt truncates at 72 bytes anyway)
+  if (password.length > 1024) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'Password too long'
+    });
+  }
+
   try {
     // 1) System-Admin Credentials (aus Umgebungsvariablen)
-    const isValidAdmin = await verifyCredentials(username, password);
-    if (isValidAdmin && ADMIN_USER) {
-      const user = { username: ADMIN_USER.username, role: 'superadmin' };
-      const token = generateToken(user);
-      logger.info('Admin login successful');
-      res.cookie('token', token, cookieOptions());
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        user
+    if (ADMIN_USER && username === ADMIN_USER.username) {
+      // In-memory lockout check for admin account
+      if (adminLockedUntil > Date.now()) {
+        logSecurityEvent('LOGIN_LOCKED', { username }, req.ip);
+        return res.status(423).json({
+          error: 'Account gesperrt',
+          message: 'Konto voruebergehend gesperrt. Bitte spaeter erneut versuchen.'
+        });
+      }
+
+      const isValidAdmin = await verifyCredentials(username, password);
+      if (isValidAdmin) {
+        adminFailedAttempts = 0;
+        adminLockedUntil = 0;
+        const user = { username: ADMIN_USER.username, role: 'superadmin' };
+        const token = generateToken(user);
+        logger.info('Admin login successful');
+        res.cookie('token', token, cookieOptions());
+        return res.json({
+          success: true,
+          message: 'Login successful',
+          user
+        });
+      }
+
+      // Admin password wrong
+      adminFailedAttempts += 1;
+      if (adminFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+        adminLockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+        logSecurityEvent('ACCOUNT_LOCKED', { username, attempts: adminFailedAttempts }, req.ip);
+      } else {
+        logSecurityEvent('LOGIN_FAIL', { username, reason: 'wrong_password', attempts: adminFailedAttempts }, req.ip);
+      }
+
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid credentials'
       });
     }
 
@@ -61,12 +104,14 @@ router.post('/login', loginLimiter, async (req, res) => {
     const isEmail = username.includes('@');
     const { rows: users } = await query(
       isEmail
-        ? 'SELECT id, username, email, role, password_hash, teacher_id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
-        : 'SELECT id, username, email, role, password_hash, teacher_id FROM users WHERE username = $1 LIMIT 1',
-      [isEmail ? username : username]
+        ? 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
+        : 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until FROM users WHERE username = $1 LIMIT 1',
+      [username]
     );
 
     if (!users || users.length === 0) {
+      // Constant-time compare to prevent timing-based user enumeration
+      await bcrypt.compare(password, '$2a$10$x'.padEnd(60, '.'));
       logSecurityEvent('LOGIN_FAIL', { username, reason: 'user_not_found' }, req.ip);
       return res.status(401).json({
         error: 'Unauthorized',
@@ -76,13 +121,52 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const dbUser = users[0];
 
+    // Account lockout check
+    if (dbUser.locked_until && new Date(dbUser.locked_until).getTime() > Date.now()) {
+      logSecurityEvent('LOGIN_LOCKED', { username }, req.ip);
+      return res.status(423).json({
+        error: 'Account gesperrt',
+        message: 'Konto voruebergehend gesperrt. Bitte spaeter erneut versuchen.'
+      });
+    }
+
     const passwordOk = await bcrypt.compare(password, dbUser.password_hash || '');
     if (!passwordOk) {
-      logSecurityEvent('LOGIN_FAIL', { username, reason: 'wrong_password' }, req.ip);
+      // Atomic increment to prevent race conditions with parallel requests
+      const lockUntilVal = new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString();
+      const { rows: updated } = await query(
+        `UPDATE users SET
+           failed_login_attempts = failed_login_attempts + 1,
+           last_failed_login = NOW(),
+           locked_until = CASE WHEN failed_login_attempts + 1 >= $1 THEN $2::timestamptz ELSE locked_until END
+         WHERE id = $3
+         RETURNING failed_login_attempts`,
+        [MAX_FAILED_ATTEMPTS, lockUntilVal, dbUser.id]
+      );
+
+      const newAttempts = updated[0]?.failed_login_attempts || 0;
+      const locked = newAttempts >= MAX_FAILED_ATTEMPTS;
+
+      if (locked) {
+        logSecurityEvent('ACCOUNT_LOCKED', { username, attempts: newAttempts }, req.ip);
+      } else {
+        logSecurityEvent('LOGIN_FAIL', { username, reason: 'wrong_password', attempts: newAttempts }, req.ip);
+      }
+
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Invalid credentials'
+        message: locked
+          ? 'Konto wurde nach zu vielen Fehlversuchen gesperrt.'
+          : 'Invalid credentials'
       });
+    }
+
+    // Reset failed login attempts on successful login
+    if (dbUser.failed_login_attempts > 0 || dbUser.locked_until) {
+      await query(
+        'UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_failed_login = NULL WHERE id = $1',
+        [dbUser.id]
+      );
     }
 
     // Nur bekannte Rollen erlauben
@@ -130,7 +214,7 @@ router.post('/login', loginLimiter, async (req, res) => {
  * Token wird clientseitig gelöscht
  */
 router.post('/logout', (_req, res) => {
-  res.clearCookie('token', { path: '/' });
+  res.clearCookie('token', cookieOptions());
   res.json({
     success: true,
     message: 'Logout successful'
@@ -139,7 +223,7 @@ router.post('/logout', (_req, res) => {
 
 // Optional: accept DELETE for clients using DELETE /logout
 router.delete('/logout', (_req, res) => {
-  res.clearCookie('token', { path: '/' });
+  res.clearCookie('token', cookieOptions());
   res.json({
     success: true,
     message: 'Logout successful'

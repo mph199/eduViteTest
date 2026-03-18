@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, CounselorAppointment as Appointment } from '../../../types';
 import api from '../../../services/api';
 import { CalendarPanel } from '../../../shared/components/CalendarPanel';
+import { statusLabel } from '../../../shared/utils/statusLabel';
 
 interface Props {
   counselors: Counselor[];
@@ -82,17 +83,6 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
       alert(err instanceof Error ? err.message : 'Fehler beim Loeschen');
     } finally {
       setCalDeleting(false);
-    }
-  };
-
-  const statusLabel = (s: string) => {
-    switch (s) {
-      case 'available': return 'Frei';
-      case 'requested': return 'Angefragt';
-      case 'confirmed': return 'Bestaetigt';
-      case 'cancelled': return 'Abgesagt';
-      case 'completed': return 'Abgeschlossen';
-      default: return s;
     }
   };
 

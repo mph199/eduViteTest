@@ -11,7 +11,19 @@ import logger from '../../config/logger.js';
 import { generateUsername, generateUniqueUsername } from '../../shared/generateUsername.js';
 
 const router = express.Router();
-const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['text/csv', 'application/vnd.ms-excel'];
+    const ext = (file.originalname || '').split('.').pop()?.toLowerCase();
+    if (allowed.includes(file.mimetype) && ext === 'csv') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  },
+});
 
 // ── CSV helpers ─────────────────────────────────────────────────────────
 

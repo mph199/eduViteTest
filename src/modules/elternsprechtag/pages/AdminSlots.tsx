@@ -246,7 +246,7 @@ export function AdminSlots() {
             <>
               {selectedTeacher && (
                 <div className="settings-info" style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="admin-actions-row admin-actions-row--between">
                     <div>
                       <h3>Sprechzeiten für {teacherDisplayName(selectedTeacher)}</h3>
                       <p>Sprechzeiten: {selectedTeacher.available_from || '16:00'} – {selectedTeacher.available_until || '19:00'}</p>

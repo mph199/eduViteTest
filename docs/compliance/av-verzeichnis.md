@@ -1,6 +1,6 @@
 # Verzeichnis der Auftragsverarbeitungstaetigkeiten (Art. 30 Abs. 2 DSGVO)
 
-> **Stand:** 2026-03-17 | **Version:** 1.0
+> **Stand:** 2026-03-18 | **Version:** 1.1
 > **System:** eduViteTest – Modulares Schulverwaltungssystem
 
 ---
@@ -13,7 +13,11 @@
 | Anschrift | [wird pro Deployment konfiguriert] |
 | Kontakt DSB | [wird aus `site_branding.dsb_name` / `site_branding.dsb_email` geladen] |
 
-> **Hinweis:** eduViteTest ist eine Self-Hosted-Anwendung. Der Auftragsverarbeiter ist der Betreiber der jeweiligen Instanz (i.d.R. der Schultraeger oder IT-Dienstleister). Dieses Verzeichnis ist eine Vorlage, die pro Instanz zu vervollstaendigen ist.
+> **Hinweis:** eduViteTest wird als SaaS betrieben. Jede Schule laeuft auf einem eigenen VPS
+> mit separater Datenbank (keine Shared Databases). Der Auftragsverarbeiter ist der
+> SaaS-Betreiber. Pro Schule/VPS-Instanz ist ein eigener AV-Vertrag abzuschliessen.
+> Dieses Verzeichnis ist eine Vorlage, die pro Instanz zu vervollstaendigen ist.
+> Siehe: `docs/architecture/multi-tenancy.md`
 
 ---
 
@@ -59,7 +63,7 @@ Zusaetzlich fuer den Auftragsverarbeiter:
 | Zugriffskontrolle | Principle of Least Privilege, getrennte DB-User |
 | Weitergabekontrolle | TLS fuer alle Verbindungen (HTTPS, PostgreSQL SSL, SMTP TLS) |
 | Verfuegbarkeitskontrolle | Regelmaessige Backups, Monitoring |
-| Trennungsgebot | Separate Docker-Container pro Service |
+| Trennungsgebot | Physische Isolation: VPS + separate DB pro Schule. Separate Docker-Container pro Service. |
 
 ---
 
@@ -79,3 +83,4 @@ Zusaetzlich fuer den Auftragsverarbeiter:
 | Datum | Version | Aenderung |
 |-------|---------|-----------|
 | 2026-03-17 | 1.0 | Erstversion als Vorlage fuer Self-Hosted-Deployments |
+| 2026-03-18 | 1.1 | Aktualisiert fuer SaaS-Betrieb: VPS + separate DB pro Schule |
