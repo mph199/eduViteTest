@@ -1,0 +1,313 @@
+/* ─── Shared responsive admin table ─── */
+
+.admin-resp-table-container {
+  border: 1px solid var(--color-gray-200);
+  border-radius: 12px;
+  /* overflow must stay visible so that position:sticky on thead th
+     works relative to the viewport scroll, not a local scroll container */
+  overflow: visible;
+}
+
+.admin-resp-table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.admin-resp-table thead {
+  background: var(--color-gray-50);
+}
+
+.admin-resp-table thead th {
+  position: sticky;
+  top: calc(var(--globalTopHeaderHeight, 72px) - 1px);
+  z-index: 2;
+  background: var(--color-gray-50);
+  text-align: left;
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  color: var(--color-gray-700);
+  border-bottom: 2px solid var(--color-gray-200);
+  font-size: 0.92rem;
+}
+
+/* Sort buttons inside admin table headers */
+.admin-resp-table .teacher-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-gray-700);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-resp-table .teacher-sort-button:hover {
+  color: var(--brand-primary);
+}
+
+.admin-resp-table .teacher-sort-button:focus-visible {
+  outline: 3px solid rgba(var(--brand-primary-rgb), 0.35);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.admin-resp-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-gray-100);
+  color: var(--color-gray-600);
+  line-height: 1.35;
+  vertical-align: top;
+  background: var(--color-white);
+}
+
+.admin-resp-table tbody tr:hover td {
+  background: rgba(var(--brand-primary-rgb), 0.06);
+}
+
+.admin-resp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Compound cell helpers */
+.admin-cell-main {
+  display: block;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-cell-meta {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--color-gray-500);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Aktive Events Tabelle – auto layout statt fixed */
+.active-events-table .admin-resp-table {
+  table-layout: auto;
+}
+
+/* Allow wrapping in cells that contain long text (e.g. dates) */
+.admin-cell-wrap .admin-cell-main,
+.admin-cell-wrap .admin-cell-meta {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.admin-cell-meta a {
+  color: inherit;
+  text-decoration: none;
+}
+.admin-cell-meta a:hover {
+  text-decoration: underline;
+}
+
+.admin-cell-id {
+  color: var(--color-gray-400);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+/* Status pills – shared */
+.admin-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(var(--color-white-rgb), 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
+  color: rgba(var(--brand-ink-rgb), 0.85);
+  box-shadow:
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
+  width: fit-content;
+}
+
+.admin-status-pill--success {
+  border-color: rgba(var(--brand-primary-rgb), 0.30);
+}
+
+.admin-status-pill--warning {
+  border-color: rgba(var(--color-warning-accent-rgb), 0.35);
+}
+
+.admin-status-pill--neutral {
+  border-color: rgba(var(--color-gray-500-rgb), 0.25);
+}
+
+/* Right-aligned actions column */
+.admin-resp-table .admin-actions-header {
+  text-align: right;
+}
+
+.admin-resp-table .admin-actions-cell {
+  text-align: right;
+}
+
+.admin-resp-table .admin-actions-cell .action-buttons {
+  justify-content: flex-end;
+}
+
+/* Message cell on desktop */
+.admin-resp-table .admin-message-cell {
+  max-width: 360px;
+  min-width: 140px;
+}
+
+.admin-message-value {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+  cursor: default;
+}
+
+/* ─── Mobile card layout for admin tables ─── */
+@media (max-width: 768px) {
+  .admin-resp-table-container {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .admin-resp-table {
+    min-width: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-resp-table thead {
+    display: none;
+  }
+
+  .admin-resp-table tbody {
+    display: block;
+  }
+
+  .admin-resp-table tbody tr {
+    display: block;
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-300);
+    border-left: 4px solid var(--brand-primary);
+    border-radius: 12px;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 8px 18px rgba(var(--color-black-rgb), 0.08);
+  }
+
+  .admin-resp-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(100px, 38%) 1fr;
+    gap: 0.65rem;
+    align-items: start;
+    border: 0;
+    border-bottom: 1px dashed var(--color-gray-300);
+    padding: 0.5rem 0;
+    font-size: 0.92rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  .admin-resp-table tbody td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .admin-resp-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--color-gray-700);
+  }
+
+  .admin-resp-table tbody td.admin-actions-cell {
+    text-align: left;
+  }
+
+  .admin-resp-table tbody td.admin-actions-cell .action-buttons {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-resp-table tbody td.admin-actions-cell .action-buttons > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .admin-resp-table .admin-cell-main,
+  .admin-resp-table .admin-cell-meta {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-resp-table tbody td.admin-message-cell {
+    display: grid;
+    grid-template-columns: minmax(100px, 38%) 1fr;
+    gap: 0.65rem;
+    align-items: start;
+  }
+
+  .admin-resp-table tbody td.admin-message-cell .admin-message-value {
+    display: block;
+    -webkit-line-clamp: unset;
+    padding: 0.3rem 0.55rem;
+    border-radius: 8px;
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .back-button, .btn-primary, .btn-secondary {
+    font-size: 0.9rem;
+    padding: 0.55rem 0.9rem;
+    min-height: 44px;
+  }
+
+  .teacher-form-container {
+    padding: 1.25rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions > button {
+    width: 100%;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody tr {
+    padding: 0.6rem 0.7rem;
+  }
+  .admin-dashboard--teacher .teacher-bookings-table tbody td {
+    grid-template-columns: 100px 1fr;
+    font-size: 0.88rem;
+  }
+}
+
