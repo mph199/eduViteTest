@@ -8,7 +8,7 @@ import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation
 import { generateTimeSlotsForTeacher } from '../../utils/timeWindows.js';
 import { resolveActiveEvent } from '../../utils/resolveActiveEvent.js';
 import logger from '../../config/logger.js';
-import { generateUsername } from '../../shared/generateUsername.js';
+import { generateUsername, generateUniqueUsername } from '../../shared/generateUsername.js';
 
 const router = express.Router();
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
@@ -108,109 +108,117 @@ async function insertTeacherSlots(teacherId, availFrom, availUntil, targetEventI
 
 // POST /api/admin/teachers
 router.post('/teachers', requireAdmin, async (req, res) => {
+  const { first_name, last_name, name, email, salutation, subject, room, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
+
+  // Support both new (first_name/last_name) and legacy (name) field
+  let firstName = (first_name || '').trim();
+  let lastName  = (last_name  || '').trim();
+  if (!firstName && !lastName && name) {
+    const parts = String(name).trim().split(/\s+/);
+    lastName  = parts.pop() || '';
+    firstName = parts.join(' ');
+  }
+  if (!lastName) {
+    return res.status(400).json({ error: 'Nachname ist erforderlich' });
+  }
+
+  const parsedEmail = normalizeAndValidateTeacherEmail(email);
+  if (!parsedEmail.ok) {
+    return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
+  }
+
+  const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
+  if (!parsedSalutation.ok) {
+    return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
+  }
+
+  // Username + password are required
+  const username = (reqUsername && typeof reqUsername === 'string') ? reqUsername.trim() : '';
+  if (!username) {
+    return res.status(400).json({ error: 'Benutzername ist erforderlich' });
+  }
+
+  const tempPassword = (reqPassword && typeof reqPassword === 'string') ? reqPassword.trim() : '';
+  if (!tempPassword || tempPassword.length < 8) {
+    return res.status(400).json({ error: 'Passwort ist erforderlich (mindestens 8 Zeichen)' });
+  }
+
+  const client = await getClient();
   try {
-    const { first_name, last_name, name, email, salutation, subject, room, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
+    await client.query('BEGIN');
 
-    // Support both new (first_name/last_name) and legacy (name) field
-    let firstName = (first_name || '').trim();
-    let lastName  = (last_name  || '').trim();
-    if (!firstName && !lastName && name) {
-      const parts = String(name).trim().split(/\s+/);
-      lastName  = parts.pop() || '';
-      firstName = parts.join(' ');
-    }
-    if (!lastName) {
-      return res.status(400).json({ error: 'Nachname ist erforderlich' });
-    }
-
-    const parsedEmail = normalizeAndValidateTeacherEmail(email);
-    if (!parsedEmail.ok) {
-      return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
-    }
-
-    const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
-    if (!parsedSalutation.ok) {
-      return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
+    // Check for duplicate username inside the transaction
+    const { rows: existingUser } = await client.query('SELECT id FROM users WHERE username = $1', [username]);
+    if (existingUser.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `Benutzername "${username}" ist bereits vergeben` });
     }
 
     const availFrom = available_from || '16:00';
     const availUntil = available_until || '19:00';
 
     // Create teacher
-    const { rows: newTeacherRows } = await query(
+    const { rows: newTeacherRows } = await client.query(
       'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null]
     );
     const teacher = newTeacherRows[0];
 
-    // Generate time slots
-    const { eventId: targetEventId, eventDate } = await resolveActiveEvent();
-    const slotsCreated = await insertTeacherSlots(teacher.id, availFrom, availUntil, targetEventId, eventDate);
-
-    // Create or upsert a linked user account
-    const username = (reqUsername && typeof reqUsername === 'string' && reqUsername.trim())
-      ? reqUsername.trim()
-      : generateTeacherUsername(firstName, lastName, teacher.id);
-
-    const tempPassword = (reqPassword && typeof reqPassword === 'string' && reqPassword.trim())
-      ? reqPassword.trim()
-      : crypto.randomBytes(6).toString('base64url');
+    // Create linked user account (no ON CONFLICT – duplicates are rejected)
     const passwordHash = await bcrypt.hash(tempPassword, 10);
-
-    let userId = null;
-    try {
-      const { rows: userRows } = await query(
-        `INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4, teacher_id = $5
-         RETURNING id`,
-        [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
-      );
-      userId = userRows[0]?.id ?? null;
-    } catch (userErr) {
-      logger.warn({ err: userErr }, 'User creation for teacher failed');
-    }
+    const { rows: userRows } = await client.query(
+      'INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
+    );
+    const userId = userRows[0]?.id ?? null;
 
     // Optional: Beratungslehrer-Profil anlegen
     const blData = req.body.beratungslehrer;
     if (blData && userId) {
-      try {
-        const { rows: blRows } = await query(
-          `INSERT INTO bl_counselors (first_name, last_name, email, salutation, room, phone,
-           specializations, available_from, available_until, slot_duration_minutes, user_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
-          [
-            firstName, lastName, parsedEmail.email, parsedSalutation.salutation,
-            (blData.room || room || '').trim() || null,
-            (blData.phone || '').trim() || null,
-            blData.specializations || null,
-            blData.available_from || '08:00',
-            blData.available_until || '14:00',
-            blData.slot_duration_minutes || 30,
-            userId,
-          ]
-        );
-        const blCounselorId = blRows[0]?.id;
-        await query(
-          'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [userId, 'beratungslehrer']
-        );
-        // Wochenplan speichern
-        if (Array.isArray(blData.schedule) && blCounselorId) {
-          for (const entry of blData.schedule) {
-            const wd = parseInt(entry.weekday, 10);
-            if (isNaN(wd) || wd < 0 || wd > 6) continue;
-            await query(
-              `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
-               VALUES ($1, $2, $3, $4, $5)
-               ON CONFLICT (counselor_id, weekday)
-               DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
-              [blCounselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
-            );
-          }
+      const { rows: blRows } = await client.query(
+        `INSERT INTO bl_counselors (first_name, last_name, email, salutation, room, phone,
+         specializations, available_from, available_until, slot_duration_minutes, user_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+        [
+          firstName, lastName, parsedEmail.email, parsedSalutation.salutation,
+          (blData.room || room || '').trim() || null,
+          (blData.phone || '').trim() || null,
+          blData.specializations || null,
+          blData.available_from || '08:00',
+          blData.available_until || '14:00',
+          blData.slot_duration_minutes || 30,
+          userId,
+        ]
+      );
+      const blCounselorId = blRows[0]?.id;
+      await client.query(
+        'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [userId, 'beratungslehrer']
+      );
+      if (Array.isArray(blData.schedule) && blCounselorId) {
+        for (const entry of blData.schedule) {
+          const wd = parseInt(entry.weekday, 10);
+          if (isNaN(wd) || wd < 0 || wd > 6) continue;
+          await client.query(
+            `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (counselor_id, weekday)
+             DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
+            [blCounselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
+          );
         }
-      } catch (blErr) {
-        logger.warn({ err: blErr }, 'BL counselor creation failed');
       }
+    }
+
+    await client.query('COMMIT');
+
+    // Generate time slots outside transaction (non-critical, can fail independently)
+    const { eventId: targetEventId, eventDate } = await resolveActiveEvent();
+    let slotsCreated = 0;
+    try {
+      slotsCreated = await insertTeacherSlots(teacher.id, availFrom, availUntil, targetEventId, eventDate);
+    } catch (slotErr) {
+      logger.warn({ err: slotErr }, 'Slot creation failed (teacher+user created successfully)');
     }
 
     res.json({
@@ -222,8 +230,15 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       user: { username, tempPassword }
     });
   } catch (error) {
+    await client.query('ROLLBACK');
+    // UNIQUE constraint violation (race condition)
+    if (error.code === '23505' && error.constraint?.includes('username')) {
+      return res.status(409).json({ error: `Benutzername "${username}" ist bereits vergeben` });
+    }
     logger.error({ err: error }, 'Error creating teacher');
-    res.status(500).json({ error: 'Failed to create teacher' });
+    res.status(500).json({ error: 'Fehler beim Anlegen des Nutzers' });
+  } finally {
+    client.release();
   }
 });
 
@@ -350,18 +365,19 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
 
       const slotsCreated = await insertTeacherSlots(teacher.id, availFrom, availUntil, targetEventId, eventDate);
 
-      // Create user account
-      const username = generateTeacherUsername(firstName, lastName, teacher.id);
+      // Create user account with unique username
+      const username = await generateUniqueUsername(firstName, lastName, teacher.id, 'teacher', query);
       const tempPassword = crypto.randomBytes(6).toString('base64url');
       const passwordHash = await bcrypt.hash(tempPassword, 10);
 
       try {
         await query(
-          `INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4, teacher_id = $5`,
+          'INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)',
           [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
         );
-      } catch {}
+      } catch (userErr) {
+        logger.warn({ err: userErr, username }, 'User creation failed during CSV import');
+      }
 
       imported.push({
         id: teacher.id,
