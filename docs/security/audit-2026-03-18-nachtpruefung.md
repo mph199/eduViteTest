@@ -85,11 +85,35 @@
 
 ---
 
+## Hygieniker-Befunde (Code-Verschlankung)
+
+### Behoben
+
+| # | Befund | Fix |
+|---|--------|-----|
+| H-01 | Toter Re-Export `generateUsername` in `counselorAdminRoutes.js:367` | Entfernt |
+| H-02 | `pad()` 3x dupliziert in `icalExport.ts` | Auf Modul-Ebene konsolidiert |
+
+### Backlog (eigenes Refactoring-Ticket)
+
+| # | Befund | Aehnlichkeit | Aufwand |
+|---|--------|-------------|---------|
+| H-03 | SSW/BL counselor.js Backend-Routen ~85% identisch | Router-Factory `createCounselorSelfServiceRoutes()` | Mittel |
+| H-04 | SSWAnfragenTab/BLAnfragenTab ~98% identisch | Shared `CounselorAnfragenTab` Komponente | Niedrig |
+| H-05 | SSWTermineTab/BLTermineTab Monatsberechnung dupliziert | `getMonthRange()` Utility extrahieren | Niedrig |
+| H-06 | `teacher.js` 911 Zeilen – groesste Backend-Datei | Aufteilen in Bookings/Requests/Slots-Subrouter | Mittel |
+| H-07 | `teacherRoutes.js` 708 Zeilen – CSV-Import inline | CSV-Logik in `backend/utils/csvImport.js` auslagern | Niedrig |
+| H-08 | `alert()` in SSWCounselorsTab statt Flash-System | Durch `showFlash` Prop ersetzen | Niedrig |
+
+### Verschlankungspotenzial: ~280 Zeilen entfernbar/konsolidierbar
+
+---
+
 ## Agents eingesetzt
 
 | Agent | Dauer | Findings |
 |-------|-------|----------|
 | Waechter (Security-Scan) | ~3 Min | 17 Befunde |
 | Konsistenzpruefer (Konventionen) | ~3 Min | 19 Befunde |
-| Hygieniker (Dead Code) | Laufend | Ergebnisse ausstehend |
+| Hygieniker (Dead Code/Duplikate) | ~5 Min | 12 Befunde |
 | Erkunder (Detailanalyse 4 Items) | ~2 Min | Kontext fuer alle 4 Fixes |

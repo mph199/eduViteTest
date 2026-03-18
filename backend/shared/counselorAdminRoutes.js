@@ -364,8 +364,6 @@ export function createCounselorAdminRoutes(config) {
   return router;
 }
 
-export { generateUsername } from './generateUsername.js';
-
 /**
  * Helper: create or upsert a user account for a counselor.
  */

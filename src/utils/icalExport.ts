@@ -89,13 +89,14 @@ function normalizeTimeRange(timeStr: string): [number, number, number, number] {
   return [sH, sM, eH, eM];
 }
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
 function formatICalDateLocal(dateStr: string, timeStr: string): string {
   if (!dateStr || !timeStr) throw new Error('Invalid date/time for ICS');
   const date = parseDateToLocal(dateStr);
   const [sH, sM] = normalizeTimeRange(timeStr);
   date.setHours(sH, sM, 0, 0);
 
-  const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
@@ -105,14 +106,12 @@ function getEndTimeLocal(dateStr: string, timeStr: string): string {
   const [, , eH, eM] = normalizeTimeRange(timeStr);
   date.setHours(eH, eM, 0, 0);
 
-  const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
 function getCurrentTimestamp(): string {
   // DTSTAMP should be UTC
   const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
 }
 
