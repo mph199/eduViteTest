@@ -116,7 +116,7 @@
 .back-to-booking {
   display: inline-block;
   background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
-  color: white;
+  color: var(--color-white);
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   text-decoration: none;
