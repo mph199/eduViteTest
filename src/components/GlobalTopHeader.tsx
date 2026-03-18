@@ -1,17 +1,21 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
+import { ViewSwitcher } from './ViewSwitcher';
+import { CollapsibleNavGroup } from './CollapsibleNavGroup';
 import { useAuth } from '../contexts/useAuth';
 import { useBranding } from '../contexts/BrandingContext';
 import { modules } from '../modules/registry';
 import type { SidebarNavItem } from '../modules/registry';
 import { useModuleConfig } from '../contexts/ModuleConfigContext';
+import type { ActiveView } from '../contexts/AuthContextBase';
 import './GlobalTopHeader.css';
 
 interface NavGroup {
   label: string;
   accentRgb?: string;
+  view?: ActiveView;
   items: { path: string; label: string }[];
 }
 
@@ -19,7 +23,7 @@ export function GlobalTopHeader() {
   const headerRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, activeView, setActiveView } = useAuth();
   const { branding } = useBranding();
   const { isModuleEnabled } = useModuleConfig();
   const activeModules = useMemo(() => modules.filter((m) => isModuleEnabled(m.id)), [isModuleEnabled]);
@@ -44,6 +48,31 @@ export function GlobalTopHeader() {
     return isAdmin || userModules.includes(moduleKey);
   };
 
+  // View switcher options (only for dual-role users)
+  const viewSwitcherOptions = useMemo(() => {
+    if (!user) return null;
+    if (isAdmin && hasTeacherId) {
+      return [
+        { value: 'admin' as ActiveView, label: 'Admin' },
+        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
+      ];
+    }
+    if (user.role === 'teacher' && userModules.includes('beratungslehrer')) {
+      return [
+        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
+        { value: 'beratungslehrer' as ActiveView, label: 'Beratungslehrer' },
+      ];
+    }
+    return null;
+  }, [user, isAdmin, hasTeacherId, userModules]);
+
+  const handleViewChange = useCallback((next: ActiveView) => {
+    setActiveView(next);
+    if (next === 'admin') navigate('/admin');
+    else if (next === 'teacher') navigate('/teacher');
+    else if (next === 'beratungslehrer') navigate('/admin/beratungslehrer');
+  }, [setActiveView, navigate]);
+
   // Find which module the user is currently viewing (public page)
   const activeModule = useMemo(() => {
     if (!showModuleTitle) return null;
@@ -58,6 +87,7 @@ export function GlobalTopHeader() {
     if (isAdmin) {
       groups.push({
         label: '',
+        view: 'admin',
         items: [{ path: '/admin', label: 'Übersicht' }],
       });
     }
@@ -76,6 +106,7 @@ export function GlobalTopHeader() {
         groups.push({
           label: mod.sidebarNav.label,
           accentRgb: mod.accentRgb,
+          view: 'admin',
           items: visibleItems,
         });
       }
@@ -85,6 +116,7 @@ export function GlobalTopHeader() {
     if (isAdmin) {
       groups.push({
         label: 'Verwaltung',
+        view: 'admin',
         items: [
           { path: '/admin/teachers', label: 'Benutzer & Rechte' },
           { path: '/admin/feedback', label: 'Feedback' },
@@ -96,6 +128,7 @@ export function GlobalTopHeader() {
     if (hasTeacherId) {
       groups.push({
         label: 'Lehrkraft',
+        view: 'teacher',
         items: [
           { path: '/teacher', label: 'Übersicht' },
           { path: '/teacher/requests', label: 'Anfragen' },
@@ -106,7 +139,7 @@ export function GlobalTopHeader() {
       });
     }
 
-    // Superadmin
+    // Superadmin (always visible, no view restriction)
     if (isSuperadmin) {
       groups.push({
         label: '',
@@ -116,6 +149,12 @@ export function GlobalTopHeader() {
 
     return groups;
   }, [isAdmin, isSuperadmin, hasTeacherId, userModules, user?.role, activeModules]);
+
+  // Filter groups by active view (only when switcher is available)
+  const filteredGroups = useMemo(() => {
+    if (!viewSwitcherOptions || !activeView) return navGroups;
+    return navGroups.filter((g) => !g.view || g.view === activeView);
+  }, [navGroups, activeView, viewSwitcherOptions]);
 
   const isActive = (path: string) => {
     if (path === '/admin') return pathname === '/admin' || pathname === '/admin/';
@@ -198,23 +237,32 @@ export function GlobalTopHeader() {
             >
               {({ close }) => (
                 <>
-                  {navGroups.map((group, gi) => (
-                    <div
-                      key={gi}
-                      style={group.accentRgb ? { '--group-accent-rgb': group.accentRgb } as React.CSSProperties : undefined}
-                    >
+                  {viewSwitcherOptions && activeView && (
+                    <ViewSwitcher
+                      options={viewSwitcherOptions}
+                      activeValue={activeView}
+                      onChange={handleViewChange}
+                    />
+                  )}
+
+                  {filteredGroups.map((group, gi) => (
+                    <div key={gi}>
                       {gi > 0 && <div className="dropdown__divider" role="separator" />}
-                      {group.label && <div className="dropdown__sectionTitle">{group.label}</div>}
-                      {group.items.map(item => (
-                        <button
-                          key={item.path}
-                          type="button"
-                          className={isActive(item.path) ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
-                          onClick={() => { navigate(item.path); close(); }}
-                        >
-                          <span>{item.label}</span>
-                        </button>
-                      ))}
+                      <CollapsibleNavGroup
+                        label={group.label}
+                        accentRgb={group.accentRgb}
+                      >
+                        {group.items.map(item => (
+                          <button
+                            key={item.path}
+                            type="button"
+                            className={isActive(item.path) ? 'dropdown__item dropdown__item--active' : 'dropdown__item'}
+                            onClick={() => { navigate(item.path); close(); }}
+                          >
+                            <span>{item.label}</span>
+                          </button>
+                        ))}
+                      </CollapsibleNavGroup>
                     </div>
                   ))}
 

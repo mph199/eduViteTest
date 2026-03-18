@@ -1,0 +1,40 @@
+.collapsibleNav__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.collapsibleNav__chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid rgba(var(--brand-ink-rgb), 0.35);
+  border-bottom: 1.5px solid rgba(var(--brand-ink-rgb), 0.35);
+  transform: rotate(45deg);
+  transition: transform 200ms ease;
+  margin-right: 0.45rem;
+  flex-shrink: 0;
+}
+
+.collapsibleNav__chevron--collapsed {
+  transform: rotate(-45deg);
+}
+
+.collapsibleNav__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 200ms ease;
+}
+
+.collapsibleNav__body--collapsed {
+  grid-template-rows: 0fr;
+}
+
+.collapsibleNav__bodyInner {
+  overflow: hidden;
+}
