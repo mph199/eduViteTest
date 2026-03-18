@@ -122,3 +122,27 @@ button {
 input, textarea, select {
   font-family: inherit;
 }
+
+/* ── Shared background-image overlay ─────────────────────────── */
+.page-bg-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--page-bg);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.page-bg-overlay--subtle::before {
+  opacity: 0.10;
+}
+
+@media (max-width: 768px) {
+  .page-bg-overlay::before {
+    background-attachment: scroll;
+  }
+}

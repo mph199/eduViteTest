@@ -4,7 +4,7 @@ import { BookingForm } from './BookingForm';
 import { TeacherCombobox } from './TeacherCombobox';
 import { useBooking } from '../hooks/useBooking';
 import { useTextBranding } from '../../../contexts/TextBrandingContext';
-import { useBranding } from '../../../contexts/BrandingContext';
+import { useBgStyle } from '../../../hooks/useBgStyle';
 import type { Teacher, AdminEvent } from '../../../types';
 import { teacherDisplayNameAccusative } from '../../../utils/teacherDisplayName';
 import api from '../../../services/api';
@@ -16,7 +16,7 @@ type ActiveEventResponse = {
 
 export const BookingApp = () => {
   const { textBranding: tb } = useTextBranding();
-  const { branding } = useBranding();
+  const bookingBgStyle = useBgStyle('elternsprechtag', '--page-bg');
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teachersLoading, setTeachersLoading] = useState<boolean>(true);
   const [teachersError, setTeachersError] = useState<string>('');
@@ -155,8 +155,8 @@ export const BookingApp = () => {
 
   return (
     <div
-      className="booking-app"
-      style={branding.background_images?.elternsprechtag ? { '--booking-bg': `url(${api.superadmin.resolveBgUrl(branding.background_images.elternsprechtag)})` } as React.CSSProperties : undefined}
+      className="booking-app page-bg-overlay"
+      style={bookingBgStyle}
     >
       {bookingNoticeOpen && (
         <div className="booking-notice-overlay" role="dialog" aria-modal="true" aria-label="Hinweis zur E-Mail-Bestätigung">

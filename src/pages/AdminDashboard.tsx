@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
-import { useBranding } from '../contexts/BrandingContext';
+import { useBgStyle } from '../hooks/useBgStyle';
 import api from '../services/api';
 import type { TimeSlot as ApiBooking, AdminEvent, EventStats } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
@@ -58,7 +58,7 @@ export function AdminDashboard() {
   const [teacherFilter, setTeacherFilter] = useState<string>('all');
   const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
   const { user } = useAuth();
-  const { branding } = useBranding();
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
   useActiveView('admin');
 
   const statusLabel: Record<AdminEvent['status'], string> = {
@@ -254,8 +254,8 @@ export function AdminDashboard() {
 
   return (
     <div
-      className="admin-dashboard admin-dashboard--admin"
-      style={branding.background_images?.admin ? { '--admin-bg': `url(${api.superadmin.resolveBgUrl(branding.background_images.admin)})` } as React.CSSProperties : undefined}
+      className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle"
+      style={adminBgStyle}
     >
       <main className="admin-main">
         <div className="teacher-form-container">

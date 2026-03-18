@@ -4,6 +4,7 @@ import { modules } from '../modules/registry';
 import { useBranding } from '../contexts/BrandingContext';
 import { useModuleConfig } from '../contexts/ModuleConfigContext';
 import { EduViteLogo } from '../components/EduViteLogo';
+import { useBgStyle } from '../hooks/useBgStyle';
 import api from '../services/api';
 import './LandingPage.css';
 
@@ -20,11 +21,12 @@ export function LandingPage() {
   const { branding } = useBranding();
   const { isModuleEnabled } = useModuleConfig();
   const activeModules = useMemo(() => modules.filter((m) => isModuleEnabled(m.id)), [isModuleEnabled]);
+  const landingBgStyle = useBgStyle('landing', '--page-bg');
 
   return (
     <div
-      className="landing"
-      style={branding.background_images?.landing ? { '--landing-bg': `url(${api.superadmin.resolveBgUrl(branding.background_images.landing)})` } as React.CSSProperties : undefined}
+      className="landing page-bg-overlay"
+      style={landingBgStyle}
     >
       <div className="landing__inner">
         <h1 className="landing__title">{branding.hero_title}</h1>

@@ -10,18 +10,7 @@
   padding-bottom: 2rem;
 }
 
-.cb-layout::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--cb-bg);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  opacity: 0.12;
-  z-index: 0;
-  pointer-events: none;
-}
+/* Background overlay via shared .page-bg-overlay class (index.css) */
 
 .cb-layout__inner {
   position: relative;
@@ -47,9 +36,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .cb-layout::before {
-    background-attachment: scroll; /* iOS Safari Workaround */
-  }
+  /* iOS bg-attachment fix via shared .page-bg-overlay (index.css) */
 
   .cb-layout {
     padding-top: 1.5rem;
