@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher } from '../../../utils/timeWindows.js';
 import logger from '../../../config/logger.js';
+import { validatePassword } from '../../../shared/validatePassword.js';
 
 function parseTimeWindow(timeWindow) {
   if (typeof timeWindow !== 'string') return null;
@@ -878,8 +879,9 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
  */
 router.put('/password', requireAuth, requireTeacher, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
-  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 8) {
-    return res.status(400).json({ error: 'Neues Passwort muss mindestens 8 Zeichen haben' });
+  const pwCheck = validatePassword(newPassword);
+  if (!pwCheck.valid) {
+    return res.status(400).json({ error: pwCheck.message });
   }
   try {
     // Find user by username from token
@@ -899,7 +901,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
-    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, user.id]);
+    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1 WHERE id = $2', [passwordHash, user.id]);
 
     res.json({ success: true, message: 'Passwort erfolgreich geändert' });
   } catch (error) {

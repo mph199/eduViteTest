@@ -505,6 +505,7 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    params.push(EXPORT_LIMIT);
     const result = await query(
       `SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
               a.record_id, a.details, a.ip_address, a.created_at
@@ -512,7 +513,7 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
        LEFT JOIN users u ON a.user_id = u.id
        ${whereClause}
        ORDER BY a.created_at DESC
-       LIMIT ${EXPORT_LIMIT}`,
+       LIMIT $${paramIdx}`,
       params
     );
 

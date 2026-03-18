@@ -28,6 +28,7 @@ import { query } from '../config/db.js';
 import { generateSlotsForDateRange, upsertWeeklySchedule } from './counselorService.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
 import logger from '../config/logger.js';
+import { validatePassword } from './validatePassword.js';
 
 export function createCounselorAdminRoutes(config) {
   const {
@@ -381,9 +382,12 @@ export async function createCounselorUser(counselor, req, config) {
     ? reqPassword.trim()
     : crypto.randomBytes(6).toString('base64url');
 
-  // Enforce minimum password length for manually provided passwords
-  if (isManualPassword && tempPassword.length < 8) {
-    throw Object.assign(new Error('Passwort muss mindestens 8 Zeichen haben'), { statusCode: 400 });
+  // Enforce password complexity for manually provided passwords
+  if (isManualPassword) {
+    const pwCheck = validatePassword(tempPassword);
+    if (!pwCheck.valid) {
+      throw Object.assign(new Error(pwCheck.message), { statusCode: 400 });
+    }
   }
 
   const passwordHash = await bcrypt.hash(tempPassword, 10);
