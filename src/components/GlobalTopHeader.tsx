@@ -35,9 +35,6 @@ export function GlobalTopHeader() {
   const showAreaMenu = Boolean(isAuthenticated && (inAdmin || inTeacher));
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
 
-  const isPublic = showModuleTitle;
-  const isArea = showAreaMenu;
-
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperadmin = user?.role === 'superadmin';
   const hasTeacherId = Boolean(user?.teacherId);
@@ -160,7 +157,7 @@ export function GlobalTopHeader() {
   const userLabel = user?.fullName || user?.username;
 
   const areaLabel = useMemo(() => {
-    if (!isArea) return null;
+    if (!showAreaMenu) return null;
 
     if (inTeacher) {
       if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft · Übersicht';
@@ -182,7 +179,7 @@ export function GlobalTopHeader() {
     }
 
     return null;
-  }, [inTeacher, pathname, isArea, navGroups]);
+  }, [inTeacher, pathname, showAreaMenu, navGroups]);
 
   useEffect(() => {
     const element = headerRef.current;
@@ -208,7 +205,7 @@ export function GlobalTopHeader() {
   return (
     <header
       ref={headerRef}
-      className={`globalTopHeader${isPublic ? ' globalTopHeader--public' : ''}${isArea ? ' globalTopHeader--area' : ''}`}
+      className={`globalTopHeader${showModuleTitle ? ' globalTopHeader--public' : ''}${showAreaMenu ? ' globalTopHeader--area' : ''}`}
       aria-label={`${branding.school_name} Buchungssystem`}
     >
       <div className="globalTopHeader__inner">
@@ -292,7 +289,7 @@ export function GlobalTopHeader() {
         </div>
 
         <div className="globalTopHeader__right">
-          {isArea ? (
+          {showAreaMenu ? (
             <>
               <NotificationBell />
               <div className="globalTopHeader__user" aria-label="Angemeldeter Benutzer">

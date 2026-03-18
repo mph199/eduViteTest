@@ -10,6 +10,7 @@ interface BgSlot {
 
 const bgSlots: BgSlot[] = [
   { key: 'landing', label: 'Landing Page', description: 'Startseite / Modulübersicht' },
+  { key: 'login', label: 'Login-Seite', description: 'Hintergrund der Anmeldeseite' },
   { key: 'admin', label: 'Lehrkraft & Admin', description: 'Hintergrund fuer Lehrkraft- und Adminbereich' },
   ...modules.map((mod) => ({
     key: mod.id,

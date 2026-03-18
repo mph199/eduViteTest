@@ -53,9 +53,8 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
     if (role === 'ssw') {
       return <Navigate to="/admin/ssw" replace />;
     }
-    // Teacher with BL module → redirect to BL area
-    if (role === 'teacher' && modules.includes('beratungslehrer')) {
-      return <Navigate to="/admin/beratungslehrer" replace />;
+    if (role === 'teacher') {
+      return <Navigate to="/teacher" replace />;
     }
     return <Navigate to="/" replace />;
   }

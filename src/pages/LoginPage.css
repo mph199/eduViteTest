@@ -5,6 +5,7 @@
   align-items: center;
   background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--brand-gradient-end) 100%);
   padding: 1rem;
+  position: relative;
 }
 
 .login-container {
@@ -14,6 +15,8 @@
   padding: 2.5rem;
   width: 100%;
   max-width: 420px;
+  position: relative;
+  z-index: 1;
 }
 
 .login-header {

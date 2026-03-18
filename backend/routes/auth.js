@@ -1,11 +1,20 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 import { query } from '../config/db.js';
 import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../middleware/auth.js';
 import { logSecurityEvent } from '../middleware/audit-log.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 8,                      // 8 login attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anmeldeversuche. Bitte spaeter erneut versuchen.' },
+});
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -23,7 +32,7 @@ function cookieOptions() {
  * POST /api/auth/login
  * Body: { username, password }
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body || {};
 
   if (!username || !password) {
