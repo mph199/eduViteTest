@@ -3,8 +3,8 @@
 > **Zweck:** Ausfuehrliche, priorisierte Aufgabenliste fuer DSGVO-Konformitaet des SaaS-Betriebs.
 > Abgeleitet aus Gap-Analyse: DSGVO-Anforderungen vs. IST-Zustand (DB-Audit + Code-Review).
 >
-> **Stand:** 2026-03-17
-> **Bezug:** [Anforderungen](dsgvo-anforderungen.md) | [Dateninventar](dsgvo-dateninventar.md) | [DB-Audit](../security/db-audit-2026-03-17.md)
+> **Stand:** 2026-03-18
+> **Bezug:** [Anforderungen](dsgvo-anforderungen.md) | [Dateninventar](dsgvo-dateninventar.md) | [DB-Audit](../security/db-audit-2026-03-17.md) | [Audit 2026-03-18](../security/audit-2026-03-18.md)
 
 ---
 
@@ -122,16 +122,31 @@
 
 ## Phase 2: Mittel – innerhalb 3 Monaten (P2)
 
-### 2.1 Multi-Tenancy vorbereiten
+### 2.1 Multi-Tenancy / Mandantentrennung
 
 > **Bezug:** BK-002, AV-001 bis AV-004
+>
+> **Architektur-Entscheidung (2026-03-18):** Jede Schule laeuft auf einem eigenen VPS
+> mit separater Datenbank. **Keine Shared Databases.** Damit entfaellt die Notwendigkeit
+> fuer Row-Level-Security mit `tenant_id` oder Schema-basierte Trennung.
+> Die Isolation erfolgt physisch auf Infrastruktur-Ebene.
+>
+> **Konsequenzen:**
+> - Maximale Datenisolation (Art. 32 DSGVO) – kein mandantenuebergreifender Zugriff moeglich
+> - Einfachere DSGVO-Compliance: Loeschung = VPS + DB loeschen
+> - Kein `tenant_id` in Tabellen noetig
+> - AV-Vertrag pro Schule / VPS-Instanz
+> - Deployment-Automatisierung (Provisioning, Updates) wird wichtiger
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 2.1.1 | **Tenant-Isolation-Strategie festlegen** – Entscheidung: Separate DBs pro Mandant vs. Row-Level-Security mit `tenant_id`. Dokumentieren. | `docs/architecture/multi-tenancy.md` (neu) | [ ] |
-| 2.1.2 | **tenant_id in alle PII-Tabellen** – Migration: `tenant_id` Spalte + Index + RLS-Policy. Jeder Request muss `tenant_id` aus JWT validieren. | Migrationen, alle Module | [ ] |
-| 2.1.3 | **AV-Vertrags-Management** – Digitale AV-Vertrags-Verwaltung: Templates, Signierung, Versionierung. | Neues Modul oder externer Dienst | [ ] |
+| 2.1.1 | **Tenant-Isolation-Strategie dokumentieren** – ~~Entscheidung: Separate DBs pro Mandant vs. RLS~~ → Entschieden: VPS + separate DB pro Schule. Architektur-Dokument erstellen. | `docs/architecture/multi-tenancy.md` (neu) | [x] |
+| 2.1.2 | ~~**tenant_id in alle PII-Tabellen**~~ → **Entfaellt** – Physische Trennung durch separate VPS/DB. Kein tenant_id noetig. | -- | [x] |
+| 2.1.3 | **AV-Vertrags-Management** – Digitale AV-Vertrags-Verwaltung: Templates, Signierung, Versionierung. Pro VPS-Instanz. | Neues Modul oder externer Dienst | [ ] |
 | 2.1.4 | **Sub-Processor-Liste** – Oeffentlich zugaengliche Seite mit allen Unterauftragsverarbeitern. Benachrichtigung bei Aenderungen. | `src/pages/SubProcessors.tsx` (neu), Backend-Endpunkt | [ ] |
+| 2.1.5 | **VPS-Provisioning-Automatisierung** – Skript/Playbook fuer neue Schul-Instanzen: VPS erstellen, Docker deployen, DB initialisieren, DNS/SSL einrichten. | `infrastructure/` (neu) | [ ] |
+| 2.1.6 | **Zentrales Update-Management** – Mechanismus fuer Rolling Updates ueber alle VPS-Instanzen (Ansible, Docker Swarm, o.ae.). | `infrastructure/` (neu) | [ ] |
+| 2.1.7 | **Zentrales Monitoring** – Health-Checks und Alerting fuer alle VPS-Instanzen. Downtime-Erkennung. | `infrastructure/monitoring/` (neu) | [ ] |
 
 ### 2.2 Incident Management
 
@@ -221,10 +236,10 @@
 |-------|--------|-------|-----------|---------------|-------------|
 | P0: Go-Live-Blocker | 18 | 0 | 0 | 18 | 100% |
 | P1: Hoch (4 Wochen) | 14 | 0 | 0 | 14 | 100% |
-| P2: Mittel (3 Monate) | 12 | 12 | 0 | 0 | 0% |
+| P2: Mittel (3 Monate) | 15 | 10 | 0 | 5 | 33% |
 | P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
 | Code-Hygiene | 8 | 3 | 0 | 5 | 63% |
-| **Gesamt** | **65** | **28** | **0** | **37** | **~57%** |
+| **Gesamt** | **68** | **26** | **0** | **42** | **~62%** |
 
 ---
 
@@ -235,6 +250,8 @@
 | DSGVO-Anforderungen | `docs/compliance/dsgvo-anforderungen.md` |
 | Dateninventar | `docs/compliance/dsgvo-dateninventar.md` |
 | DB-Audit | `docs/security/db-audit-2026-03-17.md` |
+| Audit 2026-03-18 | `docs/security/audit-2026-03-18.md` |
 | Security Baseline | `docs/security/security-baseline.md` |
+| Multi-Tenancy | `docs/architecture/multi-tenancy.md` |
 | Consent-Checkbox | `docs/planning/dsgvo-consent-checkbox.md` |
 | System-Design | `docs/architecture/system-design.md` |

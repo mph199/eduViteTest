@@ -1,6 +1,6 @@
 # Verarbeitungsverzeichnis (Art. 30 Abs. 1 DSGVO)
 
-> **Stand:** 2026-03-17 | **Version:** 1.0
+> **Stand:** 2026-03-18 | **Version:** 1.1
 > **System:** eduViteTest – Modulares Schulverwaltungssystem
 
 ---
@@ -117,7 +117,7 @@
 | Zugriffskontrolle | Rollenbasiert (admin, superadmin, teacher, ssw, bl), JWT httpOnly Cookies |
 | Eingabekontrolle | Parametrisierte SQL-Queries, Input-Validierung |
 | Verfuegbarkeit | Docker Compose, PostgreSQL mit Backup-Moeglichkeit |
-| Trennungsgebot | Mandantentrennung durch separate Datenbankinstanzen (Self-Hosting) |
+| Trennungsgebot | Physische Mandantentrennung: Jede Schule auf eigenem VPS mit separater Datenbank (keine Shared Databases). Siehe `docs/architecture/multi-tenancy.md` |
 | Belastbarkeit | Rate-Limiting auf oeffentlichen und authentifizierten Endpunkten |
 | Datenschutz by Design | Automatische Anonymisierung (Retention-Cron), Consent-Receipts, Widerruf-Endpunkt |
 
@@ -128,3 +128,4 @@
 | Datum | Version | Aenderung |
 |-------|---------|-----------|
 | 2026-03-17 | 1.0 | Erstversion basierend auf DSGVO-Dateninventar und Anforderungsanalyse |
+| 2026-03-18 | 1.1 | Trennungsgebot aktualisiert: VPS + separate DB pro Schule (keine Shared DBs) |

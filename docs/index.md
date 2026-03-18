@@ -7,6 +7,7 @@
 - [System Design](architecture/system-design.md) -- Modulsystem, DB-Schema, Datenfluss, API-Vertraege
 - [Module Guide](architecture/module-guide.md) -- Schritt-fuer-Schritt Anleitung zur Modulerstellung
 - [Email Flows](architecture/email-flows.md) -- E-Mail-Trigger, Templates, Konfiguration
+- [Multi-Tenancy](architecture/multi-tenancy.md) -- VPS + separate DB pro Schule (keine Shared DBs)
 
 ## Deployment
 
@@ -17,12 +18,15 @@
 
 - [DSGVO-Anforderungen](compliance/dsgvo-anforderungen.md) -- Vollstaendiger Anforderungskatalog (Art. 5-49)
 - [Dateninventar](compliance/dsgvo-dateninventar.md) -- PII-Verzeichnis aller Tabellen, Datenfluss, Loeschkonzept
-- [SaaS-ToDo](compliance/dsgvo-saas-todo.md) -- 65 priorisierte Aufgaben (P0-P3) fuer DSGVO-Konformitaet
+- [SaaS-ToDo](compliance/dsgvo-saas-todo.md) -- 68 priorisierte Aufgaben (P0-P3) fuer DSGVO-Konformitaet
+- [Verarbeitungsverzeichnis](compliance/verarbeitungsverzeichnis.md) -- Art. 30 Abs. 1 DSGVO
+- [AV-Verzeichnis](compliance/av-verzeichnis.md) -- Art. 30 Abs. 2 DSGVO (Vorlage pro Schule)
 
 ## Security
 
 - [Security Baseline](security/security-baseline.md) -- Auth, CSRF, XSS, Rate Limiting, Haertung
 - [DB-Audit](security/db-audit-2026-03-17.md) -- Schema-Inventar, Hygiene-Befunde, DSGVO-Gaps
+- [Audit 2026-03-18](security/audit-2026-03-18.md) -- Security, Hygiene, Modul, Konventionen (38 Befunde)
 
 ## Planung
 

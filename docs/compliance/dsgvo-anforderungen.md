@@ -238,7 +238,7 @@
 | BK | Status | Referenz |
 |----|--------|----------|
 | BK-001 | Teilweise – Consent-Checkbox vorhanden, kein erhoehter Schutz fuer Art.-9-Felder | `ConsentCheckbox.tsx`, `dsgvo-consent-checkbox.md` |
-| BK-002 | Nicht implementiert – Single-Tenant-Architektur | DB-Audit N8 |
+| BK-002 | Geloest – VPS + separate DB pro Schule (physische Isolation). Siehe `docs/architecture/multi-tenancy.md` | Entscheidung 2026-03-18 |
 | BK-003 | Teilweise – E-Mail-Escaping vorhanden, kein Datenschutz-Footer in allen Templates | `email-flows.md` |
 | BK-004 | Nicht implementiert – nur httpOnly Session-Cookie (technisch notwendig) | `security-baseline.md` |
 
