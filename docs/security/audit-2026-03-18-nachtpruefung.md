@@ -89,12 +89,12 @@
 
 | # | Befund | Aufwand | Prioritaet |
 |---|--------|---------|------------|
-| H-03 | SSW/BL counselor.js Backend-Routen ~85% identisch → `createCounselorSelfServiceRoutes()` Factory | Mittel | P3 |
-| H-04 | SSWAnfragenTab/BLAnfragenTab ~98% identisch → Shared `CounselorAnfragenTab` | Niedrig | P3 |
-| H-05 | SSWTermineTab/BLTermineTab Monatsberechnung → `getMonthRange()` Utility | Niedrig | P3 |
-| H-06 | `teacher.js` 911 Zeilen → Aufteilen in Bookings/Requests/Slots-Subrouter | Mittel | P3 |
-| H-07 | `teacherRoutes.js` 708 Zeilen → CSV-Logik in `backend/utils/csvImport.js` | Niedrig | P3 |
-| H-08 | BLAdmin.tsx 636 Zeilen monolithisch → Tab-Komponenten nach SSW-Muster | Mittel | P3 |
+| H-03 | ~~SSW/BL counselor.js Backend-Routen~~ → `createCounselorSelfServiceRoutes()` Factory | Mittel | **Erledigt** |
+| H-04 | ~~SSWAnfragenTab/BLAnfragenTab~~ → Shared `CounselorAnfragenTab` | Niedrig | **Erledigt** |
+| H-05 | ~~SSWTermineTab/BLTermineTab Monatsberechnung~~ → `getMonthRange()` Utility | Niedrig | **Erledigt** |
+| H-06 | ~~`teacher.js` 911 Zeilen~~ → 5 Sub-Module + 3 Lib-Dateien (bookings, requests, misc, password + slotAssignment, autoAssign, middleware) | Mittel | **Erledigt** |
+| H-07 | ~~`teacherRoutes.js` 650 Zeilen~~ → 4 Sub-Module + helpers (crud, csvImport, slots, login + helpers mit upsertBlCounselor) | Niedrig | **Erledigt** |
+| H-08 | ~~BLAdmin.tsx 636 Zeilen~~ → Tab-Komponenten nach SSW-Muster | Mittel | **Erledigt** |
 | H-09 | AdminDashboard.css 2390 Zeilen → Aufteilen in thematische CSS-Dateien | Niedrig | P4 |
 | H-10 | `DataProtectionTab.tsx` 495 Zeilen mit 14 useState → Custom-Hooks extrahieren | Niedrig | P3 |
 
