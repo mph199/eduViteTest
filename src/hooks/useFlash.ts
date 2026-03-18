@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 /**
  * Shows a flash message for `durationMs` milliseconds.
@@ -8,6 +8,10 @@ import { useState, useCallback, useRef } from 'react';
 export function useFlash(durationMs = 3000): [string, (msg: string) => void] {
   const [flash, setFlash] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   const showFlash = useCallback((msg: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
