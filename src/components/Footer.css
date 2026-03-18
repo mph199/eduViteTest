@@ -1,7 +1,7 @@
 .app-footer {
   width: 100%;
-  background: rgba(255, 255, 255, 0.72);
-  border-top: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(var(--color-white-rgb), 0.72);
+  border-top: 1px solid rgba(var(--color-white-rgb), 0.45);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 
@@ -33,15 +33,15 @@
 }
 
 .footer-links a {
-  color: rgba(17, 24, 39, 0.78);
+  color: rgba(var(--color-gray-900-rgb), 0.78);
   text-decoration: none;
   font-weight: 650;
   line-height: 1.05;
 
   padding: 0.38rem 0.55rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.40);
-  border: 1px solid rgba(255, 255, 255, 0.40);
+  background: rgba(var(--color-white-rgb), 0.40);
+  border: 1px solid rgba(var(--color-white-rgb), 0.40);
 
   transition: background 0.2s ease;
 }
@@ -51,13 +51,13 @@
 }
 
 .footer-link-disabled {
-  color: rgba(17, 24, 39, 0.38);
+  color: rgba(var(--color-gray-900-rgb), 0.38);
   font-weight: 650;
   line-height: 1.05;
   padding: 0.38rem 0.55rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.30);
+  background: rgba(var(--color-white-rgb), 0.25);
+  border: 1px solid rgba(var(--color-white-rgb), 0.30);
   cursor: default;
   user-select: none;
 }

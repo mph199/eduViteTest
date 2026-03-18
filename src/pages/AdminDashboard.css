@@ -33,10 +33,10 @@
 }
 
 .stat-card {
-  background: white;
+  background: var(--color-white);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(var(--color-black-rgb), 0.05);
   min-width: 200px;
 }
 
@@ -194,9 +194,9 @@
 }
 
 .back-button {
-  background: rgba(243, 244, 246, 0.9);
+  background: rgba(var(--color-gray-100-rgb), 0.9);
   color: var(--color-gray-700);
-  border: 1px solid rgba(229, 231, 235, 0.8);
+  border: 1px solid rgba(var(--color-gray-200-rgb), 0.8);
   padding: 0.5rem 0.9rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -207,9 +207,9 @@
 }
 
 .back-button:hover {
-  background: rgba(229, 231, 235, 0.95);
+  background: rgba(var(--color-gray-200-rgb), 0.95);
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 14px rgba(var(--color-black-rgb), 0.08);
 }
 
 .admin-section-header {
@@ -239,13 +239,13 @@
   position: absolute;
   top: -36px;
   right: 0;
-  background: rgba(31, 41, 55, 0.95);
+  background: rgba(var(--color-gray-800-rgb), 0.95);
   color: var(--color-white);
   padding: 0.4rem 0.6rem;
   font-size: 0.85rem;
   border-radius: 6px;
   white-space: nowrap;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 10px rgba(var(--color-black-rgb), 0.15);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -304,10 +304,10 @@
 }
 
 .teacher-form-container {
-  background: white;
+  background: var(--color-white);
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(var(--color-black-rgb), 0.05);
   margin-bottom: 2rem;
 }
 
@@ -399,7 +399,7 @@
   border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.2s;
-  background: white;
+  background: var(--color-white);
   cursor: pointer;
 }
 
@@ -489,7 +489,7 @@
 }
 
 .teacher-card:hover {
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2px 8px rgba(var(--color-slate-900-rgb), 0.06);
 }
 
 .teacher-card__header {
@@ -694,7 +694,7 @@
   padding: 0.35rem 0.55rem;
   border: 2px solid var(--color-gray-200);
   border-radius: 6px;
-  background: white;
+  background: var(--color-white);
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-gray-700);
@@ -722,11 +722,11 @@
 
 .admin-users-stat {
   flex: 1;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(229, 231, 235, 0.9);
+  background: rgba(var(--color-white-rgb), 0.9);
+  border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(var(--color-black-rgb), 0.05);
   min-width: 0;
 }
 
@@ -876,14 +876,14 @@
   letter-spacing: 0.5px;
   text-transform: uppercase;
 
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--color-white-rgb), 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
   color: rgba(var(--brand-ink-rgb), 0.85);
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
   width: fit-content;
 }
 
@@ -1144,13 +1144,13 @@
 
   .admin-dashboard--teacher .teacher-bookings-table tbody tr {
     display: block;
-    background: white;
+    background: var(--color-white);
     border: 1px solid var(--color-gray-300);
     border-left: 4px solid var(--brand-primary);
     border-radius: 12px;
     padding: 0.75rem 0.85rem;
     margin-bottom: 1rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 18px rgba(var(--color-black-rgb), 0.08);
   }
 
   .admin-dashboard--teacher .teacher-bookings-table tbody td {
@@ -1367,14 +1367,14 @@
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--color-white-rgb), 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
   color: rgba(var(--brand-ink-rgb), 0.85);
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
   width: fit-content;
 }
 
@@ -1444,13 +1444,13 @@
 
   .admin-resp-table tbody tr {
     display: block;
-    background: white;
+    background: var(--color-white);
     border: 1px solid var(--color-gray-300);
     border-left: 4px solid var(--brand-primary);
     border-radius: 12px;
     padding: 0.75rem 0.85rem;
     margin-bottom: 1rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 18px rgba(var(--color-black-rgb), 0.08);
   }
 
   .admin-resp-table tbody td {
@@ -1555,7 +1555,7 @@
   align-items: center;
   gap: 0.6rem;
   background: var(--color-white);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(var(--color-slate-200-rgb), 0.9);
   border-radius: 12px;
   padding: 0.85rem 1.2rem;
   margin-bottom: 1rem;
@@ -1728,7 +1728,7 @@
   transition: box-shadow 0.15s;
 }
 .event-card.is-expanded {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(var(--color-black-rgb), 0.06);
 }
 
 .event-card__header {
@@ -1989,7 +1989,7 @@
   padding: 1.75rem 2rem;
   max-width: 520px;
   width: calc(100% - 2rem);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 20px 60px rgba(var(--color-black-rgb), 0.18);
 }
 
 .modal-content h3 {
