@@ -58,7 +58,7 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Error cancelling booking');
     const status = error?.statusCode || 500;
-    res.status(status).json({ error: error?.message || 'Failed to cancel booking' });
+    res.status(status).json({ error: status < 500 ? (error?.message || 'Failed to cancel booking') : 'Failed to cancel booking' });
   }
 });
 

@@ -412,7 +412,7 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
     });
   } catch (error) {
     logger.error({ err: error }, 'CSV import error');
-    res.status(500).json({ error: 'Fehler beim CSV-Import: ' + (error?.message || 'Unbekannter Fehler') });
+    res.status(500).json({ error: 'Fehler beim CSV-Import' });
   }
 });
 

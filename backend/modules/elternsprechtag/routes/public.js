@@ -219,7 +219,7 @@ router.post('/bookings', async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Error creating booking');
     const status = error?.statusCode || 500;
-    res.status(status).json({ error: error?.message || 'Failed to create booking' });
+    res.status(status).json({ error: status < 500 ? (error?.message || 'Failed to create booking') : 'Failed to create booking' });
   }
 });
 

@@ -110,7 +110,7 @@ router.post('/generate-slots', requireAuth, requireCounselor, async (req, res) =
     const result = await generateSlotsForDateRange(counselorId, { date_from, date_until, exclude_weekends }, SSW_TABLES);
     res.json({ success: true, ...result });
   } catch (err) {
-    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+    if (err.statusCode && err.statusCode < 500) return res.status(err.statusCode).json({ error: err.message });
     logger.error({ err }, 'SSW generate-slots error');
     res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
   }
