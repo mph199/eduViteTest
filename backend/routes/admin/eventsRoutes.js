@@ -33,15 +33,15 @@ router.post('/events', requireAdmin, async (req, res) => {
     res.json({ success: true, event: rows[0] });
   } catch (error) {
     logger.error({ err: error }, 'Error creating event');
-    const message = (error && typeof error === 'object' && 'message' in error)
+    const msg = (error && typeof error === 'object' && 'message' in error)
       ? String(error.message)
-      : 'Failed to create event';
+      : '';
 
-    if (message.toLowerCase().includes('row-level security')) {
-      return res.status(403).json({ error: 'RLS blocked insert on events', message });
+    if (msg.toLowerCase().includes('row-level security')) {
+      return res.status(403).json({ error: 'Zugriff verweigert (RLS)' });
     }
 
-    return res.status(500).json({ error: 'Failed to create event', message });
+    return res.status(500).json({ error: 'Failed to create event' });
   }
 });
 
