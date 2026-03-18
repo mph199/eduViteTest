@@ -59,6 +59,7 @@ Each module implements `ModuleDefinition`:
 2. Verify: `GET /api/auth/verify` → returns user with role, teacherId, modules
 3. Every request: cookie extracted by `extractToken()` in `backend/middleware/auth.js`
 4. Frontend: `AuthContext` + `useAuth()` hook, `ProtectedRoute` component
+5. Post-login redirect: `LoginPage.tsx` navigates all roles to `/teacher` after successful login
 
 ### Roles
 
@@ -164,6 +165,17 @@ Hamburger slide-out menu (`GlobalTopHeader.tsx` + `Sidebar.tsx`):
 - Core admin items (Benutzer & Rechte, Feedback) hardcoded
 - Teacher items hardcoded when user has `teacherId`
 
+#### Header right-side login indicator (public pages only)
+
+On public pages (`isPublic = true`, i.e. not `/login`, not `/admin/*`, not `/teacher/*`), `GlobalTopHeader` shows a login indicator in the top-right corner:
+
+| State | Element | CSS class | Behaviour |
+|-------|---------|-----------|-----------|
+| Authenticated | Round SVG user-icon button | `.globalTopHeader__loginStatus` | `<Link to="/teacher">` – navigates to teacher area |
+| Not authenticated | "Login" text link | `.globalTopHeader__login` | `<Link to="/login">` |
+
+`.globalTopHeader__loginStatus` is a 36 × 36 px circle with `border-radius: 50%`, branded background (`rgba(var(--brand-primary-rgb), 0.12)`), and a stroke-only SVG person icon.
+
 ### State Management
 
 No global store. Component-local state + context:
@@ -210,6 +222,50 @@ Globale wiederverwendbare Komponenten ausserhalb des Modulsystems:
 | `Footer` | `src/components/Footer.tsx` | App-Layout |
 
 `ConsentCheckbox` rendert modulspezifischen Einwilligungstext und Link zur `/datenschutz`-Seite. Blockiert Form-Submit solange nicht angehakt.
+
+### Background Image System
+
+Superadmin kann pro Seite ein Hintergrundbild hochladen (Superadmin-Panel > Tab "Hintergründe"). Bilder werden in `site_branding.background_images` als JSON-Objekt gespeichert und ueber `BrandingContext` im Frontend bereitgestellt.
+
+#### Verfuegbare Branding-Slots
+
+| Slot-Key | Seite | Anzeige-Label |
+|----------|-------|---------------|
+| `landing` | Startseite / Moduluebersicht | Landing Page |
+| `admin` | Admin- und Lehrkrafte-Bereich | Lehrkraft & Admin |
+| `<module.id>` | Oeffentliche Modulseite (je aktiviertes Modul) | `module.title` |
+
+#### Technische Umsetzung
+
+Das Bild wird als halbtransparentes `::before`-Pseudo-Element hinter den Seiteninhalten angezeigt:
+
+```css
+/* AdminDashboard.css */
+.admin-dashboard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--admin-bg);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  opacity: 0.10;
+  z-index: 0;
+  pointer-events: none;
+}
+```
+
+Der CSS-Custom-Property `--admin-bg` wird von `AdminDashboard.tsx` und `TeacherLayout.tsx` als Inline-Style gesetzt, wenn `branding.background_images.admin` belegt ist:
+
+```tsx
+style={branding.background_images?.admin
+  ? { '--admin-bg': `url(${api.superadmin.resolveBgUrl(branding.background_images.admin)})` } as React.CSSProperties
+  : undefined}
+```
+
+Das Pattern ist identisch zu LandingPage (`--landing-bg`) und den Modul-Buchungsseiten (`--booking-bg`). Die Klasse `.admin-dashboard--admin` traegt ein staerkeres Linienmuster; `.admin-dashboard--teacher` ein weicheres.
+
+Der Wrapper `.admin-dashboard` benoetigt `position: relative`, damit das `::before`-Pseudo-Element korrekt positioniert wird. Alle Kinder-Elemente mit eigenem Stacking-Context erhalten `position: relative; z-index: 1` um ueber dem Pseudo-Element zu liegen.
 
 ## Backend Architecture
 
@@ -287,6 +343,8 @@ Module differences are handled via config parameters (table prefix, topic schema
 11. **Mobile-first responsive tables** – Admin tables use the `admin-resp-table` CSS pattern with `data-label` attributes on `<td>` elements. On mobile (<768px), `thead` is hidden and rows become cards with label-value pairs via `td::before { content: attr(data-label) }`.
 12. **Touch target minimum 44px** – All interactive elements (buttons, slots, navigation arrows) enforce min-height 44px on mobile viewports per WCAG 2.5.5.
 13. **iOS Safari compatibility** – `background-attachment: fixed` is replaced with `scroll` on viewports <768px to prevent flicker on iOS Safari.
+14. **Background image pattern** – Branding images applied as `::before` pseudo-element with `opacity: 0.10` and `z-index: 0` so they never obscure content. CSS custom property (`--admin-bg`, `--landing-bg`, `--booking-bg`) set via inline style from `useBranding()`. Covers: landing page, admin/teacher area (shared `admin` slot), each module's public booking page.
+15. **Universal post-login redirect** – All roles (admin, superadmin, teacher, ssw) are redirected to `/teacher` after login. Role-specific areas are then reachable via the hamburger menu.
 
 ## Responsive Strategy
 

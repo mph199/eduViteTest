@@ -13,13 +13,14 @@
 /* Branding background image (shared by admin + teacher) */
 .admin-dashboard::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   background-image: var(--admin-bg);
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   opacity: 0.10;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -61,6 +62,8 @@
 }
 
 .admin-main {
+  position: relative;
+  z-index: 1;
   max-width: 1280px;
   width: 100%;
   margin: 0 auto;
@@ -2387,4 +2390,13 @@
 
 .row--selected {
   background: var(--brand-surface-2, #eef2f9);
+}
+
+/* ── iOS: background-attachment: fixed breaks on mobile Safari ──── */
+
+@media (max-width: 768px) {
+  .admin-dashboard,
+  .admin-dashboard::before {
+    background-attachment: scroll;
+  }
 }

@@ -301,7 +301,7 @@
 
 .globalTopHeader__menuItem.is-selected {
   background: rgba(var(--brand-primary-rgb), 0.16);
-  color: rgba(6, 95, 70, 0.95);
+  color: rgba(var(--brand-primary-rgb), 0.95);
 }
 
 .globalTopHeader__menuItem:focus-visible {

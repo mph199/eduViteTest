@@ -5,6 +5,24 @@ const RAW_API_BASE =
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
 const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 
+/**
+ * Resolve an image path to a full URL, sanitized for safe CSS url() embedding.
+ * Prevents CSS injection by encoding characters that could break out of url().
+ */
+function resolveCssUrl(value: string, uploadPrefix: string): string {
+  if (!value) return '';
+  let resolved: string;
+  if (value.startsWith('http')) {
+    resolved = value;
+  } else if (value.startsWith('/')) {
+    resolved = `${BACKEND_BASE}${value}`;
+  } else {
+    resolved = `${BACKEND_BASE}${uploadPrefix}${value}`;
+  }
+  // Encode chars that can break out of CSS url() context
+  return resolved.replace(/[)"'\\(;\s{}]/g, (ch) => encodeURIComponent(ch));
+}
+
 async function uploadFile(endpoint: string, fieldName: string, file: File): Promise<any> {
   const form = new FormData();
   form.append(fieldName, file);
@@ -585,19 +603,13 @@ const api = {
     async uploadBgImage(file: File): Promise<{ bg_url: string }> {
       return uploadFile('/superadmin/bg-image', 'bg', file);
     },
-    /** Resolve a background image path to a full URL */
+    /** Resolve a background image path to a full URL, sanitized for CSS url() */
     resolveBgUrl(bgUrl: string): string {
-      if (!bgUrl) return '';
-      if (bgUrl.startsWith('http')) return bgUrl;
-      if (bgUrl.startsWith('/')) return `${BACKEND_BASE}${bgUrl}`;
-      return `${BACKEND_BASE}/uploads/bg/${bgUrl}`;
+      return resolveCssUrl(bgUrl, '/uploads/bg/');
     },
-    /** Resolve a tile image path to a full URL */
+    /** Resolve a tile image path to a full URL, sanitized for CSS url() */
     resolveTileUrl(tileUrl: string): string {
-      if (!tileUrl) return '';
-      if (tileUrl.startsWith('http')) return tileUrl;
-      if (tileUrl.startsWith('/')) return `${BACKEND_BASE}${tileUrl}`;
-      return `${BACKEND_BASE}/uploads/tiles/${tileUrl}`;
+      return resolveCssUrl(tileUrl, '/uploads/tiles/');
     },
     // ── Module Configuration ──────────────────────────
     /** All modules (superadmin only) */
