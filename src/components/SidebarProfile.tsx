@@ -156,74 +156,71 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
                 </button>
               )}
 
-              {/* Password form (inline, below action) */}
+              {/* Password flyout (expands to the right) */}
               {canChangePw && pwOpen && (
-                <form
-                  id="sidebarProfile-pwForm"
-                  className="sidebarProfile__pwForm"
-                  onSubmit={(e) => { e.preventDefault(); void handlePasswordChange(); }}
-                >
-                  <input
-                    id="sidebarProfile-currentPw"
-                    type="password"
-                    className="sidebarProfile__pwInput"
-                    placeholder="Aktuelles Passwort"
-                    aria-label="Aktuelles Passwort"
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    disabled={pwSaving}
-                    autoComplete="current-password"
-                  />
-                  <input
-                    id="sidebarProfile-newPw"
-                    type="password"
-                    className="sidebarProfile__pwInput"
-                    placeholder="Neues Passwort (min. 8 Zeichen)"
-                    aria-label="Neues Passwort"
-                    value={newPw}
-                    onChange={(e) => setNewPw(e.target.value)}
-                    disabled={pwSaving}
-                    autoComplete="new-password"
-                  />
-                  <button type="submit" className="sidebarProfile__pwSubmit" disabled={pwSaving}>
-                    {pwSaving ? 'Speichern...' : 'Speichern'}
-                  </button>
-                  {pwMsg && (
-                    <div
-                      className={`sidebarProfile__pwMsg ${pwMsg.ok ? 'sidebarProfile__pwMsg--ok' : 'sidebarProfile__pwMsg--err'}`}
-                      role={pwMsg.ok ? 'status' : 'alert'}
-                    >
-                      {pwMsg.text}
-                    </div>
-                  )}
-                </form>
+                <div className="sidebarProfile__pwFlyout">
+                  <div className="sidebarProfile__pwFlyoutHeader">Passwort aendern</div>
+                  <form
+                    id="sidebarProfile-pwForm"
+                    className="sidebarProfile__pwForm"
+                    onSubmit={(e) => { e.preventDefault(); void handlePasswordChange(); }}
+                  >
+                    <input
+                      id="sidebarProfile-currentPw"
+                      type="password"
+                      className="sidebarProfile__pwInput"
+                      placeholder="Aktuelles Passwort"
+                      aria-label="Aktuelles Passwort"
+                      value={currentPw}
+                      onChange={(e) => setCurrentPw(e.target.value)}
+                      disabled={pwSaving}
+                      autoComplete="current-password"
+                    />
+                    <input
+                      id="sidebarProfile-newPw"
+                      type="password"
+                      className="sidebarProfile__pwInput"
+                      placeholder="Neues Passwort (min. 8 Zeichen)"
+                      aria-label="Neues Passwort"
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      disabled={pwSaving}
+                      autoComplete="new-password"
+                    />
+                    <button type="submit" className="sidebarProfile__pwSubmit" disabled={pwSaving}>
+                      {pwSaving ? 'Speichern...' : 'Speichern'}
+                    </button>
+                    {pwMsg && (
+                      <div
+                        className={`sidebarProfile__pwMsg ${pwMsg.ok ? 'sidebarProfile__pwMsg--ok' : 'sidebarProfile__pwMsg--err'}`}
+                        role={pwMsg.ok ? 'status' : 'alert'}
+                      >
+                        {pwMsg.text}
+                      </div>
+                    )}
+                  </form>
+                </div>
               )}
-
-              <button
-                type="button"
-                className="sidebarProfile__actionBtn"
-                onClick={() => { onNavigate('/'); close(); }}
-              >
-                <span className="sidebarProfile__actionIcon sidebarProfile__actionIcon--calendar">
-                  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4H16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h1.25V2.75A.75.75 0 015.75 2zM4 7.5v8.5h12V7.5H4z" clipRule="evenodd" />
-                  </svg>
-                </span>
-                <span className="sidebarProfile__actionLabel">Zur Buchungsseite</span>
-                <svg className="sidebarProfile__actionChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M6 4l4 4-4 4" />
-                </svg>
-              </button>
             </div>
 
-            {/* ── Footer / Logout ── */}
+            {/* ── Footer ── */}
             <div className="sidebarProfile__footer">
               <button
                 type="button"
-                className="sidebarProfile__logoutBtn"
+                className="sidebarProfile__footerBtn sidebarProfile__footerBtn--navigate"
+                onClick={() => { onNavigate('/'); close(); }}
+              >
+                <svg className="sidebarProfile__footerIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4H16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h1.25V2.75A.75.75 0 015.75 2zM4 7.5v8.5h12V7.5H4z" clipRule="evenodd" />
+                </svg>
+                Zur Buchungsseite
+              </button>
+              <button
+                type="button"
+                className="sidebarProfile__footerBtn sidebarProfile__footerBtn--logout"
                 onClick={() => { onLogout(); close(); }}
               >
-                <svg className="sidebarProfile__logoutIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <svg className="sidebarProfile__footerIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
                   <path fillRule="evenodd" d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-.943a.75.75 0 10-1.004-1.114l-2.5 2.25a.75.75 0 000 1.114l2.5 2.25a.75.75 0 101.004-1.114l-1.048-.943h9.546A.75.75 0 0019 10z" clipRule="evenodd" />
                 </svg>

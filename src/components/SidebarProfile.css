@@ -105,7 +105,7 @@
   border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
   box-shadow: 0 8px 40px rgba(var(--color-gray-900-rgb), 0.14);
   z-index: 1000;
-  overflow: hidden;
+  overflow: visible;
   transform-origin: bottom left;
   animation: sidebarProfile-enter 200ms ease forwards;
 }
@@ -226,6 +226,7 @@
 /* ── Actions section ─────────────────────────────────── */
 
 .sidebarProfile__actions {
+  position: relative;
   border-top: 1px solid rgba(var(--color-gray-200-rgb), 0.8);
   padding: 6px 8px;
   display: flex;
@@ -271,9 +272,37 @@
   color: var(--brand-primary);
 }
 
-.sidebarProfile__actionIcon--calendar {
-  background: rgba(var(--color-success-accent-rgb), 0.1);
-  color: var(--color-success-accent);
+/* ── Password flyout (right side panel) ──────────────── */
+
+.sidebarProfile__pwFlyout {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 0;
+  width: 240px;
+  background: var(--color-white);
+  border-radius: 16px;
+  border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
+  box-shadow: 0 8px 40px rgba(var(--color-gray-900-rgb), 0.14);
+  padding: 16px;
+  animation: sidebarProfile-flyout-enter 180ms ease forwards;
+}
+
+@keyframes sidebarProfile-flyout-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sidebarProfile__pwFlyoutHeader {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: 0.65rem;
 }
 
 .sidebarProfile__actionLabel {
@@ -365,14 +394,17 @@
   color: var(--color-error);
 }
 
-/* ── Footer / Logout ─────────────────────────────────── */
+/* ── Footer ──────────────────────────────────────────── */
 
 .sidebarProfile__footer {
   border-top: 1px solid rgba(var(--color-gray-200-rgb), 0.8);
   padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.sidebarProfile__logoutBtn {
+.sidebarProfile__footerBtn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -390,12 +422,17 @@
   transition: color 150ms ease, background 150ms ease;
 }
 
-.sidebarProfile__logoutBtn:hover {
+.sidebarProfile__footerBtn--navigate:hover {
+  color: var(--brand-primary);
+  background: rgba(var(--brand-primary-rgb), 0.06);
+}
+
+.sidebarProfile__footerBtn--logout:hover {
   color: var(--color-error);
   background: rgba(var(--color-error-light-rgb), 0.4);
 }
 
-.sidebarProfile__logoutIcon {
+.sidebarProfile__footerIcon {
   width: 16px;
   height: 16px;
 }
