@@ -895,7 +895,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
 
     // Verify current password if provided; require for safety
     if (!currentPassword || !(await bcrypt.compare(currentPassword, user.password_hash || ''))) {
-      return res.status(401).json({ error: 'Aktuelles Passwort ist falsch' });
+      return res.status(403).json({ error: 'Aktuelles Passwort ist falsch' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword.trim(), 10);

@@ -29,7 +29,7 @@ export function TeacherPassword() {
       setNewPassword('');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
-      const known = ['Aktuelles Passwort ist falsch.', 'Nicht angemeldet (401) – bitte neu einloggen.'];
+      const known = ['Aktuelles Passwort ist falsch', 'Neues Passwort muss mindestens 8 Zeichen haben'];
       setError(known.some((k) => msg === k) ? msg : 'Fehler beim Ändern des Passworts.');
     } finally {
       setSaving(false);
