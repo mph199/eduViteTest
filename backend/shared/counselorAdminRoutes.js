@@ -25,7 +25,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/db.js';
-import { createCounselorService } from './counselorService.js';
+import { generateSlotsForDateRange, upsertWeeklySchedule } from './counselorService.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
 import logger from '../config/logger.js';
 
@@ -327,38 +327,10 @@ export function createCounselorAdminRoutes(config) {
     try {
       const counselorId = parseInt(req.params.id, 10);
       const { schedule } = req.body || {};
-
-      if (!Array.isArray(schedule)) {
-        return res.status(400).json({ error: 'schedule muss ein Array sein' });
-      }
-
-      for (const entry of schedule) {
-        const wd = parseInt(entry.weekday, 10);
-        if (isNaN(wd) || wd < 0 || wd > 6) {
-          return res.status(400).json({ error: `Ungültiger Wochentag: ${entry.weekday}` });
-        }
-        if (entry.active && (!entry.start_time || !entry.end_time)) {
-          return res.status(400).json({ error: `Start- und Endzeit erforderlich für Tag ${wd}` });
-        }
-      }
-
-      for (const entry of schedule) {
-        const wd = parseInt(entry.weekday, 10);
-        await query(
-          `INSERT INTO ${scheduleTable} (counselor_id, weekday, start_time, end_time, active)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (counselor_id, weekday)
-           DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
-          [counselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
-        );
-      }
-
-      const { rows } = await query(
-        `SELECT * FROM ${scheduleTable} WHERE counselor_id = $1 ORDER BY weekday`,
-        [counselorId]
-      );
+      const rows = await upsertWeeklySchedule(counselorId, schedule, scheduleTable);
       res.json({ success: true, schedule: rows });
     } catch (err) {
+      if (err.statusCode === 400) return res.status(400).json({ error: err.message });
       logger.error({ err }, `${tablePrefix} schedule update error`);
       res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
     }
@@ -374,94 +346,12 @@ export function createCounselorAdminRoutes(config) {
       if (!date_from || !/^\d{4}-\d{2}-\d{2}$/.test(date_from)) {
         return res.status(400).json({ error: 'date_from im Format YYYY-MM-DD erforderlich' });
       }
-      const endDate = date_until && /^\d{4}-\d{2}-\d{2}$/.test(date_until) ? date_until : date_from;
 
-      // Get counselor details
-      const { rows: cRows } = await query(
-        `SELECT * FROM ${counselorsTable} WHERE id = $1`, [counselorId]
-      );
-      const counselor = cRows[0];
-      if (!counselor) return res.status(404).json({ error: `${counselorLabel} nicht gefunden` });
-
-      // Load weekly schedule (if exists)
-      const { rows: scheduleRows } = await query(
-        `SELECT * FROM ${scheduleTable} WHERE counselor_id = $1 AND active = TRUE ORDER BY weekday`,
-        [counselorId]
-      );
-
-      // Build a map: JS weekday (0=Sun..6=Sat) -> { start_time, end_time }
-      // DB weekday: 0=Mon..4=Fri,5=Sat,6=Sun -> JS: Mon=1..Fri=5,Sat=6,Sun=0
-      const scheduleByJsDay = new Map();
-      for (const s of scheduleRows) {
-        const jsDay = s.weekday === 6 ? 0 : s.weekday + 1;
-        scheduleByJsDay.set(jsDay, {
-          start: s.start_time?.toString()?.slice(0, 5),
-          end: s.end_time?.toString()?.slice(0, 5),
-        });
-      }
-
-      const hasSchedule = scheduleByJsDay.size > 0;
-      const duration = counselor.slot_duration_minutes || 30;
-      const defaultFrom = counselor.available_from?.toString()?.slice(0, 5) || '08:00';
-      const defaultUntil = counselor.available_until?.toString()?.slice(0, 5) || '14:00';
-
-      // Use the shared service's generateTimeSlots
-      const svc = createCounselorService({
-        tablePrefix, counselorLabel, topicTable, topicForeignKey,
-      });
-
-      let totalCreated = 0;
-      let totalSkipped = 0;
-      const start = new Date(date_from);
-      const end = new Date(endDate);
-
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dayOfWeek = d.getDay();
-
-        let fromStr, untilStr;
-        if (hasSchedule) {
-          const entry = scheduleByJsDay.get(dayOfWeek);
-          if (!entry) continue;
-          fromStr = entry.start;
-          untilStr = entry.end;
-        } else {
-          if (exclude_weekends && (dayOfWeek === 0 || dayOfWeek === 6)) continue;
-          fromStr = defaultFrom;
-          untilStr = defaultUntil;
-        }
-
-        const timeSlots = svc.generateTimeSlots(fromStr, untilStr, duration);
-        const dateStr = d.toISOString().slice(0, 10);
-
-        // Check for existing slots on this date
-        const { rows: existing } = await query(
-          `SELECT time FROM ${appointmentsTable} WHERE counselor_id = $1 AND date = $2`,
-          [counselorId, dateStr]
-        );
-        const existingTimes = new Set(existing.map(r => r.time?.toString()?.slice(0, 5)));
-
-        const newSlots = timeSlots.filter(t => !existingTimes.has(t));
-        totalSkipped += existingTimes.size;
-        if (!newSlots.length) continue;
-
-        const cols = ['counselor_id', 'date', 'time', 'duration_minutes', 'status'];
-        const placeholders = [];
-        const vals = [];
-        let pIdx = 1;
-        for (const time of newSlots) {
-          placeholders.push(`($${pIdx}, $${pIdx + 1}, $${pIdx + 2}, $${pIdx + 3}, $${pIdx + 4})`);
-          vals.push(counselorId, dateStr, time, duration, 'available');
-          pIdx += 5;
-        }
-        await query(
-          `INSERT INTO ${appointmentsTable} (${cols.join(', ')}) VALUES ${placeholders.join(', ')}`,
-          vals
-        );
-        totalCreated += newSlots.length;
-      }
-
-      res.json({ success: true, created: totalCreated, skipped: totalSkipped });
+      const tables = { counselorsTable, appointmentsTable, scheduleTable, counselorLabel };
+      const result = await generateSlotsForDateRange(counselorId, { date_from, date_until, exclude_weekends }, tables);
+      res.json({ success: true, ...result });
     } catch (err) {
+      if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
       logger.error({ err }, `${tablePrefix} admin generate-slots error`);
       res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
     }

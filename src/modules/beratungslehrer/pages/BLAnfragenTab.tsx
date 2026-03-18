@@ -8,14 +8,14 @@ interface Props {
   showFlash: (msg: string) => void;
 }
 
-export function SSWAnfragenTab({ showFlash }: Props) {
+export function BLAnfragenTab({ showFlash }: Props) {
   const [requests, setRequests] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.ssw.getAppointments({ status: 'requested,confirmed' }) as { appointments?: Appointment[] };
+      const data = await api.bl.getAppointments({ status: 'requested,confirmed' });
       setRequests(Array.isArray(data?.appointments) ? data.appointments : []);
     } catch {
       setRequests([]);
@@ -28,8 +28,8 @@ export function SSWAnfragenTab({ showFlash }: Props) {
 
   const handleConfirm = async (id: number) => {
     try {
-      await api.ssw.confirmAppointment(id);
-      showFlash('Termin bestaetigt.');
+      await api.bl.confirmAppointment(id);
+      showFlash('Termin bestätigt.');
       loadRequests();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler');
@@ -39,7 +39,7 @@ export function SSWAnfragenTab({ showFlash }: Props) {
   const handleCancel = async (id: number) => {
     if (!confirm('Termin wirklich absagen?')) return;
     try {
-      await api.ssw.cancelAppointment(id);
+      await api.bl.cancelAppointment(id);
       showFlash('Termin abgesagt.');
       loadRequests();
     } catch (err) {
@@ -67,9 +67,9 @@ export function SSWAnfragenTab({ showFlash }: Props) {
                 <th>Datum</th>
                 <th>Uhrzeit</th>
                 <th>Status</th>
-                <th>Schueler/in</th>
+                <th>Schüler/in</th>
                 <th>Klasse</th>
-                <th>Kategorie</th>
+                <th>Thema</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
@@ -87,13 +87,13 @@ export function SSWAnfragenTab({ showFlash }: Props) {
                     </td>
                     <td data-label="Name">{a.student_name || '--'}</td>
                     <td data-label="Klasse">{a.student_class || '--'}</td>
-                    <td data-label="Kategorie">{a.category_name || '--'}</td>
+                    <td data-label="Thema">{a.topic_name || '--'}</td>
                     <td data-label="Aktionen">
                       <div className="action-btns action-btns--sm">
                         {a.status === 'requested' && (
                           <button className="btn-primary btn--sm"
                             onClick={() => handleConfirm(a.id)}>
-                            Bestaetigen
+                            Bestätigen
                           </button>
                         )}
                         {(a.status === 'requested' || a.status === 'confirmed') && (
