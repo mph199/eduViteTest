@@ -40,6 +40,21 @@
   min-width: 200px;
 }
 
+/* ── Teacher-specific: semi-transparent cards to reveal page background ── */
+.admin-dashboard--teacher .stat-card {
+  background: rgba(var(--color-white-rgb), 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.admin-dashboard--teacher .bookings-table thead {
+  background: rgba(var(--color-gray-50-rgb), 0.85);
+}
+
+.admin-dashboard--teacher .bookings-table tbody tr:hover {
+  background: rgba(var(--color-gray-50-rgb), 0.70);
+}
+
 .stat-value {
   font-size: 2.5rem;
   font-weight: 700;
