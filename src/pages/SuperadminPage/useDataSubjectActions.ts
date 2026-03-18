@@ -73,7 +73,7 @@ export function useDataSubjectActions() {
     try {
       const result = await api.dataSubject.deleteData(email.trim());
       setActionMsg(result.message || 'Daten anonymisiert');
-      handleSearch();
+      await handleSearch();
     } catch (err: unknown) {
       setActionMsg(`Loeschfehler: ${err instanceof Error ? err.message : 'Unbekannt'}`);
     } finally {
@@ -92,7 +92,7 @@ export function useDataSubjectActions() {
       setActionMsg(result.message || 'Daten berichtigt');
       setShowCorrection(false);
       setCorrections({});
-      handleSearch();
+      await handleSearch();
     } catch (err: unknown) {
       setActionMsg(`Berichtigungsfehler: ${err instanceof Error ? err.message : 'Unbekannt'}`);
     } finally {
