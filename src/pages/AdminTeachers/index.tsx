@@ -5,7 +5,7 @@ import { useBgStyle } from '../../hooks/useBgStyle';
 import { useFlash } from '../../hooks/useFlash';
 import api from '../../services/api';
 import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
-import { getModule } from '../../modules/registry';
+import { useModuleConfig } from '../../contexts/ModuleConfigContext';
 import type { Teacher as ApiTeacher, UserAccount, RevokedModuleConflict } from '../../types';
 import type { BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from './types';
 import { defaultBlForm, defaultFormData } from './types';
@@ -15,9 +15,9 @@ import { TeacherTable } from './TeacherTable';
 import { RevokeModuleDialog } from './RevokeModuleDialog';
 import '../AdminDashboard.css';
 
-const BL_MODULE_ACTIVE = !!getModule('beratungslehrer');
-
 export function AdminTeachers() {
+  const { isModuleEnabled } = useModuleConfig();
+  const blModuleActive = isModuleEnabled('beratungslehrer');
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +106,7 @@ export function AdminTeachers() {
         }),
       };
 
-      if (BL_MODULE_ACTIVE) {
+      if (blModuleActive) {
         if (blForm.enabled) {
           teacherData.beratungslehrer = {
             phone: blForm.phone,
@@ -156,7 +156,7 @@ export function AdminTeachers() {
       password: '',
     });
     setBlForm(defaultBlForm());
-    if (BL_MODULE_ACTIVE) {
+    if (blModuleActive) {
       try {
         const blData = await api.admin.getTeacherBL(teacher.id);
         if (blData?.counselor) {
@@ -393,7 +393,7 @@ export function AdminTeachers() {
             blForm={blForm}
             setBlForm={setBlForm}
             editingTeacher={editingTeacher}
-            blModuleActive={BL_MODULE_ACTIVE}
+            blModuleActive={blModuleActive}
             createdCreds={createdCreds}
             onSubmit={handleSubmit}
             onCancel={handleCancel}

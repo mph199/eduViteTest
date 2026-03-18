@@ -84,6 +84,7 @@ Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch"
 | **Erkunder** | Before any non-trivial change | `.claude/agents/erkunder.md` |
 | **Architekt** | New features, modules, schema changes | `.claude/agents/architekt.md` |
 | **Pruefer** | Before every commit | `.claude/agents/pruefer.md` |
+| **Modulwaechter** | When working on any module (create, modify, extend) | `.claude/agents/modulwaechter.md` |
 
 ### Code Hygiene (regelmaessig einsetzen)
 
