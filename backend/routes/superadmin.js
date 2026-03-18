@@ -171,7 +171,7 @@ router.post('/email-branding/preview', requireSuperadmin, async (req, res) => {
     return res.json({ success: true, messageId: result.messageId });
   } catch (error) {
     logger.error({ err: error }, 'Error sending preview email');
-    return res.status(500).json({ error: error?.message || 'Fehler beim Senden' });
+    return res.status(500).json({ error: 'Fehler beim Senden der Vorschau-Email' });
   }
 });
 

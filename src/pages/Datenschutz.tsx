@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
 import type { BrandingData } from '../types';
+import api from '../services/api';
 import './LegalPage.css';
-
-const API_BASE = String(
-  (import.meta as unknown as Record<string, Record<string, unknown>>).env?.VITE_API_URL || '/api'
-).replace(/\/+$/, '');
 
 export const Datenschutz = () => {
   const [b, setB] = useState<BrandingData>({});
 
   useEffect(() => {
-    fetch(`${API_BASE}/superadmin/site-branding`, { credentials: 'include' })
-      .then(r => r.json())
+    api.superadmin.getSiteBranding()
       .then(data => setB(data || {}))
       .catch(() => {});
   }, []);

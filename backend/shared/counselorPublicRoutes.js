@@ -68,7 +68,7 @@ export function createCounselorPublicRoutes(service, config) {
       res.json({ appointments });
     } catch (err) {
       const status = err.statusCode || 500;
-      res.status(status).json({ error: err.message || 'Fehler beim Laden der Termine' });
+      res.status(status).json({ error: status < 500 ? (err.message || 'Fehler beim Laden der Termine') : 'Fehler beim Laden der Termine' });
     }
   });
 
@@ -132,7 +132,7 @@ export function createCounselorPublicRoutes(service, config) {
       res.json({ success: true, appointment });
     } catch (err) {
       const status = err.statusCode || 500;
-      res.status(status).json({ error: err.message || 'Fehler beim Buchen' });
+      res.status(status).json({ error: status < 500 ? (err.message || 'Fehler beim Buchen') : 'Fehler beim Buchen' });
     }
   });
 

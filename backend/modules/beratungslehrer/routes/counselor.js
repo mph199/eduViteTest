@@ -90,7 +90,7 @@ router.put('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
     const rows = await upsertWeeklySchedule(counselorId, schedule, 'bl_weekly_schedule', { minDay: 1, maxDay: 5 });
     res.json({ success: true, schedule: rows });
   } catch (err) {
-    if (err.statusCode === 400) return res.status(400).json({ error: err.message });
+    if (err.statusCode && err.statusCode < 500) return res.status(err.statusCode).json({ error: err.message });
     logger.error({ err }, 'BL counselor schedule update error');
     res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
   }
@@ -159,7 +159,7 @@ router.post('/generate-slots', requireAuth, requireBLCounselor, async (req, res)
     const result = await generateSlotsForDateRange(counselorId, { date_from, date_until, exclude_weekends }, BL_TABLES);
     res.json({ success: true, ...result });
   } catch (err) {
-    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+    if (err.statusCode && err.statusCode < 500) return res.status(err.statusCode).json({ error: err.message });
     logger.error({ err }, 'BL generate-slots error');
     res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
   }

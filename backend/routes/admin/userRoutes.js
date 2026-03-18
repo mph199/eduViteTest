@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAdmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
+import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import logger from '../../config/logger.js';
 
 const router = express.Router();
@@ -121,6 +122,9 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
     for (const key of removedKeys) {
       const cfg = COUNSELOR_TABLES[key];
       if (!cfg) continue;
+      assertSafeIdentifier(cfg.appointments);
+      assertSafeIdentifier(cfg.counselors);
+      assertSafeIdentifier(cfg.schedule);
 
       const { rows: stats } = await client.query(
         `SELECT c.id,

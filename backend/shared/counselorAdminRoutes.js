@@ -28,6 +28,7 @@ import { query } from '../config/db.js';
 import { generateSlotsForDateRange, upsertWeeklySchedule } from './counselorService.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
 import logger from '../config/logger.js';
+import { validatePassword } from './validatePassword.js';
 
 export function createCounselorAdminRoutes(config) {
   const {
@@ -354,7 +355,7 @@ export function createCounselorAdminRoutes(config) {
       const result = await generateSlotsForDateRange(counselorId, { date_from, date_until, exclude_weekends }, tables);
       res.json({ success: true, ...result });
     } catch (err) {
-      if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+      if (err.statusCode && err.statusCode < 500) return res.status(err.statusCode).json({ error: err.message });
       logger.error({ err }, `${tablePrefix} admin generate-slots error`);
       res.status(500).json({ error: 'Fehler beim Erstellen der Termine' });
     }
@@ -362,8 +363,6 @@ export function createCounselorAdminRoutes(config) {
 
   return router;
 }
-
-export { generateUsername } from './generateUsername.js';
 
 /**
  * Helper: create or upsert a user account for a counselor.
@@ -381,9 +380,12 @@ export async function createCounselorUser(counselor, req, config) {
     ? reqPassword.trim()
     : crypto.randomBytes(6).toString('base64url');
 
-  // Enforce minimum password length for manually provided passwords
-  if (isManualPassword && tempPassword.length < 8) {
-    throw Object.assign(new Error('Passwort muss mindestens 8 Zeichen haben'), { statusCode: 400 });
+  // Enforce password complexity for manually provided passwords
+  if (isManualPassword) {
+    const pwCheck = validatePassword(tempPassword);
+    if (!pwCheck.valid) {
+      throw Object.assign(new Error(pwCheck.message), { statusCode: 400 });
+    }
   }
 
   const passwordHash = await bcrypt.hash(tempPassword, 10);

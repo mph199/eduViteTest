@@ -9,6 +9,7 @@ import { generateTimeSlotsForTeacher } from '../../utils/timeWindows.js';
 import { resolveActiveEvent } from '../../utils/resolveActiveEvent.js';
 import logger from '../../config/logger.js';
 import { generateUsername, generateUniqueUsername } from '../../shared/generateUsername.js';
+import { validatePassword } from '../../shared/validatePassword.js';
 
 const router = express.Router();
 const csvUpload = multer({
@@ -151,8 +152,9 @@ router.post('/teachers', requireAdmin, async (req, res) => {
   }
 
   const tempPassword = (reqPassword && typeof reqPassword === 'string') ? reqPassword.trim() : '';
-  if (!tempPassword || tempPassword.length < 8) {
-    return res.status(400).json({ error: 'Passwort ist erforderlich (mindestens 8 Zeichen)' });
+  const pwCheck = validatePassword(tempPassword);
+  if (!pwCheck.valid) {
+    return res.status(400).json({ error: pwCheck.message });
   }
 
   const client = await getClient();
@@ -410,7 +412,7 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
     });
   } catch (error) {
     logger.error({ err: error }, 'CSV import error');
-    res.status(500).json({ error: 'Fehler beim CSV-Import: ' + (error?.message || 'Unbekannter Fehler') });
+    res.status(500).json({ error: 'Fehler beim CSV-Import' });
   }
 });
 
@@ -574,7 +576,7 @@ router.put('/teachers/:id/reset-login', requireAdmin, async (req, res) => {
     const tempPassword = crypto.randomBytes(6).toString('base64url');
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, user.id]);
+    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1 WHERE id = $2', [passwordHash, user.id]);
 
     res.json({ success: true, user: { username: user.username, tempPassword } });
   } catch (error) {

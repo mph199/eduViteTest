@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-sprechtag}
       POSTGRES_USER: ${POSTGRES_USER:-sprechtag}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sprechtag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss in .env gesetzt sein}
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -25,10 +25,10 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sprechtag}:${POSTGRES_PASSWORD:-sprechtag}@postgres:5432/${POSTGRES_DB:-sprechtag}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sprechtag}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss in .env gesetzt sein}@postgres:5432/${POSTGRES_DB:-sprechtag}
       PORT: 4000
       HOST: 0.0.0.0
-      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET muss in .env gesetzt sein}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       VERIFICATION_TOKEN_TTL_HOURS: ${VERIFICATION_TOKEN_TTL_HOURS:-72}

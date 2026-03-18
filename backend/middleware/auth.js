@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import logger from '../config/logger.js';
 import { logSecurityEvent } from './audit-log.js';
+import { query } from '../config/db.js';
 
 // Admin User Credentials – aus Umgebungsvariablen laden
 const adminUsername = process.env.ADMIN_USERNAME;
@@ -33,6 +34,9 @@ export function generateToken(user) {
   }
   if (user.modules && user.modules.length > 0) {
     payload.modules = user.modules;
+  }
+  if (typeof user.tokenVersion === 'number') {
+    payload.tv = user.tokenVersion;
   }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
@@ -71,8 +75,9 @@ function extractToken(req) {
 /**
  * Shared authentication logic for all middleware.
  * Returns decoded token or sends error response.
+ * Checks token_version against DB for DB-users (revocation support).
  */
-function authenticate(req, res) {
+async function authenticate(req, res) {
   const token = extractToken(req);
   if (!token) {
     res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
@@ -83,14 +88,31 @@ function authenticate(req, res) {
     res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
     return null;
   }
+
+  // Token-version check for DB-users (not env-based ADMIN_USER which has no DB row)
+  // Tokens without tv claim (pre-migration) are also checked: tv defaults to -1
+  if (decoded.id) {
+    try {
+      const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
+      const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
+      if (rows.length > 0 && tv < rows[0].token_version) {
+        res.status(401).json({ error: 'Unauthorized', message: 'Token revoked' });
+        return null;
+      }
+    } catch (err) {
+      logger.error({ err }, 'Token version check failed');
+      // Fail open: if DB is unreachable, accept token (availability > perfect security)
+    }
+  }
+
   return decoded;
 }
 
 /**
  * Middleware: Requires authenticated token
  */
-export function requireAuth(req, res, next) {
-  const decoded = authenticate(req, res);
+export async function requireAuth(req, res, next) {
+  const decoded = await authenticate(req, res);
   if (!decoded) return;
   req.user = decoded;
   return next();
@@ -99,8 +121,8 @@ export function requireAuth(req, res, next) {
 /**
  * Middleware: Requires admin role
  */
-export function requireAdmin(req, res, next) {
-  const decoded = authenticate(req, res);
+export async function requireAdmin(req, res, next) {
+  const decoded = await authenticate(req, res);
   if (!decoded) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'admin', path: req.path }, req.ip);
@@ -113,8 +135,8 @@ export function requireAdmin(req, res, next) {
 /**
  * Middleware: Requires superadmin role
  */
-export function requireSuperadmin(req, res, next) {
-  const decoded = authenticate(req, res);
+export async function requireSuperadmin(req, res, next) {
+  const decoded = await authenticate(req, res);
   if (!decoded) return;
   if (decoded.role !== 'superadmin') {
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'superadmin', path: req.path }, req.ip);
@@ -127,8 +149,8 @@ export function requireSuperadmin(req, res, next) {
 /**
  * Middleware: Requires SSW access (role ssw, admin, or superadmin)
  */
-export function requireSSW(req, res, next) {
-  const decoded = authenticate(req, res);
+export async function requireSSW(req, res, next) {
+  const decoded = await authenticate(req, res);
   if (!decoded) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'ssw', path: req.path }, req.ip);
@@ -142,8 +164,8 @@ export function requireSSW(req, res, next) {
  * Factory: Create middleware that requires access to a specific module.
  */
 export function requireModuleAccess(moduleKey) {
-  return (req, res, next) => {
-    const decoded = authenticate(req, res);
+  return async (req, res, next) => {
+    const decoded = await authenticate(req, res);
     if (!decoded) return;
     if (!hasModuleAccess(decoded, moduleKey)) {
       logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: moduleKey, path: req.path }, req.ip);

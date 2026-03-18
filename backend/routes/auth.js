@@ -104,8 +104,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     const isEmail = username.includes('@');
     const { rows: users } = await query(
       isEmail
-        ? 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
-        : 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until FROM users WHERE username = $1 LIMIT 1',
+        ? 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until, token_version FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
+        : 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until, token_version FROM users WHERE username = $1 LIMIT 1',
       [username]
     );
 
@@ -188,7 +188,8 @@ router.post('/login', loginLimiter, async (req, res) => {
       username: dbUser.username,
       role,
       teacherId: dbUser.teacher_id || undefined,
-      modules: modules.length > 0 ? modules : undefined
+      modules: modules.length > 0 ? modules : undefined,
+      tokenVersion: dbUser.token_version ?? 0
     };
     const token = generateToken(user);
 
@@ -211,30 +212,46 @@ router.post('/login', loginLimiter, async (req, res) => {
 
 /**
  * POST /api/auth/logout
- * Token wird clientseitig gelöscht
+ * Invalidates token server-side by incrementing token_version, then clears cookie.
  */
-router.post('/logout', (_req, res) => {
+router.post('/logout', async (req, res) => {
+  try {
+    const token = req.cookies?.token;
+    if (token) {
+      const decoded = verifyToken(token);
+      if (decoded?.id) {
+        await query('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [decoded.id]);
+      }
+    }
+  } catch (err) {
+    logger.error({ err }, 'Token revocation on logout failed');
+  }
   res.clearCookie('token', cookieOptions());
-  res.json({
-    success: true,
-    message: 'Logout successful'
-  });
+  res.json({ success: true, message: 'Logout successful' });
 });
 
 // Optional: accept DELETE for clients using DELETE /logout
-router.delete('/logout', (_req, res) => {
+router.delete('/logout', async (req, res) => {
+  try {
+    const token = req.cookies?.token;
+    if (token) {
+      const decoded = verifyToken(token);
+      if (decoded?.id) {
+        await query('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [decoded.id]);
+      }
+    }
+  } catch (err) {
+    logger.error({ err }, 'Token revocation on logout failed');
+  }
   res.clearCookie('token', cookieOptions());
-  res.json({
-    success: true,
-    message: 'Logout successful'
-  });
+  res.json({ success: true, message: 'Logout successful' });
 });
 
 /**
  * GET /api/auth/verify
  * Checks if token is valid
  */
-router.get('/verify', (req, res) => {
+router.get('/verify', async (req, res) => {
   const token = req.cookies?.token || null;
 
   if (!token) {
@@ -244,6 +261,19 @@ router.get('/verify', (req, res) => {
 
   if (!decoded) {
     return res.json({ authenticated: false });
+  }
+
+  // Check token_version for DB-users (pre-migration tokens without tv claim default to -1)
+  if (decoded.id) {
+    try {
+      const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
+      const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
+      if (rows.length > 0 && tv < rows[0].token_version) {
+        return res.json({ authenticated: false });
+      }
+    } catch (_err) {
+      // fail open for availability
+    }
   }
 
   res.json({
