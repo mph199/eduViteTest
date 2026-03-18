@@ -41,12 +41,12 @@
 }
 
 .sidebarProfile__initial {
-  color: #ffffff;
+  color: var(--color-white);
   text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.5),
-     1px -1px 0 rgba(0, 0, 0, 0.5),
-    -1px  1px 0 rgba(0, 0, 0, 0.5),
-     1px  1px 0 rgba(0, 0, 0, 0.5);
+    -1px -1px 0 rgba(var(--color-black-rgb), 0.5),
+     1px -1px 0 rgba(var(--color-black-rgb), 0.5),
+    -1px  1px 0 rgba(var(--color-black-rgb), 0.5),
+     1px  1px 0 rgba(var(--color-black-rgb), 0.5);
   font-weight: 800;
   font-size: 1.15rem;
   line-height: 1;

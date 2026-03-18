@@ -67,6 +67,8 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
         type="button"
         className="sidebarProfile__trigger"
         aria-expanded={expanded}
+        aria-controls="sidebarProfile-panel"
+        aria-label={`Profil von ${displayName}`}
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="sidebarProfile__avatar" style={{ background: color }}>
@@ -82,7 +84,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
       </button>
 
       {expanded && (
-        <div className="sidebarProfile__panel">
+        <div id="sidebarProfile-panel" className="sidebarProfile__panel">
           {/* User info */}
           <div className="sidebarProfile__info">
             <span className="sidebarProfile__infoLabel">Benutzername</span>
@@ -108,6 +110,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
               <button
                 type="button"
                 className="sidebarProfile__pwToggle"
+                aria-expanded={pwOpen}
                 onClick={() => { setPwOpen((v) => !v); setPwMsg(null); }}
               >
                 Passwort aendern
@@ -119,18 +122,22 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
                   onSubmit={(e) => { e.preventDefault(); void handlePasswordChange(); }}
                 >
                   <input
+                    id="sidebarProfile-currentPw"
                     type="password"
                     className="sidebarProfile__pwInput"
                     placeholder="Aktuelles Passwort"
+                    aria-label="Aktuelles Passwort"
                     value={currentPw}
                     onChange={(e) => setCurrentPw(e.target.value)}
                     disabled={pwSaving}
                     autoComplete="current-password"
                   />
                   <input
+                    id="sidebarProfile-newPw"
                     type="password"
                     className="sidebarProfile__pwInput"
                     placeholder="Neues Passwort (min. 8 Zeichen)"
+                    aria-label="Neues Passwort"
                     value={newPw}
                     onChange={(e) => setNewPw(e.target.value)}
                     disabled={pwSaving}
@@ -145,7 +152,10 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
                   </button>
 
                   {pwMsg && (
-                    <div className={`sidebarProfile__pwMsg ${pwMsg.ok ? 'sidebarProfile__pwMsg--ok' : 'sidebarProfile__pwMsg--err'}`}>
+                    <div
+                      className={`sidebarProfile__pwMsg ${pwMsg.ok ? 'sidebarProfile__pwMsg--ok' : 'sidebarProfile__pwMsg--err'}`}
+                      role={pwMsg.ok ? 'status' : 'alert'}
+                    >
                       {pwMsg.text}
                     </div>
                   )}

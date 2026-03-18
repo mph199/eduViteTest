@@ -3,6 +3,13 @@
   --font-heading: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
 
+  /* Avatar colors (deterministic per username) */
+  --avatar-color-0: #2A7C76;   /* Warmes Petrol  */
+  --avatar-color-1: #B8860B;   /* Warmes Gold    */
+  --avatar-color-2: #3B82C4;   /* Hellblau       */
+  --avatar-color-3: #C4A35A;   /* Sand           */
+  --avatar-color-4: #8B1A2F;   /* Bordeaux       */
+
   /* Brand / Theme Tokens (navy – institutionell) */
   --brand-primary: #123C73;
   --brand-primary-dark: #0B2545;
