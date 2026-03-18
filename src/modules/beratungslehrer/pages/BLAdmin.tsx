@@ -79,9 +79,9 @@ export function BLAdmin() {
         api.bl.getAdminCounselors(),
         api.bl.getAdminTopics(),
       ]);
-      const cList: Counselor[] = cData?.counselors || [];
+      const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
       setCounselors(cList);
-      setTopics(tData?.topics || []);
+      setTopics(Array.isArray(tData?.topics) ? tData.topics : []);
       if (cList.length > 0) {
         const scheduleResults = await Promise.all(
           cList.map(c => api.bl.getAdminCounselorSchedule(c.id).catch(() => ({ schedule: [] })))

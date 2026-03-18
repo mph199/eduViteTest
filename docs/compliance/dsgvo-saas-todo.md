@@ -129,9 +129,11 @@
 | 1.4.3 | **Timing-Attack-Prevention** – Dummy-bcrypt-Vergleich bei "User not found", um User-Enumeration ueber Antwortzeiten zu verhindern. | `backend/routes/auth.js` | [x] |
 | 1.4.4 | **bcrypt-DoS-Schutz** – Passwort-Laenge auf 1024 Zeichen begrenzt. Verhindert Blockierung durch uebergrosse Passwoerter. | `backend/routes/auth.js` | [x] |
 | 1.4.5 | **CSV-Extension-Validierung** – Dateiendung `.csv` wird zusaetzlich zum MIME-Type geprueft. Verhindert Upload manipulierter Dateien. | `backend/routes/admin/teacherRoutes.js` | [x] |
-| 1.4.6 | **Passwort-Policy fuer Berater** – Mindestens 8 Zeichen bei Passwortaenderung durch Berater. | `backend/shared/counselorAdminRoutes.js` | [x] |
-| 1.4.7 | **Info-Disclosure Fix** – Interne Fehlermeldungen (`error.message`) werden nicht mehr an Client weitergegeben. | `backend/modules/elternsprechtag/routes/events.js` | [x] |
-| 1.4.8 | **Token-Revocation / Logout-Haertung** – Serverseitige JWT-Invalidierung (Blocklist oder Refresh-Token-Pattern). Aktuell nur Client-seitiges Cookie-Loeschen. | `backend/routes/auth.js` | [ ] |
+| 1.4.6 | **Passwort-Policy** – Zentrale `validatePassword()`: min 8 Zeichen + Gross/Klein/Ziffer. Alle 3 Stellen (counselorAdminRoutes, teacher.js, teacherRoutes) umgestellt. | `backend/shared/validatePassword.js`, `counselorAdminRoutes.js`, `teacher.js`, `teacherRoutes.js` | [x] |
+| 1.4.7 | **Info-Disclosure Fix** – 8 Error-Handler geben bei HTTP 500 keine internen Details mehr preis. Pattern: `status < 500 ? err.message : generisch`. | `teacherRoutes.js`, `bookingRoutes.js`, `superadmin.js`, `counselorPublicRoutes.js`, `public.js`, `SSW/BL counselor.js` | [x] |
+| 1.4.8 | **Token-Revocation / Logout-Haertung** – Migration 043: `token_version` in users. JWT enthaelt `tv`-Claim. Auth-Middleware prueft gegen DB. Logout/Passwortwechsel inkrementiert Version. | `backend/migrations/043_token_version.sql`, `backend/middleware/auth.js`, `backend/routes/auth.js` | [x] |
+| 1.4.9 | **Default-Secrets entfernt** – docker-compose.yml: SESSION_SECRET und POSTGRES_PASSWORD ohne Fallback-Defaults. `:?` Syntax erzwingt explizite .env-Konfiguration. | `docker-compose.yml` | [x] |
+| 1.4.10 | **SQL-Guard in userRoutes** – `assertSafeIdentifier()` fuer COUNSELOR_TABLES Tabellennamen (Defense-in-Depth). | `backend/routes/admin/userRoutes.js` | [x] |
 
 ---
 
@@ -250,11 +252,11 @@
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
 | P0: Go-Live-Blocker | 18 | 0 | 0 | 18 | 100% |
-| P1: Hoch (4 Wochen) | 22 | 1 | 0 | 21 | 95% |
+| P1: Hoch (4 Wochen) | 24 | 0 | 0 | 24 | 100% |
 | P2: Mittel (3 Monate) | 15 | 9 | 0 | 6 | 40% |
 | P3: Niedrig | 13 | 12 | 0 | 1 | 8% |
 | Code-Hygiene | 8 | 3 | 0 | 5 | 63% |
-| **Gesamt** | **76** | **25** | **0** | **51** | **~67%** |
+| **Gesamt** | **78** | **24** | **0** | **54** | **~69%** |
 
 ---
 
