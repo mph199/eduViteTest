@@ -141,7 +141,7 @@ router.post('/logo', requireSuperadmin, handleUpload(logoUpload, 'logo', '/uploa
   try {
     await query(
       `UPDATE email_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
-      [req.file.filename]
+      [req.uploadUrl]
     );
   } catch (e) {
     logger.error({ err: e }, 'Error saving logo URL');

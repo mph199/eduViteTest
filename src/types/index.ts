@@ -213,13 +213,6 @@ export interface CounselorBookingConfig {
   moduleId: 'schulsozialarbeit' | 'beratungslehrer';
 }
 
-export interface RevokedModuleConflict {
-  key: string;
-  label: string;
-  appointmentCount: number;
-  scheduleCount: number;
-}
-
 export interface EmailBranding {
   school_name: string;
   logo_url: string;

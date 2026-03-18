@@ -65,10 +65,10 @@ app.use(express.json({ limit: '100kb' }));
 // Rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: 20,                     // 20 attempts per window
+  max: 40,                     // 40 requests per window (verify, logout, etc.)
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Zu viele Anmeldeversuche. Bitte später erneut versuchen.' },
+  message: { error: 'Zu viele Anfragen. Bitte später erneut versuchen.' },
 });
 
 const bookingLimiter = rateLimit({

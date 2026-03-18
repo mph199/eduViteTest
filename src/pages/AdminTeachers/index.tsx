@@ -6,13 +6,12 @@ import { useFlash } from '../../hooks/useFlash';
 import api from '../../services/api';
 import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
 import { useModuleConfig } from '../../contexts/ModuleConfigContext';
-import type { Teacher as ApiTeacher, UserAccount, RevokedModuleConflict } from '../../types';
+import type { Teacher as ApiTeacher, UserAccount } from '../../types';
 import type { BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from './types';
 import { defaultBlForm, defaultFormData } from './types';
 import { TeacherForm } from './TeacherForm';
 import { CsvImportDialog } from './CsvImportDialog';
 import { TeacherTable } from './TeacherTable';
-import { RevokeModuleDialog } from './RevokeModuleDialog';
 import '../AdminDashboard.css';
 
 export function AdminTeachers() {
@@ -28,16 +27,10 @@ export function AdminTeachers() {
   const [formData, setFormData] = useState<TeacherFormData>(defaultFormData());
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
-  const [moduleSaving, setModuleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [flash, showFlash] = useFlash(6500);
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
-  const [revokeConflict, setRevokeConflict] = useState<{
-    target: UserAccount;
-    nextModules: string[];
-    conflicts: RevokedModuleConflict[];
-  } | null>(null);
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
@@ -272,25 +265,6 @@ export function AdminTeachers() {
     }
   };
 
-  const confirmRevoke = async () => {
-    if (!revokeConflict) return;
-    const { target, nextModules } = revokeConflict;
-    const current = target.modules || [];
-
-    setModuleSaving((prev) => ({ ...prev, [target.id]: true }));
-    try {
-      await api.admin.updateUserModules(target.id, nextModules, true);
-      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: nextModules } : u)));
-      showFlash('Modul-Zugang und zugehoerige Daten entfernt. Wird nach erneutem Login wirksam.');
-    } catch (e) {
-      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: current } : u)));
-      alert(e instanceof Error ? e.message : 'Fehler beim Entfernen des Modul-Zugangs');
-    } finally {
-      setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
-      setRevokeConflict(null);
-    }
-  };
-
   if (loading) {
     return (
       <div className="admin-loading">
@@ -411,16 +385,6 @@ export function AdminTeachers() {
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
-
-        {revokeConflict && (
-          <RevokeModuleDialog
-            conflicts={revokeConflict.conflicts}
-            targetName={revokeConflict.target.username}
-            onConfirm={confirmRevoke}
-            onCancel={() => setRevokeConflict(null)}
-            saving={!!moduleSaving[revokeConflict.target.id]}
-          />
-        )}
     </AdminPageWrapper>
   );
 }
