@@ -879,7 +879,7 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
  */
 router.put('/password', requireAuth, requireTeacher, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
-  const pwCheck = validatePassword(newPassword);
+  const pwCheck = validatePassword(typeof newPassword === 'string' ? newPassword.trim() : newPassword);
   if (!pwCheck.valid) {
     return res.status(400).json({ error: pwCheck.message });
   }

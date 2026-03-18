@@ -263,11 +263,12 @@ router.get('/verify', async (req, res) => {
     return res.json({ authenticated: false });
   }
 
-  // Check token_version for DB-users
-  if (decoded.id && typeof decoded.tv === 'number') {
+  // Check token_version for DB-users (pre-migration tokens without tv claim default to -1)
+  if (decoded.id) {
     try {
+      const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
       const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
-      if (rows.length > 0 && decoded.tv < rows[0].token_version) {
+      if (rows.length > 0 && tv < rows[0].token_version) {
         return res.json({ authenticated: false });
       }
     } catch (_err) {

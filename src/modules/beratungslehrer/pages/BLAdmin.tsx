@@ -56,7 +56,7 @@ export function BLAdmin() {
   const loadSchedule = useCallback(async () => {
     try {
       const data = await api.bl.getSchedule();
-      const entries: ScheduleEntry[] = data?.schedule || [];
+      const entries: ScheduleEntry[] = Array.isArray(data?.schedule) ? data.schedule : [];
       const merged = defaultSchedule.map(def => {
         const existing = entries.find(e => e.weekday === def.weekday);
         return existing ? {
@@ -87,7 +87,7 @@ export function BLAdmin() {
           cList.map(c => api.bl.getAdminCounselorSchedule(c.id).catch(() => ({ schedule: [] })))
         );
         const map: Record<number, ScheduleEntry[]> = {};
-        cList.forEach((c, i) => { map[c.id] = scheduleResults[i]?.schedule || []; });
+        cList.forEach((c, i) => { map[c.id] = Array.isArray(scheduleResults[i]?.schedule) ? scheduleResults[i].schedule : []; });
         setAdminSchedulesMap(map);
       }
     } catch (err) {

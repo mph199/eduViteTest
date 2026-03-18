@@ -90,10 +90,12 @@ async function authenticate(req, res) {
   }
 
   // Token-version check for DB-users (not env-based ADMIN_USER which has no DB row)
-  if (decoded.id && typeof decoded.tv === 'number') {
+  // Tokens without tv claim (pre-migration) are also checked: tv defaults to -1
+  if (decoded.id) {
     try {
+      const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
       const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
-      if (rows.length > 0 && decoded.tv < rows[0].token_version) {
+      if (rows.length > 0 && tv < rows[0].token_version) {
         res.status(401).json({ error: 'Unauthorized', message: 'Token revoked' });
         return null;
       }
