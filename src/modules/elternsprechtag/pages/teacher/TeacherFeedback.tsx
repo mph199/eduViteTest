@@ -27,7 +27,7 @@ export function TeacherFeedback() {
       setMessage('');
       setNotice('Vielen Dank! Feedback wurde anonym übermittelt.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Feedback konnte nicht gesendet werden.');
+      setError('Feedback konnte nicht gesendet werden.');
     } finally {
       setSending(false);
     }

@@ -1,4 +1,5 @@
 import type { Teacher as ApiTeacher, UserAccount } from '../../types';
+import { WEEKDAY_LABELS } from '../../shared/constants/weekdays';
 
 export type { ApiTeacher };
 export type { UserAccount };
@@ -11,14 +12,14 @@ export interface BlFormData {
   schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
 }
 
-export const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'] as const;
+export { WEEKDAY_LABELS as WEEKDAYS };
 
 export const defaultBlForm = (): BlFormData => ({
   enabled: false,
   phone: '',
   specializations: '',
   slot_duration_minutes: 30,
-  schedule: WEEKDAYS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
+  schedule: WEEKDAY_LABELS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
 });
 
 export type TeacherLoginResponse = {

@@ -8,16 +8,23 @@ const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 /**
  * Resolve an image path to a full URL, sanitized for safe CSS url() embedding.
  * Prevents CSS injection by encoding characters that could break out of url().
+ * Returns a bare URL string (not wrapped in CSS url()).
  */
 function resolveCssUrl(value: string, uploadPrefix: string): string {
   if (!value) return '';
   let resolved: string;
-  if (value.startsWith('http')) {
+  if (/^https?:\/\//i.test(value)) {
     resolved = value;
-  } else if (value.startsWith('/')) {
+  } else if (value.startsWith('/uploads/') || value.startsWith('/api/')) {
+    // Block path traversal (.. or percent-encoded variants)
+    if (/\.\.|%2e/i.test(value)) return '';
     resolved = `${BACKEND_BASE}${value}`;
-  } else {
+  } else if (/^[\w.\-]+$/.test(value)) {
+    // Bare filename (alphanumerics, dots, hyphens, underscores only)
     resolved = `${BACKEND_BASE}${uploadPrefix}${value}`;
+  } else {
+    // Reject data:, javascript:, ftp:, path traversal, etc.
+    return '';
   }
   // Encode chars that can break out of CSS url() context
   return resolved.replace(/[)"'\\(;\s{}]/g, (ch) => encodeURIComponent(ch));
@@ -568,12 +575,13 @@ const api = {
     async uploadLogo(file: File) {
       return uploadFile('/superadmin/logo', 'logo', file);
     },
-    /** Resolve a relative upload path to a full URL for preview */
+    /** Resolve a relative upload path to a full URL for preview (bare URL, not CSS-wrapped) */
     resolveLogoUrl(logoUrl: string): string {
       if (!logoUrl) return '';
-      if (logoUrl.startsWith('http')) return logoUrl;
-      if (logoUrl.startsWith('/')) return `${BACKEND_BASE}${logoUrl}`;
-      return `${BACKEND_BASE}/uploads/logos/${logoUrl}`;
+      if (/^https?:\/\//i.test(logoUrl)) return logoUrl;
+      if (logoUrl.startsWith('/') && !/\.\.|%2e/i.test(logoUrl)) return `${BACKEND_BASE}${logoUrl}`;
+      if (/^[\w.\-]+$/.test(logoUrl)) return `${BACKEND_BASE}/uploads/logos/${logoUrl}`;
+      return '';
     },
     // ── Site Branding ──────────────────────────────────
     async getSiteBranding() {

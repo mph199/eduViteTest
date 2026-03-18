@@ -205,6 +205,7 @@ Shared domain types (consolidated from previously duplicated local definitions):
 - `AdminEvent`, `EventStatus`, `EventStats` – event management
 - `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared. `Counselor.requires_confirmation` controls whether bookings need manual approval.
 - `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI. `CounselorBookingConfig.moduleId` identifiziert das Modul fuer die `ConsentCheckbox`
+- `GenerateSlotsResponse` – Antworttyp fuer Slot-Generierungs-Endpunkte (AdminSlots, AdminEvents)
 
 DSGVO types:
 - `DataSubjectSearchResult`, `DataSubjectDeletionResult`, `DataSubjectCorrectionResult`, `DataSubjectRestrictionResult` – DSAR-Antworttypen
@@ -222,6 +223,25 @@ Globale wiederverwendbare Komponenten ausserhalb des Modulsystems:
 | `Footer` | `src/components/Footer.tsx` | App-Layout |
 
 `ConsentCheckbox` rendert modulspezifischen Einwilligungstext und Link zur `/datenschutz`-Seite. Blockiert Form-Submit solange nicht angehakt.
+
+### Shared Utilities (`src/shared/`)
+
+Wiederverwendbare Komponenten, Konstanten und Hilfsfunktionen fuer Admin-Seiten:
+
+| Pfad | Inhalt | Genutzt von |
+|------|--------|-------------|
+| `src/shared/components/AdminPageWrapper.tsx` | Wrapper-Div fuer alle Admin-Seiten (CSS-Klassen-Stack + Background-Style) | BLAdmin, SSWAdmin |
+| `src/shared/components/CalendarPanel.tsx` | Kalender-UI fuer Terminuebersichten (extrahiert aus BLAdmin + SSWTermineTab) | BLAdmin, SSWTermineTab |
+| `src/shared/constants/weekdays.ts` | `WEEKDAY_LABELS`, `WEEKDAY_LABELS_FULL`, `WEEKDAY_SHORT`, `WEEKDAY_SHORT_FULL` | SSWCounselorsTab, AdminTeachers, BLAdmin, CalendarPanel |
+| `src/shared/utils/appointmentDate.ts` | `normalizeDate()` – normalisiert Datumswerte auf YYYY-MM-DD | CalendarPanel, BLAdmin |
+
+### Hooks (`src/hooks/`)
+
+| Hook | Datei | Beschreibung |
+|------|-------|-------------|
+| `useActiveView` | `src/hooks/useActiveView.ts` | Setzt aktive Ansicht (admin/teacher) fuer Dual-Role-User |
+| `useFlash` | `src/hooks/useFlash.ts` | Flash-Meldung mit Auto-Reset nach konfigurierbarer Dauer |
+| `useBgStyle` | `src/hooks/useBgStyle.ts` | Inline-Style fuer Hintergrundbild aus BrandingContext |
 
 ### Background Image System
 

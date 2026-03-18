@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActiveView } from '../../../hooks/useActiveView';
+import { useBgStyle } from '../../../hooks/useBgStyle';
 import api from '../../../services/api';
-import type { TimeSlot as ApiSlot, Teacher as ApiTeacher } from '../../../types';
+import type { TimeSlot as ApiSlot, Teacher as ApiTeacher, GenerateSlotsResponse } from '../../../types';
+import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
 import { exportTeacherSlotsToICal } from '../../../utils/icalExport';
 import { teacherDisplayName, teacherGroupKey } from '../../../utils/teacherDisplayName';
 import '../../../pages/AdminDashboard.css';
@@ -17,6 +19,7 @@ export function AdminSlots() {
   const [formData, setFormData] = useState({ time: '', date: '' });
   const [bulkCreating, setBulkCreating] = useState(false);
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadTeachers = useCallback(async () => {
     try {
@@ -117,8 +120,7 @@ export function AdminSlots() {
   const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
 
   return (
-    <div className="admin-dashboard">
-      <main className="admin-main">
+    <AdminPageWrapper style={adminBgStyle}>
         <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Sprechzeiten verwalten</h3>
@@ -138,7 +140,6 @@ export function AdminSlots() {
                     try {
                       setBulkCreating(true);
                       const res = await api.admin.generateTeacherSlots(selectedTeacherId);
-                      type GenerateSlotsResponse = { created?: number; skipped?: number; eventDate?: string | null };
                       const parsed = res as unknown as GenerateSlotsResponse;
                       const created = parsed?.created ?? 0;
                       const skipped = parsed?.skipped ?? 0;
@@ -172,14 +173,7 @@ export function AdminSlots() {
               id="teacher-select"
               value={selectedTeacherId || ''}
               onChange={(e) => setSelectedTeacherId(parseInt(e.target.value))}
-              style={{ 
-                padding: '0.65rem', 
-                borderRadius: '8px', 
-                border: '2px solid var(--color-gray-200)',
-                fontSize: '1rem',
-                width: '100%',
-                maxWidth: '400px'
-              }}
+              className="admin-select--teacher"
             >
                 {(() => {
                   const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
@@ -263,7 +257,7 @@ export function AdminSlots() {
                         onClick={() => exportTeacherSlotsToICal(slots, teacherDisplayName(selectedTeacher), selectedTeacher.room)}
                         className="btn-primary"
                       >
-                        📅 Termine exportieren
+                        Termine exportieren
                       </button>
                     )}
                   </div>
@@ -344,7 +338,6 @@ export function AdminSlots() {
             </>
           )}
         </div>
-      </main>
-    </div>
+    </AdminPageWrapper>
   );
 }

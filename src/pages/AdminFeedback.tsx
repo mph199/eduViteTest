@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
+import { useBgStyle } from '../hooks/useBgStyle';
 import api from '../services/api';
 import type { FeedbackItem } from '../types';
 import { formatDateTime } from '../utils/formatters';
@@ -14,6 +15,7 @@ export function AdminFeedback() {
 
   const { user } = useAuth();
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadFeedback = useCallback(async () => {
     if (user?.role !== 'admin') {
@@ -65,7 +67,7 @@ export function AdminFeedback() {
   };
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
       <main className="admin-main">
         <div className="admin-section-header">
           <h2>Feedback (anonym)</h2>

@@ -45,7 +45,6 @@
 | Variable | Wert | Verwendung |
 |----------|------|------------|
 | `--color-white` | `#ffffff` | Weiss |
-| `--color-black` | `#000000` | Schwarz |
 | `--color-gray-50` | `#f9fafb` | Hellster Grauton |
 | `--color-gray-100` | `#f3f4f6` | — |
 | `--color-gray-200` | `#e5e7eb` | Borders, Dividers |
@@ -178,14 +177,6 @@
 | `--module-accent-elternsprechtag` | `#1a7f7a` | Elternsprechtag |
 | `--module-accent-beratungslehrer` | `#b8860b` | Beratungslehrer |
 | `--module-accent-schulsozialarbeit` | `#cd5c5c` | Schulsozialarbeit |
-
-### Modul RGB-Pendants
-
-| Variable | Wert |
-|----------|------|
-| `--module-accent-elternsprechtag-rgb` | `26, 127, 122` |
-| `--module-accent-beratungslehrer-rgb` | `184, 134, 11` |
-| `--module-accent-schulsozialarbeit-rgb` | `205, 92, 92` |
 
 ---
 

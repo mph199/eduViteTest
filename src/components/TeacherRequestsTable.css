@@ -379,7 +379,7 @@
 .sandbox-multi-select__checkbox {
   width: 16px;
   height: 16px;
-  accent-color: var(--brand-primary, #2563eb);
+  accent-color: var(--brand-primary);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -392,7 +392,7 @@
 .sandbox-slot-count {
   font-weight: 400;
   font-size: 0.82em;
-  color: var(--brand-primary, #2563eb);
+  color: var(--brand-primary);
 }
 
 .sandbox-textarea {
@@ -978,9 +978,9 @@
 }
 
 .sandbox-view-toggle__btn.is-active {
-  background: var(--brand-primary, #2563eb);
+  background: var(--brand-primary);
   color: var(--color-white);
-  border-color: var(--brand-primary-dark, #1d4ed8);
+  border-color: var(--brand-primary-dark);
 }
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -1089,8 +1089,8 @@
   margin-top: 8px;
   align-self: flex-start;
   padding: 7px 16px;
-  border: 1px solid var(--brand-primary-dark, #1d4ed8);
-  background: linear-gradient(135deg, var(--brand-primary, #2563eb) 0%, var(--brand-primary-dark, #1d4ed8) 100%);
+  border: 1px solid var(--brand-primary-dark);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
   color: var(--color-white);
   border-radius: 8px;
   font-size: 0.84rem;
@@ -1100,9 +1100,9 @@
 }
 
 .sandbox-popup-card__open-btn:hover {
-  background: linear-gradient(135deg, var(--brand-primary-dark, #1d4ed8) 0%, var(--brand-primary, #2563eb) 100%);
+  background: linear-gradient(135deg, var(--brand-primary-dark) 0%, var(--brand-primary) 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--brand-primary-rgb, 37, 99, 235), 0.25);
+  box-shadow: 0 4px 12px rgba(var(--brand-primary-rgb), 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════ */

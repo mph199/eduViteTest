@@ -23,7 +23,6 @@
   /* ── Neutral / UI palette ────────────────────────────── */
   --color-white: #ffffff;
   --color-white-rgb: 255, 255, 255;
-  --color-black: #000000;
   --color-black-rgb: 0, 0, 0;
   --color-gray-50: #f9fafb;
   --color-gray-50-rgb: 249, 250, 251;
@@ -92,11 +91,8 @@
 
   /* ── Module accent colors ────────────────────────────── */
   --module-accent-elternsprechtag: #1a7f7a;
-  --module-accent-elternsprechtag-rgb: 26, 127, 122;
   --module-accent-beratungslehrer: #b8860b;
-  --module-accent-beratungslehrer-rgb: 184, 134, 11;
   --module-accent-schulsozialarbeit: #cd5c5c;
-  --module-accent-schulsozialarbeit-rgb: 205, 92, 92;
 
   /* ── Login page (brand-derived) ──────────────────────── */
   --brand-login: var(--brand-ink);

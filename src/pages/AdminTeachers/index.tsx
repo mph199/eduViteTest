@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
+import { useBgStyle } from '../../hooks/useBgStyle';
+import { useFlash } from '../../hooks/useFlash';
 import api from '../../services/api';
+import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
 import { getModule } from '../../modules/registry';
 import type { Teacher as ApiTeacher, UserAccount, RevokedModuleConflict } from '../../types';
 import type { BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from './types';
@@ -27,7 +30,7 @@ export function AdminTeachers() {
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
   const [moduleSaving, setModuleSaving] = useState<Record<number, boolean>>({});
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [flash, setFlash] = useState('');
+  const [flash, showFlash] = useFlash(6500);
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
   const [revokeConflict, setRevokeConflict] = useState<{
@@ -38,6 +41,7 @@ export function AdminTeachers() {
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadTeachers = async () => {
     try {
@@ -223,11 +227,6 @@ export function AdminTeachers() {
     return { total, adminCount, teacherCount };
   }, [users]);
 
-  const showFlash = (msg: string) => {
-    setFlash(msg);
-    window.setTimeout(() => setFlash(''), 6500);
-  };
-
   const updateRole = async (target: UserAccount, nextRole: string) => {
     const currentRole = target.role;
     if (currentRole === nextRole) return;
@@ -326,8 +325,7 @@ export function AdminTeachers() {
   });
 
   return (
-    <div className="admin-dashboard">
-      <main className="admin-main">
+    <AdminPageWrapper style={adminBgStyle}>
         <div className="admin-section-header">
           <h2>Benutzer & Rechte verwalten</h2>
           {!showForm && !csvImport.show && (
@@ -439,7 +437,6 @@ export function AdminTeachers() {
             saving={!!moduleSaving[revokeConflict.target.id]}
           />
         )}
-      </main>
-    </div>
+    </AdminPageWrapper>
   );
 }

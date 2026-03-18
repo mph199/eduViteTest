@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveView } from '../../hooks/useActiveView';
-import type { AdminEvent } from '../../types';
+import { useBgStyle } from '../../hooks/useBgStyle';
+import type { AdminEvent, GenerateSlotsResponse } from '../../types';
+import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
 import api from '../../services/api';
 import { EventCreateForm } from './EventCreateForm';
 import { SlotControls } from './SlotControls';
@@ -8,15 +10,6 @@ import { EventStatusActions } from './EventStatusActions';
 import '../AdminDashboard.css';
 
 type EventResponse = { event: AdminEvent };
-
-type GenerateSlotsResponse = {
-  success?: boolean;
-  created?: number;
-  skipped?: number;
-  eventDate?: string;
-  error?: string;
-  message?: string;
-};
 
 function formatEventDateTime(iso: string) {
   const d = new Date(iso);
@@ -62,6 +55,7 @@ export function AdminEvents() {
   const [generating, setGenerating] = useState(false);
 
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadEvents = async () => {
     try {
@@ -162,8 +156,7 @@ export function AdminEvents() {
   }
 
   return (
-    <div className="admin-dashboard">
-      <main className="admin-main">
+    <AdminPageWrapper style={adminBgStyle}>
         {error && <div className="admin-error">{error}</div>}
         {success && <div className="admin-success">{success}</div>}
 
@@ -311,7 +304,6 @@ export function AdminEvents() {
             Buchungen sind nur möglich, solange ein Event den Status „Veröffentlicht" hat.
           </p>
         </div>
-      </main>
-    </div>
+    </AdminPageWrapper>
   );
 }

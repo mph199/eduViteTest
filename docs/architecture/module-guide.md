@@ -289,6 +289,9 @@ Module können diese geteilten Dienste nutzen:
 | `import type { Teacher } from '../../../types'` | TypeScript-Typen |
 | `import { useAuth } from '../../../contexts/useAuth'` | Auth-Hook |
 | `import { useActiveView } from '../../../hooks/useActiveView'` | View-Wechsel |
+| `import { useFlash } from '../../../hooks/useFlash'` | Flash-Meldungen mit Auto-Reset |
+| `import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper'` | Standard-Wrapper fuer Admin-Seiten |
+| `import { WEEKDAY_LABELS } from '../../../shared/constants/weekdays'` | Wochentag-Beschriftungen (DE) |
 
 ---
 

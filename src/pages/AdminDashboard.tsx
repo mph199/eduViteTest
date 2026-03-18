@@ -333,7 +333,7 @@ export function AdminDashboard() {
                 className="btn-primary"
                 disabled={bookings.length === 0}
               >
-                📅 Alle Termine als Kalenderdatei exportieren
+                Alle Termine als Kalenderdatei exportieren
               </button>
               <span className="tooltip">
                 {bookings.length === 0
