@@ -12,12 +12,16 @@ const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
 function resolveCssUrl(value: string, uploadPrefix: string): string {
   if (!value) return '';
   let resolved: string;
-  if (value.startsWith('http')) {
+  if (/^https?:\/\//i.test(value)) {
     resolved = value;
-  } else if (value.startsWith('/')) {
+  } else if (value.startsWith('/uploads/') || value.startsWith('/api/')) {
     resolved = `${BACKEND_BASE}${value}`;
-  } else {
+  } else if (/^[^:/\\]+$/.test(value)) {
+    // Bare filename — prepend upload prefix
     resolved = `${BACKEND_BASE}${uploadPrefix}${value}`;
+  } else {
+    // Reject data:, javascript:, ftp:, path traversal, etc.
+    return '';
   }
   // Encode chars that can break out of CSS url() context
   return resolved.replace(/[)"'\\(;\s{}]/g, (ch) => encodeURIComponent(ch));

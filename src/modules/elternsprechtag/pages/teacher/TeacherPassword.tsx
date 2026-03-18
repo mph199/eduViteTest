@@ -28,7 +28,9 @@ export function TeacherPassword() {
       setCurrentPassword('');
       setNewPassword('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Ändern des Passworts');
+      const msg = err instanceof Error ? err.message : '';
+      const known = ['Aktuelles Passwort ist falsch.', 'Nicht angemeldet (401) – bitte neu einloggen.'];
+      setError(known.some((k) => msg.includes(k)) ? msg : 'Fehler beim Ändern des Passworts.');
     } finally {
       setSaving(false);
     }
