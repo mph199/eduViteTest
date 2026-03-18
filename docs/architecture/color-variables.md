@@ -76,6 +76,7 @@
 
 | Variable | Wert |
 |----------|------|
+| `--color-slate-200` | `#e2e8f0` |
 | `--color-slate-300` | `#cbd5e1` |
 | `--color-slate-400` | `#94a3b8` |
 | `--color-slate-500` | `#64748b` |
@@ -132,7 +133,7 @@
 
 | RGB-Pendant | Wert |
 |-------------|------|
-| `--color-warning-accent-rgb` | `245, 158, 11` |
+| `--color-warning-accent-rgb` | `234, 179, 8` |
 
 ### Info (Blau)
 
@@ -143,8 +144,6 @@
 | `--color-info-accent` | `#3b82f6` | Info-Akzent |
 | `--color-info-dark` | `#1d4ed8` | Dunkler Info-Akzent |
 | `--color-info-50` | `#e0f2fe` | Selection Hover |
-| `--color-info-100` | `#dbeafe` | Selection Aktiv |
-| `--color-info-200` | `#bfdbfe` | Selection Aktiv+Hover |
 
 | RGB-Pendant | Wert |
 |-------------|------|

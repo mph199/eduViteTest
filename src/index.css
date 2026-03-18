@@ -49,6 +49,7 @@
   --color-slate-700: #334155;
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
+  --color-slate-200: #e2e8f0;
   --color-slate-900-rgb: 15, 23, 42;
   --color-slate-200-rgb: 226, 232, 240;
 
@@ -69,7 +70,7 @@
   --color-warning-light: #fef3c7;
   --color-warning: #92400e;
   --color-warning-accent: #eab308;
-  --color-warning-accent-rgb: 245, 158, 11;
+  --color-warning-accent-rgb: 234, 179, 8;
 
   --color-info-light: #dbeafe;
   --color-info: #1e40af;
@@ -78,8 +79,6 @@
   --color-info-accent-rgb: 59, 130, 246;
   --color-info-dark-rgb: 29, 78, 216;
   --color-info-50: #e0f2fe;
-  --color-info-100: #dbeafe;
-  --color-info-200: #bfdbfe;
 
   /* ── Accent colors (request cards) ────────────────────── */
   --color-accent-purple: #c4b5fd;

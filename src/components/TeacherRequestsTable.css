@@ -360,12 +360,12 @@
 }
 
 .sandbox-multi-select__item.is-selected {
-  background: var(--color-info-100);
+  background: var(--color-info-light);
   font-weight: 600;
 }
 
 .sandbox-multi-select__item.is-selected:hover {
-  background: var(--color-info-200);
+  background: var(--color-accent-blue);
 }
 
 .sandbox-multi-select__item.is-outside {
