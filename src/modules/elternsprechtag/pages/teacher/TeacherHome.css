@@ -38,10 +38,10 @@
 /* ── Nächste Termine Card ── */
 .teacher-home__next-card {
   background: var(--color-white);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(var(--color-slate-200-rgb), 0.9);
   border-radius: 12px;
   padding: 0.9rem 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(var(--color-black-rgb), 0.04);
 }
 
 .teacher-home__next-title {
@@ -74,7 +74,7 @@
   height: 8px;
   border-radius: 999px;
   background: var(--color-success-accent);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 3px rgba(var(--color-success-accent-rgb), 0.18);
   flex: 0 0 auto;
 }
 
@@ -128,7 +128,7 @@
 
 .teacher-home__stat-card {
   background: var(--color-white);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(var(--color-slate-200-rgb), 0.9);
   border-radius: 12px;
   padding: 0.85rem 0.9rem;
   display: flex;
@@ -140,7 +140,7 @@
 
 .teacher-home__stat-card:hover {
   border-color: rgba(var(--brand-primary-rgb), 0.3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(var(--color-black-rgb), 0.06);
 }
 
 .teacher-home__stat-card.is-open {
@@ -169,21 +169,21 @@
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: rgba(var(--brand-ink-rgb), 0.78);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--color-white-rgb), 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
   border-radius: 999px;
   padding: 0.14rem 0.46rem;
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
 }
 
 /* ── Notifications (full-width) ── */
 .teacher-home__notifications {
   background: var(--color-white);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(var(--color-slate-200-rgb), 0.9);
   border-radius: 12px;
   padding: 0.95rem;
 }
@@ -216,7 +216,7 @@
 
 .teacher-home__action-row {
   width: 100%;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(var(--color-slate-200-rgb), 0.9);
   background: var(--color-white);
   border-radius: 10px;
   padding: 0.62rem 0.7rem;

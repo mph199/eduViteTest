@@ -16,7 +16,7 @@
   background: var(--color-white);
   border-radius: 20px;
   padding: 3rem 2rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(var(--color-black-rgb), 0.3);
   text-align: center;
   display: flex;
   flex-direction: column;

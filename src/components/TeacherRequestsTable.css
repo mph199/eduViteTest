@@ -237,7 +237,7 @@
 .sandbox-cell-action {
   background: #fff;
   border-left: 1px solid #eef2f7;
-  box-shadow: -10px 0 14px rgba(15, 23, 42, 0.05);
+  box-shadow: -10px 0 14px rgba(var(--color-slate-900-rgb), 0.05);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -451,16 +451,16 @@
   align-items: center;
   border-radius: 9999px;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--color-white-rgb), 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
   font-size: 0.78rem;
   font-weight: 700;
   color: rgba(var(--brand-ink-rgb), 0.85);
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
 }
 
 .sandbox-mail-link {
@@ -478,7 +478,7 @@
   border-left: 6px solid #64748b;
   border-radius: 12px;
   padding: 12px;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 10px 22px rgba(var(--color-slate-900-rgb), 0.10);
   margin-bottom: 12px;
   display: flex;
   flex-direction: column;
@@ -578,18 +578,18 @@
   margin-bottom: 4px;
   padding: 2px 8px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--color-white-rgb), 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
   color: rgba(var(--brand-ink-rgb), 0.78);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
 }
 
 .sandbox-card__head {
@@ -1044,7 +1044,7 @@
 }
 
 .sandbox-popup-card:hover {
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 6px 18px rgba(var(--color-slate-900-rgb), 0.10);
   transform: translateY(-2px);
 }
 
@@ -1113,7 +1113,7 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(var(--color-slate-900-rgb), 0.55);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -1163,7 +1163,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--color-white-rgb), 0.15);
   color: #fff;
   font-size: 1.1rem;
   font-weight: 700;
@@ -1173,7 +1173,7 @@
 }
 
 .sandbox-modal__close:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(var(--color-white-rgb), 0.3);
 }
 
 .sandbox-modal__nav {
@@ -1187,20 +1187,20 @@
 .sandbox-modal__nav > .sandbox-nav-arrow {
   flex-shrink: 0;
   align-self: center;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--color-white-rgb), 0.15);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(var(--color-white-rgb), 0.2);
 }
 
 .sandbox-modal__nav > .sandbox-nav-arrow:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(var(--color-white-rgb), 0.3);
+  border-color: rgba(var(--color-white-rgb), 0.4);
 }
 
 .sandbox-modal__nav > .sandbox-nav-arrow:disabled {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--color-white-rgb), 0.06);
+  color: rgba(var(--color-white-rgb), 0.25);
+  border-color: rgba(var(--color-white-rgb), 0.08);
 }
 
 .sandbox-modal__card {
