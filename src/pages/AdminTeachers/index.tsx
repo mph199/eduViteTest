@@ -272,33 +272,6 @@ export function AdminTeachers() {
     }
   };
 
-  const toggleModule = async (target: UserAccount, moduleKey: string) => {
-    const current = target.modules || [];
-    const has = current.includes(moduleKey);
-    const next = has ? current.filter(m => m !== moduleKey) : [...current, moduleKey];
-
-    setModuleSaving((prev) => ({ ...prev, [target.id]: true }));
-
-    try {
-      const res = await api.admin.updateUserModules(target.id, next);
-
-      // Backend returned a conflict – show warning dialog
-      if (res?.conflict) {
-        setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
-        setRevokeConflict({ target, nextModules: next, conflicts: res.revokedModules });
-        return;
-      }
-
-      // Success – update state after confirmed API response
-      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, modules: next } : u)));
-      showFlash(has ? 'Modul-Zugang entfernt. Wird nach erneutem Login wirksam.' : 'Modul-Zugang erteilt. Wird nach erneutem Login wirksam.');
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Modul-Berechtigungen');
-    } finally {
-      setModuleSaving((prev) => ({ ...prev, [target.id]: false }));
-    }
-  };
-
   const confirmRevoke = async () => {
     if (!revokeConflict) return;
     const { target, nextModules } = revokeConflict;
@@ -432,10 +405,8 @@ export function AdminTeachers() {
           userByTeacherId={userByTeacherId}
           currentUsername={user?.username}
           roleSaving={roleSaving}
-          moduleSaving={moduleSaving}
           expandedIds={expandedIds}
           updateRole={updateRole}
-          toggleModule={toggleModule}
           toggleExpand={toggleExpand}
           onEdit={handleEdit}
           onDelete={handleDelete}
