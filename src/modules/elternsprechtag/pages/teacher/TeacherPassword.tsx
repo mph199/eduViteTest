@@ -30,7 +30,7 @@ export function TeacherPassword() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       const known = ['Aktuelles Passwort ist falsch.', 'Nicht angemeldet (401) – bitte neu einloggen.'];
-      setError(known.some((k) => msg.includes(k)) ? msg : 'Fehler beim Ändern des Passworts.');
+      setError(known.some((k) => msg === k) ? msg : 'Fehler beim Ändern des Passworts.');
     } finally {
       setSaving(false);
     }
