@@ -1,5 +1,13 @@
+import { useState } from 'react';
 import type { ApiTeacher, BlFormData, TeacherFormData } from './types';
 import { WEEKDAYS } from './types';
+
+function normalizeForUsername(str: string): string {
+  return str.toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '');
+}
 
 interface Props {
   formData: TeacherFormData;
@@ -14,6 +22,17 @@ interface Props {
 }
 
 export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingTeacher, blModuleActive, createdCreds, onSubmit, onCancel }: Props) {
+  const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
+
+  const updateNameAndSuggestUsername = (field: 'first_name' | 'last_name', value: string) => {
+    const next = { ...formData, [field]: value };
+    if (!usernameManuallyEdited && !editingTeacher) {
+      const first = normalizeForUsername(field === 'first_name' ? value : formData.first_name);
+      const last = normalizeForUsername(field === 'last_name' ? value : formData.last_name);
+      next.username = first && last ? `${first}.${last}` : first || last;
+    }
+    setFormData(next);
+  };
   return (
     <div className="teacher-form-container">
       <h3>{editingTeacher ? 'Nutzer bearbeiten' : 'Neuen Nutzer anlegen'}</h3>
@@ -37,7 +56,7 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingT
             id="last_name"
             type="text"
             value={formData.last_name}
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+            onChange={(e) => updateNameAndSuggestUsername('last_name', e.target.value)}
             placeholder="z.B. Mustermann"
             required
           />
@@ -48,7 +67,7 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingT
             id="first_name"
             type="text"
             value={formData.first_name}
-            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+            onChange={(e) => updateNameAndSuggestUsername('first_name', e.target.value)}
             placeholder="z.B. Max"
           />
         </div>
@@ -86,23 +105,26 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingT
         {!editingTeacher && (
           <>
             <div className="form-group">
-              <label htmlFor="username">Benutzername (optional)</label>
+              <label htmlFor="username">Benutzername</label>
               <input
                 id="username"
                 type="text"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="z.B. herrhuhn"
+                onChange={(e) => { setUsernameManuallyEdited(true); setFormData({ ...formData, username: e.target.value }); }}
+                placeholder="z.B. max.mustermann"
+                required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="password">Passwort (optional, min. 8 Zeichen)</label>
+              <label htmlFor="password">Passwort (min. 8 Zeichen)</label>
               <input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="z.B. sicherespasswort"
+                placeholder="Mindestens 8 Zeichen"
+                required
+                minLength={8}
               />
             </div>
           </>

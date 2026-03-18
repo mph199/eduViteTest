@@ -79,6 +79,17 @@ export function AdminTeachers() {
       return;
     }
 
+    if (!editingTeacher) {
+      if (!formData.username.trim()) {
+        alert('Bitte einen Benutzernamen eingeben');
+        return;
+      }
+      if (!formData.password || formData.password.length < 8) {
+        alert('Bitte ein Passwort mit mindestens 8 Zeichen eingeben');
+        return;
+      }
+    }
+
     try {
       const teacherData: Record<string, unknown> = {
         first_name: formData.first_name,
@@ -89,8 +100,10 @@ export function AdminTeachers() {
         available_from: formData.available_from,
         available_until: formData.available_until,
         room: '',
-        username: formData.username || undefined,
-        password: formData.password || undefined,
+        ...(!editingTeacher && {
+          username: formData.username.trim(),
+          password: formData.password,
+        }),
       };
 
       if (BL_MODULE_ACTIVE) {
