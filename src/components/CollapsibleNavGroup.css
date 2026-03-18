@@ -1,3 +1,8 @@
+.collapsibleNav__wrap {
+  border-left: 3px solid rgba(var(--group-accent-rgb, var(--brand-primary-rgb)), 0.55);
+  padding-left: 0.35rem;
+}
+
 .collapsibleNav__header {
   display: flex;
   align-items: center;
@@ -5,6 +10,7 @@
   width: 100%;
   background: none;
   border: none;
+  border-left: none;
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
