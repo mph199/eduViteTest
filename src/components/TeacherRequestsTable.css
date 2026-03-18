@@ -356,16 +356,16 @@
 }
 
 .sandbox-multi-select__item:hover {
-  background: #e0f2fe;
+  background: var(--color-info-50);
 }
 
 .sandbox-multi-select__item.is-selected {
-  background: #dbeafe;
+  background: var(--color-info-100);
   font-weight: 600;
 }
 
 .sandbox-multi-select__item.is-selected:hover {
-  background: #bfdbfe;
+  background: var(--color-info-200);
 }
 
 .sandbox-multi-select__item.is-outside {
@@ -557,19 +557,19 @@
 }
 
 .sandbox-card.is-accent-1 {
-  border-left-color: #c4b5fd;
+  border-left-color: var(--color-accent-purple);
 }
 
 .sandbox-card.is-accent-2 {
-  border-left-color: #a7f3d0;
+  border-left-color: var(--color-accent-green);
 }
 
 .sandbox-card.is-accent-3 {
-  border-left-color: #fbcfe8;
+  border-left-color: var(--color-accent-pink);
 }
 
 .sandbox-card.is-accent-4 {
-  border-left-color: #bfdbfe;
+  border-left-color: var(--color-accent-blue);
 }
 
 .sandbox-request-indicator {
@@ -1048,10 +1048,10 @@
   transform: translateY(-2px);
 }
 
-.sandbox-popup-card.is-accent-1 { border-left-color: #c4b5fd; }
-.sandbox-popup-card.is-accent-2 { border-left-color: #a7f3d0; }
-.sandbox-popup-card.is-accent-3 { border-left-color: #fbcfe8; }
-.sandbox-popup-card.is-accent-4 { border-left-color: #bfdbfe; }
+.sandbox-popup-card.is-accent-1 { border-left-color: var(--color-accent-purple); }
+.sandbox-popup-card.is-accent-2 { border-left-color: var(--color-accent-green); }
+.sandbox-popup-card.is-accent-3 { border-left-color: var(--color-accent-pink); }
+.sandbox-popup-card.is-accent-4 { border-left-color: var(--color-accent-blue); }
 
 .sandbox-popup-card__name {
   margin: 2px 0 4px;

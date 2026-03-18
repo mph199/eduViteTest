@@ -179,7 +179,7 @@
 .cancel-button {
   background: transparent;
   color: var(--color-error-dark);
-  border: 1.5px solid rgba(185, 28, 28, 0.35);
+  border: 1.5px solid rgba(var(--color-error-dark-rgb), 0.35);
   padding: 0.5rem 0.85rem;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -189,7 +189,7 @@
 }
 
 .cancel-button:hover {
-  background: rgba(185, 28, 28, 0.06);
+  background: rgba(var(--color-error-dark-rgb), 0.06);
   border-color: var(--color-error-dark);
 }
 
@@ -537,15 +537,15 @@
 }
 
 .teacher-card__tag--admin {
-  background: rgba(251, 146, 60, 0.18);
+  background: rgba(var(--color-orange-400-rgb), 0.18);
   color: var(--color-warning);
-  border: 1px solid rgba(251, 146, 60, 0.35);
+  border: 1px solid rgba(var(--color-orange-400-rgb), 0.35);
 }
 
 .teacher-card__tag--teacher {
-  background: rgba(59, 130, 246, 0.14);
+  background: rgba(var(--color-info-accent-rgb), 0.14);
   color: var(--color-info-dark);
-  border: 1px solid rgba(59, 130, 246, 0.28);
+  border: 1px solid rgba(var(--color-info-accent-rgb), 0.28);
 }
 
 .teacher-card__tag--nologin {
@@ -892,7 +892,7 @@
 }
 
 .admin-dashboard--teacher .teacher-type-pill--company {
-  border-color: rgba(59, 130, 246, 0.30);
+  border-color: rgba(var(--color-info-accent-rgb), 0.30);
 }
 
 .admin-dashboard--teacher .teacher-status-pill--confirmed {
@@ -900,7 +900,7 @@
 }
 
 .admin-dashboard--teacher .teacher-status-pill--reserved {
-  border-color: rgba(245, 158, 11, 0.35);
+  border-color: rgba(var(--color-warning-accent-rgb), 0.35);
 }
 
 .admin-dashboard--teacher .teacher-when-cell {
@@ -1053,7 +1053,7 @@
 .reset-button {
   background: transparent;
   color: var(--color-info-dark);
-  border: 1.5px solid rgba(29, 78, 216, 0.35);
+  border: 1.5px solid rgba(var(--color-info-dark-rgb), 0.35);
   padding: 0.5rem 0.85rem;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -1063,7 +1063,7 @@
 }
 
 .reset-button:hover {
-  background: rgba(29, 78, 216, 0.06);
+  background: rgba(var(--color-info-dark-rgb), 0.06);
   border-color: var(--color-info-dark);
 }
 
@@ -1383,11 +1383,11 @@
 }
 
 .admin-status-pill--warning {
-  border-color: rgba(245, 158, 11, 0.35);
+  border-color: rgba(var(--color-warning-accent-rgb), 0.35);
 }
 
 .admin-status-pill--neutral {
-  border-color: rgba(107, 114, 128, 0.25);
+  border-color: rgba(var(--color-gray-500-rgb), 0.25);
 }
 
 /* Right-aligned actions column */
