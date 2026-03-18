@@ -41,12 +41,12 @@
 
 .cb-step--active {
   background: var(--brand-primary, #123C73);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .cb-step--done {
   background: var(--color-success, #059669);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .cb-step__num {
@@ -171,7 +171,7 @@
 .cb-slot--selected {
   border-color: var(--brand-primary, #123C73);
   background: var(--brand-primary, #123C73);
-  color: #fff;
+  color: var(--color-white);
 }
 
 /* Booking form */
