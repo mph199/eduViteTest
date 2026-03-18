@@ -3,44 +3,9 @@
   min-height: 100vh;
   width: 100%;
   background-color: var(--color-white);
-  background-image:
-    radial-gradient(circle at 16% 14%, rgba(var(--brand-primary-rgb), 0.12) 0%, rgba(var(--brand-primary-rgb), 0) 58%),
-    radial-gradient(circle at 92% 26%, rgba(var(--brand-primary-dark-rgb), 0.10) 0%, rgba(var(--brand-primary-dark-rgb), 0) 56%),
-    linear-gradient(135deg, var(--brand-surface-1) 0%, var(--color-white) 60%, var(--brand-surface-2) 100%);
-  background-attachment: fixed;
 }
 
 /* Background overlay via shared .page-bg-overlay + .page-bg-overlay--subtle (index.css) */
-
-/* Admin dashboard gets a slightly stronger line pattern */
-.admin-dashboard--admin {
-  background-image:
-    repeating-linear-gradient(
-      45deg,
-      rgba(var(--brand-primary-rgb), 0.06) 0px,
-      rgba(var(--brand-primary-rgb), 0.06) 1px,
-      rgba(var(--brand-primary-rgb), 0) 1px,
-      rgba(var(--brand-primary-rgb), 0) 28px
-    ),
-    radial-gradient(circle at 16% 14%, rgba(var(--brand-primary-rgb), 0.12) 0%, rgba(var(--brand-primary-rgb), 0) 58%),
-    radial-gradient(circle at 92% 26%, rgba(var(--brand-primary-dark-rgb), 0.10) 0%, rgba(var(--brand-primary-dark-rgb), 0) 56%),
-    linear-gradient(135deg, var(--brand-surface-1) 0%, var(--color-white) 60%, var(--brand-surface-2) 100%);
-}
-
-/* Teacher dashboard gets a softer pattern and slightly different blob placement */
-.admin-dashboard--teacher {
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      rgba(var(--brand-primary-rgb), 0.045) 0px,
-      rgba(var(--brand-primary-rgb), 0.045) 1px,
-      rgba(var(--brand-primary-rgb), 0) 1px,
-      rgba(var(--brand-primary-rgb), 0) 26px
-    ),
-    radial-gradient(circle at 18% 18%, rgba(var(--brand-primary-rgb), 0.10) 0%, rgba(var(--brand-primary-rgb), 0) 60%),
-    radial-gradient(circle at 86% 78%, rgba(var(--brand-primary-dark-rgb), 0.10) 0%, rgba(var(--brand-primary-dark-rgb), 0) 56%),
-    linear-gradient(135deg, var(--brand-surface-1) 0%, var(--color-white) 62%, var(--brand-surface-2) 100%);
-}
 
 /* Ensure edit buttons inside action rows use outlined style */
 .action-buttons .edit-button {

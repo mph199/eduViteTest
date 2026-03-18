@@ -505,7 +505,7 @@
 
 .slot-card.selected {
   border-color: var(--brand-primary);
-  background: rgba(236, 253, 245, 0.9);
+  background: rgba(var(--brand-primary-rgb), 0.08);
   backdrop-filter: blur(8px);
   box-shadow: 
     0 8px 20px rgba(var(--brand-primary-rgb), 0.25),
