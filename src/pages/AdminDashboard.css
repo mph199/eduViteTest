@@ -2391,3 +2391,12 @@
 .row--selected {
   background: var(--brand-surface-2, #eef2f9);
 }
+
+/* ── iOS: background-attachment: fixed breaks on mobile Safari ──── */
+
+@media (max-width: 768px) {
+  .admin-dashboard,
+  .admin-dashboard::before {
+    background-attachment: scroll;
+  }
+}
