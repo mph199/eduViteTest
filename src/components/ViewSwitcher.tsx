@@ -14,13 +14,12 @@ interface ViewSwitcherProps {
 
 export function ViewSwitcher({ options, activeValue, onChange }: ViewSwitcherProps) {
   return (
-    <div className="viewSwitcher" role="radiogroup" aria-label="Ansicht wechseln">
+    <div className="viewSwitcher" aria-label="Ansicht wechseln">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
-          role="radio"
-          aria-checked={opt.value === activeValue}
+          aria-pressed={opt.value === activeValue}
           className={
             opt.value === activeValue
               ? 'viewSwitcher__option viewSwitcher__option--active'

@@ -246,7 +246,7 @@ export function GlobalTopHeader() {
                   )}
 
                   {filteredGroups.map((group, gi) => (
-                    <div key={gi}>
+                    <div key={group.label || group.items[0]?.path || gi}>
                       {gi > 0 && <div className="dropdown__divider" role="separator" />}
                       <CollapsibleNavGroup
                         label={group.label}

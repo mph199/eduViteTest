@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import './CollapsibleNavGroup.css';
 
@@ -16,8 +16,9 @@ export function CollapsibleNavGroup({
   children,
 }: CollapsibleNavGroupProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
 
-  // No label → render children directly, no collapse wrapper
+  // Empty string → no collapse wrapper, render children directly
   if (!label) {
     return (
       <div style={accentRgb ? { '--group-accent-rgb': accentRgb } as React.CSSProperties : undefined}>
@@ -33,6 +34,7 @@ export function CollapsibleNavGroup({
         className="collapsibleNav__header dropdown__sectionTitle"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
+        aria-controls={bodyId}
       >
         <span>{label}</span>
         <span
@@ -40,7 +42,10 @@ export function CollapsibleNavGroup({
           aria-hidden="true"
         />
       </button>
-      <div className={open ? 'collapsibleNav__body' : 'collapsibleNav__body collapsibleNav__body--collapsed'}>
+      <div
+        id={bodyId}
+        className={open ? 'collapsibleNav__body' : 'collapsibleNav__body collapsibleNav__body--collapsed'}
+      >
         <div className="collapsibleNav__bodyInner">
           {children}
         </div>
