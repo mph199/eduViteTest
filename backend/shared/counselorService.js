@@ -37,6 +37,12 @@ export async function generateSlotsForDateRange(counselorId, opts, tables) {
 
   const endDate = date_until && /^\d{4}-\d{2}-\d{2}$/.test(date_until) ? date_until : date_from;
 
+  if (new Date(endDate) < new Date(date_from)) {
+    const err = new Error('date_until darf nicht vor date_from liegen');
+    err.statusCode = 400;
+    throw err;
+  }
+
   // Get counselor details
   const { rows: cRows } = await query(
     `SELECT * FROM ${counselorsTable} WHERE id = $1`, [counselorId]

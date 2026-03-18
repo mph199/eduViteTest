@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, AppointmentSlot, CounselorBookingConfig, CounselorTopic } from '../../types';
 import { ConsentCheckbox, CONSENT_VERSIONS } from '../../components/ConsentCheckbox';
+import { API_BASE } from '../../services/api';
 import './CounselorBookingApp.css';
 
 export type { CounselorBookingConfig };
 
-const API_BASE = String(
-  (import.meta as unknown as Record<string, Record<string, unknown>>).env?.VITE_API_URL || '/api'
-).replace(/\/+$/, '');
-
+/**
+ * Lightweight requestJSON for public booking pages (no auth/401 handling needed).
+ */
 async function requestJSON(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',

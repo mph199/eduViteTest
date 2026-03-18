@@ -118,8 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await api.auth.logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
+      // Logout failure is non-critical – state is reset in finally
     } finally {
       setIsAuthenticated(false);
       setUser(null);

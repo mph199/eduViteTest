@@ -476,6 +476,15 @@
   font-size: 0.78rem;
   padding: 4px 10px;
 }
+.admin-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.admin-actions-row--between {
+  justify-content: space-between;
+  align-items: center;
+}
 .admin-actions-header {
   text-align: center;
 }

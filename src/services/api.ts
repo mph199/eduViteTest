@@ -1,34 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const RAW_API_BASE =
-  (import.meta as any).env?.VITE_API_URL || '/api';
-const API_BASE = String(RAW_API_BASE).replace(/\/+$/, '');
-const BACKEND_BASE = API_BASE.replace(/\/api$/, '');
-
-/**
- * Resolve an image path to a full URL, sanitized for safe CSS url() embedding.
- * Prevents CSS injection by encoding characters that could break out of url().
- * Returns a bare URL string (not wrapped in CSS url()).
- */
-function resolveCssUrl(value: string, uploadPrefix: string): string {
-  if (!value) return '';
-  let resolved: string;
-  if (/^https?:\/\//i.test(value)) {
-    resolved = value;
-  } else if (value.startsWith('/uploads/') || value.startsWith('/api/')) {
-    // Block path traversal (.. or percent-encoded variants)
-    if (/\.\.|%2e/i.test(value)) return '';
-    resolved = `${BACKEND_BASE}${value}`;
-  } else if (/^[\w.\-]+$/.test(value)) {
-    // Bare filename (alphanumerics, dots, hyphens, underscores only)
-    resolved = `${BACKEND_BASE}${uploadPrefix}${value}`;
-  } else {
-    // Reject data:, javascript:, ftp:, path traversal, etc.
-    return '';
-  }
-  // Encode chars that can break out of CSS url() context
-  return resolved.replace(/[)"'\\(;\s{}]/g, (ch) => encodeURIComponent(ch));
-}
+import { API_BASE } from './apiBase';
+import { resolveLogoUrl, resolveBgUrl, resolveTileUrl } from './mediaUtils';
 
 async function uploadFile(endpoint: string, fieldName: string, file: File): Promise<any> {
   const form = new FormData();
@@ -574,14 +547,7 @@ const api = {
     async uploadLogo(file: File) {
       return uploadFile('/superadmin/logo', 'logo', file);
     },
-    /** Resolve a relative upload path to a full URL for preview (bare URL, not CSS-wrapped) */
-    resolveLogoUrl(logoUrl: string): string {
-      if (!logoUrl) return '';
-      if (/^https?:\/\//i.test(logoUrl)) return logoUrl;
-      if (logoUrl.startsWith('/') && !/\.\.|%2e/i.test(logoUrl)) return `${BACKEND_BASE}${logoUrl}`;
-      if (/^[\w.\-]+$/.test(logoUrl)) return `${BACKEND_BASE}/uploads/logos/${logoUrl}`;
-      return '';
-    },
+    resolveLogoUrl,
     // ── Site Branding ──────────────────────────────────
     async getSiteBranding() {
       return requestJSON('/superadmin/site-branding');
@@ -610,14 +576,8 @@ const api = {
     async uploadBgImage(file: File): Promise<{ bg_url: string }> {
       return uploadFile('/superadmin/bg-image', 'bg', file);
     },
-    /** Resolve a background image path to a full URL, sanitized for CSS url() */
-    resolveBgUrl(bgUrl: string): string {
-      return resolveCssUrl(bgUrl, '/uploads/bg/');
-    },
-    /** Resolve a tile image path to a full URL, sanitized for CSS url() */
-    resolveTileUrl(tileUrl: string): string {
-      return resolveCssUrl(tileUrl, '/uploads/tiles/');
-    },
+    resolveBgUrl,
+    resolveTileUrl,
     // ── Module Configuration ──────────────────────────
     /** All modules (superadmin only) */
     async getModuleConfig(): Promise<{ module_id: string; enabled: boolean }[]> {
@@ -692,5 +652,6 @@ const api = {
   },
 };
 
-export { API_BASE };
+export { API_BASE } from './apiBase';
+export { BACKEND_BASE } from './apiBase';
 export default api;

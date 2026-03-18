@@ -88,8 +88,7 @@ async function collectPersonData(email) {
   if (blAppointments.rows.length > 0) data.bl_appointments = blAppointments.rows;
 
   // 7. Consent Receipts (no email column – lookup via related appointments)
-  // consent_receipts has no direct email reference; skip for now
-  // TODO: Add email column to consent_receipts or join via appointment tables
+  // consent_receipts has no direct email reference; skipped (no email FK)
 
   return data;
 }
