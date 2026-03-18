@@ -220,6 +220,126 @@ export interface EmailBranding {
   footer_text: string;
 }
 
+// ── Auth types ───────────────────────────────────────────────────────
+
+export type ActiveView = 'admin' | 'teacher';
+
+export interface User {
+  username: string;
+  fullName?: string;
+  role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
+  modules?: string[];
+  teacherId?: number;
+}
+
+// ── Site Branding types ──────────────────────────────────────────────
+
+export interface SiteBranding {
+  school_name: string;
+  logo_url: string;
+  primary_color: string;
+  primary_dark: string;
+  primary_darker: string;
+  secondary_color: string;
+  ink_color: string;
+  surface_1: string;
+  surface_2: string;
+  header_font_color: string;
+  hero_title: string;
+  hero_text: string;
+  step_1: string;
+  step_2: string;
+  step_3: string;
+  tile_images: Record<string, string>;
+  background_images: Record<string, string>;
+}
+
+export interface TextBranding {
+  booking_title: string;
+  booking_text: string;
+  booking_steps_title: string;
+  booking_step_1: string;
+  booking_step_2: string;
+  booking_step_3: string;
+  booking_hint: string;
+  event_banner_template: string;
+  event_banner_fallback: string;
+  modal_title: string;
+  modal_text: string;
+  modal_button: string;
+  booking_closed_text: string;
+}
+
+// ── Teacher types ────────────────────────────────────────────────────
+
+export type TeacherInfo = {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  name: string;
+  subject: string;
+  system?: string;
+  room?: string;
+};
+
+export interface TeacherFormData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  salutation: 'Herr' | 'Frau' | 'Divers';
+  available_from: string;
+  available_until: string;
+  username: string;
+  password: string;
+}
+
+export type TeacherLoginResponse = {
+  user?: {
+    username: string;
+    tempPassword: string;
+  };
+};
+
+// ── CSV Import types ─────────────────────────────────────────────────
+
+export interface CsvImportedTeacher {
+  id: number;
+  name: string;
+  email: string;
+  username: string;
+  tempPassword: string;
+  slotsCreated: number;
+}
+
+export interface CsvSkippedRow {
+  line: number;
+  reason: string;
+  name?: string;
+}
+
+export interface CsvImportResult {
+  success?: boolean;
+  error?: string;
+  hint?: string;
+  imported?: number;
+  skipped?: number;
+  total?: number;
+  details?: {
+    imported?: CsvImportedTeacher[];
+    skipped?: CsvSkippedRow[];
+  };
+}
+
+// ── BL Admin types ───────────────────────────────────────────────────
+
+export interface BlFormData {
+  enabled: boolean;
+  phone: string;
+  specializations: string;
+  slot_duration_minutes: number;
+  schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
+}
+
 // ---------------------------------------------------------------------------
 // Data Subject / DSGVO (Art. 15-21)
 // ---------------------------------------------------------------------------

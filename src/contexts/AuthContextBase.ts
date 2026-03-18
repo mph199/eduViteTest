@@ -1,14 +1,7 @@
 import { createContext } from 'react';
+import type { ActiveView, User } from '../types';
 
-export type ActiveView = 'admin' | 'teacher';
-
-export interface User {
-  username: string;
-  fullName?: string;
-  role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
-  modules?: string[];
-  teacherId?: number; // Nur für Lehrer
-}
+export type { ActiveView, User };
 
 export interface AuthContextType {
   isAuthenticated: boolean;
