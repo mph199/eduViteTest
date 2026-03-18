@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './Sidebar';
+import { SidebarProfile } from './SidebarProfile';
 import { NotificationBell } from './NotificationBell';
 import { ViewSwitcher } from './ViewSwitcher';
 import { CollapsibleNavGroup } from './CollapsibleNavGroup';
@@ -125,7 +126,6 @@ export function GlobalTopHeader() {
           { path: '/teacher', label: 'Übersicht' },
           { path: '/teacher/requests', label: 'Anfragen' },
           { path: '/teacher/bookings', label: 'Buchungen' },
-          { path: '/teacher/password', label: 'Passwort ändern' },
           { path: '/teacher/feedback', label: 'Feedback' },
         ],
       });
@@ -219,11 +219,12 @@ export function GlobalTopHeader() {
               noWrapper
               buttonClassName="globalTopHeader__menuButton"
               footer={
-                inTeacher ? (
-                  <div className="dropdown__note" role="note">
-                    Bei technischen Anliegen wendet euch gerne an HUM (
-                    <a href="mailto:marc.huhn@bksb.nrw">marc.huhn@bksb.nrw</a>)
-                  </div>
+                user ? (
+                  <SidebarProfile
+                    user={user}
+                    onLogout={() => { void (async () => { await logout(); navigate('/login'); })(); }}
+                    onNavigate={(path) => navigate(path)}
+                  />
                 ) : undefined
               }
             >
@@ -257,22 +258,6 @@ export function GlobalTopHeader() {
                       </CollapsibleNavGroup>
                     </div>
                   ))}
-
-                  <div className="dropdown__divider" role="separator" />
-                  <button
-                    type="button"
-                    className="dropdown__item"
-                    onClick={() => { navigate('/'); close(); }}
-                  >
-                    <span>Zur Buchungsseite</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="dropdown__item dropdown__item--danger"
-                    onClick={() => { close(); void (async () => { await logout(); navigate('/login'); })(); }}
-                  >
-                    <span>Abmelden</span>
-                  </button>
                 </>
               )}
             </Sidebar>

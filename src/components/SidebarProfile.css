@@ -1,0 +1,247 @@
+/* ── Sidebar Profile (footer area) ───────────────────── */
+
+.sidebarProfile {
+  border-top: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
+}
+
+/* ── Trigger row (always visible) ──────────────────── */
+
+.sidebarProfile__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.75rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0;
+  transition: background 150ms ease;
+}
+
+.sidebarProfile__trigger:hover {
+  background: rgba(var(--brand-primary-rgb), 0.06);
+}
+
+.sidebarProfile__trigger[aria-expanded="true"] {
+  background: rgba(var(--brand-primary-rgb), 0.08);
+}
+
+/* ── Avatar circle ─────────────────────────────────── */
+
+.sidebarProfile__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebarProfile__initial {
+  color: #ffffff;
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.5),
+     1px -1px 0 rgba(0, 0, 0, 0.5),
+    -1px  1px 0 rgba(0, 0, 0, 0.5),
+     1px  1px 0 rgba(0, 0, 0, 0.5);
+  font-weight: 800;
+  font-size: 1.15rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* ── Name + role beside avatar ─────────────────────── */
+
+.sidebarProfile__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.sidebarProfile__name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--color-gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebarProfile__role {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(var(--color-gray-900-rgb), 0.55);
+  letter-spacing: 0.02em;
+}
+
+.sidebarProfile__chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: rgba(var(--color-gray-900-rgb), 0.4);
+  transition: transform 200ms ease;
+}
+
+.sidebarProfile__trigger[aria-expanded="true"] .sidebarProfile__chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Expandable panel ──────────────────────────────── */
+
+.sidebarProfile__panel {
+  padding: 0 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Info block ────────────────────────────────────── */
+
+.sidebarProfile__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.5rem 0;
+}
+
+.sidebarProfile__infoLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(var(--color-gray-900-rgb), 0.45);
+}
+
+.sidebarProfile__infoValue {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+/* ── Password section ──────────────────────────────── */
+
+.sidebarProfile__pwToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(var(--color-gray-100-rgb), 0.8);
+  color: var(--color-gray-900);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.sidebarProfile__pwToggle:hover {
+  background: rgba(var(--color-gray-200-rgb), 0.8);
+}
+
+.sidebarProfile__pwForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.35rem 0;
+}
+
+.sidebarProfile__pwInput {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  background: var(--color-white);
+  color: var(--color-gray-900);
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.sidebarProfile__pwInput:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb), 0.15);
+}
+
+.sidebarProfile__pwInput:disabled {
+  opacity: 0.6;
+}
+
+.sidebarProfile__pwSubmit {
+  align-self: flex-start;
+  padding: 0.4rem 0.85rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand-primary);
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.sidebarProfile__pwSubmit:hover {
+  opacity: 0.88;
+}
+
+.sidebarProfile__pwSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sidebarProfile__pwMsg {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0;
+}
+
+.sidebarProfile__pwMsg--ok {
+  color: var(--color-success);
+}
+
+.sidebarProfile__pwMsg--err {
+  color: var(--color-error);
+}
+
+/* ── Action buttons ────────────────────────────────── */
+
+.sidebarProfile__divider {
+  height: 1px;
+  background: rgba(var(--color-gray-200-rgb), 0.7);
+  margin: 0.15rem 0;
+}
+
+.sidebarProfile__action {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-gray-900);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.sidebarProfile__action:hover {
+  background: rgba(var(--brand-primary-rgb), 0.08);
+}
+
+.sidebarProfile__action--danger {
+  color: var(--color-error);
+}
+
+.sidebarProfile__action--danger:hover {
+  background: rgba(var(--color-error-light-rgb), 0.6);
+}
