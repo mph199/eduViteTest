@@ -25,6 +25,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const initial = getAvatarInitial(user.fullName, user.username);
   const color = getAvatarColor(user.username);
@@ -40,6 +41,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
 
   useEffect(() => {
     if (!open) return;
+    popoverRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();
     };
@@ -101,8 +103,8 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
       {/* Backdrop + Popover */}
       {open && (
         <>
-          <div className="sidebarProfile__backdrop" onClick={close} />
-          <div id="sidebarProfile-panel" className="sidebarProfile__popover" role="dialog" aria-label="Profil-Menue">
+          <div className="sidebarProfile__backdrop" role="presentation" onClick={close} />
+          <div id="sidebarProfile-panel" className="sidebarProfile__popover" role="dialog" aria-modal="true" aria-label="Profil-Menue" ref={popoverRef} tabIndex={-1}>
 
             {/* ── Header ── */}
             <div className="sidebarProfile__header">
@@ -139,6 +141,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
                   type="button"
                   className="sidebarProfile__actionBtn"
                   aria-expanded={pwOpen}
+                  aria-controls="sidebarProfile-pwForm"
                   onClick={() => { setPwOpen((v) => !v); setPwMsg(null); }}
                 >
                   <span className="sidebarProfile__actionIcon sidebarProfile__actionIcon--lock">
@@ -156,6 +159,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
               {/* Password form (inline, below action) */}
               {canChangePw && pwOpen && (
                 <form
+                  id="sidebarProfile-pwForm"
                   className="sidebarProfile__pwForm"
                   onSubmit={(e) => { e.preventDefault(); void handlePasswordChange(); }}
                 >
