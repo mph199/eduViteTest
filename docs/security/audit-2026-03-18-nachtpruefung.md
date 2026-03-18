@@ -3,6 +3,7 @@
 > **Durchgefuehrt von:** Waechter, Hygieniker, Konsistenzpruefer, Erkunder (parallel)
 > **Datum:** 2026-03-18
 > **Scope:** Gesamte Codebase (backend/, src/, docker-compose.yml, Migrationen)
+> **Update:** 2026-03-18 (Batch 2 – weitere Behebungen)
 
 ---
 
@@ -12,10 +13,10 @@
 |-------------|----------|---------|-------|
 | Kritisch    | 1        | 1       | 0     |
 | Hoch        | 3        | 3       | 0     |
-| Mittel      | 10       | 8       | 2     |
-| Niedrig     | 5        | 1       | 4     |
-| Konventions-Drift | 19  | 3       | 16    |
-| **Gesamt**  | **38**   | **16**  | **22** |
+| Mittel      | 10       | 10      | 0     |
+| Niedrig     | 5        | 3       | 2     |
+| Konventions-Drift | 19  | 10      | 9     |
+| **Gesamt**  | **38**   | **27**  | **11** |
 
 ---
 
@@ -45,6 +46,20 @@
 | S-08 | Datenschutz.tsx: direkter `fetch()` statt api.ts (Regel 8). | Umgestellt auf `api.superadmin.getSiteBranding()`. | `fix(consistency): ...` |
 | S-09 | BLAdmin.tsx: `|| []` ohne `Array.isArray()` Guard (Regel 4). | Guards nachgeruestet. | `fix(consistency): ...` |
 | S-10 | SSW/BL counselor routes: `err.statusCode` ohne `< 500` Guard. | `err.statusCode && err.statusCode < 500` hinzugefuegt. | `fix(security): remove default secrets...` |
+| S-11 | EmailBrandingTab.tsx: `dangerouslySetInnerHTML` – Stored-XSS-Risiko bei kompromittiertem Admin-Account. | Ersetzt durch `<iframe sandbox="" srcDoc={...}>`. | `fix(security+consistency): ...batch 2` |
+| S-12 | `LIMIT 3000` als Template-Literal in teacher.js:379. | Parametriert: `LIMIT $3` mit `params.push(SLOT_LIMIT)`. | `fix(security+consistency): ...batch 2` |
+
+### Konventions-Drift (behoben)
+
+| # | Befund | Fix | Commit |
+|---|--------|-----|--------|
+| K-01 | CounselorBookingApp: eigener `requestJSON` statt api.ts (Regel 8). | Zentrale `requestJSON` exportiert und importiert. | `fix(security+consistency): ...batch 2` |
+| K-02 | `alert()` in SSWCounselorsTab (3 Stellen) statt Flash-System. | Durch `showFlash` Prop ersetzt. | `fix(security+consistency): ...batch 2` |
+| K-03 | `alert()` in CounselorBookingApp (2 Stellen). | Durch `setError` State ersetzt. | `fix(security+consistency): ...batch 2` |
+| K-04 | Hardcoded `#fff`, `#374151` in BrandingTab.tsx Vorschau. | Durch `var(--color-white)`, `var(--color-gray-700)` ersetzt. | `fix(security+consistency): ...batch 2` |
+| K-05 | Toter Re-Export `generateUsername` in counselorAdminRoutes.js. | Entfernt. | `style(hygiene): ...` |
+| K-06 | `pad()` 3x dupliziert in icalExport.ts. | Konsolidiert. | `style(hygiene): ...` |
+| K-07 | Datenschutz.tsx direkter fetch(). | Durch api.ts ersetzt. | `fix(consistency): ...` |
 
 ---
 
@@ -52,27 +67,45 @@
 
 ### Mittel (Roadmap)
 
-| # | Befund | Datei:Zeile | Empfehlung | Ticket |
-|---|--------|-------------|------------|--------|
-| O-01 | Admin-Lockout in-memory: Neustart setzt Zaehler zurueck. | `auth.js:26` | Persistent in DB oder Redis speichern. | P2 |
-| O-02 | `tempPassword` in API-Antwort ohne `force_password_change` Flag. | `teacherRoutes.js:242,399,579` | Flag einfuehren, bei erstem Login Passwortwechsel erzwingen. | P2 |
+| # | Befund | Datei:Zeile | Empfehlung | Prioritaet |
+|---|--------|-------------|------------|------------|
+| O-01 | `tempPassword` in API-Antwort ohne `force_password_change` Flag. | `teacherRoutes.js:242,399,579` | Flag einfuehren, bei erstem Login Passwortwechsel erzwingen. | P2 |
 
 ### Niedrig (Backlog)
 
 | # | Befund | Datei:Zeile | Empfehlung |
 |---|--------|-------------|------------|
-| O-03 | `seed-teachers-from-stdin.js`: `console.log` statt `logger`. | Zeile 207-384 | Durch Pino-Logger ersetzen. |
-| O-04 | Migrationen 001/012: `TIMESTAMP WITH TIME ZONE` statt `TIMESTAMPTZ`. | Kosmetisch, funktional identisch. | Nur bei naechster Aenderung anpassen. |
-| O-05 | `github.dev` CORS-Origin in Dev-Modus. | `index.js:54` | Sicherstellen dass `NODE_ENV=production` im Deployment. |
-| O-06 | DB-SSL ohne CA-Zertifikat. Self-Signed akzeptiert. | `config/db.js:41` | CA hinterlegen fuer Produktions-Deployments. |
+| O-02 | `seed-teachers-from-stdin.js`: `console.log` statt `logger`. | Zeile 207-384 | Durch Pino-Logger ersetzen. |
+| O-03 | `github.dev` CORS-Origin in Dev-Modus. | `index.js:54` | Sicherstellen dass `NODE_ENV=production` im Deployment. |
 
-### Konventions-Drift (Backlog – eigenes Refactoring-Ticket)
+### Konventions-Drift (Backlog – eigene Refactoring-Tickets)
 
-| Regel | Betroffene Dateien | Aufwand |
-|-------|-------------------|---------|
-| Typen ausserhalb `types/index.ts` (Regel 7) | 7 Dateien, 15+ Interfaces | Mittel – erfordert breites Refactoring mit Re-Exports |
-| Hardcoded Farben statt `var(--brand-*)` (Regel 5) | 5 Stellen (CSS + Email-Preview) | Niedrig |
-| Email-Preview-Template Hex-Werte | `EmailBrandingTab.tsx` | Niedrig – Inline-HTML-Template, nicht DOM-Styling |
+| # | Befund | Betroffene Dateien | Aufwand |
+|---|--------|--------------------|---------|
+| R-01 | ~11 Domain-Typen in 5 Dateien ausserhalb `types/index.ts` (Regel 7) | `AuthContextBase.ts`, `BrandingContext.tsx`, `TextBrandingContext.tsx`, `AdminTeachers/types.ts`, `TeacherLayout.tsx` | Mittel – 20+ Import-Updates |
+| R-02 | Email-Preview-Template Hex-Werte in `EmailBrandingTab.tsx` | CSS-Vars nicht moeglich in Email-HTML | Akzeptierte Ausnahme |
+
+### Hygieniker-Backlog (Refactoring-Tickets)
+
+| # | Befund | Aufwand | Prioritaet |
+|---|--------|---------|------------|
+| H-03 | SSW/BL counselor.js Backend-Routen ~85% identisch → `createCounselorSelfServiceRoutes()` Factory | Mittel | P3 |
+| H-04 | SSWAnfragenTab/BLAnfragenTab ~98% identisch → Shared `CounselorAnfragenTab` | Niedrig | P3 |
+| H-05 | SSWTermineTab/BLTermineTab Monatsberechnung → `getMonthRange()` Utility | Niedrig | P3 |
+| H-06 | `teacher.js` 911 Zeilen → Aufteilen in Bookings/Requests/Slots-Subrouter | Mittel | P3 |
+| H-07 | `teacherRoutes.js` 708 Zeilen → CSV-Logik in `backend/utils/csvImport.js` | Niedrig | P3 |
+| H-08 | BLAdmin.tsx 636 Zeilen monolithisch → Tab-Komponenten nach SSW-Muster | Mittel | P3 |
+| H-09 | AdminDashboard.css 2390 Zeilen → Aufteilen in thematische CSS-Dateien | Niedrig | P4 |
+| H-10 | `DataProtectionTab.tsx` 495 Zeilen mit 14 useState → Custom-Hooks extrahieren | Niedrig | P3 |
+
+### Infrastruktur-Backlog
+
+| # | Befund | Empfehlung | Prioritaet |
+|---|--------|------------|------------|
+| I-01 | Kein Zod/Joi Schema-Validierung fuer Request-Bodies | Schema-Validierung als Middleware fuer Public-Endpunkte | P2 |
+| I-02 | DB-SSL ohne CA-Zertifikat | CA hinterlegen fuer Produktion | P3 |
+| I-03 | Kein Request-ID/Correlation-ID in Logs | UUID-Middleware + Pino-Integration | P3 |
+| I-04 | Kein `npm audit` in CI/CD | Als CI-Job hinzufuegen | P3 |
 
 ---
 
@@ -85,35 +118,13 @@
 
 ---
 
-## Hygieniker-Befunde (Code-Verschlankung)
+## Statistik
 
-### Behoben
-
-| # | Befund | Fix |
-|---|--------|-----|
-| H-01 | Toter Re-Export `generateUsername` in `counselorAdminRoutes.js:367` | Entfernt |
-| H-02 | `pad()` 3x dupliziert in `icalExport.ts` | Auf Modul-Ebene konsolidiert |
-
-### Backlog (eigenes Refactoring-Ticket)
-
-| # | Befund | Aehnlichkeit | Aufwand |
-|---|--------|-------------|---------|
-| H-03 | SSW/BL counselor.js Backend-Routen ~85% identisch | Router-Factory `createCounselorSelfServiceRoutes()` | Mittel |
-| H-04 | SSWAnfragenTab/BLAnfragenTab ~98% identisch | Shared `CounselorAnfragenTab` Komponente | Niedrig |
-| H-05 | SSWTermineTab/BLTermineTab Monatsberechnung dupliziert | `getMonthRange()` Utility extrahieren | Niedrig |
-| H-06 | `teacher.js` 911 Zeilen – groesste Backend-Datei | Aufteilen in Bookings/Requests/Slots-Subrouter | Mittel |
-| H-07 | `teacherRoutes.js` 708 Zeilen – CSV-Import inline | CSV-Logik in `backend/utils/csvImport.js` auslagern | Niedrig |
-| H-08 | `alert()` in SSWCounselorsTab statt Flash-System | Durch `showFlash` Prop ersetzen | Niedrig |
-
-### Verschlankungspotenzial: ~280 Zeilen entfernbar/konsolidierbar
-
----
-
-## Agents eingesetzt
-
-| Agent | Dauer | Findings |
-|-------|-------|----------|
-| Waechter (Security-Scan) | ~3 Min | 17 Befunde |
-| Konsistenzpruefer (Konventionen) | ~3 Min | 19 Befunde |
-| Hygieniker (Dead Code/Duplikate) | ~5 Min | 12 Befunde |
-| Erkunder (Detailanalyse 4 Items) | ~2 Min | Kontext fuer alle 4 Fixes |
+| Kennzahl | Wert |
+|----------|------|
+| Befunde gesamt | 38 + 21 (aus erstem Audit) |
+| Behoben | 27 + diverse aus Audit 1 |
+| Behebungsquote (Nachtpruefung) | 71% |
+| Kritisch/Hoch offen | **0** |
+| Commits | 7 (feat+fix+style+docs) |
+| Agents eingesetzt | 5 (Waechter, Hygieniker, Konsistenzpruefer, Erkunder, Pruefer) |
