@@ -15,9 +15,9 @@ export function useBgStyle(
   cssVar: string,
 ): CSSProperties | undefined {
   const { branding } = useBranding();
+  const imagePath = branding.background_images?.[imageKey];
   return useMemo(() => {
-    const path = branding.background_images?.[imageKey];
-    if (!path) return undefined;
-    return { [cssVar]: `url(${api.superadmin.resolveBgUrl(path)})` } as CSSProperties;
-  }, [branding.background_images, imageKey, cssVar]);
+    if (!imagePath) return undefined;
+    return { [cssVar]: `url(${api.superadmin.resolveBgUrl(imagePath)})` } as CSSProperties;
+  }, [imagePath, cssVar]);
 }

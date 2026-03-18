@@ -10,10 +10,10 @@ import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
 import logger from '../config/logger.js';
 
-/** Allow only local /uploads/* paths or empty string. Blocks javascript:, data:, external URLs. */
+/** Allow only local /uploads/<subdir>/<filename> paths. Blocks traversal, javascript:, data:, external URLs. */
 function sanitizeUploadUrl(value) {
   if (!value) return '';
-  if (/^\/uploads\/[a-zA-Z0-9_\-/.]+$/.test(value)) return value;
+  if (/^\/uploads\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/.test(value) && !value.includes('..')) return value;
   return '';
 }
 
