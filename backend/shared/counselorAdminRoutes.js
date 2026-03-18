@@ -105,6 +105,9 @@ export function createCounselorAdminRoutes(config) {
         try {
           userInfo = await onCounselorCreated(counselor, req);
         } catch (userErr) {
+          if (userErr.statusCode) {
+            return res.status(userErr.statusCode).json({ error: userErr.message });
+          }
           logger.warn({ err: userErr }, `User creation for ${counselorLabel} failed`);
         }
       }
@@ -373,17 +376,28 @@ export async function createCounselorUser(counselor, req, config) {
     ? reqUsername.trim()
     : generateUsername(counselor.first_name, counselor.last_name, counselor.id, tablePrefix);
 
-  const tempPassword = (reqPassword && typeof reqPassword === 'string' && reqPassword.trim())
+  const isManualPassword = reqPassword && typeof reqPassword === 'string' && reqPassword.trim();
+  const tempPassword = isManualPassword
     ? reqPassword.trim()
     : crypto.randomBytes(6).toString('base64url');
+
+  // Enforce minimum password length for manually provided passwords
+  if (isManualPassword && tempPassword.length < 8) {
+    throw Object.assign(new Error('Passwort muss mindestens 8 Zeichen haben'), { statusCode: 400 });
+  }
 
   const passwordHash = await bcrypt.hash(tempPassword, 10);
   const parsedEmail = counselor.email || null;
 
+  // Check for existing username to avoid silent overwrite
+  const { rows: existing } = await query('SELECT id FROM users WHERE username = $1', [uname]);
+  if (existing.length > 0) {
+    throw Object.assign(new Error('Benutzername ist bereits vergeben'), { statusCode: 409 });
+  }
+
   const { rows: userRows } = await query(
     `INSERT INTO users (username, email, password_hash, role)
      VALUES ($1, $2, $3, $4)
-     ON CONFLICT (username) DO UPDATE SET email = $2, password_hash = $3, role = $4
      RETURNING id`,
     [uname, parsedEmail, passwordHash, userRole]
   );
