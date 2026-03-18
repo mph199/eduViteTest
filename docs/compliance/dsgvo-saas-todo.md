@@ -118,6 +118,21 @@
 | 1.3.2 | **Security-Event-Logging** – `logSecurityEvent()` fuer LOGIN_FAIL, ACCESS_DENIED in auth.js + auth-Middleware. | `backend/routes/auth.js`, `backend/middleware/auth.js` | [x] |
 | 1.3.3 | **Audit-Log-Export** – `GET /api/admin/audit-log` (Pagination + Filter) + `GET /api/admin/audit-log/export` (CSV). Im Superadmin Datenschutz-Tab integriert. | `backend/routes/admin/dataSubject.js`, `src/pages/SuperadminPage/DataProtectionTab.tsx` | [x] |
 
+### 1.4 Security-Hardening (Waechter-Audit 2026-03-18)
+
+> **Bezug:** Waechter-Scan vom 2026-03-18, TOM-001 bis TOM-006
+
+| # | Aufgabe | Dateien | Status |
+|---|---------|---------|--------|
+| 1.4.1 | **Account-Lockout (DB-User)** – 5 Fehlversuche → 15 Min Sperre. Atomares SQL-UPDATE gegen Race Conditions. Migration 041: `failed_login_attempts`, `locked_until` Spalten. | `backend/migrations/041_account_lockout.sql`, `backend/routes/auth.js` | [x] |
+| 1.4.2 | **Account-Lockout (ADMIN_USER)** – In-Memory-Lockout fuer System-Admin (kein DB-Eintrag). 5 Versuche / 15 Min. | `backend/routes/auth.js` | [x] |
+| 1.4.3 | **Timing-Attack-Prevention** – Dummy-bcrypt-Vergleich bei "User not found", um User-Enumeration ueber Antwortzeiten zu verhindern. | `backend/routes/auth.js` | [x] |
+| 1.4.4 | **bcrypt-DoS-Schutz** – Passwort-Laenge auf 1024 Zeichen begrenzt. Verhindert Blockierung durch uebergrosse Passwoerter. | `backend/routes/auth.js` | [x] |
+| 1.4.5 | **CSV-Extension-Validierung** – Dateiendung `.csv` wird zusaetzlich zum MIME-Type geprueft. Verhindert Upload manipulierter Dateien. | `backend/routes/admin/teacherRoutes.js` | [x] |
+| 1.4.6 | **Passwort-Policy fuer Berater** – Mindestens 8 Zeichen bei Passwortaenderung durch Berater. | `backend/shared/counselorAdminRoutes.js` | [x] |
+| 1.4.7 | **Info-Disclosure Fix** – Interne Fehlermeldungen (`error.message`) werden nicht mehr an Client weitergegeben. | `backend/modules/elternsprechtag/routes/events.js` | [x] |
+| 1.4.8 | **Token-Revocation / Logout-Haertung** – Serverseitige JWT-Invalidierung (Blocklist oder Refresh-Token-Pattern). Aktuell nur Client-seitiges Cookie-Loeschen. | `backend/routes/auth.js` | [ ] |
+
 ---
 
 ## Phase 2: Mittel – innerhalb 3 Monaten (P2)
@@ -174,7 +189,7 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 2.4.1 | **Datenschutz-Footer in alle Templates** – Standardisierter Footer mit: Warum diese E-Mail, Datenschutzerklaerung-Link, Kontakt DSB. | `backend/emails/template.js` | [ ] |
+| 2.4.1 | ~~Datenschutz-Footer in alle Templates~~ → **Bereits erledigt** unter 0.4.2. Footer mit DSB-Kontakt, Verantwortlichem und Datenschutzerklaerung-Link in `template.js` implementiert. | `backend/emails/template.js` | [x] |
 | 2.4.2 | **Abmeldelink in wiederkehrenden E-Mails** – Falls Erinnerungen oder Benachrichtigungen: Abmeldelink (List-Unsubscribe Header). | `backend/emails/` | [ ] |
 
 ---
@@ -185,7 +200,7 @@
 
 | # | Aufgabe | Dateien | Status |
 |---|---------|---------|--------|
-| 3.1.1 | **Verschluesselung von Art.-9-Feldern at Rest** – concern/notes in SSW/BL verschluesselt speichern. Application-Level-Encryption mit Key-Management. | Backend-Service, Migration | [ ] |
+| 3.1.1 | ~~Verschluesselung von Art.-9-Feldern at Rest~~ → **Entfaellt** – Art.-9-Felder (concern/notes) wurden in Migration 035 komplett entfernt (siehe 0.2). Keine Verschluesselung noetig. | -- | [x] |
 | 3.1.2 | **Pseudonymisierung in Analytics/Logs** – PII in Pino-Logs redaktieren. Keine Klarnamen in Produktions-Logs. | `backend/config/logger.js` | [ ] |
 | 3.1.3 | **Cookie-Consent-Banner** – Falls Tracking/Analytics eingefuehrt wird: Granularer Cookie-Consent (technisch, funktional, Analytics). Aktuell nicht noetig (nur technischer httpOnly-Cookie). | Frontend-Komponente | [ ] |
 | 3.1.4 | **Automatisiertes Verarbeitungsverzeichnis** – API-Endpunkt der das VVT aus DB-Metadaten generiert. Export als JSON/PDF. | `backend/routes/admin/ropaRoutes.js` (neu) | [ ] |
@@ -235,11 +250,11 @@
 | Phase | Gesamt | Offen | Teilweise | Abgeschlossen | Fortschritt |
 |-------|--------|-------|-----------|---------------|-------------|
 | P0: Go-Live-Blocker | 18 | 0 | 0 | 18 | 100% |
-| P1: Hoch (4 Wochen) | 14 | 0 | 0 | 14 | 100% |
-| P2: Mittel (3 Monate) | 15 | 10 | 0 | 5 | 33% |
-| P3: Niedrig | 13 | 13 | 0 | 0 | 0% |
+| P1: Hoch (4 Wochen) | 22 | 1 | 0 | 21 | 95% |
+| P2: Mittel (3 Monate) | 15 | 9 | 0 | 6 | 40% |
+| P3: Niedrig | 13 | 12 | 0 | 1 | 8% |
 | Code-Hygiene | 8 | 3 | 0 | 5 | 63% |
-| **Gesamt** | **68** | **26** | **0** | **42** | **~62%** |
+| **Gesamt** | **76** | **25** | **0** | **51** | **~67%** |
 
 ---
 
