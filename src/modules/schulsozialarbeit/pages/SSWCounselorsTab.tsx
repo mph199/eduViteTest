@@ -71,7 +71,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.first_name.trim() || !form.last_name.trim()) {
-      alert('Vor- und Nachname sind Pflichtfelder.');
+      showFlash('Vor- und Nachname sind Pflichtfelder.');
       return;
     }
     try {
@@ -95,7 +95,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
       setSchedule(defaultSchedule());
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
   };
 
@@ -127,7 +127,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
       showFlash('Berater/in geloescht.');
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
+      showFlash(err instanceof Error ? err.message : 'Fehler');
     }
   };
 

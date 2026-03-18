@@ -374,11 +374,12 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
 
         let allFreeSlots = [];
         if (dates.length) {
+          const SLOT_LIMIT = 3000;
           const { rows: freeSlotRows } = await query(
             `SELECT time, date FROM slots
              WHERE teacher_id = $1 AND booked = false AND date = ANY($2)
-             ORDER BY time ASC LIMIT 3000`,
-            [teacherId, dates]
+             ORDER BY time ASC LIMIT $3`,
+            [teacherId, dates, SLOT_LIMIT]
           );
           allFreeSlots = freeSlotRows || [];
         }
