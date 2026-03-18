@@ -47,6 +47,15 @@
   -webkit-backdrop-filter: blur(6px);
 }
 
+/* Mobile: explicit specificity so table-section stays transparent (see TeacherRequestsTable.css) */
+@media (max-width: 520px) {
+  .admin-dashboard--teacher .teacher-table-section.stat-card {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 .admin-dashboard--teacher .bookings-table thead {
   background: rgba(var(--color-gray-50-rgb), 0.85);
 }
