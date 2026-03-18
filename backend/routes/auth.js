@@ -130,7 +130,7 @@ router.post('/login', loginLimiter, async (req, res) => {
  * Token wird clientseitig gelöscht
  */
 router.post('/logout', (_req, res) => {
-  res.clearCookie('token', { path: '/' });
+  res.clearCookie('token', cookieOptions());
   res.json({
     success: true,
     message: 'Logout successful'
@@ -139,7 +139,7 @@ router.post('/logout', (_req, res) => {
 
 // Optional: accept DELETE for clients using DELETE /logout
 router.delete('/logout', (_req, res) => {
-  res.clearCookie('token', { path: '/' });
+  res.clearCookie('token', cookieOptions());
   res.json({
     success: true,
     message: 'Logout successful'

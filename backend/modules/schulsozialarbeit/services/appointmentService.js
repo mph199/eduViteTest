@@ -22,6 +22,3 @@ export const {
   bookAppointment,
   generateTimeSlots,
 } = service;
-
-// Re-export with original name for backwards compatibility
-export const listCategories = listTopics;

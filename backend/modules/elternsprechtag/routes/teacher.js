@@ -5,7 +5,7 @@ import { isEmailConfigured, sendMail } from '../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../emails/template.js';
 import bcrypt from 'bcryptjs';
 import { mapSlotRow, mapBookingRowWithTeacher, mapBookingRequestRow } from '../../../utils/mappers.js';
-import { buildHalfHourWindows, getTimeWindowsForTeacher } from '../../../utils/timeWindows.js';
+import { getTimeWindowsForTeacher } from '../../../utils/timeWindows.js';
 import logger from '../../../config/logger.js';
 
 function parseTimeWindow(timeWindow) {

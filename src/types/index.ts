@@ -230,25 +230,6 @@ export interface DataSubjectSearchResult {
   data: Record<string, Record<string, unknown>[]>;
 }
 
-export interface DataSubjectDeletionResult {
-  message: string;
-  protocol: {
-    email: string;
-    timestamp: string;
-    actions: { table: string; anonymized: number; ids: number[] }[];
-  };
-}
-
-export interface DataSubjectCorrectionResult {
-  message: string;
-  results: { table: string; corrected: number; fields: string[] }[];
-}
-
-export interface DataSubjectRestrictionResult {
-  message: string;
-  restricted: boolean;
-  results: { table: string; affected: number }[];
-}
 
 export interface AuditLogEntry {
   id: number;
@@ -272,14 +253,6 @@ export interface AuditLogResponse {
   };
 }
 
-export interface AuditLogFilter {
-  from?: string;
-  to?: string;
-  action?: string;
-  table?: string;
-  page?: number;
-  limit?: number;
-}
 
 /** Response from slot generation endpoints (elternsprechtag, events). */
 export interface GenerateSlotsResponse {

@@ -2,6 +2,7 @@ import express from 'express';
 import { requireSuperadmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import logger from '../../config/logger.js';
+import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 
 const router = express.Router();
 
@@ -10,13 +11,6 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const SAFE_IDENTIFIER = /^[a-z_]+$/;
-function assertSafeIdentifier(name) {
-  if (!SAFE_IDENTIFIER.test(name)) {
-    throw new Error(`Unsafe SQL identifier: ${name}`);
-  }
-}
 
 /**
  * Log an action to the audit_log table (fire-and-forget).
@@ -315,7 +309,7 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
       await client.query('BEGIN');
 
       for (const [table, fields] of Object.entries(allowedFields)) {
-        assertSafeIdentifier(table);
+        assertSafeIdentifier(table, 'table');
         const updates = {};
         for (const field of fields) {
           if (corrections[field] !== undefined) {
@@ -325,7 +319,7 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
         if (Object.keys(updates).length === 0) continue;
 
         const updateKeys = Object.keys(updates);
-        for (const k of updateKeys) assertSafeIdentifier(k);
+        for (const k of updateKeys) assertSafeIdentifier(k, 'column');
 
         const setClauses = updateKeys.map((k, i) => `${k} = $${i + 1}`);
         const values = Object.values(updates);
@@ -385,7 +379,7 @@ router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
 
     // Set restricted flag on all tables that have it
     for (const table of ['booking_requests', 'ssw_appointments', 'bl_appointments']) {
-      assertSafeIdentifier(table);
+      assertSafeIdentifier(table, 'table');
       const result = await query(
         `UPDATE ${table} SET restricted = $1, updated_at = NOW() WHERE LOWER(email) = LOWER($2) AND email IS NOT NULL RETURNING id`,
         [restricted, trimmedEmail]
