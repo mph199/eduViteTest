@@ -10,6 +10,24 @@ import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
 import logger from '../config/logger.js';
 
+/** Allow only local /uploads/<subdir>/<filename> paths. Blocks traversal, javascript:, data:, external URLs. */
+function sanitizeUploadUrl(value) {
+  if (!value) return '';
+  if (/^\/uploads\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/.test(value) && !value.includes('..')) return value;
+  return '';
+}
+
+/** Sanitize an image-map object: only keep entries whose values are valid /uploads/ paths. */
+function sanitizeImageMap(obj) {
+  if (typeof obj !== 'object' || obj === null) return {};
+  const result = {};
+  for (const [key, val] of Object.entries(obj)) {
+    const clean = sanitizeUploadUrl(String(val || ''));
+    if (clean) result[key] = clean;
+  }
+  return result;
+}
+
 const publicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
@@ -106,7 +124,7 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
        RETURNING *`,
       [
         String(school_name).trim().slice(0, 255),
-        String(logo_url || '').trim(),
+        sanitizeUploadUrl(String(logo_url || '').trim()),
         String(primary_color || '#2d5016').trim().slice(0, 9),
         String(footer_text || '').trim(),
       ]
@@ -212,7 +230,7 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
 
   const values = {
     school_name:       String(b.school_name || SITE_BRANDING_DEFAULTS.school_name).trim().slice(0, 255),
-    logo_url:          String(b.logo_url || '').trim(),
+    logo_url:          sanitizeUploadUrl(String(b.logo_url || '').trim()),
     primary_color:     hexOrEmpty(b.primary_color, SITE_BRANDING_DEFAULTS.primary_color),
     primary_dark:      hexOrEmpty(b.primary_dark, SITE_BRANDING_DEFAULTS.primary_dark),
     primary_darker:    hexOrEmpty(b.primary_darker, SITE_BRANDING_DEFAULTS.primary_darker),
@@ -226,8 +244,8 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
     step_1:            String(b.step_1 ?? SITE_BRANDING_DEFAULTS.step_1).trim().slice(0, 255),
     step_2:            String(b.step_2 ?? SITE_BRANDING_DEFAULTS.step_2).trim().slice(0, 255),
     step_3:            String(b.step_3 ?? SITE_BRANDING_DEFAULTS.step_3).trim().slice(0, 255),
-    tile_images:       typeof b.tile_images === 'object' && b.tile_images !== null ? b.tile_images : {},
-    background_images: typeof b.background_images === 'object' && b.background_images !== null ? b.background_images : {},
+    tile_images:       sanitizeImageMap(b.tile_images),
+    background_images: sanitizeImageMap(b.background_images),
     dsb_name:              String(b.dsb_name ?? '').trim().slice(0, 255),
     dsb_email:             String(b.dsb_email ?? '').trim().slice(0, 255),
     responsible_name:      String(b.responsible_name ?? '').trim().slice(0, 255),

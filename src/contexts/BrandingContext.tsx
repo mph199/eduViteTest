@@ -49,6 +49,16 @@ const DEFAULTS: SiteBranding = {
   background_images: {},
 };
 
+/** Parse JSON image-map fields that may arrive as strings from the API. */
+export function parseImageMaps(branding: SiteBranding): void {
+  if (typeof branding.tile_images === 'string') {
+    try { branding.tile_images = JSON.parse(branding.tile_images); } catch { branding.tile_images = {}; }
+  }
+  if (typeof branding.background_images === 'string') {
+    try { branding.background_images = JSON.parse(branding.background_images); } catch { branding.background_images = {}; }
+  }
+}
+
 /** Convert hex "#rrggbb" → "r, g, b" for rgba() usage */
 function hexToRgb(hex: string): string {
   const h = hex.replace('#', '');
@@ -107,13 +117,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
             (merged as any)[key] = data[key];
           }
         }
-        // Parse JSON fields if stringified
-        if (typeof merged.tile_images === 'string') {
-          try { merged.tile_images = JSON.parse(merged.tile_images); } catch { merged.tile_images = {}; }
-        }
-        if (typeof merged.background_images === 'string') {
-          try { merged.background_images = JSON.parse(merged.background_images); } catch { merged.background_images = {}; }
-        }
+        parseImageMaps(merged);
         setBranding(merged);
         applyToRoot(merged);
       }

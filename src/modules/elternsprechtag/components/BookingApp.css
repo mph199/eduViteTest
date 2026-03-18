@@ -13,18 +13,7 @@
   padding-bottom: 2rem;
 }
 
-.booking-app::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--booking-bg);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  opacity: 0.12;
-  z-index: 0;
-  pointer-events: none;
-}
+/* Background overlay via shared .page-bg-overlay class (index.css) */
 
 .welcomeWindow {
   position: relative;
@@ -769,9 +758,7 @@
 
 /* Tablet */
 @media (max-width: 768px) {
-  .booking-app::before {
-    background-attachment: scroll; /* iOS Safari Workaround */
-  }
+  /* iOS bg-attachment fix via shared .page-bg-overlay (index.css) */
 
   .booking-app {
     padding-top: 1.5rem; /* Kein extra Platz für fixierten Header */

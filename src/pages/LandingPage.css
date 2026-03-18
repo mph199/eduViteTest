@@ -5,18 +5,7 @@
   padding: 2.5rem var(--page-gutter, 1.25rem) 3rem;
 }
 
-.landing::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--landing-bg);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  opacity: 0.12;
-  z-index: 0;
-  pointer-events: none;
-}
+/* Background overlay via shared .page-bg-overlay class (index.css) */
 
 .landing__inner {
   position: relative;
@@ -195,12 +184,7 @@
   z-index: 1;
 }
 
-/* Tablet: iOS background-attachment fix */
-@media (max-width: 768px) {
-  .landing::before {
-    background-attachment: scroll;
-  }
-}
+/* iOS background-attachment fix via shared .page-bg-overlay (index.css) */
 
 /* Mobile: full-width cards */
 @media (max-width: 640px) {

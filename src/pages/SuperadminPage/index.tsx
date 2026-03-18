@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
-import { useBranding, type SiteBranding } from '../../contexts/BrandingContext';
+import { useBranding, parseImageMaps, type SiteBranding } from '../../contexts/BrandingContext';
 import { useTextBranding, type TextBranding } from '../../contexts/TextBrandingContext';
 import type { EmailBranding } from '../../types';
 import api from '../../services/api';
@@ -69,12 +69,7 @@ export function SuperadminPage() {
             (merged as Record<string, unknown>)[key] = data[key];
           }
         }
-        if (typeof merged.tile_images === 'string') {
-          try { merged.tile_images = JSON.parse(merged.tile_images as unknown as string); } catch { merged.tile_images = {}; }
-        }
-        if (typeof merged.background_images === 'string') {
-          try { merged.background_images = JSON.parse(merged.background_images as unknown as string); } catch { merged.background_images = {}; }
-        }
+        parseImageMaps(merged);
         setSite(merged);
       }
     } catch {
