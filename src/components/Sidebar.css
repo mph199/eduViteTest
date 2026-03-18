@@ -163,7 +163,7 @@
 }
 
 .dropdown__item--danger:hover {
-  background: rgba(254, 226, 226, 0.75);
+  background: rgba(var(--color-error-light-rgb), 0.75);
 }
 
 .dropdown__note {

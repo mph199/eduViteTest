@@ -49,6 +49,7 @@
   --color-slate-700: #334155;
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
+  --color-slate-200: #e2e8f0;
   --color-slate-900-rgb: 15, 23, 42;
   --color-slate-200-rgb: 226, 232, 240;
 
@@ -60,6 +61,7 @@
   --color-error-dark: #b91c1c;
   --color-error-light-rgb: 254, 226, 226;
   --color-error-border-rgb: 252, 165, 165;
+  --color-error-dark-rgb: 185, 28, 28;
 
   --color-success-light: #d1fae5;
   --color-success-accent: #22c55e;
@@ -68,11 +70,25 @@
   --color-warning-light: #fef3c7;
   --color-warning: #92400e;
   --color-warning-accent: #eab308;
+  --color-warning-accent-rgb: 234, 179, 8;
 
   --color-info-light: #dbeafe;
   --color-info: #1e40af;
   --color-info-accent: #3b82f6;
   --color-info-dark: #1d4ed8;
+  --color-info-accent-rgb: 59, 130, 246;
+  --color-info-dark-rgb: 29, 78, 216;
+  --color-info-50: #e0f2fe;
+
+  /* ── Accent colors (request cards) ────────────────────── */
+  --color-accent-purple: #c4b5fd;
+  --color-accent-green: #a7f3d0;
+  --color-accent-pink: #fbcfe8;
+  --color-accent-blue: #bfdbfe;
+
+  /* ── Utility RGB values ───────────────────────────────── */
+  --color-orange-400-rgb: 251, 146, 60;
+  --color-gray-500-rgb: 107, 114, 128;
 
   /* ── Module accent colors ────────────────────────────── */
   --module-accent-elternsprechtag: #1a7f7a;
@@ -85,6 +101,7 @@
   /* ── Login page (brand-derived) ──────────────────────── */
   --brand-login: var(--brand-ink);
   --brand-login-hover: var(--brand-primary);
+  --brand-gradient-end: #c3cfe2;
 
   font-family: var(--font-body);
   line-height: 1.65;
