@@ -22,6 +22,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
+// In-memory lockout for ADMIN_USER (no DB row to track against)
+let adminFailedAttempts = 0;
+let adminLockedUntil = 0;
+
 function cookieOptions() {
   return {
     httpOnly: true,
@@ -46,18 +50,53 @@ router.post('/login', loginLimiter, async (req, res) => {
     });
   }
 
+  // Cap password length to prevent bcrypt DoS (bcrypt truncates at 72 bytes anyway)
+  if (password.length > 1024) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'Password too long'
+    });
+  }
+
   try {
     // 1) System-Admin Credentials (aus Umgebungsvariablen)
-    const isValidAdmin = await verifyCredentials(username, password);
-    if (isValidAdmin && ADMIN_USER) {
-      const user = { username: ADMIN_USER.username, role: 'superadmin' };
-      const token = generateToken(user);
-      logger.info('Admin login successful');
-      res.cookie('token', token, cookieOptions());
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        user
+    if (ADMIN_USER && username === ADMIN_USER.username) {
+      // In-memory lockout check for admin account
+      if (adminLockedUntil > Date.now()) {
+        logSecurityEvent('LOGIN_LOCKED', { username }, req.ip);
+        return res.status(423).json({
+          error: 'Account gesperrt',
+          message: 'Konto voruebergehend gesperrt. Bitte spaeter erneut versuchen.'
+        });
+      }
+
+      const isValidAdmin = await verifyCredentials(username, password);
+      if (isValidAdmin) {
+        adminFailedAttempts = 0;
+        adminLockedUntil = 0;
+        const user = { username: ADMIN_USER.username, role: 'superadmin' };
+        const token = generateToken(user);
+        logger.info('Admin login successful');
+        res.cookie('token', token, cookieOptions());
+        return res.json({
+          success: true,
+          message: 'Login successful',
+          user
+        });
+      }
+
+      // Admin password wrong
+      adminFailedAttempts += 1;
+      if (adminFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+        adminLockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+        logSecurityEvent('ACCOUNT_LOCKED', { username, attempts: adminFailedAttempts }, req.ip);
+      } else {
+        logSecurityEvent('LOGIN_FAIL', { username, reason: 'wrong_password', attempts: adminFailedAttempts }, req.ip);
+      }
+
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid credentials'
       });
     }
 

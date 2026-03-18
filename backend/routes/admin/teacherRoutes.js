@@ -16,7 +16,8 @@ const csvUpload = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ['text/csv', 'application/vnd.ms-excel'];
-    if (allowed.includes(file.mimetype)) {
+    const ext = (file.originalname || '').split('.').pop()?.toLowerCase();
+    if (allowed.includes(file.mimetype) && ext === 'csv') {
       cb(null, true);
     } else {
       cb(new Error('Only CSV files are allowed'));
