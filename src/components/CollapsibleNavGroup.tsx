@@ -28,7 +28,10 @@ export function CollapsibleNavGroup({
   }
 
   return (
-    <div style={accentRgb ? { '--group-accent-rgb': accentRgb } as React.CSSProperties : undefined}>
+    <div
+      className="collapsibleNav__wrap"
+      style={accentRgb ? { '--group-accent-rgb': accentRgb } as React.CSSProperties : undefined}
+    >
       <button
         type="button"
         className="collapsibleNav__header dropdown__sectionTitle"
