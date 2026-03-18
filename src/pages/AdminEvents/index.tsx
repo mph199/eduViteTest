@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveView } from '../../hooks/useActiveView';
+import { useBgStyle } from '../../hooks/useBgStyle';
 import type { AdminEvent } from '../../types';
 import api from '../../services/api';
 import { EventCreateForm } from './EventCreateForm';
@@ -62,6 +63,7 @@ export function AdminEvents() {
   const [generating, setGenerating] = useState(false);
 
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadEvents = async () => {
     try {
@@ -162,7 +164,7 @@ export function AdminEvents() {
   }
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
       <main className="admin-main">
         {error && <div className="admin-error">{error}</div>}
         {success && <div className="admin-success">{success}</div>}

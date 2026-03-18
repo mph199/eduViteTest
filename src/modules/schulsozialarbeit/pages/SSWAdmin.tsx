@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, ScheduleEntry, CounselorTopic as Category } from '../../../types';
+import { useBgStyle } from '../../../hooks/useBgStyle';
 import api from '../../../services/api';
 import { SSWCounselorsTab } from './SSWCounselorsTab';
 import { SSWTermineTab } from './SSWTermineTab';
@@ -10,6 +11,7 @@ import '../../../pages/AdminDashboard.css';
 type Tab = 'counselors' | 'categories' | 'termine' | 'anfragen';
 
 export function SSWAdmin() {
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
   const [tab, setTab] = useState<Tab>('counselors');
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,11 +50,11 @@ export function SSWAdmin() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="admin-dashboard"><div className="admin-main"><p>Lade…</p></div></div>;
+  if (loading) return <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}><main className="admin-main"><p>Lade…</p></main></div>;
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-main">
+    <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
+      <main className="admin-main">
         <div className="admin-section-header">
           <h2>Schulsozialarbeit</h2>
         </div>
@@ -109,7 +111,7 @@ export function SSWAdmin() {
             loadData={loadData}
           />
         )}
-      </div>
+      </main>
     </div>
   );
 }

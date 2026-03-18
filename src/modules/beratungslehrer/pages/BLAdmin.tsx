@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/useAuth';
+import { useBgStyle } from '../../../hooks/useBgStyle';
 import type { Counselor, ScheduleEntry, CounselorTopic as Topic, CounselorAppointment as Appointment } from '../../../types';
 import api from '../../../services/api';
 import '../../../pages/AdminDashboard.css';
@@ -22,6 +23,7 @@ export function BLAdmin() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isBLUser = !isAdmin && Array.isArray(user?.modules) && user.modules.includes('beratungslehrer');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const [tab, setTab] = useState<Tab>(isAdmin ? 'counselors' : 'sprechzeiten');
   const [loading, setLoading] = useState(true);
@@ -304,22 +306,22 @@ export function BLAdmin() {
   ] : [];
   const allTabs = [...adminTabs, ...blTabs];
 
-  if (loading) return <div className="admin-dashboard"><div className="admin-main"><p>Lade...</p></div></div>;
+  if (loading) return <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}><main className="admin-main"><p>Lade...</p></main></div>;
 
   if (!profile && !isAdmin) {
     return (
-      <div className="admin-dashboard">
-        <div className="admin-main">
+      <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
+        <main className="admin-main">
           <div className="admin-section-header"><h2>Beratungslehrkräfte</h2></div>
           <div className="admin-error">Kein Profil als Beratungslehrkraft zugeordnet. Bitte wenden Sie sich an einen Administrator.</div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-main">
+    <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
+      <main className="admin-main">
         <div className="admin-section-header">
           <h2>Beratungslehrkräfte</h2>
         </div>
@@ -621,7 +623,7 @@ export function BLAdmin() {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

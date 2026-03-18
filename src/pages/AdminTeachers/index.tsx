@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
+import { useBgStyle } from '../../hooks/useBgStyle';
 import api from '../../services/api';
 import { getModule } from '../../modules/registry';
 import type { Teacher as ApiTeacher, UserAccount, RevokedModuleConflict } from '../../types';
@@ -38,6 +39,7 @@ export function AdminTeachers() {
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadTeachers = async () => {
     try {
@@ -326,7 +328,7 @@ export function AdminTeachers() {
   });
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
       <main className="admin-main">
         <div className="admin-section-header">
           <h2>Benutzer & Rechte verwalten</h2>

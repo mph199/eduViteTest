@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActiveView } from '../../../hooks/useActiveView';
+import { useBgStyle } from '../../../hooks/useBgStyle';
 import api from '../../../services/api';
 import type { TimeSlot as ApiSlot, Teacher as ApiTeacher } from '../../../types';
 import { exportTeacherSlotsToICal } from '../../../utils/icalExport';
@@ -17,6 +18,7 @@ export function AdminSlots() {
   const [formData, setFormData] = useState({ time: '', date: '' });
   const [bulkCreating, setBulkCreating] = useState(false);
   useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadTeachers = useCallback(async () => {
     try {
@@ -117,7 +119,7 @@ export function AdminSlots() {
   const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle" style={adminBgStyle}>
       <main className="admin-main">
         <div className="teacher-form-container">
           <div className="admin-section-header">
