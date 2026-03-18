@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-export type ActiveView = 'admin' | 'teacher' | 'beratungslehrer';
+export type ActiveView = 'admin' | 'teacher';
 
 export interface User {
   username: string;

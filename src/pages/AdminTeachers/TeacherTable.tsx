@@ -6,10 +6,8 @@ interface Props {
   userByTeacherId: Map<number, UserAccount>;
   currentUsername: string | undefined;
   roleSaving: Record<number, boolean>;
-  moduleSaving: Record<number, boolean>;
   expandedIds: Set<number>;
   updateRole: (target: UserAccount, nextRole: string) => void;
-  toggleModule: (target: UserAccount, moduleKey: string) => void;
   toggleExpand: (id: number) => void;
   onEdit: (teacher: ApiTeacher) => void;
   onDelete: (id: number, name: string) => void;
@@ -60,27 +58,7 @@ function RoleSelect({ acct, isSelf, roleSaving, updateRole }: {
   );
 }
 
-function ModuleCheckbox({ acct, moduleSaving, toggleModule }: {
-  acct: UserAccount;
-  moduleSaving: Record<number, boolean>;
-  toggleModule: (target: UserAccount, moduleKey: string) => void;
-}) {
-  if (acct.role !== 'teacher') return null;
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.82rem', cursor: 'pointer' }}>
-      <input
-        type="checkbox"
-        checked={(acct.modules || []).includes('beratungslehrer')}
-        disabled={!!moduleSaving[acct.id]}
-        onChange={() => toggleModule(acct, 'beratungslehrer')}
-      />
-      Beratungslehrkraft
-      {moduleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
-    </label>
-  );
-}
-
-export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleSaving, moduleSaving, expandedIds, updateRole, toggleModule, toggleExpand, onEdit, onDelete }: Props) {
+export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleSaving, expandedIds, updateRole, toggleExpand, onEdit, onDelete }: Props) {
   if (filtered.length === 0) {
     return (
       <div className="no-teachers">
@@ -133,7 +111,6 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                       {acct ? (
                         <div className="admin-users-action">
                           <RoleSelect acct={acct} isSelf={isSelf} roleSaving={roleSaving} updateRole={updateRole} />
-                          <ModuleCheckbox acct={acct} moduleSaving={moduleSaving} toggleModule={toggleModule} />
                         </div>
                       ) : (
                         <span className="teacher-card__tag teacher-card__tag--nologin" style={{ fontSize: '0.78rem' }}>Kein Login</span>
@@ -183,9 +160,6 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                           {isAdmin ? 'Admin' : 'Lehrkraft'}
                         </span>
                       )}
-                      {acct && (acct.modules || []).includes('beratungslehrer') && (
-                        <span className="teacher-card__tag teacher-card__tag--teacher">BL</span>
-                      )}
                       {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
                     </div>
                   </div>
@@ -228,14 +202,6 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                             roleSaving={roleSaving}
                             updateRole={updateRole}
                           />
-                        </dd>
-                      </div>
-                    )}
-                    {acct && acct.role === 'teacher' && (
-                      <div className="teacher-card__row">
-                        <dt>Module</dt>
-                        <dd>
-                          <ModuleCheckbox acct={acct} moduleSaving={moduleSaving} toggleModule={toggleModule} />
                         </dd>
                       </div>
                     )}

@@ -48,7 +48,7 @@ export function GlobalTopHeader() {
     return isAdmin || userModules.includes(moduleKey);
   };
 
-  // View switcher options (only for dual-role users)
+  // View switcher options (only for admin users who are also teachers)
   const viewSwitcherOptions = useMemo(() => {
     if (!user) return null;
     if (isAdmin && hasTeacherId) {
@@ -57,20 +57,13 @@ export function GlobalTopHeader() {
         { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
       ];
     }
-    if (user.role === 'teacher' && userModules.includes('beratungslehrer')) {
-      return [
-        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
-        { value: 'beratungslehrer' as ActiveView, label: 'Beratungslehrer' },
-      ];
-    }
     return null;
-  }, [user, isAdmin, hasTeacherId, userModules]);
+  }, [user, isAdmin, hasTeacherId]);
 
   const handleViewChange = useCallback((next: ActiveView) => {
     setActiveView(next);
     if (next === 'admin') navigate('/admin');
     else if (next === 'teacher') navigate('/teacher');
-    else if (next === 'beratungslehrer') navigate('/admin/beratungslehrer');
   }, [setActiveView, navigate]);
 
   // Find which module the user is currently viewing (public page)
@@ -103,10 +96,12 @@ export function GlobalTopHeader() {
       });
 
       if (visibleItems.length > 0) {
+        // Modules with requiredModule are visible in all views (no view filter),
+        // generic admin modules are restricted to admin view
         groups.push({
           label: mod.sidebarNav.label,
           accentRgb: mod.accentRgb,
-          view: 'admin',
+          ...(mod.requiredModule ? {} : { view: 'admin' as ActiveView }),
           items: visibleItems,
         });
       }
@@ -150,11 +145,11 @@ export function GlobalTopHeader() {
     return groups;
   }, [isAdmin, isSuperadmin, hasTeacherId, userModules, user?.role, activeModules]);
 
-  // Filter groups by active view (only when switcher is available)
+  // Filter groups by active view (always applies when activeView is set)
   const filteredGroups = useMemo(() => {
-    if (!viewSwitcherOptions || !activeView) return navGroups;
+    if (!activeView) return navGroups;
     return navGroups.filter((g) => !g.view || g.view === activeView);
-  }, [navGroups, activeView, viewSwitcherOptions]);
+  }, [navGroups, activeView]);
 
   const isActive = (path: string) => {
     if (path === '/admin') return pathname === '/admin' || pathname === '/admin/';

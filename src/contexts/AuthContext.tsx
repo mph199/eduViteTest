@@ -17,20 +17,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const readStoredView = useCallback((): ActiveView | null => {
     const raw = localStorage.getItem(VIEW_KEY);
-    if (raw === 'admin' || raw === 'teacher' || raw === 'beratungslehrer') return raw;
+    if (raw === 'admin' || raw === 'teacher') return raw;
     return null;
   }, []);
 
   const isAdminLike = (role: string) => role === 'admin' || role === 'superadmin' || role === 'ssw';
 
-  const hasModule = (u: User, key: string) =>
-    u.role === 'admin' || u.role === 'superadmin' || (Array.isArray(u.modules) && u.modules.includes(key));
-
   const computeInitialView = useCallback((u: User): ActiveView => {
     if (u.role === 'teacher') {
-      const stored = readStoredView();
-      // Teacher with BL module access: respect stored view
-      if (stored && hasModule(u, 'beratungslehrer') && stored === 'beratungslehrer') return stored;
       return 'teacher';
     }
     if (isAdminLike(u.role) && u.teacherId) {
@@ -44,7 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const canTeacher = Boolean(user.teacherId) && (user.role === 'teacher' || isAdminLike(user.role));
       if (next === 'teacher' && !canTeacher) return;
       if (next === 'admin' && !isAdminLike(user.role)) return;
-      if (next === 'beratungslehrer' && !hasModule(user, 'beratungslehrer')) return;
     }
 
     setActiveViewState(next);
