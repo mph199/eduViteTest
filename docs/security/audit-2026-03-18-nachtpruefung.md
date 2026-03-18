@@ -14,9 +14,9 @@
 | Kritisch    | 1        | 1       | 0     |
 | Hoch        | 3        | 3       | 0     |
 | Mittel      | 10       | 10      | 0     |
-| Niedrig     | 5        | 3       | 2     |
+| Niedrig     | 5        | 5       | 0     |
 | Konventions-Drift | 19  | 10      | 9     |
-| **Gesamt**  | **38**   | **27**  | **11** |
+| **Gesamt**  | **38**   | **29**  | **9** |
 
 ---
 
@@ -69,13 +69,13 @@
 
 | # | Befund | Datei:Zeile | Empfehlung | Prioritaet |
 |---|--------|-------------|------------|------------|
-| O-01 | `tempPassword` in API-Antwort ohne `force_password_change` Flag. | `teacherRoutes.js:242,399,579` | Flag einfuehren, bei erstem Login Passwortwechsel erzwingen. | P2 |
+| O-01 | ~~`tempPassword` in API-Antwort ohne `force_password_change` Flag.~~ **ERLEDIGT** – Migration 044, Auth-Middleware, TeacherPassword-UI. | `teachers/crud.js`, `teachers/csvImport.js`, `teachers/login.js`, `backend/routes/auth.js` | Erledigt (feat(auth): force password change) | Erledigt |
 
 ### Niedrig (Backlog)
 
 | # | Befund | Datei:Zeile | Empfehlung |
 |---|--------|-------------|------------|
-| O-02 | `seed-teachers-from-stdin.js`: `console.log` statt `logger`. | Zeile 207-384 | Durch Pino-Logger ersetzen. |
+| O-02 | ~~`seed-teachers-from-stdin.js`: `console.log` statt `logger`.~~ **ERLEDIGT** | `backend/seed-teachers-from-stdin.js` | Erledigt (style(hygiene): O-02) |
 | O-03 | `github.dev` CORS-Origin in Dev-Modus. | `index.js:54` | Sicherstellen dass `NODE_ENV=production` im Deployment. |
 
 ### Konventions-Drift (Backlog – eigene Refactoring-Tickets)
@@ -95,8 +95,8 @@
 | H-06 | ~~`teacher.js` 911 Zeilen~~ → 5 Sub-Module + 3 Lib-Dateien (bookings, requests, misc, password + slotAssignment, autoAssign, middleware) | Mittel | **Erledigt** |
 | H-07 | ~~`teacherRoutes.js` 650 Zeilen~~ → 4 Sub-Module + helpers (crud, csvImport, slots, login + helpers mit upsertBlCounselor) | Niedrig | **Erledigt** |
 | H-08 | ~~BLAdmin.tsx 636 Zeilen~~ → Tab-Komponenten nach SSW-Muster | Mittel | **Erledigt** |
-| H-09 | AdminDashboard.css 2390 Zeilen → Aufteilen in thematische CSS-Dateien | Niedrig | P4 |
-| H-10 | `DataProtectionTab.tsx` 495 Zeilen mit 14 useState → Custom-Hooks extrahieren | Niedrig | P3 |
+| H-09 | ~~AdminDashboard.css 2390 Zeilen~~ → 6 Partials via `@import` unter `src/pages/admin/` | Niedrig | **Erledigt** |
+| H-10 | ~~`DataProtectionTab.tsx` 495 Zeilen~~ → `useDataSubjectActions.ts` + `useAuditLog.ts` | Niedrig | **Erledigt** |
 
 ### Infrastruktur-Backlog
 
@@ -104,7 +104,7 @@
 |---|--------|------------|------------|
 | I-01 | Kein Zod/Joi Schema-Validierung fuer Request-Bodies | Schema-Validierung als Middleware fuer Public-Endpunkte | P2 |
 | I-02 | DB-SSL ohne CA-Zertifikat | CA hinterlegen fuer Produktion | P3 |
-| I-03 | Kein Request-ID/Correlation-ID in Logs | UUID-Middleware + Pino-Integration | P3 |
+| I-03 | ~~Kein Request-ID/Correlation-ID in Logs~~ **ERLEDIGT** | Request-ID Middleware implementiert (83981b5) | **Erledigt** |
 | I-04 | Kein `npm audit` in CI/CD | Als CI-Job hinzufuegen | P3 |
 
 ---
