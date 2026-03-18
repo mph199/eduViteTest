@@ -230,6 +230,7 @@ export interface User {
   role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
   modules?: string[];
   teacherId?: number;
+  forcePasswordChange?: boolean;
 }
 
 // ── Site Branding types ──────────────────────────────────────────────

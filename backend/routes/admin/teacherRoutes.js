@@ -121,7 +121,7 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     // Create linked user account (no ON CONFLICT – duplicates are rejected)
     const passwordHash = await bcrypt.hash(tempPassword, 10);
     const { rows: userRows } = await client.query(
-      'INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      'INSERT INTO users (username, email, password_hash, role, teacher_id, force_password_change) VALUES ($1, $2, $3, $4, $5, true) RETURNING id',
       [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
     );
     const userId = userRows[0]?.id ?? null;
@@ -326,7 +326,7 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
 
       try {
         await query(
-          'INSERT INTO users (username, email, password_hash, role, teacher_id) VALUES ($1, $2, $3, $4, $5)',
+          'INSERT INTO users (username, email, password_hash, role, teacher_id, force_password_change) VALUES ($1, $2, $3, $4, $5, true)',
           [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
         );
       } catch (userErr) {
@@ -516,7 +516,7 @@ router.put('/teachers/:id/reset-login', requireAdmin, async (req, res) => {
     const tempPassword = crypto.randomBytes(6).toString('base64url');
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1 WHERE id = $2', [passwordHash, user.id]);
+    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, force_password_change = true WHERE id = $2', [passwordHash, user.id]);
 
     res.json({ success: true, user: { username: user.username, tempPassword } });
   } catch (error) {

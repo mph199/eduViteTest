@@ -902,7 +902,7 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
-    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1 WHERE id = $2', [passwordHash, user.id]);
+    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, force_password_change = false WHERE id = $2', [passwordHash, user.id]);
 
     res.json({ success: true, message: 'Passwort erfolgreich geändert' });
   } catch (error) {

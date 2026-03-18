@@ -115,6 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = useCallback((patch: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   const logout = async () => {
     try {
       await api.auth.logout();
@@ -128,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, loading, activeView, setActiveView, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, loading, activeView, setActiveView, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,6 +11,7 @@ export interface AuthContextType {
   setActiveView: (view: ActiveView) => void;
   login: (username: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<User>) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
