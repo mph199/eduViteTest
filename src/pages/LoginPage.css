@@ -8,26 +8,6 @@
   position: relative;
 }
 
-/* Background image overlay (when login slot is configured in Superadmin) */
-.login-bg-overlay::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--login-bg);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  opacity: 0.18;
-  z-index: 0;
-  pointer-events: none;
-}
-
-@media (max-width: 768px) {
-  .login-bg-overlay::before {
-    background-attachment: scroll;
-  }
-}
-
 .login-container {
   background: var(--color-white);
   border-radius: 12px;

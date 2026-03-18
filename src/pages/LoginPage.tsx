@@ -12,7 +12,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const loginBgStyle = useBgStyle('login', '--login-bg');
+  const loginBgStyle = useBgStyle('login', '--page-bg');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -36,7 +36,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-page login-bg-overlay" style={loginBgStyle}>
+    <div className="login-page page-bg-overlay" style={loginBgStyle}>
       <div className="login-container" role="main" aria-label="Login">
         <div className="login-header">
           <h1 className="login-title">Login für Beschäftigte der Schule</h1>
