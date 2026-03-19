@@ -112,11 +112,28 @@ async function authenticate(req, res) {
 }
 
 /**
+ * Check force_password_change: block all API access except password-change endpoint.
+ * Returns true if request is blocked, false if allowed to proceed.
+ */
+function enforcePasswordChange(decoded, req, res) {
+  if (!decoded.fpc) return false;
+  // Allow password change endpoint
+  if (req.method === 'PUT' && req.path === '/password') return false;
+  // Allow logout
+  if (req.path === '/logout') return false;
+  // Allow verify (needed for frontend auth state)
+  if (req.path === '/verify') return false;
+  res.status(403).json({ error: 'Forbidden', message: 'Password change required' });
+  return true;
+}
+
+/**
  * Middleware: Requires authenticated token
  */
 export async function requireAuth(req, res, next) {
   const decoded = await authenticate(req, res);
   if (!decoded) return;
+  if (enforcePasswordChange(decoded, req, res)) return;
   req.user = decoded;
   return next();
 }
@@ -127,6 +144,7 @@ export async function requireAuth(req, res, next) {
 export async function requireAdmin(req, res, next) {
   const decoded = await authenticate(req, res);
   if (!decoded) return;
+  if (enforcePasswordChange(decoded, req, res)) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'admin', path: req.path }, req.ip);
     return res.status(403).json({ error: 'Forbidden', message: 'Admin access required' });
@@ -141,6 +159,7 @@ export async function requireAdmin(req, res, next) {
 export async function requireSuperadmin(req, res, next) {
   const decoded = await authenticate(req, res);
   if (!decoded) return;
+  if (enforcePasswordChange(decoded, req, res)) return;
   if (decoded.role !== 'superadmin') {
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'superadmin', path: req.path }, req.ip);
     return res.status(403).json({ error: 'Forbidden', message: 'Superadmin access required' });
@@ -155,6 +174,7 @@ export async function requireSuperadmin(req, res, next) {
 export async function requireSSW(req, res, next) {
   const decoded = await authenticate(req, res);
   if (!decoded) return;
+  if (enforcePasswordChange(decoded, req, res)) return;
   if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'ssw', path: req.path }, req.ip);
     return res.status(403).json({ error: 'Forbidden', message: 'SSW access required' });
@@ -170,6 +190,7 @@ export function requireModuleAccess(moduleKey) {
   return async (req, res, next) => {
     const decoded = await authenticate(req, res);
     if (!decoded) return;
+    if (enforcePasswordChange(decoded, req, res)) return;
     if (!hasModuleAccess(decoded, moduleKey)) {
       logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: moduleKey, path: req.path }, req.ip);
       return res.status(403).json({ error: 'Forbidden', message: `${moduleKey} access required` });
