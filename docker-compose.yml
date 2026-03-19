@@ -40,6 +40,9 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
       ENABLED_MODULES: ${ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
+      DB_SSL: ${DB_SSL:-false}
+      DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-true}
+      DB_SSL_CA: ${DB_SSL_CA:-}
     volumes:
       - uploads:/app/uploads
     ports:
