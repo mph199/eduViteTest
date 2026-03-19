@@ -43,7 +43,7 @@ services:
     volumes:
       - uploads:/app/uploads
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
 
   frontend:
     build:
@@ -54,8 +54,9 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    # Loopback only – external access via reverse proxy (nginx/Caddy)
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
 
 volumes:
   pg_data:

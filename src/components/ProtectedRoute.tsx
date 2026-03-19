@@ -30,9 +30,9 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
     return <Navigate to="/login" replace />;
   }
 
-  // Force password change: redirect non-admin users to password page
-  const isPasswordPage = location.pathname.includes('/teacher/password');
-  if (user?.forcePasswordChange && !isPasswordPage && user.role !== 'admin' && user.role !== 'superadmin') {
+  // Force password change: redirect ALL users (incl. admins) to password page
+  const isPasswordPage = location.pathname === '/teacher/password';
+  if (user?.forcePasswordChange && !isPasswordPage) {
     return <Navigate to="/teacher/password" replace />;
   }
 

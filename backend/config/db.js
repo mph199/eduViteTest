@@ -51,6 +51,11 @@ if (process.env.DB_SSL === 'true') {
   }
 }
 
+// Pool tuning (with safe minimum values)
+poolConfig.max = Math.max(2, parseInt(process.env.DB_POOL_MAX || '20', 10));
+poolConfig.connectionTimeoutMillis = Math.max(1000, parseInt(process.env.DB_POOL_CONNECT_TIMEOUT || '5000', 10));
+poolConfig.idleTimeoutMillis = Math.max(1000, parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10));
+
 const pool = new pg.Pool(poolConfig);
 
 // Log connection info once (no secrets)
