@@ -159,7 +159,7 @@ initDatabase()
   .then(async () => {
     // Module laden (gesteuert über ENABLED_MODULES oder alle verfügbaren)
     const loaded = await loadModules(app, {
-      rateLimiters: { booking: bookingLimiter, admin: adminLimiter },
+      rateLimiters: { booking: bookingLimiter, admin: adminLimiter, auth: authLimiter },
     });
     logger.info({ modules: loaded }, 'Aktive Module');
 

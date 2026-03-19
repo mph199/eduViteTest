@@ -13,6 +13,8 @@ const defaults = {
   RETENTION_BL_APPOINTMENTS_DAYS: 365,
   // Cancelled appointments: days after cancellation
   RETENTION_CANCELLED_DAYS: 30,
+  // Audit log: days to keep entries
+  RETENTION_AUDIT_LOG_DAYS: 730,
 };
 
 function envInt(key, fallback) {
@@ -27,6 +29,7 @@ export const retention = {
   sswAppointmentsDays: envInt('RETENTION_SSW_APPOINTMENTS_DAYS', defaults.RETENTION_SSW_APPOINTMENTS_DAYS),
   blAppointmentsDays: envInt('RETENTION_BL_APPOINTMENTS_DAYS', defaults.RETENTION_BL_APPOINTMENTS_DAYS),
   cancelledDays: envInt('RETENTION_CANCELLED_DAYS', defaults.RETENTION_CANCELLED_DAYS),
+  auditLogDays: envInt('RETENTION_AUDIT_LOG_DAYS', defaults.RETENTION_AUDIT_LOG_DAYS),
 };
 
 export default retention;

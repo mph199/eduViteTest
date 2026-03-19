@@ -234,7 +234,7 @@
 | Benutzerkonten | Bis Deaktivierung/Austritt | Arbeitsvertrag | DELETE mit CASCADE | Manuell moeglich |
 | Feedback | 12 Monate | Berechtigtes Interesse | DELETE | Manuell moeglich |
 | Consent-Receipts | Unbegrenzt | Art. 7 Abs. 1 DSGVO | NICHT loeschen | Korrekt |
-| Audit-Log | 24 Monate (Empfehlung) | Berechtigtes Interesse | DELETE oder Archivierung | **Nicht implementiert** |
+| Audit-Log | 730 Tage (~24 Monate, konfigurierbar via `RETENTION_AUDIT_LOG_DAYS`) | Berechtigtes Interesse | DELETE via retention-cleanup.js | **Implementiert** |
 | Verification-Tokens | Sofort nach Verify | Technisch | Wird auf NULL gesetzt | **Implementiert** |
 
 ---
@@ -253,7 +253,7 @@
 | `bl_counselors` | Ja | DELETE CASCADE | Implementiert |
 | `feedback` | Ja | DELETE-Endpunkt | Implementiert |
 | `consent_receipts` | **NEIN (gewollt)** | Append-only, Nachweispflicht | Korrekt |
-| `audit_log` | **NEIN (noch nicht)** | Rotation empfohlen (24 Monate) | **TODO** |
+| `audit_log` | **JA** | DELETE via retention-cleanup.js (730 Tage Default) | **Implementiert** |
 
 ---
 

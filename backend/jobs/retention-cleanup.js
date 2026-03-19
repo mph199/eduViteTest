@@ -8,6 +8,7 @@
  * - booking_requests: after event is closed for N days
  * - ssw_appointments: cancelled appointments after N days
  * - bl_appointments: cancelled appointments after N days
+ * - audit_log: entries older than N days (default: 730 = 24 months)
  */
 
 import { query } from '../config/db.js';
@@ -115,6 +116,18 @@ async function cleanupExpiredBlAppointments() {
 }
 
 /**
+ * Delete audit_log entries older than retention period.
+ */
+async function cleanupAuditLog() {
+  const { rowCount } = await query(
+    `DELETE FROM audit_log
+     WHERE created_at < NOW() - MAKE_INTERVAL(days => $1)`,
+    [retention.auditLogDays]
+  );
+  return rowCount;
+}
+
+/**
  * Run all cleanup tasks. Returns summary of affected rows.
  */
 export async function runRetentionCleanup() {
@@ -153,6 +166,13 @@ export async function runRetentionCleanup() {
   } catch (err) {
     logger.error({ err }, 'Retention cleanup: bl_appointments (expired) failed');
     results.blExpired = -1;
+  }
+
+  try {
+    results.auditLog = await cleanupAuditLog();
+  } catch (err) {
+    logger.error({ err }, 'Retention cleanup: audit_log failed');
+    results.auditLog = -1;
   }
 
   const total = Object.values(results).filter(v => v > 0).reduce((a, b) => a + b, 0);
