@@ -8,12 +8,12 @@ Stand: 2026-03-19
 
 ## KRITISCH – Vor Go-Live beheben
 
-| # | Befund | Quelle | Datei | Fix |
-|---|--------|--------|-------|-----|
-| K1 | Backend-Port 4000 oeffentlich – Express direkt vom Internet erreichbar, umgeht nginx/Helmet/CORS | Security | `docker-compose.yml:46` | `"127.0.0.1:4000:4000"` oder `ports:` entfernen (nur Docker-internes Netz) |
-| K2 | Default-Admin `Start/Start` ohne `force_password_change` | Security | `backend/migrations/012_add_users_table.sql:21` | `force_password_change = TRUE` im INSERT setzen |
-| K3 | Connection-Pool nicht konfiguriert – Default `max=10`, `connectionTimeout=unendlich` | DB | `backend/config/db.js` | `max`, `connectionTimeoutMillis: 5000`, `idleTimeoutMillis: 30000` explizit setzen |
-| K4 | HTTPS/TLS nicht in nginx.conf – externer Reverse Proxy MUSS konfiguriert werden | Config | `nginx.conf` | Caddy als Reverse Proxy (wie in install.md dokumentiert) ODER Security-Headers direkt in nginx.conf |
+| # | Befund | Quelle | Datei | Status |
+|---|--------|--------|-------|--------|
+| K1 | Backend-Port 4000 oeffentlich | Security | `docker-compose.yml` | ERLEDIGT – `127.0.0.1:4000:4000` + Frontend `127.0.0.1:3000:80` |
+| K2 | Default-Admin ohne `force_password_change` | Security | Migration 048 + `ProtectedRoute.tsx` | ERLEDIGT – Migration setzt Flag, Admin-Ausnahme entfernt |
+| K3 | Connection-Pool nicht konfiguriert | DB | `backend/config/db.js` | ERLEDIGT – max/idle/connect-Timeout mit ENV + Input-Validierung |
+| K4 | HTTPS/TLS nicht in nginx.conf – externer Reverse Proxy MUSS konfiguriert werden | Config | `nginx.conf` | OFFEN – Caddy als Reverse Proxy (wie in install.md dokumentiert) |
 
 ---
 
