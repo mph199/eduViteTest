@@ -11,4 +11,4 @@ paths:
 - Oeffentliche Endpunkte brauchen Rate Limiting
 - `try/catch` um alle DB-Operationen, Fehler als JSON: `res.status(500).json({ error: '...' })`
 - Migrationen: `IF NOT EXISTS`, `TIMESTAMPTZ`, naechste Nummer in `backend/migrations/` pruefen
-- Module exportieren `register(app, db)` in `backend/modules/<name>/index.js`
+- Module exportieren `register(app, { rateLimiters })` in `backend/modules/<name>/index.js`
