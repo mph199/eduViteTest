@@ -6,43 +6,11 @@ import api from '../services/api';
 import type { TimeSlot as ApiBooking, AdminEvent, EventStats } from '../types';
 import { exportBookingsToICal } from '../utils/icalExport';
 import { formatDateTime } from '../utils/formatters';
+import { parseDateValue, parseStartMinutes, visitorLabel } from '../utils/bookingSort';
 import './AdminDashboard.css';
 
 type SortKey = 'teacher' | 'when' | 'visitor';
 type SortDir = 'asc' | 'desc';
-
-function parseDateValue(value?: string | null): number | null {
-  if (!value) return null;
-  const iso = /^\d{4}-\d{2}-\d{2}$/;
-  if (iso.test(value)) {
-    const [y, m, d] = value.split('-').map((n) => Number(n));
-    if (!y || !m || !d) return null;
-    return Date.UTC(y, m - 1, d);
-  }
-  const de = /^\d{2}\.\d{2}\.\d{4}$/;
-  if (de.test(value)) {
-    const [d, m, y] = value.split('.').map((n) => Number(n));
-    if (!y || !m || !d) return null;
-    return Date.UTC(y, m - 1, d);
-  }
-  const fallback = new Date(value);
-  return Number.isNaN(fallback.getTime()) ? null : fallback.getTime();
-}
-
-function parseStartMinutes(value?: string | null): number | null {
-  if (!value) return null;
-  const m = value.match(/(\d{1,2}):(\d{2})/);
-  if (!m) return null;
-  const hh = Number(m[1]);
-  const mm = Number(m[2]);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-  return hh * 60 + mm;
-}
-
-function visitorLabel(b: ApiBooking): string {
-  if (b.visitorType === 'parent') return (b.parentName || '').trim();
-  return (b.companyName || '').trim();
-}
 
 export function AdminDashboard() {
   const [bookings, setBookings] = useState<ApiBooking[]>([]);

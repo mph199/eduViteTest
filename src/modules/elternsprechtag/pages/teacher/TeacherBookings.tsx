@@ -3,54 +3,12 @@ import { useOutletContext } from 'react-router-dom';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { exportBookingsToICal } from '../../../../utils/icalExport';
+import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
+import { statusLabel } from '../../../../shared/utils/statusLabel';
 import type { TeacherOutletContext } from './TeacherLayout';
 
 type SortKey = 'when' | 'visitor';
 type SortDir = 'asc' | 'desc';
-
-function parseDateValue(value?: string | null): number | null {
-  if (!value) return null;
-  // ISO date: YYYY-MM-DD
-  const iso = /^\d{4}-\d{2}-\d{2}$/;
-  if (iso.test(value)) {
-    const [y, m, d] = value.split('-').map((n) => Number(n));
-    if (!y || !m || !d) return null;
-    return Date.UTC(y, m - 1, d);
-  }
-
-  // German date: DD.MM.YYYY
-  const de = /^\d{2}\.\d{2}\.\d{4}$/;
-  if (de.test(value)) {
-    const [d, m, y] = value.split('.').map((n) => Number(n));
-    if (!y || !m || !d) return null;
-    return Date.UTC(y, m - 1, d);
-  }
-
-  const fallback = new Date(value);
-  return Number.isNaN(fallback.getTime()) ? null : fallback.getTime();
-}
-
-function parseStartMinutes(value?: string | null): number | null {
-  if (!value) return null;
-  const m = value.match(/(\d{1,2}):(\d{2})/);
-  if (!m) return null;
-  const hh = Number(m[1]);
-  const mm = Number(m[2]);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-  return hh * 60 + mm;
-}
-
-function visitorLabel(b: TimeSlot): string {
-  if (b.visitorType === 'parent') return (b.parentName || '').trim();
-  return (b.companyName || '').trim();
-}
-
-function statusLabel(status?: string | null): string {
-  if (!status) return '—';
-  if (status === 'confirmed') return 'Bestätigt';
-  if (status === 'reserved') return 'Reserviert';
-  return status;
-}
 
 export function TeacherBookings() {
   const { teacher } = useOutletContext<TeacherOutletContext>();
@@ -267,7 +225,7 @@ export function TeacherBookings() {
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: '1rem' }}>
           <button onClick={exportICal} className="btn-primary" disabled={bookings.length === 0}>
-            📅 Alle Termine als Kalenderdatei exportieren
+            Alle Termine als Kalenderdatei exportieren
           </button>
         </div>
 
@@ -343,7 +301,7 @@ export function TeacherBookings() {
                               : 'teacher-status-pill teacher-status-pill--reserved'
                           }
                         >
-                          {statusLabel(booking.status)}
+                          {booking.status ? statusLabel(booking.status) : '—'}
                         </span>
                       </div>
                     </td>
