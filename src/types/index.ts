@@ -283,6 +283,11 @@ export type TeacherInfo = {
   room?: string;
 };
 
+export type TeacherOutletContext = {
+  teacher: TeacherInfo | null;
+  refreshTeacher: () => Promise<void>;
+};
+
 export interface TeacherFormData {
   first_name: string;
   last_name: string;

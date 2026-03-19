@@ -5,6 +5,8 @@ import { query } from '../config/db.js';
 import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../middleware/auth.js';
 import { logSecurityEvent } from '../middleware/audit-log.js';
 import logger from '../config/logger.js';
+import { validate } from '../middleware/validate.js';
+import { loginSchema } from '../schemas/auth.js';
 
 const router = express.Router();
 
@@ -40,23 +42,8 @@ function cookieOptions() {
  * POST /api/auth/login
  * Body: { username, password }
  */
-router.post('/login', loginLimiter, async (req, res) => {
-  const { username, password } = req.body || {};
-
-  if (!username || !password) {
-    return res.status(400).json({
-      error: 'Bad Request',
-      message: 'Username and password required'
-    });
-  }
-
-  // Cap password length to prevent bcrypt DoS (bcrypt truncates at 72 bytes anyway)
-  if (password.length > 1024) {
-    return res.status(400).json({
-      error: 'Bad Request',
-      message: 'Password too long'
-    });
-  }
+router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
+  const { username, password } = req.body;
 
   try {
     // 1) System-Admin Credentials (aus Umgebungsvariablen)

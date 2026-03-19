@@ -50,7 +50,10 @@ const elternsprechtagModule: ModuleDefinition = {
     { path: '/admin/slots', label: 'Sprechzeiten', Component: AdminSlots },
   ],
 
-  /** Sidebar-Navigation */
+  /** Sidebar-Navigation
+   *  Note: /admin/events is a Core route (App.tsx), not a module route.
+   *  It appears here as a sidebar link because event management is closely
+   *  related to elternsprechtag but serves all modules. */
   sidebarNav: {
     label: 'Elternsprechtag',
     items: [

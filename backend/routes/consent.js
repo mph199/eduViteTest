@@ -9,6 +9,8 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { query } from '../config/db.js';
 import logger from '../config/logger.js';
+import { validate } from '../middleware/validate.js';
+import { consentWithdrawSchema } from '../schemas/booking.js';
 
 const router = express.Router();
 
@@ -26,25 +28,9 @@ const consentLimiter = rateLimit({
  * Anonymizes all bookings for the given email in the given module.
  * Does NOT delete consent_receipts (append-only, proof of prior consent).
  */
-router.post('/withdraw', consentLimiter, async (req, res) => {
+router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async (req, res) => {
   try {
-    const { email, module: moduleName } = req.body || {};
-
-    if (!email || typeof email !== 'string') {
-      return res.status(400).json({ error: 'E-Mail-Adresse erforderlich' });
-    }
-    if (email.length > 254) {
-      return res.status(400).json({ error: 'E-Mail-Adresse zu lang' });
-    }
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail)) {
-      return res.status(400).json({ error: 'Ungueltiges E-Mail-Format' });
-    }
-
-    const ALLOWED_MODULES = ['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer'];
-    if (!moduleName || !ALLOWED_MODULES.includes(moduleName)) {
-      return res.status(400).json({ error: 'Gueltiges Modul erforderlich (elternsprechtag, schulsozialarbeit, beratungslehrer)' });
-    }
+    const { email: normalizedEmail, module: moduleName } = req.body;
 
     let anonymizedCount = 0;
 

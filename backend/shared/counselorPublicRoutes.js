@@ -13,11 +13,24 @@
  * @param {string} config.topicEndpoint     – '/categories' or '/topics'
  * @param {string} config.topicResponseKey  – 'categories' or 'topics'
  * @param {string} config.counselorLabel    – for error messages
+ * @param {object} [config.bookingLimiter]  – optional stricter rate limiter for POST /book
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { query } from '../config/db.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
+import { validate } from '../middleware/validate.js';
+import { counselorBookingSchema } from '../schemas/counselor.js';
+
+// Default booking limiter: stricter than general public limiter
+const defaultBookingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Buchungsversuche. Bitte spaeter erneut versuchen.' },
+});
 
 export function createCounselorPublicRoutes(service, config) {
   const {
@@ -27,6 +40,7 @@ export function createCounselorPublicRoutes(service, config) {
     topicResponseKey,
     counselorLabel = 'Berater/in',
     moduleName = 'unknown',
+    bookingLimiter = defaultBookingLimiter,
   } = config;
 
   assertSafeIdentifier(tablePrefix, 'tablePrefix');
@@ -72,32 +86,22 @@ export function createCounselorPublicRoutes(service, config) {
     }
   });
 
-  // POST /appointments/:id/book
-  router.post('/appointments/:id/book', async (req, res) => {
+  // POST /appointments/:id/book (stricter rate limit for write operations)
+  router.post('/appointments/:id/book', bookingLimiter, validate(counselorBookingSchema), async (req, res) => {
     try {
       const appointmentId = parseInt(req.params.id, 10);
       if (isNaN(appointmentId)) return res.status(400).json({ error: 'Ungueltige Termin-ID' });
 
-      const body = req.body || {};
+      const body = req.body;
       const { student_name, student_class, email, phone, is_urgent, consent_version } = body;
 
-      if (!student_name || !String(student_name).trim()) {
-        return res.status(400).json({ error: 'Name ist erforderlich' });
-      }
-      if (!consent_version) {
-        return res.status(400).json({ error: 'Einwilligung ist erforderlich' });
-      }
-      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email).trim())) {
-        return res.status(400).json({ error: 'Ungueltiges E-Mail-Format' });
-      }
-
       const bookingData = {
-        student_name: String(student_name).trim().slice(0, 255),
-        student_class: student_class ? String(student_class).trim().slice(0, 50) : null,
-        email: email ? String(email).trim().toLowerCase().slice(0, 254) : null,
-        phone: phone ? String(phone).trim().slice(0, 50) : null,
+        student_name,
+        student_class,
+        email,
+        phone,
         [topicForeignKey]: body[topicForeignKey] ? parseInt(body[topicForeignKey], 10) : null,
-        is_urgent: !!is_urgent,
+        is_urgent,
       };
 
       // Determine if this counselor requires manual confirmation

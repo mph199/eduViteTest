@@ -3,15 +3,10 @@ import { Outlet } from 'react-router-dom';
 import { useActiveView } from '../../../../hooks/useActiveView';
 import { useBgStyle } from '../../../../hooks/useBgStyle';
 import api from '../../../../services/api';
-import type { TeacherInfo } from '../../../../types';
+import type { TeacherInfo, TeacherOutletContext } from '../../../../types';
 import '../../../../pages/AdminDashboard.css';
 
-export type { TeacherInfo };
-
-export type TeacherOutletContext = {
-  teacher: TeacherInfo | null;
-  refreshTeacher: () => Promise<void>;
-};
+export type { TeacherInfo, TeacherOutletContext };
 
 export function TeacherLayout() {
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);

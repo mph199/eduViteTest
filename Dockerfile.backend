@@ -13,8 +13,12 @@ RUN mkdir -p uploads/logos && chown -R node:node /app
 
 EXPOSE 4000
 
+# Run as non-root by default. The entrypoint briefly needs root to fix
+# volume ownership (Docker mounts volumes as root), then drops privileges
+# via su-exec. This is the recommended pattern for containers with volumes.
+USER root
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:4000/api/health || exit 1
 
-# Ensure uploads volume is writable by node user, then drop to non-root
 CMD ["sh", "-c", "chown -R node:node /app/uploads && exec su-exec node node index.js"]

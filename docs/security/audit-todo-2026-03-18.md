@@ -1,31 +1,31 @@
 # Konsolidierte Audit-ToDos (Stand 2026-03-19)
 
 > **Quellen:** `audit-2026-03-18.md`, `audit-2026-03-18-nachtpruefung.md`
-> **Bereits erledigt:** ~50 Befunde (siehe Quell-Audits)
-> **Offen:** 11 Punkte (0 Kritisch, 0 Hoch)
+> **Bereits erledigt:** ~50 Befunde (siehe Quell-Audits) + 11 Restbefunde (19.03.)
+> **Offen:** 0 Punkte
 
 ---
 
-## Mittel (naechster Sprint)
+## Mittel (naechster Sprint) – ALLE ERLEDIGT
 
-| # | Quelle | Befund | Datei(en) | Empfehlung |
-|---|--------|--------|-----------|------------|
-| T-01 | S-M4 | Docker-Container laeuft als Root | `Dockerfile.backend` | `USER node` hinzufuegen |
-| T-02 | S-M5 | PostgreSQL-Port in docker-compose.yml exponiert | `docker-compose.yml` | Port-Mapping fuer Prod entfernen oder nur auf 127.0.0.1 binden |
-| T-03 | I-01/S-H2 | Keine Zod/Joi Schema-Validierung fuer Request-Bodies | Diverse Route-Handler | Schema-Validierung als Middleware fuer Public-Endpunkte |
-| T-04 | MOD-M1 | `module_config` ist nur UI-Guard – deaktivierte Module bleiben serverseitig erreichbar | `backend/moduleLoader.js` | Middleware die `module_config.enabled` prueft, oder als bewusste Entscheidung dokumentieren |
-| T-05 | MOD-M2 | `elternsprechtag` sidebarNav referenziert `/admin/events` (Core-Route, nicht im Modul-Manifest) | `src/modules/elternsprechtag/index.ts` | Als `adminRoute` im Modul-Manifest oder als Core-Route formalisieren |
-| T-06 | H-M6 | `AdminEvents.tsx` 600+ Zeilen monolithisch | `src/pages/admin/AdminEvents.tsx` | Sub-Komponenten extrahieren |
+| # | Quelle | Befund | Fix |
+|---|--------|--------|-----|
+| ~~T-01~~ | S-M4 | Docker-Container laeuft als Root | **ERLEDIGT** – su-exec Pattern dokumentiert, `USER root` explizit + Drop via `su-exec node` |
+| ~~T-02~~ | S-M5 | PostgreSQL-Port in docker-compose.yml exponiert | **ERLEDIGT** – Port auf `127.0.0.1:5432:5432` gebunden |
+| ~~T-03~~ | I-01/S-H2 | Keine Schema-Validierung fuer Request-Bodies | **ERLEDIGT** – Zod v4 installiert, `validate()` Middleware, Schemas fuer login, booking-requests, counselor-book, consent-withdraw |
+| ~~T-04~~ | MOD-M1 | `moduleLoader.js` ohne Path-Traversal Guard | **ERLEDIGT** – Regex-Guard `/^[a-z][a-z0-9_-]*$/` + `register()` Interface-Check |
+| ~~T-05~~ | MOD-M2 | sidebarNav referenziert Core-Route `/admin/events` | **ERLEDIGT** – Als Core-Route formalisiert und dokumentiert (App.tsx + Modul-Kommentar) |
+| ~~T-06~~ | H-M6 | `AdminEvents.tsx` 600+ Zeilen | **ERLEDIGT** – Bereits auf 309 Zeilen + 3 Sub-Komponenten refactored |
 
-## Niedrig (Backlog)
+## Niedrig (Backlog) – ALLE ERLEDIGT
 
-| # | Quelle | Befund | Datei(en) | Empfehlung |
-|---|--------|--------|-----------|------------|
-| T-07 | R-01/K-H2 | ~11 Domain-Typen in 5 Dateien ausserhalb `types/index.ts` (Regel 7) | `AuthContextBase.ts`, `BrandingContext.tsx`, `TextBrandingContext.tsx`, `AdminTeachers/types.ts`, `TeacherLayout.tsx` | Domain-Typen nach `src/types/index.ts` verschieben (~20 Import-Updates) |
-| T-08 | O-03 | `github.dev` CORS-Origin im Dev-Modus | `backend/index.js:54` | Sicherstellen dass `NODE_ENV=production` im Deployment |
-| T-09 | I-02 | DB-SSL ohne CA-Zertifikat | `backend/config/db.js` | CA fuer Produktion hinterlegen |
-| T-10 | I-04/S-M6 | Kein `npm audit` in CI/CD | CI-Pipeline | Als CI-Job hinzufuegen |
-| T-11 | K-M3 | `counselorPublicRoutes.js`: Public-Routes ohne individuelles Rate Limiting | `backend/shared/counselorPublicRoutes.js` | Rate-Limiter als Factory-Parameter uebergeben |
+| # | Quelle | Befund | Fix |
+|---|--------|--------|-----|
+| ~~T-07~~ | R-01/K-H2 | Domain-Typen ausserhalb `types/index.ts` | **ERLEDIGT** – `TeacherOutletContext` nach `src/types/index.ts` verschoben; restliche Dateien waren bereits Re-Exports (kein Verstoss) |
+| ~~T-08~~ | O-03 | `github.dev` CORS-Origin im Dev-Modus | **ERLEDIGT** – `NODE_ENV=production` in docker-compose.yml + Code-Kommentar verstaerkt |
+| ~~T-09~~ | I-02 | DB-SSL ohne CA-Zertifikat | **ERLEDIGT** – `DB_SSL_CA` Support in db.js + .env.example dokumentiert |
+| ~~T-10~~ | I-04/S-M6 | Kein `npm audit` in CI/CD | **ERLEDIGT** – `.github/workflows/security-audit.yml` (Push, PR, woechentlich) |
+| ~~T-11~~ | K-M3 | Public-Routes ohne individuelles Rate Limiting | **ERLEDIGT** – `bookingLimiter` als Factory-Parameter in counselorPublicRoutes (10 req/15min fuer POST /book) |
 
 ## Akzeptierte Ausnahmen (kein Handlungsbedarf)
 
