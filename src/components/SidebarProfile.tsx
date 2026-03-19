@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAvatarColor, getAvatarInitial } from '../utils/avatarColor';
 import api from '../services/api';
 import type { User } from '../contexts/AuthContextBase';
+import { useAuth } from '../contexts/useAuth';
 import './SidebarProfile.css';
 
 interface SidebarProfileProps {
@@ -18,6 +19,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfileProps) {
+  const { updateUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [currentPw, setCurrentPw] = useState('');
@@ -62,6 +64,9 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
     try {
       setPwSaving(true);
       await api.teacher.changePassword(currentPw, newPw);
+      if (user.forcePasswordChange) {
+        updateUser({ forcePasswordChange: false });
+      }
       setPwMsg({ text: 'Passwort erfolgreich geaendert.', ok: true });
       setCurrentPw('');
       setNewPw('');

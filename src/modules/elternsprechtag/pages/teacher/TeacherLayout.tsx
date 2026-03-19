@@ -3,17 +3,10 @@ import { Outlet } from 'react-router-dom';
 import { useActiveView } from '../../../../hooks/useActiveView';
 import { useBgStyle } from '../../../../hooks/useBgStyle';
 import api from '../../../../services/api';
+import type { TeacherInfo } from '../../../../types';
 import '../../../../pages/AdminDashboard.css';
 
-export type TeacherInfo = {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  name: string;
-  subject: string;
-  system?: string;
-  room?: string;
-};
+export type { TeacherInfo };
 
 export type TeacherOutletContext = {
   teacher: TeacherInfo | null;

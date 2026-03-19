@@ -6,6 +6,7 @@
 
 - [System Design](architecture/system-design.md) -- Modulsystem, DB-Schema, Datenfluss, API-Vertraege
 - [Module Guide](architecture/module-guide.md) -- Schritt-fuer-Schritt Anleitung zur Modulerstellung
+- [CSS-Variablen](architecture/color-variables.md) -- Farb- und Design-Token Referenz
 - [Email Flows](architecture/email-flows.md) -- E-Mail-Trigger, Templates, Konfiguration
 - [Multi-Tenancy](architecture/multi-tenancy.md) -- VPS + separate DB pro Schule (keine Shared DBs)
 
@@ -27,6 +28,7 @@
 - [Security Baseline](security/security-baseline.md) -- Auth, CSRF, XSS, Rate Limiting, Haertung
 - [DB-Audit](security/db-audit-2026-03-17.md) -- Schema-Inventar, Hygiene-Befunde, DSGVO-Gaps
 - [Audit 2026-03-18](security/audit-2026-03-18.md) -- Security, Hygiene, Modul, Konventionen (38 Befunde)
+- [Nachtpruefung 2026-03-18](security/audit-2026-03-18-nachtpruefung.md) -- Folge-Audit mit 38 Befunden, Token-Revocation, Lockout
 
 ## Planung
 

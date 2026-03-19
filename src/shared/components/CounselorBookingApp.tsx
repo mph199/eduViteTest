@@ -1,26 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Counselor, AppointmentSlot, CounselorBookingConfig, CounselorTopic } from '../../types';
 import { ConsentCheckbox, CONSENT_VERSIONS } from '../../components/ConsentCheckbox';
-import { API_BASE } from '../../services/api';
+import { requestJSON } from '../../services/api';
 import './CounselorBookingApp.css';
 
 export type { CounselorBookingConfig };
-
-/**
- * Lightweight requestJSON for public booking pages (no auth/401 handling needed).
- */
-async function requestJSON(path: string, options: RequestInit = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error((data as Record<string, string>)?.error || `Fehler ${res.status}`);
-  }
-  return res.json();
-}
 
 type Step = 'counselor' | 'datetime' | 'form' | 'success';
 
@@ -109,7 +93,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     if (!consented) return;
     if (!selectedSlot) return;
     if (!formData.student_name.trim()) {
-      alert('Bitte gib deinen Namen ein.');
+      setError('Bitte gib deinen Namen ein.');
       return;
     }
 
@@ -126,7 +110,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
       setBookingResult(result?.appointment ? { status: result.appointment.status } : null);
       setStep('success');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Buchen');
+      setError(err instanceof Error ? err.message : 'Fehler beim Buchen');
     } finally {
       setSubmitting(false);
     }

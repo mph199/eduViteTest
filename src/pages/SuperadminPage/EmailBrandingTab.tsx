@@ -132,12 +132,15 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
         </div>
       </section>
 
-      {/* Live Preview */}
+      {/* Live Preview – sandboxed iframe prevents XSS even with compromised admin input */}
       <div className="superadmin__preview">
         <div className="superadmin__preview-title">E-Mail-Vorschau</div>
-        <div
+        <iframe
           className="superadmin__preview-frame superadmin__preview-frame--email"
-          dangerouslySetInnerHTML={{ __html: previewHtmlContent }}
+          sandbox=""
+          srcDoc={previewHtmlContent}
+          title="E-Mail-Vorschau"
+          style={{ border: 'none', width: '100%', minHeight: 320 }}
         />
       </div>
 

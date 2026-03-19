@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
 
 interface ProtectedRouteProps {
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles, allowedModules }: ProtectedRouteProps) {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -27,6 +28,12 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Force password change: redirect non-admin users to password page
+  const isPasswordPage = location.pathname.includes('/teacher/password');
+  if (user?.forcePasswordChange && !isPasswordPage && user.role !== 'admin' && user.role !== 'superadmin') {
+    return <Navigate to="/teacher/password" replace />;
   }
 
   const role = user?.role;

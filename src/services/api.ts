@@ -652,6 +652,7 @@ const api = {
   },
 };
 
+export { requestJSON };
 export { API_BASE } from './apiBase';
 export { BACKEND_BASE } from './apiBase';
 export default api;

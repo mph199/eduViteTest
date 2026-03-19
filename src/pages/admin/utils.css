@@ -1,0 +1,74 @@
+/* ── Utility classes (Sprint 3: inline-style reduction) ────────── */
+
+.text-muted { color: var(--color-gray-500); }
+.text-secondary { color: var(--color-gray-600); }
+.text-bold { font-weight: 800; color: var(--color-gray-900); }
+
+.empty-state {
+  color: var(--color-gray-600);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.admin-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-filter-input {
+  padding: 8px 10px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.admin-filter-select {
+  padding: 8px 10px;
+  flex: 0 1 200px;
+}
+
+/* ── Generic modal overlay (used by RevokeModuleDialog etc.) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--color-gray-900-rgb), 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--color-white);
+  border-radius: 14px;
+  padding: 1.75rem 2rem;
+  max-width: 520px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 20px 60px rgba(var(--color-black-rgb), 0.18);
+}
+
+.modal-content h3 {
+  margin: 0 0 0.75rem;
+  color: var(--brand-primary-dark);
+}
+
+.modal-content__list {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+
+.modal-content__list li {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 1.25rem 1rem;
+    max-width: 100%;
+    border-radius: 10px;
+  }
+}
+

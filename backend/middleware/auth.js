@@ -38,6 +38,9 @@ export function generateToken(user) {
   if (typeof user.tokenVersion === 'number') {
     payload.tv = user.tokenVersion;
   }
+  if (user.forcePasswordChange) {
+    payload.fpc = true;
+  }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 

@@ -28,13 +28,16 @@ export function register(app, { rateLimiters }) {
 
 `src/modules/registry.ts` imports all modules. Filtered by `VITE_ENABLED_MODULES`.
 
-Each module implements `ModuleDefinition`:
+Each module implements `ModuleDefinition` (defined in `registry.ts`, not `types/index.ts`):
 ```ts
 {
   id: string;              // unique key, matches ENABLED_MODULES
   title: string;           // display name on landing page
   description: string;     // landing page card text
+  icon: string;            // icon identifier for landing page card
   basePath: string;        // public route (e.g. '/beratungslehrer')
+  accent?: string;         // CSS custom property for module accent color
+  accentRgb?: string;      // RGB triplet for rgba() usage (e.g. '26, 127, 122')
   PublicPage: LazyComponent;
   adminRoutes?: AdminRoute[];
   sidebarNav?: SidebarNavGroup;  // drives hamburger menu navigation
@@ -48,7 +51,7 @@ Each module implements `ModuleDefinition`:
 
 | Module | ID | Backend Prefix | Public Path | DB Prefix |
 |--------|-----|---------------|-------------|-----------|
-| Elternsprechtag | `elternsprechtag` | `/api/` (core routes) | `/elternsprechtag` | `slots`, `bookings`, `events`, `teachers` |
+| Elternsprechtag | `elternsprechtag` | `/api/teacher`, `/api/` (public) | `/elternsprechtag` | `slots`, `bookings`, `events`, `teachers` |
 | Schulsozialarbeit | `schulsozialarbeit` | `/api/ssw` | `/schulsozialarbeit` | `ssw_*` |
 | Beratungslehrer | `beratungslehrer` | `/api/bl` | `/beratungslehrer` | `bl_*` |
 
@@ -88,6 +91,21 @@ Beyond roles, users can have module access via `user_module_access` table:
 | `requireBeratungslehrer` | users with beratungslehrer module access, admin, superadmin |
 | `requireModuleAccess(key)` | Factory for custom module checks |
 
+### Account Lockout (Migration 042)
+
+After repeated failed logins, accounts are temporarily locked. Tracked via `users` columns:
+- `failed_login_attempts` (INTEGER) – counter, reset on successful login
+- `locked_until` (TIMESTAMPTZ) – lockout expiry timestamp
+- `last_failed_login` (TIMESTAMPTZ) – timestamp of last failed attempt
+
+### Token Revocation (Migration 043)
+
+`users.token_version` (INTEGER) is included in the JWT as `tv` claim. On every authenticated request, `auth.js` compares the token's `tv` against the DB value. If `tv < token_version`, the token is rejected as revoked. This allows instant logout/session invalidation by incrementing `token_version`.
+
+### Force Password Change (Migration 044)
+
+`users.force_password_change` (BOOLEAN) is included in the JWT as `fpc` claim. The frontend `User` type exposes this as `forcePasswordChange`. Used to require password change after admin-initiated resets.
+
 ## Database
 
 PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-run by `migrate.js`).
@@ -96,7 +114,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 
 | Table | Purpose |
 |-------|---------|
-| `users` | User accounts (username, role, password hash) |
+| `users` | User accounts (username, role, password hash, email, token_version, force_password_change, failed_login_attempts, locked_until, last_failed_login, updated_at) |
 | `user_module_access` | Module access per user (user_id, module_key) |
 | `teachers` | Teacher profiles (name, subject, room, email) |
 | `slots` | Time slots for parent-teacher conferences |
@@ -131,7 +149,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 | Table | Purpose |
 |-------|---------|
 | `audit_log` | Append-only PII-Zugriffs- und Security-Event-Log (Art. 30 DSGVO) |
-| `consent_receipts` | Einwilligungsnachweise pro Modul/Termin |
+| `consent_receipts` | Einwilligungsnachweise pro Modul/Termin. Widerrufe via `POST /api/consent/withdraw` nutzen `appointment_id = NULL`, `consent_version = 'withdrawal'`. |
 
 ### DSGVO-Spalten auf bestehenden Tabellen
 
@@ -139,10 +157,11 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 |--------|----------|-------|
 | `restricted` (BOOLEAN) | `booking_requests`, `ssw_appointments`, `bl_appointments` | Art. 18 Verarbeitungseinschraenkung. `WHERE restricted IS NOT TRUE` filtert in Admin-Listen. |
 | `verification_token_hash` | `slots`, `booking_requests` | Gehashter Token fuer E-Mail-Verifikation (Klartext-Token entfernt) |
+| `verification_sent_at` | `booking_requests` | Zeitstempel des Verifikations-E-Mail-Versands |
 
 ### Row-Level Security (RLS)
 
-RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktiviert (Migration 040). Da die Applikation einen einzelnen Pool-User nutzt, dient RLS als Defense-in-Depth. Permissive `app_full_access`-Policies erlauben vollen Zugriff fuer den Pool-User. Bei Wechsel zu Multi-Tenancy werden diese durch tenant_id-basierte Policies ersetzt.
+RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktiviert (Migration 040) sowie auf `feedback`, `events`, `booking_requests` (Migrationen 016/017). Da die Applikation einen einzelnen Pool-User nutzt, dient RLS als Defense-in-Depth. Permissive `app_full_access`-Policies erlauben vollen Zugriff fuer den Pool-User. Bei Wechsel zu Multi-Tenancy werden diese durch tenant_id-basierte Policies ersetzt.
 
 ## Frontend Architecture
 
@@ -153,7 +172,7 @@ RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktivier
 | Public | `/`, `/login`, `/impressum`, `/datenschutz`, `/verify` | None |
 | Module public | `/{module.basePath}` per module | None |
 | Teacher | `/teacher/*` (layout + sub-routes from modules) | `requireAuth` |
-| Admin | `/admin`, `/admin/teachers`, `/admin/events`, `/admin/feedback` | `requireAdmin` |
+| Admin | `/admin`, `/admin/teachers`, `/admin/events`, `/admin/feedback`, `/admin/users` (→ redirect to `/admin/teachers`) | `requireAdmin` |
 | Module admin | `{mod.adminRoutes[].path}` per module | `requireModuleAccess` |
 | Superadmin | `/superadmin` (Tabs: Module, Branding, Hintergruende, E-Mail, Texte, Datenschutz) | `requireSuperadmin` |
 
@@ -181,11 +200,17 @@ On public pages (`isPublic = true`, i.e. not `/login`, not `/admin/*`, not `/tea
 No global store. Component-local state + context:
 - `AuthContext` – auth state, user, login/logout
 - `BrandingContext` – school branding (name, colors, logo)
+- `ModuleConfigContext` – runtime module enable/disable state from `module_config` table
+- `TextBrandingContext` – customizable UI text strings
 - Module pages manage their own state via `useState`/`useEffect`
 
-### API Client (`src/services/api.ts`)
+### API Client (`src/services/`)
 
-Centralized fetch wrapper. Namespaced:
+- `apiBase.ts` – exports `API_BASE`, `BACKEND_BASE` constants
+- `api.ts` – centralized fetch wrapper (namespaced, see below)
+- `mediaUtils.ts` – logo/background/tile URL resolvers
+
+Namespaces in `api.ts`:
 - `api.auth.*` – login, verify, logout
 - `api.admin.*` – teachers, bookings, events, slots, settings, feedback, users
 - `api.teacher.*` – bookings, slots, requests, password, feedback
@@ -201,15 +226,41 @@ All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` eve
 
 Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Settings`, `FeedbackItem`, `UserAccount`.
 
-Shared domain types (consolidated from previously duplicated local definitions):
+Auth types:
+- `ActiveView` – union `'admin' | 'teacher'` for dual-role users
+- `User` – authenticated user (username, role, modules, teacherId, forcePasswordChange)
+
+Event types:
 - `AdminEvent`, `EventStatus`, `EventStats` – event management
+
+Counselor types (SSW/BL shared):
 - `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared. `Counselor.requires_confirmation` controls whether bookings need manual approval.
 - `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI. `CounselorBookingConfig.moduleId` identifiziert das Modul fuer die `ConsentCheckbox`
+
+Branding types:
+- `SiteBranding` – school visual branding (colors, logo, hero text, tile/background images)
+- `TextBranding` – customizable UI text strings (booking page, event banner, modal)
+- `EmailBranding` – email template branding (school name, logo, primary color, footer)
+- `BrandingData` – DSGVO responsible party, DSB contact fields, Aufsichtsbehoerde (`supervisory_authority`)
+
+Teacher admin types:
+- `TeacherInfo` – lightweight teacher record for lists
+- `TeacherFormData` – teacher create/edit form fields
+- `TeacherLoginResponse` – response with temp credentials after teacher creation
+
+BL admin types:
+- `BlFormData` – BL counselor profile form (schedule, specializations, slot duration)
+
+CSV import types:
+- `CsvImportResult`, `CsvImportedTeacher`, `CsvSkippedRow` – bulk teacher import response
+
+Slot generation:
 - `GenerateSlotsResponse` – Antworttyp fuer Slot-Generierungs-Endpunkte (AdminSlots, AdminEvents)
 
 DSGVO types:
-- `DataSubjectSearchResult`, `DataSubjectDeletionResult`, `DataSubjectCorrectionResult`, `DataSubjectRestrictionResult` – DSAR-Antworttypen
-- `AuditLogEntry`, `AuditLogResponse`, `AuditLogFilter` – Audit-Log-Datenstrukturen
+- `ConsentReceipt` – Einwilligungsnachweis (module, appointment, consent version, IP, user agent)
+- `DataSubjectSearchResult` – DSAR-Suchergebnis
+- `AuditLogEntry`, `AuditLogResponse` – Audit-Log-Datenstrukturen
 
 Component-local `Props` interfaces remain in their component files.
 
@@ -219,8 +270,15 @@ Globale wiederverwendbare Komponenten ausserhalb des Modulsystems:
 
 | Komponente | Datei | Genutzt von |
 |-----------|-------|-------------|
+| `AppErrorBoundary` | `src/components/AppErrorBoundary.tsx` | App-Level Error Boundary |
+| `CollapsibleNavGroup` | `src/components/CollapsibleNavGroup.tsx` | Sidebar collapsible navigation groups |
 | `ConsentCheckbox` | `src/components/ConsentCheckbox.tsx` | `BookingForm.tsx` (Elternsprechtag), `CounselorBookingApp.tsx` (SSW + BL) |
+| `EduViteLogo` | `src/components/EduViteLogo.tsx` | App logo component |
 | `Footer` | `src/components/Footer.tsx` | App-Layout |
+| `NotificationBell` | `src/components/NotificationBell.tsx` | Header notification indicator |
+| `SidebarProfile` | `src/components/SidebarProfile.tsx` | Sidebar user profile section |
+| `TeacherRequestsTable` | `src/components/TeacherRequestsTable.tsx` | Reusable teacher booking requests table |
+| `ViewSwitcher` | `src/components/ViewSwitcher.tsx` | Admin/Teacher view toggle for dual-role users |
 
 `ConsentCheckbox` rendert modulspezifischen Einwilligungstext und Link zur `/datenschutz`-Seite. Blockiert Form-Submit solange nicht angehakt.
 
@@ -232,8 +290,23 @@ Wiederverwendbare Komponenten, Konstanten und Hilfsfunktionen fuer Admin-Seiten:
 |------|--------|-------------|
 | `src/shared/components/AdminPageWrapper.tsx` | Wrapper-Div fuer alle Admin-Seiten (CSS-Klassen-Stack + Background-Style) | BLAdmin, SSWAdmin |
 | `src/shared/components/CalendarPanel.tsx` | Kalender-UI fuer Terminuebersichten (extrahiert aus BLAdmin + SSWTermineTab) | BLAdmin, SSWTermineTab |
+| `src/shared/components/CounselorAnfragenTab.tsx` | Shared counselor requests/inquiries tab component | SSW, BL admin |
+| `src/shared/components/CounselorBookingLayout.tsx` | Shared booking page layout for counselor modules | SSW, BL public pages |
 | `src/shared/constants/weekdays.ts` | `WEEKDAY_LABELS`, `WEEKDAY_LABELS_FULL`, `WEEKDAY_SHORT`, `WEEKDAY_SHORT_FULL` | SSWCounselorsTab, AdminTeachers, BLAdmin, CalendarPanel |
 | `src/shared/utils/appointmentDate.ts` | `normalizeDate()` – normalisiert Datumswerte auf YYYY-MM-DD | CalendarPanel, BLAdmin |
+| `src/shared/utils/dateRange.ts` | Date range utility functions | CalendarPanel, Admin views |
+| `src/shared/utils/statusLabel.ts` | `statusLabel()` – uebersetzt Status-Codes in deutsche Labels | CalendarPanel, TeacherBookings, CounselorAnfragenTab |
+
+### Frontend Utilities (`src/utils/`)
+
+| Pfad | Inhalt |
+|------|--------|
+| `src/utils/avatarColor.ts` | Deterministic avatar color generation from username |
+| `src/utils/bookingSort.ts` | Booking parsing and sorting utilities (also listed above) |
+| `src/utils/download.ts` | File download trigger utility |
+| `src/utils/formatters.ts` | Date/time formatting helpers |
+| `src/utils/icalExport.ts` | iCal (.ics) export generation |
+| `src/utils/teacherDisplayName.ts` | Teacher display name formatting |
 
 ### Hooks (`src/hooks/`)
 
@@ -305,16 +378,27 @@ backend/
       userRoutes.js     # User management, module access
       settingsRoutes.js # Global settings
       feedbackRoutes.js # Feedback CRUD
-      dataSubject.js    # DSAR-Endpunkte Art. 15-21 (Suche, Export, Loeschung, Berichtigung, Einschraenkung)
+      dataSubject.js    # DSAR-Endpunkte Art. 15-21 (requireSuperadmin; Suche, Export, Loeschung, Berichtigung, Einschraenkung)
     superadmin.js       # Superadmin endpoints (branding, backgrounds, email, text, module config)
-    teacher.js          # Teacher endpoints (bookings, requests, password)
+    consent.js          # DSGVO Art. 7 Abs. 3 – Einwilligungswiderruf (POST /api/consent/withdraw)
   shared/               # Shared factories for SSW/BL deduplication
     counselorService.js       # createCounselorService(config) – DB queries
     counselorPublicRoutes.js  # createCounselorPublicRoutes(service, config) – 4 endpoints
     counselorAdminRoutes.js   # createCounselorAdminRoutes(config) – full CRUD
+    counselorRoutes.js        # createCounselorRoutes() – authenticated counselor self-service
     generateUsername.js       # Umlaut-Transliteration fuer Benutzernamen (dedupliziert)
+    sqlGuards.js              # SQL guard utilities for safe dynamic queries
+    validatePassword.js       # Shared password validation logic
   modules/
-    elternsprechtag/    # Core module (teacher schedule, events)
+    elternsprechtag/    # Core module (teacher schedule, events, teacher routes)
+      routes/
+        public.js       # Rate-limited public booking endpoints
+        teacher.js      # Aggregator for teacher sub-routes (mounts /api/teacher)
+        teacher/        # Teacher endpoint sub-modules
+          bookings.js   # Teacher booking management
+          requests.js   # Teacher request handling
+          misc.js       # Teacher miscellaneous endpoints
+          password.js   # Teacher password management
     schulsozialarbeit/  # SSW module (thin wrappers around shared factories)
       routes/public.js, counselor.js, admin.js
       services/appointmentService.js  # Wrapper around shared counselorService
@@ -331,6 +415,13 @@ backend/
   utils/
     resolveActiveEvent.js  # Shared active-event resolution logic
     timeWindows.js         # Slot generation helpers
+    mappers.js             # DB row to API response mappers
+    validators.js          # Input validation utilities
+    csvImport.js           # CSV import parsing logic
+  jobs/
+    retention-cleanup.js   # DSGVO retention cleanup cron job
+  emails/
+    template.js            # Email template rendering
 ```
 
 ### Module Route Pattern (SSW/BL)
@@ -389,16 +480,70 @@ Module differences are handled via config parameters (table prefix, topic schema
 
 ## Environment Variables
 
+### Core
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `SESSION_SECRET` / `JWT_SECRET` | Yes | JWT signing secret |
-| `ENABLED_MODULES` | No | Backend: comma-separated module IDs |
-| `VITE_ENABLED_MODULES` | No | Frontend: comma-separated module IDs |
-| `CORS_ORIGINS` | No | Allowed CORS origins |
-| `MAIL_TRANSPORT` | No | `ethereal` (dev) or `smtp` (prod) |
-| `VITE_API_URL` | No | Frontend API base URL (default: `/api`) |
-| `VITE_MAINTENANCE_MODE` | No | `true`/`1`/`yes` to enable maintenance page |
+| `DATABASE_URL` | Yes* | PostgreSQL connection string (*or use `DB_HOST` etc.) |
+| `JWT_SECRET` | Yes | JWT signing secret (primary) |
+| `SESSION_SECRET` | No | Fallback alias for `JWT_SECRET` |
+| `PORT` | No | Backend port (default: `4000`) |
+| `HOST` | No | Backend bind address (default: `0.0.0.0`) |
+| `NODE_ENV` | No | `production` or `development` |
+| `CORS_ORIGINS` | No | Comma-separated allowed CORS origins |
+
+### Database (alternative to `DATABASE_URL`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DB_HOST` | No | PostgreSQL host (default: `localhost`) |
+| `DB_PORT` | No | PostgreSQL port (default: `5432`) |
+| `DB_NAME` | No | Database name (default: `sprechtag`) |
+| `DB_USER` | No | Database user (default: `postgres`) |
+| `DB_PASSWORD` | No | Database password |
 | `DB_SSL` | No | `true` to enable SSL for PostgreSQL connection |
 | `DB_SSL_REJECT_UNAUTHORIZED` | No | `false` to allow self-signed certs (development only, default: `true`) |
-| `RETENTION_*_DAYS` | No | DSGVO Aufbewahrungsfristen (z.B. `RETENTION_BOOKING_REQUESTS_DAYS=180`) |
+
+### Modules
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ENABLED_MODULES` | No | Backend: comma-separated module IDs |
+| `VITE_ENABLED_MODULES` | No | Frontend: comma-separated module IDs |
+
+### Email
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MAIL_TRANSPORT` | No | `ethereal` (dev) or `smtp` (prod) |
+| `SMTP_HOST` | Prod | SMTP server hostname |
+| `SMTP_PORT` | No | SMTP port (default: `587`) |
+| `SMTP_USER` | Prod | SMTP username |
+| `SMTP_PASS` | Prod | SMTP password |
+| `FROM_EMAIL` | No | Sender address (default: `no-reply@example.com`) |
+| `PUBLIC_BASE_URL` | No | Base URL for email links (default: `http://localhost:5173`) |
+| `VERIFICATION_TOKEN_TTL_HOURS` | No | Email verification token lifetime in hours |
+
+### Auth
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ADMIN_USERNAME` | No | Legacy admin username (middleware/auth.js) |
+| `ADMIN_PASSWORD_HASH` | No | Legacy admin password hash (middleware/auth.js) |
+
+### Frontend (Vite)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_API_URL` | No | Frontend API base URL (default: `/api`) |
+| `VITE_MAINTENANCE_MODE` | No | `true`/`1`/`yes` to enable maintenance page |
+
+### Logging / Limits
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LOG_LEVEL` | No | Pino log level (default: `info` in prod, `debug` in dev) |
+| `RETENTION_BOOKING_REQUESTS_DAYS` | No | Elternsprechtag: Tage nach Event-Schliessung (default: `180`) |
+| `RETENTION_SSW_APPOINTMENTS_DAYS` | No | SSW: Tage nach Termindatum (default: `365`) |
+| `RETENTION_BL_APPOINTMENTS_DAYS` | No | BL: Tage nach Termindatum (default: `365`) |
+| `RETENTION_CANCELLED_DAYS` | No | Abgesagte Termine: Tage nach Absage (default: `30`) |

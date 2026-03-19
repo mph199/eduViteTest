@@ -1,0 +1,917 @@
+/* Admin teacher search (match booking combobox feel) */
+.admin-teacher-search {
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.admin-teacher-search-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+
+.admin-teacher-search-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-teacher-search-input {
+  flex: 1;
+  padding: 0.55rem 0.6rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-teacher-search-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.25);
+}
+
+/* Simple admin grid helpers */
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: var(--color-gray-700);
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  padding: 0.75rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.form-group select {
+  padding: 0.75rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  background: var(--color-white);
+  cursor: pointer;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.no-teachers {
+  background: transparent;
+  padding: 3rem;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid var(--color-gray-200);
+}
+
+.no-teachers p {
+  font-size: 1.1rem;
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+/* ── Desktop table / Mobile cards toggle ──────────────── */
+.teachers-table-desktop {
+  display: block;
+}
+.teachers-cards-mobile {
+  display: none;
+}
+
+.teachers-table-desktop .admin-resp-table td .admin-cell-main {
+  font-weight: 600;
+}
+.teachers-table-desktop .admin-resp-table td .admin-cell-id {
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+}
+.teachers-table-desktop .admin-actions-cell .action-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.teachers-table-desktop .admin-actions-cell .action-buttons button {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+}
+.admin-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.admin-actions-row--between {
+  justify-content: space-between;
+  align-items: center;
+}
+.admin-actions-header {
+  text-align: center;
+}
+.admin-actions-cell {
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .teachers-table-desktop {
+    display: none;
+  }
+  .teachers-cards-mobile {
+    display: block;
+    width: 100%;
+  }
+}
+
+/* ── Expandable teacher cards ─────────────────────────── */
+
+.teachers-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.teacher-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  width: 100%;
+  min-width: 0;
+}
+
+.teacher-card:hover {
+  box-shadow: 0 2px 8px rgba(var(--color-slate-900-rgb), 0.06);
+}
+
+.teacher-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.teacher-card__summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.teacher-card__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  white-space: nowrap;
+}
+
+.teacher-card__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.teacher-card__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.teacher-card__tag--admin {
+  background: rgba(var(--color-orange-400-rgb), 0.18);
+  color: var(--color-warning);
+  border: 1px solid rgba(var(--color-orange-400-rgb), 0.35);
+}
+
+.teacher-card__tag--teacher {
+  background: rgba(var(--color-info-accent-rgb), 0.14);
+  color: var(--color-info-dark);
+  border: 1px solid rgba(var(--color-info-accent-rgb), 0.28);
+}
+
+.teacher-card__tag--nologin {
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
+  border: 1px solid var(--color-gray-200);
+}
+
+.teacher-card__chevron {
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-slate-400);
+  transition: transform 0.25s ease;
+  transform: rotate(0deg);
+}
+
+.teacher-card__chevron.is-open {
+  transform: rotate(90deg);
+}
+
+/* Collapsed body */
+.teacher-card__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+  overflow: hidden;
+}
+
+.teacher-card__body > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.teacher-card.is-expanded .teacher-card__body {
+  grid-template-rows: 1fr;
+}
+
+.teacher-card__dl {
+  margin: 0;
+  padding: 0 16px 8px;
+}
+
+.teacher-card__row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--color-gray-50);
+}
+
+.teacher-card__row:last-child {
+  border-bottom: none;
+}
+
+.teacher-card__row dt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.teacher-card__row dd {
+  margin: 0;
+  color: var(--color-gray-900);
+  font-size: 0.9rem;
+}
+
+.teacher-card__link {
+  color: var(--color-gray-600);
+  text-decoration: none;
+}
+
+.teacher-card__link:hover {
+  text-decoration: underline;
+  color: var(--brand-primary);
+}
+
+.teacher-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--color-gray-50);
+}
+
+.teacher-card__actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.teacher-card__actions-row > * {
+  flex: 1;
+}
+
+.teacher-card__actions-full {
+  width: 100%;
+}
+
+/* Button styles inside teacher card actions */
+.teacher-card__actions .edit-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--brand-primary-dark);
+  border: 1.5px solid rgba(var(--brand-primary-rgb), 0.45);
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.teacher-card__actions .edit-button:hover {
+  background: rgba(var(--brand-primary-rgb), 0.07);
+  border-color: var(--brand-primary);
+}
+
+.teacher-card__actions .cancel-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Compact action buttons (e.g., AdminEvents table) */
+.action-buttons--compact {
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.btn-secondary--sm {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  gap: 0.3em;
+}
+
+.admin-table-select {
+  padding: 0.35rem 0.55rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 6px;
+  background: var(--color-white);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  cursor: pointer;
+}
+
+.admin-table-select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.admin-table-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: var(--color-gray-100);
+}
+
+/* AdminUsers page polish */
+.admin-users-stats {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.admin-users-stat {
+  flex: 1;
+  background: rgba(var(--color-white-rgb), 0.9);
+  border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  box-shadow: 0 2px 10px rgba(var(--color-black-rgb), 0.05);
+  min-width: 0;
+}
+
+.admin-users-stat__label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+
+.admin-users-stat__value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  margin-top: 2px;
+}
+
+.admin-users-username {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+.admin-users-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.16rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--brand-ink);
+  background: rgba(var(--brand-primary-rgb), 0.14);
+  border: 1px solid rgba(var(--brand-primary-rgb), 0.25);
+}
+
+.admin-users-action {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-users-saving {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-gray-500);
+}
+
+/* Teacher bookings table polish */
+.admin-dashboard--teacher .teacher-table-section {
+  overflow: visible;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table-container {
+  border: 1px solid var(--color-gray-200);
+  border-radius: 12px;
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table thead th {
+  position: sticky;
+  top: calc(var(--globalTopHeaderHeight, 72px) - 1px);
+  z-index: 2;
+  background: var(--color-gray-50);
+}
+
+.admin-dashboard--teacher .teacher-bookings-table td {
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table thead th.teacher-actions-header {
+  text-align: right;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table tbody td.teacher-actions-cell {
+  text-align: right;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table tbody td.teacher-actions-cell .action-buttons {
+  justify-content: flex-end;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table .message-cell {
+  max-width: 360px;
+  min-width: 140px;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table .teacher-message-value {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  margin: 0;
+  white-space: normal;
+  word-break: break-word;
+  cursor: default;
+}
+
+.admin-dashboard--teacher .teacher-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--color-gray-900);
+  cursor: pointer;
+}
+
+.admin-dashboard--teacher .teacher-sort-button:focus-visible {
+  outline: 3px solid rgba(var(--brand-primary-rgb), 0.35);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.admin-dashboard--teacher .teacher-sort-indicator {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.admin-dashboard--teacher .teacher-sort-indicator--idle {
+  opacity: 0.45;
+}
+
+.admin-dashboard--teacher .teacher-type-pill,
+.admin-dashboard--teacher .teacher-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+
+  background: rgba(var(--color-white-rgb), 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--color-white-rgb), 0.45);
+  color: rgba(var(--brand-ink-rgb), 0.85);
+  box-shadow:
+    0 10px 24px rgba(var(--color-black-rgb), 0.08),
+    inset 0 1px 0 rgba(var(--color-white-rgb), 0.65);
+  width: fit-content;
+}
+
+.admin-dashboard--teacher .teacher-type-pill--parent {
+  border-color: rgba(var(--brand-primary-rgb), 0.30);
+}
+
+.admin-dashboard--teacher .teacher-type-pill--company {
+  border-color: rgba(var(--color-info-accent-rgb), 0.30);
+}
+
+.admin-dashboard--teacher .teacher-status-pill--confirmed {
+  border-color: rgba(var(--brand-primary-rgb), 0.30);
+}
+
+.admin-dashboard--teacher .teacher-status-pill--reserved {
+  border-color: rgba(var(--color-warning-accent-rgb), 0.35);
+}
+
+.admin-dashboard--teacher .teacher-when-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard--teacher .teacher-when-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-dashboard--teacher .teacher-when-date {
+  font-weight: 800;
+  color: var(--color-gray-900);
+}
+
+.admin-dashboard--teacher .teacher-when-time {
+  color: var(--color-gray-600);
+  font-weight: 700;
+}
+
+.admin-dashboard--teacher .teacher-when-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+}
+
+.admin-dashboard--teacher .teacher-row-id {
+  color: var(--color-gray-500);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.admin-dashboard--teacher .teacher-visitor-cell,
+.admin-dashboard--teacher .teacher-student-cell {
+  min-width: 0;
+}
+
+.admin-dashboard--teacher .teacher-visitor-top {
+  margin-bottom: 0.35rem;
+}
+
+.admin-dashboard--teacher .teacher-visitor-name,
+.admin-dashboard--teacher .teacher-student-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+  color: var(--color-gray-900);
+}
+
+.admin-dashboard--teacher .teacher-visitor-meta,
+.admin-dashboard--teacher .teacher-student-meta {
+  margin-top: 0.25rem;
+  color: var(--color-gray-500);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-dashboard--teacher .teacher-visitor-meta--email a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-dashboard--teacher .teacher-visitor-meta--email a:hover {
+  text-decoration: underline;
+}
+
+.admin-dashboard--teacher .teacher-cell-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Allow wrapping for message cells; truncate only in non-message contexts */
+  white-space: normal;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.admin-dashboard--teacher .teacher-bookings-table .action-buttons {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.admin-dashboard--teacher .teacher-request-select {
+  min-width: 152px;
+  max-width: 100%;
+}
+
+/* Ensure inline action buttons align nicely inside table cells */
+.edit-button,
+.cancel-button,
+.reset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  white-space: nowrap;
+}
+
+/* Match confirm (btn-primary) to cancel button sizing within table actions */
+.action-buttons .btn-primary {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  gap: 0.3em;
+}
+
+/* Bearbeiten (edit) – green outlined */
+.action-buttons .edit-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--brand-primary-dark);
+  border: 1.5px solid rgba(var(--brand-primary-rgb), 0.45);
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.action-buttons .edit-button:hover {
+  background: rgba(var(--brand-primary-rgb), 0.07);
+  border-color: var(--brand-primary);
+}
+
+.action-buttons .edit-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Löschen / Stornieren (cancel) – red outlined */
+.action-buttons .cancel-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+.cancel-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Login zurücksetzen – blue outlined */
+.reset-button {
+  background: transparent;
+  color: var(--color-info-dark);
+  border: 1.5px solid rgba(var(--color-info-dark-rgb), 0.35);
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-button:hover {
+  background: rgba(var(--color-info-dark-rgb), 0.06);
+  border-color: var(--color-info-dark);
+}
+
+@media (max-width: 1200px) {
+  .admin-dashboard:not(.admin-dashboard--teacher) .bookings-table-container {
+    overflow-x: auto;
+  }
+
+  .admin-dashboard:not(.admin-dashboard--teacher) .bookings-table {
+    min-width: 1000px;
+  }
+}
+
+/* ── Teacher cards: mobile adjustments ─────────────────── */
+@media (max-width: 900px) {
+  .teacher-card__summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .teacher-card__row {
+    grid-template-columns: 80px 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .teacher-card__header {
+    padding: 10px 12px;
+  }
+
+  .teacher-card__dl {
+    padding: 0 12px 6px;
+  }
+
+  .teacher-card__actions {
+    padding: 8px 12px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .admin-main {
+    padding: 1rem;
+  }
+
+  .stat-card {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table-container {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table {
+    min-width: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table thead {
+    display: none;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody {
+    display: block;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody tr {
+    display: block;
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-300);
+    border-left: 4px solid var(--brand-primary);
+    border-radius: 12px;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 8px 18px rgba(var(--color-black-rgb), 0.08);
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(120px, 42%) 1fr;
+    gap: 0.65rem;
+    align-items: start;
+    border: 0;
+    border-bottom: 1px dashed var(--color-gray-300);
+    padding: 0.5rem 0;
+    font-size: 0.92rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td.message-cell {
+    display: grid;
+    grid-template-columns: minmax(120px, 42%) 1fr;
+    gap: 0.65rem;
+    align-items: start;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td.message-cell::before {
+    display: inline;
+    margin: 0;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td.message-cell .teacher-message-value {
+    display: block;
+    padding: 0.3rem 0.55rem;
+    border-radius: 8px;
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    min-height: 0;
+    white-space: normal;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--color-gray-700);
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table tbody td.teacher-actions-cell {
+    text-align: left;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table .action-buttons {
+    width: 100%;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table .action-buttons > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table .teacher-request-select,
+  .admin-dashboard--teacher .teacher-bookings-table .action-buttons .btn-primary,
+  .admin-dashboard--teacher .teacher-bookings-table .action-buttons .cancel-button {
+    width: 100%;
+  }
+
+  .admin-dashboard--teacher .teacher-bookings-table .tooltip-container {
+    width: 100%;
+  }
+}
+
+/* Additional mobile refinements */
+@media (max-width: 768px) {
+  .action-buttons { flex-wrap: wrap; }
+
+  .admin-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+

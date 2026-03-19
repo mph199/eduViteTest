@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import api from '../../../../services/api';
+import { useAuth } from '../../../../contexts/useAuth';
 
 export function TeacherPassword() {
+  const { user, updateUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -24,6 +26,9 @@ export function TeacherPassword() {
     try {
       setSaving(true);
       await api.teacher.changePassword(currentPassword, newPassword);
+      if (user?.forcePasswordChange) {
+        updateUser({ forcePasswordChange: false });
+      }
       setNotice('Passwort erfolgreich geändert.');
       setCurrentPassword('');
       setNewPassword('');
@@ -38,6 +43,11 @@ export function TeacherPassword() {
 
   return (
     <>
+      {user?.forcePasswordChange && !notice && (
+        <div className="admin-error" style={{ marginBottom: 16 }}>
+          Ihr Passwort muss vor der ersten Nutzung geaendert werden.
+        </div>
+      )}
       {(error || notice) && (
         <div className={error ? 'admin-error' : 'admin-success'} style={{ marginBottom: 16 }}>
           {error || notice}

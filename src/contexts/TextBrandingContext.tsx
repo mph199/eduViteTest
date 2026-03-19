@@ -5,22 +5,9 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import api from '../services/api';
+import type { TextBranding } from '../types';
 
-export interface TextBranding {
-  booking_title: string;
-  booking_text: string;
-  booking_steps_title: string;
-  booking_step_1: string;
-  booking_step_2: string;
-  booking_step_3: string;
-  booking_hint: string;
-  event_banner_template: string;
-  event_banner_fallback: string;
-  modal_title: string;
-  modal_text: string;
-  modal_button: string;
-  booking_closed_text: string;
-}
+export type { TextBranding };
 
 const DEFAULTS: TextBranding = {
   booking_title: 'Herzlich willkommen!',

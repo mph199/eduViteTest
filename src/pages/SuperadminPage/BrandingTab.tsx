@@ -172,13 +172,13 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
       <div className="superadmin__preview">
         <div className="superadmin__preview-title">Vorschau</div>
         <div className="superadmin__preview-frame">
-          <div className="superadmin__preview-header" style={{ background: site.primary_color, color: '#fff' }}>
-            <span style={{ color: site.header_font_color || '#fff' }}>{site.school_name || 'Schulname'}</span>
+          <div className="superadmin__preview-header" style={{ background: site.primary_color, color: 'var(--color-white)' }}>
+            <span style={{ color: site.header_font_color || 'var(--color-white)' }}>{site.school_name || 'Schulname'}</span>
             <span style={{ opacity: 0.7, marginLeft: 6 }}>— Buchungssystem</span>
           </div>
-          <div className="superadmin__preview-hero" style={{ background: `linear-gradient(135deg, ${site.surface_1} 0%, #fff 60%, ${site.surface_2} 100%)` }}>
+          <div className="superadmin__preview-hero" style={{ background: `linear-gradient(135deg, ${site.surface_1} 0%, var(--color-white) 60%, ${site.surface_2} 100%)` }}>
             <h2 style={{ color: site.primary_dark }}>{site.hero_title || 'Überschrift'}</h2>
-            <p style={{ color: '#374151' }}>{site.hero_text || 'Beschreibungstext…'}</p>
+            <p style={{ color: 'var(--color-gray-700)' }}>{site.hero_text || 'Beschreibungstext…'}</p>
             <div className="superadmin__preview-steps">
               <div className="superadmin__preview-step"><strong style={{ color: site.primary_dark }}>1.</strong> {site.step_1 || '—'}</div>
               <div className="superadmin__preview-step"><strong style={{ color: site.primary_dark }}>2.</strong> {site.step_2 || '—'}</div>

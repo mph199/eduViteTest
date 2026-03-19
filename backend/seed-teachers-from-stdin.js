@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { query } from './config/db.js';
 import { formatDateDE } from './utils/timeWindows.js';
+import logger from './config/logger.js';
 
 function parseArgs(argv) {
   const args = {
@@ -204,11 +205,11 @@ async function resolveActiveEventIdAndDate() {
 }
 
 async function resetAllTeachersAndTeacherUsers() {
-  console.log('Starte Reset (Slots, Teacher-User, Teachers)...');
+  logger.info('Starte Reset (Slots, Teacher-User, Teachers)...');
 
   // 1) Slots löschen
   await query('DELETE FROM slots');
-  console.log('✓ Slots gelöscht');
+  logger.info('Slots geloescht');
 
   // 2) Teacher users löschen (nur Lehrkräfte)
   const { rows: teacherIdsRows } = await query('SELECT id FROM teachers ORDER BY id');
@@ -220,11 +221,11 @@ async function resetAllTeachersAndTeacherUsers() {
     await query('DELETE FROM users WHERE teacher_id = ANY($1)', [teacherIds]);
   }
 
-  console.log('✓ Teacher-Users gelöscht');
+  logger.info('Teacher-Users geloescht');
 
   // 3) Teachers löschen
   await query('DELETE FROM teachers');
-  console.log('✓ Teachers gelöscht');
+  logger.info('Teachers geloescht');
 }
 
 async function main() {
@@ -234,8 +235,8 @@ async function main() {
   try {
     await query('SELECT email FROM teachers LIMIT 1');
   } catch {
-    console.error('❌ Datenbank-Schema fehlt: Spalte teachers.email.');
-    console.error('Bitte zuerst die Migration ausführen: backend/migrations/add_teacher_email.sql');
+    logger.error('Datenbank-Schema fehlt: Spalte teachers.email.');
+    logger.error('Bitte zuerst die Migration ausfuehren: backend/migrations/add_teacher_email.sql');
     process.exit(1);
   }
 
@@ -253,15 +254,15 @@ async function main() {
     .filter((l) => l);
 
   if (lines.length === 0) {
-    console.error('Keine Eingabe gefunden. Bitte Teacher-Liste per STDIN übergeben.');
+    logger.error('Keine Eingabe gefunden. Bitte Teacher-Liste per STDIN uebergeben.');
     process.exit(1);
   }
 
   const parsed = lines.map(parseTeacherLine);
   const errors = parsed.filter((p) => p && p.error);
   if (errors.length) {
-    console.error('Fehler beim Parsen:');
-    for (const e of errors) console.error(`- ${e.error}`);
+    logger.error('Fehler beim Parsen:');
+    for (const e of errors) logger.error(`- ${e.error}`);
     process.exit(1);
   }
 
@@ -273,8 +274,8 @@ async function main() {
     if (!s) unknownSalutations.push(`${t.firstName} ${t.lastName} (${t.email})`);
   }
   if (unknownSalutations.length) {
-    console.error('Validierungsfehler: Anrede konnte nicht bestimmt werden für:');
-    for (const u of unknownSalutations) console.error(`- ${u}`);
+    logger.error('Validierungsfehler: Anrede konnte nicht bestimmt werden fuer:');
+    for (const u of unknownSalutations) logger.error(`- ${u}`);
     process.exit(1);
   }
 
@@ -285,34 +286,34 @@ async function main() {
     if (!isValidUsername(t.username)) invalid.push(`Username ungültig: ${t.username} (${t.firstName} ${t.lastName})`);
   }
   if (invalid.length) {
-    console.error('Validierungsfehler:');
-    for (const m of invalid) console.error(`- ${m}`);
+    logger.error('Validierungsfehler:');
+    for (const m of invalid) logger.error(`- ${m}`);
     process.exit(1);
   }
 
   const sharedPassword = args.sharedPassword ? String(args.sharedPassword).trim() : null;
   if (sharedPassword && sharedPassword.length < 8) {
-    console.error('shared password muss mindestens 8 Zeichen haben');
+    logger.error('shared password muss mindestens 8 Zeichen haben');
     process.exit(1);
   }
 
   if (args.reset) {
     await resetAllTeachersAndTeacherUsers();
   } else {
-    console.warn('⚠ Kein --reset angegeben: Es werden nur neue Einträge angelegt (kann zu Duplikaten führen).');
+    logger.warn('Kein --reset angegeben: Es werden nur neue Eintraege angelegt (kann zu Duplikaten fuehren).');
   }
 
   let activeEvent = { eventId: null, date: null };
   if (args.createSlots) {
     activeEvent = await resolveActiveEventIdAndDate();
     if (!activeEvent.eventId || !activeEvent.date) {
-      console.error('Kein aktives (published) Event gefunden – Slots können nicht erstellt werden.');
+      logger.error('Kein aktives (published) Event gefunden – Slots koennen nicht erstellt werden.');
       process.exit(1);
     }
-    console.log(`Aktives Event: ${activeEvent.eventId} (${activeEvent.date})`);
+    logger.info({ eventId: activeEvent.eventId, date: activeEvent.date }, 'Aktives Event gefunden');
   }
 
-  console.log(`\nLege ${teachers.length} Lehrkräfte an...`);
+  logger.info({ count: teachers.length }, 'Lege Lehrkraefte an...');
 
   const credentials = [];
 
@@ -329,7 +330,7 @@ async function main() {
     const teacher = teacherRows[0];
 
     if (!teacher) {
-      console.error('Teacher insert failed:', t.firstName, t.lastName, 'no row returned');
+      logger.error({ firstName: t.firstName, lastName: t.lastName }, 'Teacher insert failed: no row returned');
       process.exit(1);
     }
 
@@ -365,22 +366,22 @@ async function main() {
     }
 
     credentials.push({ name: `${t.firstName} ${t.lastName}`, email: t.email, username: t.username, password });
-    console.log(`✓ ${t.firstName} ${t.lastName} (${t.email}) -> ${t.username}`);
+    logger.info({ name: `${t.firstName} ${t.lastName}`, email: t.email, username: t.username }, 'Lehrkraft angelegt');
   }
 
-  console.log('\n✅ Fertig. Zugangsdaten:');
+  logger.info({ total: credentials.length }, 'Fertig. Zugangsdaten:');
   if (sharedPassword) {
-    console.log(`Shared Password: ${sharedPassword}`);
+    logger.info({ password: sharedPassword }, 'Shared Password (einmalige Ausgabe)');
   } else {
     for (const c of credentials) {
-      console.log(`${c.username}  |  ${c.password}  |  ${c.email}  |  ${c.name}`);
+      logger.info({ username: c.username, password: c.password, email: c.email, name: c.name }, 'Zugangsdaten');
     }
   }
 
-  console.log('\nHinweis: Bitte ggf. reset-sequences.sql ausführen, falls IDs wieder bei 1 starten sollen.');
+  logger.info('Hinweis: Bitte ggf. reset-sequences.sql ausfuehren, falls IDs wieder bei 1 starten sollen.');
 }
 
 main().then(() => process.exit(0)).catch((e) => {
-  console.error('❌ Fehler:', e?.message || e);
+  logger.error({ err: e?.message || e }, 'Seed-Fehler');
   process.exit(1);
 });

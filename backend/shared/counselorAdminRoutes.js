@@ -398,8 +398,8 @@ export async function createCounselorUser(counselor, req, config) {
   }
 
   const { rows: userRows } = await query(
-    `INSERT INTO users (username, email, password_hash, role)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (username, email, password_hash, role, force_password_change)
+     VALUES ($1, $2, $3, $4, true)
      RETURNING id`,
     [uname, parsedEmail, passwordHash, userRole]
   );

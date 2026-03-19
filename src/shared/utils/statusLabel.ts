@@ -6,6 +6,7 @@ export function statusLabel(s: string): string {
     case 'available': return 'Frei';
     case 'requested': return 'Angefragt';
     case 'confirmed': return 'Bestätigt';
+    case 'reserved': return 'Reserviert';
     case 'cancelled': return 'Abgesagt';
     case 'completed': return 'Abgeschlossen';
     default: return s;

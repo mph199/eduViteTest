@@ -104,8 +104,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     const isEmail = username.includes('@');
     const { rows: users } = await query(
       isEmail
-        ? 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until, token_version FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
-        : 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until, token_version FROM users WHERE username = $1 LIMIT 1',
+        ? 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until, token_version, force_password_change FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1'
+        : 'SELECT id, username, email, role, password_hash, teacher_id, failed_login_attempts, locked_until, token_version, force_password_change FROM users WHERE username = $1 LIMIT 1',
       [username]
     );
 
@@ -189,7 +189,8 @@ router.post('/login', loginLimiter, async (req, res) => {
       role,
       teacherId: dbUser.teacher_id || undefined,
       modules: modules.length > 0 ? modules : undefined,
-      tokenVersion: dbUser.token_version ?? 0
+      tokenVersion: dbUser.token_version ?? 0,
+      forcePasswordChange: !!dbUser.force_password_change,
     };
     const token = generateToken(user);
 
@@ -267,9 +268,13 @@ router.get('/verify', async (req, res) => {
   if (decoded.id) {
     try {
       const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
-      const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
+      const { rows } = await query('SELECT token_version, force_password_change FROM users WHERE id = $1', [decoded.id]);
       if (rows.length > 0 && tv < rows[0].token_version) {
         return res.json({ authenticated: false });
+      }
+      // Carry force_password_change from DB (source of truth, not JWT)
+      if (rows.length > 0) {
+        decoded._fpc = !!rows[0].force_password_change;
       }
     } catch (_err) {
       // fail open for availability
@@ -282,7 +287,8 @@ router.get('/verify', async (req, res) => {
       username: decoded.username,
       role: decoded.role,
       teacherId: decoded.teacherId,
-      modules: decoded.modules || []
+      modules: decoded.modules || [],
+      forcePasswordChange: decoded._fpc ?? !!decoded.fpc,
     }
   });
 });

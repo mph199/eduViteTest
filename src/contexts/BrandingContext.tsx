@@ -8,26 +8,9 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import api from '../services/api';
+import type { SiteBranding } from '../types';
 
-export interface SiteBranding {
-  school_name: string;
-  logo_url: string;
-  primary_color: string;
-  primary_dark: string;
-  primary_darker: string;
-  secondary_color: string;
-  ink_color: string;
-  surface_1: string;
-  surface_2: string;
-  header_font_color: string;
-  hero_title: string;
-  hero_text: string;
-  step_1: string;
-  step_2: string;
-  step_3: string;
-  tile_images: Record<string, string>;
-  background_images: Record<string, string>;
-}
+export type { SiteBranding };
 
 const DEFAULTS: SiteBranding = {
   school_name: 'BKSB',
