@@ -54,6 +54,7 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    # Loopback only – external access via reverse proxy (nginx/Caddy)
     ports:
       - "127.0.0.1:3000:80"
 
