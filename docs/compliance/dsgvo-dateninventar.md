@@ -3,9 +3,9 @@
 > **Zweck:** Vollstaendiges Verzeichnis aller personenbezogenen Daten im System.
 > Ausgangsbasis fuer Verarbeitungsverzeichnis (Art. 30 DSGVO) und Loeschkonzept.
 >
-> **Stand:** 2026-03-17
-> **Quelle:** DB-Audit durch DB-Analyst Agent
-> **Bezug:** [DSGVO-Anforderungen](dsgvo-anforderungen.md) | [DB-Audit](../security/db-audit-2026-03-17.md)
+> **Stand:** 2026-03-19 (aktualisiert, gegengeprueft gegen laufende DB)
+> **Quelle:** DB-Audit 2026-03-17 + Gegenpruefung 2026-03-19
+> **Bezug:** [DSGVO-Anforderungen](dsgvo-anforderungen.md) | [DB-Audit 19.03.](../security/db-audit-2026-03-19.md)
 
 ---
 
@@ -17,17 +17,21 @@
 
 | Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
 |--------|----------|---------------|--------|-----------|--------------|
-| parent_name | Vollstaendiger Name | Direkt – Elternteil | Nein | **NEIN** | Unbegrenzt |
-| student_name | Name Schueler/in | Direkt – Minderjaehrige/r | Nein | **NEIN** | Unbegrenzt |
-| trainee_name | Name Auszubildende/r | Direkt | Nein | **NEIN** | Unbegrenzt |
-| representative_name | Name Firmenvertreter/in | Direkt | Nein | **NEIN** | Unbegrenzt |
-| company_name | Firmenname | Indirekt | Nein | **NEIN** | Unbegrenzt |
-| class_name | Klasse | Indirekt | Nein | **NEIN** | Unbegrenzt |
-| email | E-Mail-Adresse | Direkt | Nein | **NEIN** | Unbegrenzt |
-| message | Freitext-Nachricht | Direkt / potentiell sensitiv | Potentiell | **NEIN** | Unbegrenzt |
-| verification_token_hash | Token-Hash | Technisch | Nein | Ja (wird genullt) | Bis Verify |
+| parent_name | Vollstaendiger Name | Direkt – Elternteil | Nein | **JA** | Bis Anonymisierung |
+| student_name | Name Schueler/in | Direkt – Minderjaehrige/r | Nein | **JA** | Bis Anonymisierung |
+| trainee_name | Name Auszubildende/r | Direkt | Nein | **JA** | Bis Anonymisierung |
+| representative_name | Name Firmenvertreter/in | Direkt | Nein | **JA** | Bis Anonymisierung |
+| company_name | Firmenname | Indirekt | Nein | **JA** | Bis Anonymisierung |
+| class_name | Klasse | Indirekt | Nein | **JA** | Bis Anonymisierung |
+| email | E-Mail-Adresse | Direkt | Nein | **JA** | Bis Anonymisierung |
+| message | Freitext-Nachricht | Direkt / potentiell sensitiv | Potentiell | **JA** | Bis Anonymisierung |
+| verification_token_hash | Token-Hash | Technisch | Nein | Ja (wird genullt nach Verify) | Bis Verify |
 
-**KRITISCH:** Kein DELETE-Endpunkt, keine Anonymisierung implementiert.
+**Anonymisierung implementiert:**
+- DB-Funktion `anonymize_booking_request(id)` setzt alle PII auf NULL
+- DB-Funktion `anonymize_booking_requests(email)` anonymisiert alle Requests fuer eine E-Mail
+- `POST /api/consent/withdraw` (Endpunkt) anonymisiert via E-Mail + Modul
+- `restricted`-Flag verhindert oeffentliche Anzeige nach Anonymisierung
 
 #### Tabelle: `slots`
 
@@ -41,7 +45,9 @@
 | class_name | Klasse | Indirekt | Nein | Ja | cancelBookingAdmin nullt |
 | email | E-Mail-Adresse | Direkt | Nein | Ja | cancelBookingAdmin nullt |
 | message | Freitext-Nachricht | Direkt | Potentiell | Ja | cancelBookingAdmin nullt |
-| verification_token | Token (Klartext!) | Technisch | Nein | Ja | Legacy – sollte entfernt werden |
+| verification_token_hash | Token-Hash (nur Hash!) | Technisch | Nein | Ja (genullt nach Verify) | Bis Verify |
+
+**Hinweis:** Klartext-Spalte `verification_token` existiert nicht mehr (entfernt).
 
 **Datenfluss:** `booking_requests` -> Lehrkraft weist zu -> `slots` (PII kopiert)
 
@@ -53,15 +59,15 @@
 
 | Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
 |--------|----------|---------------|--------|-----------|--------------|
-| student_name | Name Schueler/in | Direkt – Minderjaehrige/r | Nein | Nur DELETE | Unbegrenzt |
-| student_class | Klasse | Indirekt | Nein | Nur DELETE | Unbegrenzt |
-| email | E-Mail-Adresse | Direkt | Nein | Nur DELETE | Unbegrenzt |
-| phone | Telefonnummer | Direkt | Nein | Nur DELETE | Unbegrenzt |
-| ~~concern~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
-| ~~notes~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
-| is_urgent | Dringlichkeit | Indirekt | Nein | Nur DELETE | Unbegrenzt |
+| student_name | Name Schueler/in | Direkt – Minderjaehrige/r | Nein | Ja (Consent-Withdraw + DELETE) | Bis Anonymisierung |
+| student_class | Klasse | Indirekt | Nein | Ja | Bis Anonymisierung |
+| email | E-Mail-Adresse | Direkt | Nein | Ja | Bis Anonymisierung |
+| phone | Telefonnummer | Direkt | Nein | Ja | Bis Anonymisierung |
+| is_urgent | Dringlichkeit | Indirekt | Nein | Ja (DELETE) | Unbegrenzt |
 
-**Entscheidung (2026-03-17):** `concern` und `notes` wurden entfernt. Keine Art.-9-Daten mehr in der Anwendung. Cancel nullt verbleibende PII (Sprint 1).
+**Keine Art.-9-Daten:** `concern` und `notes` wurden durch Migration 035 entfernt.
+
+**Anonymisierung:** `POST /api/consent/withdraw` (module=schulsozialarbeit) setzt student_name, student_class, email, phone auf NULL. `restricted`-Flag vorhanden.
 
 #### Tabelle: `ssw_counselors`
 
@@ -71,7 +77,6 @@
 | email | E-Mail-Adresse | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | phone | Telefonnummer | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | salutation | Anrede | Indirekt (Geschlecht) | Grenzwertig | Ja (CASCADE) | Unbegrenzt |
-| requires_confirmation | Konfiguration (Boolean) | Nein | Nein | Ja (CASCADE) | Unbegrenzt |
 
 ---
 
@@ -81,15 +86,15 @@
 
 | Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
 |--------|----------|---------------|--------|-----------|--------------|
-| student_name | Name Schueler/in | Direkt – Minderjaehrige/r | Nein | Nur DELETE | Unbegrenzt |
-| student_class | Klasse | Indirekt | Nein | Nur DELETE | Unbegrenzt |
-| email | E-Mail-Adresse | Direkt | Nein | Nur DELETE | Unbegrenzt |
-| phone | Telefonnummer | Direkt | Nein | Nur DELETE | Unbegrenzt |
-| ~~concern~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
-| ~~notes~~ | ~~Entfernt (Migration 035)~~ | -- | -- | -- | -- |
-| is_urgent | Dringlichkeit | Indirekt | Nein | Nur DELETE | Unbegrenzt |
+| student_name | Name Schueler/in | Direkt – Minderjaehrige/r | Nein | Ja (Consent-Withdraw + DELETE) | Bis Anonymisierung |
+| student_class | Klasse | Indirekt | Nein | Ja | Bis Anonymisierung |
+| email | E-Mail-Adresse | Direkt | Nein | Ja | Bis Anonymisierung |
+| phone | Telefonnummer | Direkt | Nein | Ja | Bis Anonymisierung |
+| is_urgent | Dringlichkeit | Indirekt | Nein | Ja (DELETE) | Unbegrenzt |
 
-**Entscheidung (2026-03-17):** `concern` und `notes` wurden entfernt. Keine Art.-9-Daten mehr. Cancel nullt verbleibende PII (Sprint 1).
+**Keine Art.-9-Daten:** `concern` und `notes` wurden durch Migration 035 entfernt.
+
+**Anonymisierung:** `POST /api/consent/withdraw` (module=beratungslehrer) setzt student_name, student_class, email, phone auf NULL. `restricted`-Flag vorhanden.
 
 #### Tabelle: `bl_counselors`
 
@@ -99,7 +104,6 @@
 | email | E-Mail-Adresse | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | phone | Telefonnummer | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | salutation | Anrede | Indirekt (Geschlecht) | Grenzwertig | Ja (CASCADE) | Unbegrenzt |
-| requires_confirmation | Konfiguration (Boolean) | Nein | Nein | Ja (CASCADE) | Unbegrenzt |
 
 ---
 
@@ -112,6 +116,9 @@
 | username | Login-Name (oft echter Name) | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | email | E-Mail-Adresse | Direkt | Nein | Ja (CASCADE) | Unbegrenzt |
 | password_hash | Passwort-Hash (bcrypt) | Technisch | Nein | Ja (CASCADE) | Unbegrenzt |
+| failed_login_attempts | Fehlversuche | Technisch | Nein | Ja | Automatisch (bei erfolgreichem Login) |
+| locked_until | Sperrzeitpunkt | Technisch | Nein | Ja | Automatisch |
+| last_failed_login | Letzter Fehlversuch | Technisch | Nein | Ja | Automatisch |
 
 #### Tabelle: `teachers`
 
@@ -123,7 +130,28 @@
 
 ---
 
-### 1.5 Sonstige
+### 1.5 Compliance und Audit
+
+#### Tabelle: `consent_receipts` (NEU – fehlte im Audit 17.03.)
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| ip_address | IP-Adresse | Direkt (personenbezogen nach EuGH) | Nein | **NEIN (append-only)** | Unbegrenzt (Nachweispflicht Art. 7 Abs. 1) |
+| user_agent | Browser-Kennung | Indirekt | Nein | **NEIN (append-only)** | Unbegrenzt |
+| consent_version | Einwilligungs-Version | Technisch | Nein | NEIN | Unbegrenzt |
+| consent_purpose | Zweck | Technisch | Nein | NEIN | Unbegrenzt |
+
+**Rechtsgrundlage:** Art. 7 Abs. 1 DSGVO – Nachweis der Einwilligung. Diese Tabelle DARF NICHT geloescht werden, auch nicht bei Consent-Withdraw.
+
+#### Tabelle: `audit_log` (NEU – fehlte im Audit 17.03.)
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| user_id | Benutzer-Referenz (FK) | Indirekt (via users-Tabelle) | Nein | SET NULL bei User-Loeschung | Empfehlung: 24 Monate |
+| ip_address | IP-Adresse | Direkt | Nein | Nicht vorgesehen | Empfehlung: 24 Monate |
+| details | JSON mit Aenderungsdetails | Potentiell (abhaengig vom Inhalt) | Nein | Nicht vorgesehen | Empfehlung: 24 Monate |
+
+**Empfehlung:** Automatische Rotation nach 24 Monaten implementieren.
 
 #### Tabelle: `feedback`
 
@@ -139,6 +167,7 @@
                     ┌─────────────────────────────┐
                     │   Oeffentliches Formular     │
                     │   (kein Auth erforderlich)    │
+                    │   + Consent-Checkbox          │
                     └──────────┬──────────────────┘
                                │
               ┌────────────────┼────────────────┐
@@ -147,18 +176,24 @@
     │booking_requests │ │ssw_appts  │ │bl_appts       │
     │(parent_name,    │ │(student,  │ │(student,      │
     │ student_name,   │ │ email,    │ │ email,        │
-    │ email, message) │ │ concern)  │ │ concern)      │
-    └────────┬────────┘ └───────────┘ └───────────────┘
+    │ email, message) │ │ phone)    │ │ phone)        │
+    └────────┬────────┘ └─────┬─────┘ └──────┬────────┘
+             │                │               │
+             │                │               │
+    Consent-Withdraw    Consent-Withdraw   Consent-Withdraw
+    anonymisiert PII    anonymisiert PII   anonymisiert PII
              │                │               │
              v                v               v
-    ┌────────────────┐  Cancel setzt    Cancel setzt
-    │  slots         │  nur Status      nur Status
-    │  (PII kopiert) │  PII BLEIBT      PII BLEIBT
-    └────────────────┘
-             │
-             v
-    cancelBookingAdmin()
-    NULLT alle PII ✓
+    ┌────────────────┐  ┌──────────────────────────────┐
+    │  slots         │  │     consent_receipts          │
+    │  (PII kopiert) │  │  (append-only, IP, UA)       │
+    │  Cancel nullt  │  │  NICHT loeschbar              │
+    └────────────────┘  └──────────────────────────────┘
+                        ┌──────────────────────────────┐
+                        │     audit_log                 │
+                        │  (append-only, user_id, IP)  │
+                        │  Rotation: 24 Monate (TODO)  │
+                        └──────────────────────────────┘
 ```
 
 ---
@@ -172,6 +207,7 @@
 | Lehrkraefte | teachers, users | Mitarbeiterdaten, Rechtsgrundlage: Arbeitsvertrag |
 | Beratungskraefte (SSW/BL) | ssw_counselors, bl_counselors, users | Mitarbeiterdaten |
 | Ausbilder/Firmenvertreter | slots, booking_requests | Vertragserfuellung |
+| Website-Besucher (bei Buchung) | consent_receipts | IP-Adresse, User-Agent |
 
 ---
 
@@ -180,42 +216,44 @@
 | Daten | Zugriff durch | Rechtsgrundlage |
 |-------|---------------|-----------------|
 | Buchungsdaten (Elternsprechtag) | Lehrkraft (zugewiesen), Admin, Superadmin | Vertragserfuellung Art. 6(1)(b) |
-| Beratungstermine (SSW) | Berater/in (zugewiesen), SSW-Rolle, Admin, Superadmin | Einwilligung Art. 6(1)(a) + Art. 9(2)(a) |
-| Beratungstermine (BL) | Berater/in (zugewiesen), Admin, Superadmin | Einwilligung Art. 6(1)(a) + Art. 9(2)(a) |
+| Beratungstermine (SSW) | Berater/in (zugewiesen), SSW-Rolle, Admin, Superadmin | Einwilligung Art. 6(1)(a) |
+| Beratungstermine (BL) | Berater/in (zugewiesen), Admin, Superadmin | Einwilligung Art. 6(1)(a) |
 | Benutzerdaten | Superadmin | Vertragserfuellung |
-
-**Luecke:** SSW/BL-Termine sind nicht auf zugewiesenen Berater beschraenkt – alle mit SSW/Admin-Rolle koennen alle Termine sehen.
+| Consent-Receipts | Superadmin (Nachweispflicht) | Art. 7 Abs. 1 DSGVO |
+| Audit-Log | Superadmin | Berechtigtes Interesse Art. 6(1)(f) |
 
 ---
 
-## 5. Aufbewahrungsfristen (SOLL – noch nicht implementiert)
+## 5. Aufbewahrungsfristen
 
-| Datenart | Vorgeschlagene Frist | Rechtsgrundlage | Aktion nach Ablauf |
-|----------|---------------------|-----------------|-------------------|
-| Buchungsdaten (Elternsprechtag) | 6 Monate nach Event-Ende | Vertragserfuellung | Anonymisierung (PII auf NULL) |
-| Beratungstermine (SSW/BL) | 12 Monate nach Termin | Dokumentationspflicht Schule | Anonymisierung (PII + concern auf NULL) |
-| Stornierte Termine | 30 Tage nach Stornierung | Kein Zweck mehr | Anonymisierung oder physisches DELETE |
-| Benutzerkonten | Bis Deaktivierung/Austritt | Arbeitsvertrag | DELETE mit CASCADE |
-| Feedback | 12 Monate | Berechtigtes Interesse | DELETE |
-| Verification-Tokens | 24 Stunden nach Erstellung | Technisch | NULL setzen oder DELETE |
-
-**KRITISCH:** Keine dieser Fristen ist aktuell implementiert. Kein Cron-Job, kein Cleanup.
+| Datenart | Frist | Rechtsgrundlage | Aktion nach Ablauf | Status |
+|----------|-------|-----------------|-------------------|--------|
+| Buchungsdaten (Elternsprechtag) | 6 Monate nach Event-Ende | Vertragserfuellung | Anonymisierung (PII auf NULL) | **Funktion vorhanden, Cron fehlt** |
+| Beratungstermine (SSW/BL) | 12 Monate nach Termin | Dokumentationspflicht Schule | Anonymisierung (PII auf NULL) | **Consent-Withdraw vorhanden, Auto-Cleanup fehlt** |
+| Stornierte Termine | 30 Tage nach Stornierung | Kein Zweck mehr | Anonymisierung oder DELETE | **Nicht implementiert** |
+| Benutzerkonten | Bis Deaktivierung/Austritt | Arbeitsvertrag | DELETE mit CASCADE | Manuell moeglich |
+| Feedback | 12 Monate | Berechtigtes Interesse | DELETE | Manuell moeglich |
+| Consent-Receipts | Unbegrenzt | Art. 7 Abs. 1 DSGVO | NICHT loeschen | Korrekt |
+| Audit-Log | 24 Monate (Empfehlung) | Berechtigtes Interesse | DELETE oder Archivierung | **Nicht implementiert** |
+| Verification-Tokens | Sofort nach Verify | Technisch | Wird auf NULL gesetzt | **Implementiert** |
 
 ---
 
 ## 6. Loeschkonzept-Status
 
-| Tabelle | Loeschung moeglich | Mechanismus | Luecken |
-|---------|-------------------|-------------|---------|
-| `slots` (PII) | Teilweise | `cancelBookingAdmin()` nullt PII-Felder | Kein Auto-Cleanup nach Event |
-| `booking_requests` | **NEIN** | Kein Endpunkt implementiert | Komplette Luecke |
-| `ssw_appointments` | Teilweise | Admin-DELETE (physisch) | Cancel loescht PII nicht |
-| `bl_appointments` | Teilweise | Admin-DELETE (physisch) | Cancel loescht PII nicht |
-| `teachers` | Ja | DELETE CASCADE | Vollstaendig |
-| `users` | Ja | DELETE CASCADE | Vollstaendig |
-| `ssw_counselors` | Ja | DELETE CASCADE | Vollstaendig |
-| `bl_counselors` | Ja | DELETE CASCADE | Vollstaendig |
-| `feedback` | Ja | DELETE-Endpunkt | Vollstaendig |
+| Tabelle | Loeschung moeglich | Mechanismus | Status |
+|---------|-------------------|-------------|--------|
+| `booking_requests` (PII) | **JA** | `anonymize_booking_request()`, `consent/withdraw`, `restricted`-Flag | Implementiert |
+| `slots` (PII) | Ja | `cancelBookingAdmin()` nullt PII-Felder | Implementiert |
+| `ssw_appointments` (PII) | **JA** | `consent/withdraw` anonymisiert, Admin-DELETE | Implementiert |
+| `bl_appointments` (PII) | **JA** | `consent/withdraw` anonymisiert, Admin-DELETE | Implementiert |
+| `teachers` | Ja | DELETE CASCADE | Implementiert |
+| `users` | Ja | DELETE CASCADE | Implementiert |
+| `ssw_counselors` | Ja | DELETE CASCADE | Implementiert |
+| `bl_counselors` | Ja | DELETE CASCADE | Implementiert |
+| `feedback` | Ja | DELETE-Endpunkt | Implementiert |
+| `consent_receipts` | **NEIN (gewollt)** | Append-only, Nachweispflicht | Korrekt |
+| `audit_log` | **NEIN (noch nicht)** | Rotation empfohlen (24 Monate) | **TODO** |
 
 ---
 
@@ -225,5 +263,6 @@
 |----------|------|
 | DSGVO-Anforderungen | `docs/compliance/dsgvo-anforderungen.md` |
 | SaaS-ToDo | `docs/compliance/dsgvo-saas-todo.md` |
-| DB-Audit (vollstaendiges Schema) | `docs/security/db-audit-2026-03-17.md` |
+| DB-Audit (17.03., Erstaudit) | `docs/security/db-audit-2026-03-17.md` |
+| DB-Audit (19.03., Gegenpruefung) | `docs/security/db-audit-2026-03-19.md` |
 | Consent-Checkbox Planung | `docs/planning/dsgvo-consent-checkbox.md` |
