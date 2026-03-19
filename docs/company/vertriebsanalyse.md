@@ -76,6 +76,13 @@ hebt sich durch **echte Datensouveraenitaet**, **modulare Architektur** und
 > Kein CLOUD Act, keine US-Telemetrie, kein AV-Vertrag mit Drittanbietern noetig.
 > Die Datenschutzbeauftragten Ihres Bundeslandes werden es Ihnen danken."
 
+**Regulatorischer Kontext (Stand 2025/2026):**
+- Die Deutsche Datenschutzkonferenz (DSK) stuft Microsoft 365 als "kaum DSGVO-konform nutzbar" ein
+- Baden-Wuerttemberg hat den Einsatz von Microsoft 365 an Schulen untersagt
+- Schleswig-Holstein hat 2025 den kompletten Verzicht auf Microsoft-Produkte in der Landesverwaltung beschlossen
+- Der CLOUD Act erlaubt US-Behoerden Zugriff auf Daten – auch wenn Server in der EU stehen
+- eduVite als deutsches Self-Hosted-Produkt ist von all dem nicht betroffen
+
 ---
 
 ### 3.2 Modulare Architektur
@@ -95,6 +102,10 @@ die Module, die sie brauchen:
 - Neue Module ohne Aenderung am Kern moeglich
 - Jedes Modul hat eigene Routen, Migrationen, Komponenten
 - Modularer Zugang pro User (user_module_access)
+
+**Laufzeit-Toggle:**
+Superadmins koennen Module ueber das UI aktivieren/deaktivieren – ohne Neustart,
+ohne Deployment. Die `module_config`-Tabelle steuert die Sichtbarkeit zur Laufzeit.
 
 **Vertriebsargument:**
 > "Sie zahlen und deployen nur was Sie brauchen. Neue Module koennen jederzeit
@@ -134,10 +145,18 @@ Das UI von eduVite ist kein "Open-Source-Look", sondern ein durchdachtes Design-
 - Pulsierendes Notification-Badge
 - Animated Logo (SVG Stroke-Animation)
 
+**Dynamisches Branding (Superadmin-Panel):**
+- Schulname, Logo, Primaerfarbe, Sekundaerfarbe per UI anpassbar
+- Hero-Text, Hintergrundbilder, Modul-Kachel-Bilder konfigurierbar
+- E-Mail-Branding (Logo, Farben, Footer-Text) individualisierbar
+- DSB-Kontakt, Verantwortlicher, Aufsichtsbehoerde fuer Datenschutzseite pflegbar
+- Alles per `BrandingContext` zur Laufzeit – kein Rebuild noetig
+
 **Vertriebsargument:**
 > "Eltern oeffnen die Buchungsseite auf dem Handy und es funktioniert einfach –
 > ohne App-Download, ohne Anmeldung. Lehrkraefte bekommen ein professionelles
-> Admin-Interface das Spass macht."
+> Admin-Interface das Spass macht. Und Ihre Schule bekommt ihr eigenes Branding –
+> Farben, Logo, Texte – alles per Klick anpassbar."
 
 ---
 
@@ -165,7 +184,44 @@ Das UI von eduVite ist kein "Open-Source-Look", sondern ein durchdachtes Design-
 
 ---
 
-### 3.5 Sicherheits-Architektur
+### 3.5 Superadmin-Panel (Alleinstellung)
+
+Kein Wettbewerber bietet ein vergleichbar umfassendes Self-Service-Administrations-Panel:
+
+| Tab | Funktion |
+|-----|----------|
+| **Module** | Module per Toggle aktivieren/deaktivieren (Laufzeit) |
+| **Branding** | Schulname, Logo, Farben, Hero-Text, Modul-Kachel-Bilder |
+| **Hintergruende** | Hintergrundbild pro Seite (Landing, Admin, je Modul) |
+| **E-Mail** | E-Mail-Branding konfigurieren, Test-Mail senden |
+| **Texte** | Buchungsseite-Texte, Event-Banner, Modal-Texte anpassen |
+| **Datenschutz** | DSAR-Interface (Art. 15-21): Suche, Export, Berichtigung, Loeschung, Einschraenkung + Audit-Log-Viewer |
+
+**Vertriebsargument:**
+> "Ihre Schulleitung kann alles selbst konfigurieren – Farben, Logo, Texte,
+> Module, Datenschutz-Anfragen. Kein Ticket, kein Warten auf den Support."
+
+---
+
+### 3.6 Double-Opt-In und E-Mail-Workflow
+
+| Schritt | Ablauf |
+|---------|--------|
+| 1 | Elternteil bucht Termin auf Buchungsseite |
+| 2 | Verifikations-E-Mail mit Token-Link (Double-Opt-In) |
+| 3 | Elternteil klickt Link → Buchung wird verifiziert |
+| 4 | Lehrkraft sieht Anfrage → bestätigt mit Zeitfenster-Auswahl |
+| 5 | Bestaetigungs-E-Mail an Elternteil (mit Deduplizierungs-Schutz) |
+| 6 | Optional: Stornierungsmail bei Admin-/Lehrkraft-Stornierung |
+
+- Token wird nur als Hash gespeichert (Klartext nur in URL)
+- Konfigurierbare TTL (Default: 72h)
+- Datenschutz-Footer in allen E-Mails
+- E-Mail-Branding individualisierbar per Superadmin
+
+---
+
+### 3.7 Sicherheits-Architektur
 
 | Feature | Details |
 |---------|---------|
@@ -182,7 +238,7 @@ Das UI von eduVite ist kein "Open-Source-Look", sondern ein durchdachtes Design-
 
 ---
 
-### 3.6 Rollen und Berechtigungssystem
+### 3.8 Rollen und Berechtigungssystem
 
 | Rolle | Funktionen |
 |-------|-----------|
