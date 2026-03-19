@@ -8,6 +8,8 @@ import { reserveBooking, verifyBookingToken } from '../services/slotsService.js'
 import { mapSlotRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
 import logger from '../../../config/logger.js';
+import { validate } from '../../../middleware/validate.js';
+import { bookingSchema, bookingRequestSchema } from '../../../schemas/booking.js';
 
 const router = express.Router();
 
@@ -154,7 +156,7 @@ router.get('/slots', async (req, res) => {
 
 // ── POST /api/bookings ─────────────────────────────────────────────────
 
-router.post('/bookings', async (req, res) => {
+router.post('/bookings', validate(bookingSchema), async (req, res) => {
   try {
     const payload = req.body || {};
     const consentVersion = typeof payload.consent_version === 'string' ? payload.consent_version.trim() : '';
@@ -225,7 +227,7 @@ router.post('/bookings', async (req, res) => {
 
 // ── POST /api/booking-requests ─────────────────────────────────────────
 
-router.post('/booking-requests', async (req, res) => {
+router.post('/booking-requests', validate(bookingRequestSchema), async (req, res) => {
   try {
     const payload = req.body || {};
 

@@ -50,6 +50,12 @@ export async function loadModules(app, ctx) {
   const loaded = [];
 
   for (const id of ids) {
+    // Guard: prevent path traversal via ENABLED_MODULES
+    if (!/^[a-z][a-z0-9_-]*$/.test(id)) {
+      log.warn(`Module-ID "${id}" ungueltig (nur a-z, 0-9, _, - erlaubt) – übersprungen`);
+      continue;
+    }
+
     const modPath = join(__dirname, 'modules', id, 'index.js');
     if (!existsSync(modPath)) {
       log.warn(`Module "${id}" nicht gefunden – übersprungen`);
@@ -58,6 +64,10 @@ export async function loadModules(app, ctx) {
 
     try {
       const mod = (await import(`./modules/${id}/index.js`)).default;
+      if (typeof mod?.register !== 'function') {
+        log.warn(`Module "${id}" hat kein register() – übersprungen`);
+        continue;
+      }
       mod.register(app, ctx);
       loaded.push(id);
       log.info(`Modul geladen: ${mod.name || id}`);

@@ -10,7 +10,9 @@
  *   DB_NAME               – default: sprechtag
  *   DB_USER               – default: postgres
  *   DB_PASSWORD            – (required when not using DATABASE_URL)
- *   DB_SSL                – "true" to enable SSL (rejectUnauthorized=false)
+ *   DB_SSL                – "true" to enable SSL
+ *   DB_SSL_REJECT_UNAUTHORIZED – "false" to skip CA verification (NOT for production)
+ *   DB_SSL_CA             – path to CA certificate for production SSL
  */
 
 import pg from 'pg';
@@ -42,6 +44,11 @@ if (process.env.DB_SSL === 'true') {
   poolConfig.ssl = {
     rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
   };
+  // Production: load CA certificate if provided
+  if (process.env.DB_SSL_CA) {
+    const fs = await import('fs');
+    poolConfig.ssl.ca = fs.readFileSync(process.env.DB_SSL_CA, 'utf8');
+  }
 }
 
 const pool = new pg.Pool(poolConfig);
