@@ -201,15 +201,41 @@ All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` eve
 
 Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Settings`, `FeedbackItem`, `UserAccount`.
 
-Shared domain types (consolidated from previously duplicated local definitions):
+Auth types:
+- `ActiveView` – union `'admin' | 'teacher'` for dual-role users
+- `User` – authenticated user (username, role, modules, teacherId, forcePasswordChange)
+
+Event types:
 - `AdminEvent`, `EventStatus`, `EventStats` – event management
+
+Counselor types (SSW/BL shared):
 - `Counselor`, `ScheduleEntry`, `CounselorAppointment`, `CounselorTopic` – SSW/BL shared. `Counselor.requires_confirmation` controls whether bookings need manual approval.
 - `AppointmentSlot`, `CounselorBookingConfig` – counselor booking UI. `CounselorBookingConfig.moduleId` identifiziert das Modul fuer die `ConsentCheckbox`
+
+Branding types:
+- `SiteBranding` – school visual branding (colors, logo, hero text, tile/background images)
+- `TextBranding` – customizable UI text strings (booking page, event banner, modal)
+- `EmailBranding` – email template branding (school name, logo, primary color, footer)
+- `BrandingData` – DSGVO responsible party, DSB contact fields, Aufsichtsbehoerde (`supervisory_authority`)
+
+Teacher admin types:
+- `TeacherInfo` – lightweight teacher record for lists
+- `TeacherFormData` – teacher create/edit form fields
+- `TeacherLoginResponse` – response with temp credentials after teacher creation
+
+BL admin types:
+- `BlFormData` – BL counselor profile form (schedule, specializations, slot duration)
+
+CSV import types:
+- `CsvImportResult`, `CsvImportedTeacher`, `CsvSkippedRow` – bulk teacher import response
+
+Slot generation:
 - `GenerateSlotsResponse` – Antworttyp fuer Slot-Generierungs-Endpunkte (AdminSlots, AdminEvents)
 
 DSGVO types:
-- `DataSubjectSearchResult`, `DataSubjectDeletionResult`, `DataSubjectCorrectionResult`, `DataSubjectRestrictionResult` – DSAR-Antworttypen
-- `AuditLogEntry`, `AuditLogResponse`, `AuditLogFilter` – Audit-Log-Datenstrukturen
+- `ConsentReceipt` – Einwilligungsnachweis (module, appointment, consent version, IP, user agent)
+- `DataSubjectSearchResult` – DSAR-Suchergebnis
+- `AuditLogEntry`, `AuditLogResponse` – Audit-Log-Datenstrukturen
 
 Component-local `Props` interfaces remain in their component files.
 
@@ -234,6 +260,8 @@ Wiederverwendbare Komponenten, Konstanten und Hilfsfunktionen fuer Admin-Seiten:
 | `src/shared/components/CalendarPanel.tsx` | Kalender-UI fuer Terminuebersichten (extrahiert aus BLAdmin + SSWTermineTab) | BLAdmin, SSWTermineTab |
 | `src/shared/constants/weekdays.ts` | `WEEKDAY_LABELS`, `WEEKDAY_LABELS_FULL`, `WEEKDAY_SHORT`, `WEEKDAY_SHORT_FULL` | SSWCounselorsTab, AdminTeachers, BLAdmin, CalendarPanel |
 | `src/shared/utils/appointmentDate.ts` | `normalizeDate()` – normalisiert Datumswerte auf YYYY-MM-DD | CalendarPanel, BLAdmin |
+| `src/shared/utils/statusLabel.ts` | `statusLabel()` – uebersetzt Status-Codes in deutsche Labels | CalendarPanel, TeacherBookings, CounselorAnfragenTab |
+| `src/utils/bookingSort.ts` | `parseDateValue()`, `parseStartMinutes()`, `visitorLabel()` – Booking-Sort/Parse-Utilities | AdminDashboard, TeacherBookings |
 
 ### Hooks (`src/hooks/`)
 
@@ -389,16 +417,70 @@ Module differences are handled via config parameters (table prefix, topic schema
 
 ## Environment Variables
 
+### Core
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `SESSION_SECRET` / `JWT_SECRET` | Yes | JWT signing secret |
-| `ENABLED_MODULES` | No | Backend: comma-separated module IDs |
-| `VITE_ENABLED_MODULES` | No | Frontend: comma-separated module IDs |
-| `CORS_ORIGINS` | No | Allowed CORS origins |
-| `MAIL_TRANSPORT` | No | `ethereal` (dev) or `smtp` (prod) |
-| `VITE_API_URL` | No | Frontend API base URL (default: `/api`) |
-| `VITE_MAINTENANCE_MODE` | No | `true`/`1`/`yes` to enable maintenance page |
+| `DATABASE_URL` | Yes* | PostgreSQL connection string (*or use `DB_HOST` etc.) |
+| `JWT_SECRET` | Yes | JWT signing secret (primary) |
+| `SESSION_SECRET` | No | Fallback alias for `JWT_SECRET` |
+| `PORT` | No | Backend port (default: `4000`) |
+| `HOST` | No | Backend bind address (default: `0.0.0.0`) |
+| `NODE_ENV` | No | `production` or `development` |
+| `CORS_ORIGINS` | No | Comma-separated allowed CORS origins |
+
+### Database (alternative to `DATABASE_URL`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DB_HOST` | No | PostgreSQL host (default: `localhost`) |
+| `DB_PORT` | No | PostgreSQL port (default: `5432`) |
+| `DB_NAME` | No | Database name (default: `sprechtag`) |
+| `DB_USER` | No | Database user (default: `postgres`) |
+| `DB_PASSWORD` | No | Database password |
 | `DB_SSL` | No | `true` to enable SSL for PostgreSQL connection |
 | `DB_SSL_REJECT_UNAUTHORIZED` | No | `false` to allow self-signed certs (development only, default: `true`) |
-| `RETENTION_*_DAYS` | No | DSGVO Aufbewahrungsfristen (z.B. `RETENTION_BOOKING_REQUESTS_DAYS=180`) |
+
+### Modules
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ENABLED_MODULES` | No | Backend: comma-separated module IDs |
+| `VITE_ENABLED_MODULES` | No | Frontend: comma-separated module IDs |
+
+### Email
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MAIL_TRANSPORT` | No | `ethereal` (dev) or `smtp` (prod) |
+| `SMTP_HOST` | Prod | SMTP server hostname |
+| `SMTP_PORT` | No | SMTP port (default: `587`) |
+| `SMTP_USER` | Prod | SMTP username |
+| `SMTP_PASS` | Prod | SMTP password |
+| `FROM_EMAIL` | No | Sender address (default: `no-reply@example.com`) |
+| `PUBLIC_BASE_URL` | No | Base URL for email links (default: `http://localhost:5173`) |
+| `VERIFICATION_TOKEN_TTL_HOURS` | No | Email verification token lifetime in hours |
+
+### Auth
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ADMIN_USERNAME` | No | Legacy admin username (middleware/auth.js) |
+| `ADMIN_PASSWORD_HASH` | No | Legacy admin password hash (middleware/auth.js) |
+
+### Frontend (Vite)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_API_URL` | No | Frontend API base URL (default: `/api`) |
+| `VITE_MAINTENANCE_MODE` | No | `true`/`1`/`yes` to enable maintenance page |
+
+### Logging / Limits
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LOG_LEVEL` | No | Pino log level (default: `info` in prod, `debug` in dev) |
+| `RETENTION_BOOKING_REQUESTS_DAYS` | No | Elternsprechtag: Tage nach Event-Schliessung (default: `180`) |
+| `RETENTION_SSW_APPOINTMENTS_DAYS` | No | SSW: Tage nach Termindatum (default: `365`) |
+| `RETENTION_BL_APPOINTMENTS_DAYS` | No | BL: Tage nach Termindatum (default: `365`) |
+| `RETENTION_CANCELLED_DAYS` | No | Abgesagte Termine: Tage nach Absage (default: `30`) |
