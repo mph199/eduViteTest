@@ -31,7 +31,7 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
   }
 
   // Force password change: alle Rollen werden redirected
-  const isPasswordPage = location.pathname.includes('/teacher/password');
+  const isPasswordPage = location.pathname === '/teacher/password';
   if (user?.forcePasswordChange && !isPasswordPage) {
     return <Navigate to="/teacher/password" replace />;
   }
