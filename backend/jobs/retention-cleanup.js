@@ -116,6 +116,33 @@ async function cleanupExpiredBlAppointments() {
 }
 
 /**
+ * Anonymize slots PII for events closed longer than retention period.
+ */
+async function cleanupExpiredSlots() {
+  const { rows } = await query(
+    `UPDATE slots s
+     SET parent_name = NULL,
+         student_name = NULL,
+         company_name = NULL,
+         trainee_name = NULL,
+         representative_name = NULL,
+         class_name = NULL,
+         email = NULL,
+         message = NULL,
+         updated_at = NOW()
+     FROM events e
+     WHERE s.event_id = e.id
+       AND e.status = 'closed'
+       AND e.closed_at IS NOT NULL
+       AND e.closed_at < NOW() - MAKE_INTERVAL(days => $1)
+       AND (s.parent_name IS NOT NULL OR s.email IS NOT NULL)
+     RETURNING s.id`,
+    [retention.bookingRequestsDays]
+  );
+  return rows.length;
+}
+
+/**
  * Delete audit_log entries older than retention period.
  */
 async function cleanupAuditLog() {
@@ -166,6 +193,13 @@ export async function runRetentionCleanup() {
   } catch (err) {
     logger.error({ err }, 'Retention cleanup: bl_appointments (expired) failed');
     results.blExpired = -1;
+  }
+
+  try {
+    results.slotsExpired = await cleanupExpiredSlots();
+  } catch (err) {
+    logger.error({ err }, 'Retention cleanup: slots (expired) failed');
+    results.slotsExpired = -1;
   }
 
   try {

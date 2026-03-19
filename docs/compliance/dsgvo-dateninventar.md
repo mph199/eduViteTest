@@ -192,7 +192,7 @@
                         ┌──────────────────────────────┐
                         │     audit_log                 │
                         │  (append-only, user_id, IP)  │
-                        │  Rotation: 24 Monate (TODO)  │
+                        │  Rotation: 730 Tage (impl.)  │
                         └──────────────────────────────┘
 ```
 
@@ -228,9 +228,11 @@
 
 | Datenart | Frist | Rechtsgrundlage | Aktion nach Ablauf | Status |
 |----------|-------|-----------------|-------------------|--------|
-| Buchungsdaten (Elternsprechtag) | 6 Monate nach Event-Ende | Vertragserfuellung | Anonymisierung (PII auf NULL) | **Funktion vorhanden, Cron fehlt** |
-| Beratungstermine (SSW/BL) | 12 Monate nach Termin | Dokumentationspflicht Schule | Anonymisierung (PII auf NULL) | **Consent-Withdraw vorhanden, Auto-Cleanup fehlt** |
-| Stornierte Termine | 30 Tage nach Stornierung | Kein Zweck mehr | Anonymisierung oder DELETE | **Nicht implementiert** |
+| Buchungsdaten (Elternsprechtag) | 180 Tage nach Event-Ende (konfigurierbar via `RETENTION_BOOKING_REQUESTS_DAYS`) | Vertragserfuellung | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
+| Slots (Elternsprechtag) | 180 Tage nach Event-Ende (wie booking_requests) | Vertragserfuellung | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
+| Beratungstermine (SSW) | 365 Tage nach Termin (konfigurierbar via `RETENTION_SSW_APPOINTMENTS_DAYS`) | Dokumentationspflicht Schule | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
+| Beratungstermine (BL) | 365 Tage nach Termin (konfigurierbar via `RETENTION_BL_APPOINTMENTS_DAYS`) | Dokumentationspflicht Schule | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
+| Stornierte Termine (SSW/BL) | 30 Tage nach Stornierung (konfigurierbar via `RETENTION_CANCELLED_DAYS`) | Kein Zweck mehr | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
 | Benutzerkonten | Bis Deaktivierung/Austritt | Arbeitsvertrag | DELETE mit CASCADE | Manuell moeglich |
 | Feedback | 12 Monate | Berechtigtes Interesse | DELETE | Manuell moeglich |
 | Consent-Receipts | Unbegrenzt | Art. 7 Abs. 1 DSGVO | NICHT loeschen | Korrekt |
@@ -244,7 +246,7 @@
 | Tabelle | Loeschung moeglich | Mechanismus | Status |
 |---------|-------------------|-------------|--------|
 | `booking_requests` (PII) | **JA** | `anonymize_booking_request()`, `consent/withdraw`, `restricted`-Flag | Implementiert |
-| `slots` (PII) | Ja | `cancelBookingAdmin()` nullt PII-Felder | Implementiert |
+| `slots` (PII) | **JA** | `cancelBookingAdmin()` nullt PII-Felder + automatisch via retention-cleanup.js (180 Tage nach Event-Schliessung) | **Implementiert** |
 | `ssw_appointments` (PII) | **JA** | `consent/withdraw` anonymisiert, Admin-DELETE | Implementiert |
 | `bl_appointments` (PII) | **JA** | `consent/withdraw` anonymisiert, Admin-DELETE | Implementiert |
 | `teachers` | Ja | DELETE CASCADE | Implementiert |
