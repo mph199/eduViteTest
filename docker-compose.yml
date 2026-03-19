@@ -43,7 +43,7 @@ services:
     volumes:
       - uploads:/app/uploads
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
 
   frontend:
     build:
