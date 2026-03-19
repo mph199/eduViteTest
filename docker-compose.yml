@@ -40,10 +40,13 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
       ENABLED_MODULES: ${ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      DB_POOL_IDLE_TIMEOUT_MS: ${DB_POOL_IDLE_TIMEOUT_MS:-30000}
+      DB_POOL_CONNECT_TIMEOUT_MS: ${DB_POOL_CONNECT_TIMEOUT_MS:-5000}
     volumes:
       - uploads:/app/uploads
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
 
   frontend:
     build:
