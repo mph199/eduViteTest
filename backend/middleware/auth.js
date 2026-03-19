@@ -98,13 +98,14 @@ async function authenticate(req, res) {
     try {
       const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
       const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
-      if (rows.length > 0 && tv < rows[0].token_version) {
+      if (rows.length === 0 || tv < rows[0].token_version) {
         res.status(401).json({ error: 'Unauthorized', message: 'Token revoked' });
         return null;
       }
     } catch (err) {
-      logger.error({ err }, 'Token version check failed');
-      // Fail open: if DB is unreachable, accept token (availability > perfect security)
+      logger.error({ err, userId: decoded.id, path: req.path }, 'Token version check failed – rejecting token (fail-closed)');
+      res.status(503).json({ error: 'Service Unavailable', message: 'Authentication service temporarily unavailable' });
+      return null;
     }
   }
 
