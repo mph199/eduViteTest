@@ -389,10 +389,6 @@ backend/
     generateUsername.js       # Umlaut-Transliteration fuer Benutzernamen (dedupliziert)
     sqlGuards.js              # SQL guard utilities for safe dynamic queries
     validatePassword.js       # Shared password validation logic
-  jobs/
-    retention-cleanup.js      # DSGVO retention cleanup cron job
-  emails/
-    template.js               # Email template rendering
   modules/
     elternsprechtag/    # Core module (teacher schedule, events, teacher routes)
       routes/
@@ -422,6 +418,10 @@ backend/
     mappers.js             # DB row to API response mappers
     validators.js          # Input validation utilities
     csvImport.js           # CSV import parsing logic
+  jobs/
+    retention-cleanup.js   # DSGVO retention cleanup cron job
+  emails/
+    template.js            # Email template rendering
 ```
 
 ### Module Route Pattern (SSW/BL)
