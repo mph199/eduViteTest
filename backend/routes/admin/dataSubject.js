@@ -201,18 +201,14 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // 1. Anonymize booking_requests
+      // 1. Anonymize booking_requests (via DB function for consistency)
       const brResult = await client.query(
-        `UPDATE booking_requests
-         SET parent_name = NULL, student_name = NULL, company_name = NULL,
-             trainee_name = NULL, representative_name = NULL, email = NULL,
-             message = NULL, updated_at = NOW()
-         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-         RETURNING id`,
+        'SELECT anonymize_booking_requests_by_email(LOWER($1)) AS affected',
         [trimmedEmail]
       );
-      if (brResult.rows.length > 0) {
-        protocol.actions.push({ table: 'booking_requests', anonymized: brResult.rows.length, ids: brResult.rows.map(r => r.id) });
+      const brAffected = brResult.rows[0]?.affected || 0;
+      if (brAffected > 0) {
+        protocol.actions.push({ table: 'booking_requests', anonymized: brAffected });
       }
 
       // 2. Anonymize slots
@@ -232,7 +228,8 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
       // 3. Anonymize SSW appointments
       const sswResult = await client.query(
         `UPDATE ssw_appointments
-         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
+         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
+             restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
          RETURNING id`,
         [trimmedEmail]
@@ -244,7 +241,8 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
       // 4. Anonymize BL appointments
       const blResult = await client.query(
         `UPDATE bl_appointments
-         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL, updated_at = NOW()
+         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
+             restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
          RETURNING id`,
         [trimmedEmail]

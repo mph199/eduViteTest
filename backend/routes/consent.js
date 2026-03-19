@@ -35,21 +35,17 @@ router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async 
     let anonymizedCount = 0;
 
     if (moduleName === 'elternsprechtag') {
-      const { rowCount } = await query(
-        `UPDATE booking_requests
-         SET parent_name = NULL, student_name = NULL, company_name = NULL,
-             trainee_name = NULL, representative_name = NULL,
-             class_name = NULL, email = NULL, message = NULL,
-             updated_at = NOW()
-         WHERE LOWER(email) = $1 AND email IS NOT NULL`,
+      // Use DB function for consistent anonymization (includes restricted flag)
+      const { rows } = await query(
+        'SELECT anonymize_booking_requests_by_email($1) AS affected',
         [normalizedEmail]
       );
-      anonymizedCount = rowCount;
+      anonymizedCount = rows[0]?.affected || 0;
     } else if (moduleName === 'schulsozialarbeit') {
       const { rowCount } = await query(
         `UPDATE ssw_appointments
          SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
-             updated_at = NOW()
+             restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = $1 AND email IS NOT NULL`,
         [normalizedEmail]
       );
@@ -58,7 +54,7 @@ router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async 
       const { rowCount } = await query(
         `UPDATE bl_appointments
          SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
-             updated_at = NOW()
+             restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = $1 AND email IS NOT NULL`,
         [normalizedEmail]
       );
