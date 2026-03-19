@@ -41,9 +41,10 @@ const poolConfig = process.env.DATABASE_URL
     };
 
 // Pool-Tuning (Defaults sicher fuer Produktion)
-poolConfig.max = parseInt(process.env.DB_POOL_MAX || '10', 10);
-poolConfig.idleTimeoutMillis = parseInt(process.env.DB_POOL_IDLE_TIMEOUT_MS || '30000', 10);
-poolConfig.connectionTimeoutMillis = parseInt(process.env.DB_POOL_CONNECT_TIMEOUT_MS || '5000', 10);
+const safeInt = (val, fallback) => { const n = parseInt(val, 10); return Number.isFinite(n) && n > 0 ? n : fallback; };
+poolConfig.max = safeInt(process.env.DB_POOL_MAX, 10);
+poolConfig.idleTimeoutMillis = safeInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, 30000);
+poolConfig.connectionTimeoutMillis = safeInt(process.env.DB_POOL_CONNECT_TIMEOUT_MS, 5000);
 
 if (process.env.DB_SSL === 'true') {
   poolConfig.ssl = {
