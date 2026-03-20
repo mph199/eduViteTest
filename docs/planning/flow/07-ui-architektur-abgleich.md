@@ -377,13 +377,17 @@ Diese Design-Spezifikationen aus dem Pitch sind direkt umsetzbar:
 
 ## 10. Offene Entscheidungen
 
-1. **Flow-Sidebar (Option A) vs. ohne Sidebar (Option B):** Soll Flow eine eigene
-   dunkle Seitenleiste innerhalb des Content-Bereichs haben, oder reicht die
-   Navigation ueber Dashboard-Cards und Breadcrumbs?
+### Entschieden (2026-03-20):
 
-2. **Brand-Farbe:** Pitch definiert `#3b6de0` als Flow-Brand. Das ist ein helleres
-   Blau als eduVites `#123C73` (Navy). Soll Flow visuell eigenstaendig wirken oder
-   sich farblich an die bestehende Palette anpassen?
+1. **Flow-Sidebar → Option A:** Eigene dunkle Seitenleiste innerhalb des Content-Bereichs
+   (Sekundaernavigation). GlobalTopHeader bleibt global, FlowSidebar ist eine Ergaenzung
+   innerhalb des `FlowLayout`-Containers. Responsive: ausgeblendet unter 800px.
 
-3. **Zustand (Zustand.js):** Pitch erwaehnt Zustand fuer Client State. eduVite nutzt
-   aktuell keins. Ist das noetig oder reicht TanStack Query + React Context?
+2. **Brand-Farbe → Eigenstaendig:** `--flow-brand: #3b6de0` als eigener Token. Das globale
+   `--brand-primary: #123C73` bleibt unangetastet. Flow-Komponenten verwenden
+   `var(--flow-brand)`. Konsistent mit dem Modul-Akzent-System (`--module-accent-flow`).
+
+3. **State Management → TanStack Query + React Context:** Kein Zustand.js.
+   TanStack Query fuer Server-State (Caching, Invalidierung, Optimistic Updates).
+   React Context fuer Flow-spezifischen Client-State (z.B. aktiver Bildungsgang, Sidebar-Toggle).
+   Die Dependency `@tanstack/react-query` wird neu eingefuehrt.

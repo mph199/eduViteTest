@@ -40,7 +40,7 @@ export function LandingPage() {
         </div>
 
         <div className="landing__grid">
-          {activeModules.map((mod) => {
+          {activeModules.filter((mod) => mod.PublicPage).map((mod) => {
             const tileUrl = branding.tile_images?.[mod.id];
             return (
               <Link

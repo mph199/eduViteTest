@@ -1,0 +1,52 @@
+import { useQuery } from '@tanstack/react-query';
+import api from '../../../services/api';
+import { StatusBadge } from '../components/StatusBadge';
+import { DeadlineAnzeige } from '../components/DeadlineAnzeige';
+import type { FlowAbteilungsPaket } from '../../../types/index';
+
+export function AbteilungPage() {
+    const { data: pakete, isLoading } = useQuery<FlowAbteilungsPaket[]>({
+        queryKey: ['flow', 'abteilung'],
+        queryFn: () => api.flow.getAbteilungsPakete(),
+    });
+
+    if (isLoading) {
+        return <div className="flow-empty"><div className="flow-empty__text">Laden...</div></div>;
+    }
+
+    return (
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+            <h1 className="flow-page-title">Abteilungsuebersicht</h1>
+            <p className="flow-page-subtitle">Aggregierte Sicht auf alle Arbeitspakete</p>
+
+            <div className="flow-panel">
+                <div className="flow-panel__body--flush">
+                    {Array.isArray(pakete) && pakete.length > 0 ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid var(--flow-border)', textAlign: 'left' }}>
+                                    <th style={{ padding: '10px 18px', fontWeight: 600, color: 'var(--flow-text)' }}>Titel</th>
+                                    <th style={{ padding: '10px 18px', fontWeight: 600, color: 'var(--flow-text)' }}>Bildungsgang</th>
+                                    <th style={{ padding: '10px 18px', fontWeight: 600, color: 'var(--flow-text)' }}>Status</th>
+                                    <th style={{ padding: '10px 18px', fontWeight: 600, color: 'var(--flow-text)' }}>Deadline</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pakete.map((p) => (
+                                    <tr key={p.id} style={{ borderBottom: '1px solid var(--flow-border)' }}>
+                                        <td style={{ padding: '10px 18px' }}>{p.titel}</td>
+                                        <td style={{ padding: '10px 18px', color: 'var(--flow-text-muted)' }}>{p.bildungsgang}</td>
+                                        <td style={{ padding: '10px 18px' }}><StatusBadge status={p.status} /></td>
+                                        <td style={{ padding: '10px 18px' }}><DeadlineAnzeige deadline={p.deadline} /></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className="flow-empty"><div className="flow-empty__text">Keine Arbeitspakete vorhanden</div></div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

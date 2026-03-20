@@ -598,6 +598,168 @@ const api = {
     },
   },
 
+  // Flow – Kollaborationsformat
+  flow: {
+    async getDashboard() {
+      return requestJSON('/flow/dashboard');
+    },
+    async getBildungsgaenge() {
+      const res = await requestJSON('/flow/bildungsgaenge');
+      return res || [];
+    },
+    async getBildungsgang(id: number) {
+      return requestJSON(`/flow/bildungsgaenge/${id}`);
+    },
+    async createArbeitspaket(bildungsgangId: number, data: {
+      titel: string; istZustand: string; sollZustand: string;
+      beteiligteBeschreibung: string;
+    }) {
+      return requestJSON(`/flow/bildungsgaenge/${bildungsgangId}/arbeitspakete`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async getArbeitspaket(id: number) {
+      return requestJSON(`/flow/arbeitspakete/${id}`);
+    },
+    async updateArbeitspaket(id: number, data: Record<string, unknown>) {
+      return requestJSON(`/flow/arbeitspakete/${id}`, {
+        method: 'PATCH', body: JSON.stringify(data),
+      });
+    },
+    async updateArbeitspaketStatus(id: number, status: string) {
+      return requestJSON(`/flow/arbeitspakete/${id}/status`, {
+        method: 'PATCH', body: JSON.stringify({ status }),
+      });
+    },
+    async deleteArbeitspaket(id: number) {
+      return requestJSON(`/flow/arbeitspakete/${id}`, { method: 'DELETE' });
+    },
+    async abschliessenArbeitspaket(id: number, data: {
+      abschlussZusammenfassung: string; reflexion?: string | null;
+    }) {
+      return requestJSON(`/flow/arbeitspakete/${id}/abschliessen`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async wiederaufnehmenArbeitspaket(id: number) {
+      return requestJSON(`/flow/arbeitspakete/${id}/wiederaufnehmen`, { method: 'POST' });
+    },
+    async getMitglieder(paketId: number) {
+      const res = await requestJSON(`/flow/arbeitspakete/${paketId}/mitglieder`);
+      return res || [];
+    },
+    async addMitglied(paketId: number, userId: number, rolle: string) {
+      return requestJSON(`/flow/arbeitspakete/${paketId}/mitglieder`, {
+        method: 'POST', body: JSON.stringify({ userId, rolle }),
+      });
+    },
+    async updateMitgliedRolle(paketId: number, userId: number, rolle: string) {
+      return requestJSON(`/flow/arbeitspakete/${paketId}/mitglieder/${userId}`, {
+        method: 'PATCH', body: JSON.stringify({ rolle }),
+      });
+    },
+    async removeMitglied(paketId: number, userId: number) {
+      return requestJSON(`/flow/arbeitspakete/${paketId}/mitglieder/${userId}`, { method: 'DELETE' });
+    },
+    async getAufgaben(paketId: number) {
+      const res = await requestJSON(`/flow/arbeitspakete/${paketId}/aufgaben`);
+      return res || [];
+    },
+    async createAufgabe(paketId: number, data: {
+      titel: string; beschreibung?: string; zustaendig: number;
+      deadline?: string | null; tagungId?: number | null;
+    }) {
+      return requestJSON(`/flow/arbeitspakete/${paketId}/aufgaben`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async updateAufgabe(id: number, data: Record<string, unknown>) {
+      return requestJSON(`/flow/aufgaben/${id}`, {
+        method: 'PATCH', body: JSON.stringify(data),
+      });
+    },
+    async updateAufgabeStatus(id: number, status: string) {
+      return requestJSON(`/flow/aufgaben/${id}/status`, {
+        method: 'PATCH', body: JSON.stringify({ status }),
+      });
+    },
+    async deleteAufgabe(id: number) {
+      return requestJSON(`/flow/aufgaben/${id}`, { method: 'DELETE' });
+    },
+    async getMeineAufgaben(filter?: { status?: string; ueberfaellig?: boolean }) {
+      const params = new URLSearchParams();
+      if (filter?.status) params.set('status', filter.status);
+      if (filter?.ueberfaellig) params.set('ueberfaellig', 'true');
+      const qs = params.toString();
+      const res = await requestJSON(`/flow/aufgaben/meine${qs ? '?' + qs : ''}`);
+      return res || [];
+    },
+    async getTagungen(paketId: number) {
+      const res = await requestJSON(`/flow/arbeitspakete/${paketId}/tagungen`);
+      return res || [];
+    },
+    async createTagung(paketId: number, data: {
+      titel: string; startAt: string; endAt?: string | null;
+      raum?: string | null; teilnehmende: number[];
+    }) {
+      return requestJSON(`/flow/arbeitspakete/${paketId}/tagungen`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async getTagung(id: number) {
+      return requestJSON(`/flow/tagungen/${id}`);
+    },
+    async updateTagung(id: number, data: Record<string, unknown>) {
+      return requestJSON(`/flow/tagungen/${id}`, {
+        method: 'PATCH', body: JSON.stringify(data),
+      });
+    },
+    async addAgendaPunkt(tagungId: number, data: {
+      titel: string; beschreibung?: string; referenzierteAufgabeId?: number | null;
+    }) {
+      return requestJSON(`/flow/tagungen/${tagungId}/agenda`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async dokumentiereAgendaPunkt(tagungId: number, punktId: number, data: {
+      ergebnis?: string; entscheidung?: string;
+    }) {
+      return requestJSON(`/flow/tagungen/${tagungId}/agenda/${punktId}`, {
+        method: 'PATCH', body: JSON.stringify(data),
+      });
+    },
+    async createAufgabeAusAgenda(tagungId: number, punktId: number, data: {
+      titel: string; zustaendig: number; deadline?: string | null;
+    }) {
+      return requestJSON(`/flow/tagungen/${tagungId}/agenda/${punktId}/aufgaben`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async getDateien(paketId: number) {
+      const res = await requestJSON(`/flow/arbeitspakete/${paketId}/dateien`);
+      return res || [];
+    },
+    async addDateiMetadaten(paketId: number, data: {
+      name: string; originalName: string; mimeType: string;
+      groesse: number; externalUrl?: string;
+    }) {
+      return requestJSON(`/flow/arbeitspakete/${paketId}/dateien`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async deleteDatei(id: number) {
+      return requestJSON(`/flow/dateien/${id}`, { method: 'DELETE' });
+    },
+    async getAbteilungsPakete() {
+      const res = await requestJSON('/flow/abteilung/arbeitspakete');
+      return res || [];
+    },
+    async getAktivitaeten(paketId: number) {
+      const res = await requestJSON(`/flow/arbeitspakete/${paketId}/aktivitaeten`);
+      return res || [];
+    },
+  },
+
   // Data Subject / DSGVO (Art. 15-21)
   dataSubject: {
     async search(email: string) {

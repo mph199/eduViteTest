@@ -49,26 +49,30 @@ function App() {
               <Route path="/datenschutz" element={MAINTENANCE_MODE ? <MaintenancePage /> : <Datenschutz />} />
               <Route path="/verify" element={<VerifyEmail />} />
 
-              {/* Dynamische Modul-Routen */}
-              {activeModules.map((mod) => (
-                <Route
-                  key={mod.id}
-                  path={mod.basePath}
-                  element={MAINTENANCE_MODE ? <MaintenancePage /> : <mod.PublicPage />}
-                />
-              ))}
+              {/* Dynamische Modul-Routen (nur Module mit PublicPage) */}
+              {activeModules.filter((mod) => mod.PublicPage).map((mod) => {
+                const Page = mod.PublicPage!;
+                return (
+                  <Route
+                    key={mod.id}
+                    path={mod.basePath}
+                    element={MAINTENANCE_MODE ? <MaintenancePage /> : <Page />}
+                  />
+                );
+              })}
 
               {/* Geschützter Teacher-Bereich (aus Modulen) */}
               {activeModules
                 .filter((mod) => mod.teacherLayout && mod.teacherRoutes)
                 .map((mod) => {
                   const Layout = mod.teacherLayout!;
+                  const basePath = mod.teacherBasePath || '/teacher';
                   return (
                     <Route
                       key={`teacher-${mod.id}`}
-                      path="/teacher"
+                      path={basePath}
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}>
                           <Layout />
                         </ProtectedRoute>
                       }
@@ -80,7 +84,7 @@ function App() {
                           <Route key={i} path={tr.path} element={<tr.Component />} />
                         )
                       )}
-                      <Route path="*" element={<Navigate to="/teacher" replace />} />
+                      <Route path="*" element={<Navigate to={basePath} replace />} />
                     </Route>
                   );
                 })}

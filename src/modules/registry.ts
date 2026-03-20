@@ -55,8 +55,8 @@ export interface ModuleDefinition {
   /** RGB triplet for rgba() usage (e.g. '26, 127, 122') */
   accentRgb?: string;
 
-  /** Lazy-geladene öffentliche Hauptseite */
-  PublicPage: LazyExoticComponent<ComponentType>;
+  /** Lazy-geladene öffentliche Hauptseite (optional fuer interne Module) */
+  PublicPage?: LazyExoticComponent<ComponentType>;
 
   /** Zusätzliche Admin-Routen */
   adminRoutes?: AdminRoute[];
@@ -69,6 +69,8 @@ export interface ModuleDefinition {
 
   /** Lehrkraft-Layout-Komponente */
   teacherLayout?: LazyExoticComponent<ComponentType>;
+  /** Basis-Pfad fuer Teacher-Routen (Standard: '/teacher') */
+  teacherBasePath?: string;
   /** Lehrkraft-Unterrouten */
   teacherRoutes?: TeacherRoute[];
 }
@@ -78,11 +80,13 @@ export interface ModuleDefinition {
 import elternsprechtagModule from './elternsprechtag/index';
 import schulsozialarbeitModule from './schulsozialarbeit/index';
 import beratungslehrerModule from './beratungslehrer/index';
+import flowModule from './flow/index';
 
 const allModules: ModuleDefinition[] = [
   elternsprechtagModule,
   schulsozialarbeitModule,
   beratungslehrerModule,
+  flowModule,
 ];
 
 // ── Filter über Env-Variable ────────────────────────────────────────────
