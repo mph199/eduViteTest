@@ -372,7 +372,7 @@ implementiert und in den meisten Faellen nicht noetig (8h Token-Lebensdauer).
 | Kein Account-Lockout | Brute-Force trotz Rate Limiting | Nach 5 Fehlversuchen: 15min Sperre auf Account-Ebene |
 | Kein Security-Event-Logging | Angriffe nicht erkennbar | Failed Logins + 403er loggen (separater Log-Stream) |
 | Default-Secrets in Compose | Unsichere Defaults in Production | .env-Template mit Generierungsanleitung |
-| PostgreSQL Port exponiert | DB von aussen erreichbar | Port-Mapping in Produktion entfernen |
+| ~~PostgreSQL Port exponiert~~ | ~~DB von aussen erreichbar~~ | **Behoben** (2026-03-19): Postgres `127.0.0.1:5432:5432`, Backend `127.0.0.1:4000:4000` |
 
 ### Mittlere Prioritaet
 
@@ -380,7 +380,7 @@ implementiert und in den meisten Faellen nicht noetig (8h Token-Lebensdauer).
 |--------|--------|---------------------|
 | Kein Refresh-Token | Nutzer muessen nach 8h komplett neu einloggen | Access-Token 15min + Refresh-Token 7d |
 | Keine Passwort-Richtlinien | Schwache Passwoerter moeglich | Min. 10 Zeichen, Komplexitaetspruefung |
-| Kein force_password_change | CSV-Import-Passwoerter bleiben aktiv | Flag in users-Tabelle + Login-Redirect |
+| ~~Kein force_password_change~~ | ~~CSV-Import-Passwoerter bleiben aktiv~~ | **Behoben** (2026-03-19): Migration 044 (Spalte), Migration 048 (Default-Admin), ProtectedRoute erzwingt Redirect fuer alle Rollen inkl. Admin |
 | SSL permissiv | MITM bei DB-Verbindung | CA-Zertifikat + rejectUnauthorized: true |
 | Kein USER node in Dockerfile | Container laeuft als Root | `USER node` nach `RUN mkdir` einfuegen |
 

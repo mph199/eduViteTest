@@ -104,7 +104,7 @@ After repeated failed logins, accounts are temporarily locked. Tracked via `user
 
 ### Force Password Change (Migration 044)
 
-`users.force_password_change` (BOOLEAN) is included in the JWT as `fpc` claim. The frontend `User` type exposes this as `forcePasswordChange`. Used to require password change after admin-initiated resets.
+`users.force_password_change` (BOOLEAN) is included in the JWT as `fpc` claim. The frontend `User` type exposes this as `forcePasswordChange`. Used to require password change after admin-initiated resets. `ProtectedRoute` redirects **all** roles (incl. admin/superadmin) to `/teacher/password` when `forcePasswordChange` is `true`. Migration 048 sets the flag for the default admin `Start`.
 
 ## Database
 
@@ -503,6 +503,9 @@ Module differences are handled via config parameters (table prefix, topic schema
 | `DB_PASSWORD` | No | Database password |
 | `DB_SSL` | No | `true` to enable SSL for PostgreSQL connection |
 | `DB_SSL_REJECT_UNAUTHORIZED` | No | `false` to allow self-signed certs (development only, default: `true`) |
+| `DB_POOL_MAX` | No | Max connections in pool (default: `20`) |
+| `DB_POOL_CONNECT_TIMEOUT` | No | Connection timeout in ms (default: `5000`) |
+| `DB_POOL_IDLE_TIMEOUT` | No | Idle timeout in ms (default: `30000`) |
 
 ### Modules
 

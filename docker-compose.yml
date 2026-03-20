@@ -40,10 +40,13 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
       ENABLED_MODULES: ${ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
+      DB_SSL: ${DB_SSL:-false}
+      DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-true}
+      DB_SSL_CA: ${DB_SSL_CA:-}
     volumes:
       - uploads:/app/uploads
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
 
   frontend:
     build:
@@ -54,8 +57,9 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    # Loopback only – external access via reverse proxy (nginx/Caddy)
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
 
 volumes:
   pg_data:

@@ -46,21 +46,32 @@ if (process.env.DB_SSL === 'true') {
   };
   // Production: load CA certificate if provided
   if (process.env.DB_SSL_CA) {
+    const caPath = path.resolve(process.env.DB_SSL_CA);
+    // Guard against path traversal – CA must be an absolute path or resolve inside cwd
+    if (!caPath.startsWith('/') || caPath.includes('..')) {
+      throw new Error(`DB_SSL_CA path rejected: ${caPath}`);
+    }
     const fs = await import('fs');
-    poolConfig.ssl.ca = fs.readFileSync(process.env.DB_SSL_CA, 'utf8');
+    poolConfig.ssl.ca = fs.readFileSync(caPath, 'utf8');
   }
 }
+
+// Pool tuning (with safe minimum values)
+poolConfig.max = Math.max(2, parseInt(process.env.DB_POOL_MAX || '20', 10));
+poolConfig.connectionTimeoutMillis = Math.max(1000, parseInt(process.env.DB_POOL_CONNECT_TIMEOUT || '5000', 10));
+poolConfig.idleTimeoutMillis = Math.max(1000, parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10));
 
 const pool = new pg.Pool(poolConfig);
 
 // Log connection info once (no secrets)
+let loggedOnce = false;
 pool.on('connect', () => {
-  if (!pool._loggedOnce) {
+  if (!loggedOnce) {
     const target = process.env.DATABASE_URL
       ? process.env.DATABASE_URL.replace(/\/\/.*@/, '//***@')
       : `${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`;
     logger.info({ target }, '[db] Connected to PostgreSQL');
-    pool._loggedOnce = true;
+    loggedOnce = true;
   }
 });
 
