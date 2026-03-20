@@ -6,7 +6,7 @@ import logger from '../../config/logger.js';
 
 const router = express.Router();
 
-const VALID_MODULE_KEYS = ['beratungslehrer', 'schulsozialarbeit'];
+const VALID_MODULE_KEYS = ['beratungslehrer', 'schulsozialarbeit', 'flow'];
 
 // GET /api/admin/users
 router.get('/users', requireAdmin, async (_req, res) => {
