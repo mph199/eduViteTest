@@ -20,7 +20,16 @@ Das Fachkonzept sieht eine polymorphe `DateiZuordnung` vor (Typ + ID). In Postgr
 Die `users.role` CHECK-Constraint muss **nicht** geaendert werden. Flow fuehrt keine neue Systemrolle ein. Stattdessen:
 - `flow_bildungsgang_mitglied.rolle` steuert Bildungsgang-Ebene (`leitung`, `mitglied`)
 - `flow_arbeitspaket_mitglied.rolle` steuert Arbeitspaket-Ebene (`koordination`, `mitwirkende`, `lesezugriff`)
-- Abteilungsleitung wird ueber `users.role = 'admin'` oder eine kuenftige Systemrolle abgebildet (Klaerungsbedarf, s. offene Fragen)
+
+**Entscheidung (2026-03-20):** Abteilungsleitung ist **keine Systemrolle**, sondern eine Flow-spezifische Zuordnung. Nur User mit `flow_abteilungsleitung`-Eintrag sehen die aggregierte Sicht. Das vermeidet Aenderungen am `users.role`-Constraint und haelt die Abteilungsleitung-Logik im Flow-Modul gekapselt.
+
+### Datei-Storage
+
+**Entscheidung (2026-03-20):** Kein eigener lokaler Datei-Storage. Die `flow_datei`-Tabelle speichert nur **Metadaten** (Name, MIME-Type, Groesse). Die eigentliche Dateispeicherung wird spaeter ueber WebDAV/OAuth an Schul-Cloudloesungen (Logineo, OneDrive, Open-Xchange) angebunden. Die Tabelle erhaelt dafuer ein `external_url`-Feld statt eines lokalen Pfads.
+
+### Kaskadierung bei User-Loeschung
+
+**Entscheidung (2026-03-20):** `ON DELETE SET NULL` fuer alle User-Referenzen in inhaltlichen Tabellen (`zustaendig`, `erstellt_von`, `hochgeladen_von`, `akteur`). Aufgaben, Dateien und Aktivitaeten bleiben erhalten, auch wenn der zugehoerige User geloescht/anonymisiert wird. Die Spalten muessen dafuer `NULL`-faehig sein.
 
 ## DDL
 
@@ -96,8 +105,8 @@ CREATE TABLE IF NOT EXISTS flow_aufgabe (
     arbeitspaket_id INTEGER NOT NULL REFERENCES flow_arbeitspaket(id) ON DELETE CASCADE,
     titel VARCHAR(500) NOT NULL,
     beschreibung TEXT NOT NULL DEFAULT '',
-    zustaendig INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    erstellt_von INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    zustaendig INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    erstellt_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
     deadline TIMESTAMPTZ,
     status VARCHAR(20) NOT NULL DEFAULT 'offen'
         CHECK (status IN ('offen', 'in_bearbeitung', 'erledigt')),
@@ -159,7 +168,8 @@ CREATE TABLE IF NOT EXISTS flow_datei (
     original_name VARCHAR(500) NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     groesse INTEGER NOT NULL,
-    hochgeladen_von INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    hochgeladen_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    external_url TEXT,              -- Kuenftig: WebDAV/OAuth URL (Logineo, OneDrive, OX)
     -- Polymorphe Zuordnung: genau eine FK muss gesetzt sein
     bildungsgang_id INTEGER REFERENCES flow_bildungsgang(id) ON DELETE CASCADE,
     arbeitspaket_id INTEGER REFERENCES flow_arbeitspaket(id) ON DELETE CASCADE,
@@ -184,7 +194,7 @@ CREATE INDEX IF NOT EXISTS idx_flow_datei_tagung ON flow_datei(tagung_id);
 CREATE TABLE IF NOT EXISTS flow_aktivitaet (
     id SERIAL PRIMARY KEY,
     typ VARCHAR(50) NOT NULL,
-    akteur INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    akteur INTEGER REFERENCES users(id) ON DELETE SET NULL,
     arbeitspaket_id INTEGER NOT NULL REFERENCES flow_arbeitspaket(id) ON DELETE CASCADE,
     details JSONB NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -267,10 +277,28 @@ COMMIT;
 
 Empfehlung: `flow_tagung` vor `flow_aufgabe` anlegen und die Reihenfolge im DDL entsprechend anpassen.
 
-## Offene Fragen
+## Entschiedene Fragen (2026-03-20)
 
-1. **Abteilungsleitung als Systemrolle:** Aktuell gibt es `admin`, `teacher`, `superadmin`, `ssw`. Soll `abteilungsleitung` als neue Systemrolle eingefuehrt werden? Das wuerde `users.role` CHECK-Constraint aendern. Alternative: Abteilungsleitung als Flag oder separate Zuordnungstabelle.
+| Frage | Entscheidung |
+|---|---|
+| Abteilungsleitung als Systemrolle? | Nein. Eigene Tabelle `flow_abteilungsleitung`. Nur Flow-relevant. |
+| Datei-Storage? | Kein lokaler Storage. Nur Metadaten + `external_url`. Anbindung an WebDAV/OAuth (Logineo, OneDrive, OX) geplant. |
+| Kaskadierung bei User-Loeschung? | `ON DELETE SET NULL` ueberall. DSGVO-konform. |
+| Admin-Bypass fuer Paketdetails? | Nein. Bewusst eingeschraenkt. Admin sieht nur aggregierte Abteilungssicht, kein Paketdetail-Zugriff ohne explizite Mitgliedschaft. |
+| TanStack Query? | Ja, als neue Dependency einfuehren. |
 
-2. **Datei-Storage:** Aktuell werden Uploads lokal unter `/uploads/` gespeichert. Soll Flow dasselbe Pattern nutzen oder auf S3-kompatiblen Storage (MinIO im Docker) umgestellt werden? Empfehlung fuer MVP: lokal, mit klarer Abstraktionsschicht fuer spaetere Migration.
+## Zusaetzliche Tabelle: flow_abteilungsleitung
 
-3. **Kaskadierung bei User-Loeschung:** `ON DELETE CASCADE` bei `zustaendig` in `flow_aufgabe` loescht die Aufgabe, wenn der User geloescht wird. Alternative: `ON DELETE SET NULL` mit Nullable-Spalte, damit die Aufgabe erhalten bleibt. Fuer DSGVO-Anonymisierung waere `SET NULL` besser.
+```sql
+-- Abteilungsleitung ist Flow-spezifisch, keine Systemrolle
+CREATE TABLE IF NOT EXISTS flow_abteilungsleitung (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_flow_abteilungsleitung_user ON flow_abteilungsleitung(user_id);
+```
+
+Diese Tabelle muss im DDL-Block oben (vor dem COMMIT) ergaenzt werden.

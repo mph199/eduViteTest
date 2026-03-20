@@ -70,6 +70,8 @@ export function requireFlowBildungsgangRolle(minRolle) {
 
 Prueft: Hat der User eine der erlaubten Rollen im Arbeitspaket?
 
+**Entscheidung (2026-03-20): Kein Admin-Bypass fuer Paketdetails.** Auch `admin`/`superadmin` muessen explizit als Mitglied eingeladen sein, um Paketdetails zu sehen. Admins sehen nur die aggregierte Abteilungssicht.
+
 ```js
 // Verwendung: requireFlowPaketRolle(['koordination'])
 //             requireFlowPaketRolle(['koordination', 'mitwirkende'])
@@ -85,10 +87,8 @@ export function requireFlowPaketRolle(erlaubteRollen) {
         );
 
         if (result.rows.length === 0) {
-            if (['admin', 'superadmin'].includes(req.user.role)) {
-                req.flowPaketRolle = 'koordination';
-                return next();
-            }
+            // KEIN Admin-Bypass! Bewusste Entscheidung.
+            // Admins sehen nur die aggregierte Abteilungssicht.
             return res.status(403).json({ error: 'Kein Zugang zu diesem Arbeitspaket' });
         }
 
@@ -105,14 +105,24 @@ export function requireFlowPaketRolle(erlaubteRollen) {
 
 ### 3. requireFlowAbteilungsleitung
 
-Fuer den aggregierten Abteilungsleitungs-Endpunkt. Architektonisch getrennte Middleware, die **nur aggregierte Daten** zurueckgibt.
+Fuer den aggregierten Abteilungsleitungs-Endpunkt. Prueft gegen die **dedizierte Tabelle** `flow_abteilungsleitung` (keine Systemrolle).
 
 ```js
-export function requireFlowAbteilungsleitung(req, res, next) {
-    // Nur bestimmte Systemrollen duerfen die aggregierte Sicht sehen
-    if (!['admin', 'superadmin'].includes(req.user.role)) {
+export async function requireFlowAbteilungsleitung(req, res, next) {
+    const userId = req.user.id;
+
+    // Superadmin hat immer Zugriff auf die Abteilungssicht
+    if (req.user.role === 'superadmin') return next();
+
+    const result = await query(
+        'SELECT 1 FROM flow_abteilungsleitung WHERE user_id = $1',
+        [userId]
+    );
+
+    if (result.rows.length === 0) {
         return res.status(403).json({ error: 'Nur fuer Abteilungsleitung' });
     }
+
     next();
 }
 ```
@@ -168,11 +178,9 @@ Der `abteilungService` fuehrt eigene SQL-Queries aus, die **strukturell** nur `i
 
 Selbst wenn ein Admin/Superadmin die Detail-API aufruft, prueft `requireFlowPaketRolle` die Mitgliedschaft. Admins haben zwar Bypass, aber die Abteilungsleitung-Rolle (`admin`) hat keinen automatischen Bypass auf Arbeitspaket-Ebene -- es sei denn, sie ist explizit als `lesezugriff` eingeladen.
 
-**Klaerungsbedarf:** Im bestehenden System haben `admin` und `superadmin` impliziten Zugriff auf alles. Fuer Flow muss entschieden werden:
-- Soll `admin`/`superadmin` weiterhin alles sehen koennen (widerspricht dem Fachkonzept)?
-- Oder soll der Admin-Bypass fuer Flow-Paketdetails deaktiviert werden?
+**Entscheidung (2026-03-20):** Admin-Bypass ist fuer Flow bewusst **deaktiviert**. Admins sehen nur die aggregierte Abteilungssicht (falls sie in `flow_abteilungsleitung` eingetragen sind). Fuer Paketdetails muessen sie explizit als Mitglied eingeladen werden. Das ist eine bewusste Abweichung vom bisherigen Pattern, die dem datenschutzrechtlichen Grundsatz der Datensparsamkeit entspricht.
 
-Empfehlung: Admin-Bypass nur fuer **Systemverwaltung** (Bildungsgang CRUD), nicht fuer Arbeitspaket-Details. Das erfordert eine bewusste Abweichung vom bisherigen Pattern.
+Einzige Ausnahme: `superadmin` hat Zugriff auf die Abteilungssicht (Systemverwaltung).
 
 ## Aufgaben-Erstellung: Kontextbasierte Berechtigung
 

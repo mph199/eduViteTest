@@ -95,7 +95,7 @@ src/modules/flow/
 │   ├── TagungErstellen.tsx          # Formular
 │   ├── AgendaPunktEditor.tsx        # Ergebnis/Entscheidung/Aufgaben
 │   ├── MitgliederVerwalten.tsx      # Rollen zuweisen
-│   ├── DateiBereich.tsx             # Upload + Liste
+│   ├── DateiBereich.tsx             # Metadaten + externe Links (kein lokaler Upload)
 │   ├── AbschlussDialog.tsx          # Zusammenfassung + Reflexion
 │   ├── AbschlussZusammenfassung.tsx # Ergebnisseite
 │   ├── AbteilungsDashboard.tsx      # Aggregierte Sicht
@@ -158,13 +158,45 @@ Alle Pfade relativ zu `/flow/`.
 
 ## State Management
 
-TanStack Query (React Query) ist im Fachkonzept empfohlen. Pruefung: Ist TanStack Query bereits im Projekt?
+**Entscheidung (2026-03-20): TanStack Query wird als neue Dependency eingefuehrt.**
 
-Falls nicht vorhanden, zwei Optionen:
-1. **TanStack Query hinzufuegen** -- sauberer, aber neue Dependency
-2. **Eigene Hooks mit `useState` + `useEffect`** -- kein neues Paket, aber mehr Boilerplate
+Gruende:
+- Flow hat ~20 API-Methoden mit komplexen Invalidierungs-Abhaengigkeiten (Paket-Detail invalidiert Aufgaben, Mitglieder, Aktivitaeten)
+- Optimistic Updates bei Aufgaben-Status-Wechsel (Checkbox → sofort visuell erledigt) sind mit TanStack Query trivial
+- Manuelles `useState`/`useEffect` wuerde zu massivem Boilerplate und Race Conditions fuehren
+- Die Dependency nuetzt auch kuenftigen Modulen
 
-Empfehlung: Pruefen ob TanStack Query in `package.json` steht. Falls nicht, als Teil des Flow-Moduls einfuehren -- der Nutzen ist projektuebergreifend.
+### Setup
+
+```bash
+npm install @tanstack/react-query
+```
+
+`QueryClientProvider` wird in `FlowApp.tsx` oder global in `App.tsx` eingebunden (pruefen ob andere Module profitieren).
+
+### Query-Key-Konvention
+
+```ts
+// Alle Flow-Keys beginnen mit ['flow', ...]
+queryKey: ['flow', 'arbeitspakete', paketId]
+queryKey: ['flow', 'aufgaben', paketId]
+queryKey: ['flow', 'aufgaben', 'meine']
+queryKey: ['flow', 'tagungen', paketId]
+queryKey: ['flow', 'dashboard']
+queryKey: ['flow', 'abteilung']
+```
+
+### Invalidierung
+
+```ts
+// Nach Aufgabe erstellen/aendern:
+queryClient.invalidateQueries({ queryKey: ['flow', 'aufgaben', paketId] });
+queryClient.invalidateQueries({ queryKey: ['flow', 'aufgaben', 'meine'] });
+queryClient.invalidateQueries({ queryKey: ['flow', 'dashboard'] });
+
+// Nach Mitglied hinzufuegen/entfernen:
+queryClient.invalidateQueries({ queryKey: ['flow', 'arbeitspakete', paketId] });
+```
 
 ## CSS Custom Property
 

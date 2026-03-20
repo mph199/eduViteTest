@@ -104,9 +104,9 @@ export interface FlowAufgabe {
     arbeitspaketTitel?: string; // Fuer paketuebergreifende Ansicht
     titel: string;
     beschreibung: string;
-    zustaendig: number;
+    zustaendig: number | null;   // ON DELETE SET NULL
     zustaendigName?: string;
-    erstelltVon: number;
+    erstelltVon: number | null;  // ON DELETE SET NULL
     deadline: string | null;
     status: FlowAufgabenStatus;
     erstelltAus: 'planung' | 'tagung';
@@ -167,8 +167,9 @@ export interface FlowDatei {
     originalName: string;
     mimeType: string;
     groesse: number;
-    hochgeladenVon: number;
+    hochgeladenVon: number | null;  // ON DELETE SET NULL
     hochgeladenVonName?: string;
+    externalUrl: string | null;     // WebDAV/OAuth URL (Logineo, OneDrive, OX)
     createdAt: string;
 }
 
@@ -193,7 +194,7 @@ export type FlowAktivitaetTyp =
 export interface FlowAktivitaet {
     id: number;
     typ: FlowAktivitaetTyp;
-    akteur: number;
+    akteur: number | null;   // ON DELETE SET NULL
     akteurName?: string;
     arbeitspaketId: number;
     details: Record<string, unknown>;
@@ -214,7 +215,10 @@ export interface FlowDashboard {
     aktivitaeten: FlowAktivitaet[];
 }
 
-// ── Flow: Abteilungsleitung (aggregiert) ──
+// ── Flow: Abteilungsleitung ──
+
+// Abteilungsleitung ist Flow-spezifisch, keine Systemrolle.
+// Zuordnung ueber flow_abteilungsleitung-Tabelle.
 
 export interface FlowAbteilungsPaket {
     id: number;
@@ -403,13 +407,19 @@ flow: {
         const res = await requestJSON(`/flow/arbeitspakete/${paketId}/dateien`);
         return res || [];
     },
-    async uploadDatei(paketId: number, file: File): Promise<FlowDatei> {
-        return uploadFile(`/flow/arbeitspakete/${paketId}/dateien`, 'datei', file);
+    // Upload/Download entfaellt im MVP – Dateien werden ueber WebDAV/OAuth
+    // an Schul-Cloudloesungen (Logineo, OneDrive, OX) angebunden.
+    // Vorerst nur Metadaten-CRUD:
+    async addDateiMetadaten(paketId: number, data: {
+        name: string; originalName: string; mimeType: string;
+        groesse: number; externalUrl?: string;
+    }): Promise<FlowDatei> {
+        return requestJSON(`/flow/arbeitspakete/${paketId}/dateien`, {
+            method: 'POST', body: JSON.stringify(data),
+        });
     },
-    async downloadDatei(id: number): Promise<Blob> {
-        const res = await fetch(`/api/flow/dateien/${id}/download`, { credentials: 'include' });
-        if (!res.ok) throw new Error('Download fehlgeschlagen');
-        return res.blob();
+    async deleteDatei(id: number): Promise<void> {
+        return requestJSON(`/flow/dateien/${id}`, { method: 'DELETE' });
     },
 
     // Abteilung
