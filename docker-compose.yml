@@ -39,7 +39,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-"Elternsprechtag <no-reply@example.com>"}
-      ENABLED_MODULES: ${ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
+      ENABLED_MODULES: ${ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer,flow}
       DB_SSL: ${DB_SSL:-false}
       DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-true}
       DB_SSL_CA: ${DB_SSL_CA:-}
@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        VITE_ENABLED_MODULES: ${VITE_ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer}
+        VITE_ENABLED_MODULES: ${VITE_ENABLED_MODULES:-elternsprechtag,schulsozialarbeit,beratungslehrer,flow}
     restart: unless-stopped
     depends_on:
       - backend
