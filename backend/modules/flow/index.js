@@ -21,10 +21,10 @@ export default {
     name: 'Flow – Kollaborationsformat',
 
     register(app, { rateLimiters }) {
-        const auth = [requireAuth, requireModuleAccess('flow')];
+        const auth = [rateLimiters.auth, requireAuth, requireModuleAccess('flow')];
 
         // Reihenfolge: spezifischere Pfade zuerst
-        app.use('/api/flow/abteilung', ...auth, requireFlowAbteilungsleitung, abteilungRouter);
+        app.use('/api/flow/abteilung', rateLimiters.admin, requireAuth, requireModuleAccess('flow'), requireFlowAbteilungsleitung, abteilungRouter);
         app.use('/api/flow/dashboard', ...auth, dashboardRouter);
         app.use('/api/flow/aufgaben', ...auth, aufgabeRouter);
         app.use('/api/flow/tagungen', ...auth, tagungRouter);

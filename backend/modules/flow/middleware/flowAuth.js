@@ -78,7 +78,7 @@ export function requireFlowPaketRolle(erlaubteRollen) {
  */
 export async function requireFlowAbteilungsleitung(req, res, next) {
     try {
-        if (req.user.role === 'superadmin') return next();
+        if (['admin', 'superadmin'].includes(req.user.role)) return next();
 
         const result = await query(
             'SELECT 1 FROM flow_abteilungsleitung WHERE user_id = $1',
