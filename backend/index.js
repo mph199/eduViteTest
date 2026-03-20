@@ -54,9 +54,9 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (corsOrigins.includes(origin)) return callback(null, true);
-    // Allow GitHub Codespaces forwarded ports (development only).
+    // Allow development proxies (Codespaces, cloud IDEs, tunnels).
     // IMPORTANT: Ensure NODE_ENV=production in all non-dev deployments to disable this.
-    if (process.env.NODE_ENV !== 'production' && origin && (origin.endsWith('.app.github.dev') || origin.endsWith('.preview.app.github.dev'))) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production') return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
