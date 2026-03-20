@@ -124,14 +124,19 @@ const flowModule: ModuleDefinition = {
 export default flowModule;
 ```
 
-### Offener Punkt: Routing-Einhaengung
+### Entscheidung (2026-03-20): Routing unter `/teacher/flow/*`
 
-Aktuell werden `teacherLayout`-Module unter `/teacher/*` gemountet. Nur Elternsprechtag nutzt das bisher. Fuer Flow muss geklaert werden:
+Flow laeuft unter `/teacher/flow/*` (konsistent mit bestehendem Pattern), bleibt aber ein **eigenstaendiges, anschaltbares Modul**:
 
-- Laeuft Flow unter `/teacher/flow/*`? (Konsistent mit bestehendem Pattern)
-- Oder bekommt Flow einen eigenen Top-Level-Pfad `/flow/*`? (Erfordert Anpassung in `App.tsx`)
+| Steuerung | Mechanismus | Wert |
+|---|---|---|
+| Backend-Laden | `ENABLED_MODULES` (env) | `...,flow` |
+| Frontend-Laden | `VITE_ENABLED_MODULES` (env, Build-time) | `...,flow` |
+| Superadmin-Aktivierung | `module_config`-Tabelle | `module_id = 'flow'` |
+| User-Zugang | `user_module_access`-Tabelle | `module_key = 'flow'` |
+| Frontend-Sichtbarkeit | `requiredModule: 'flow'` im Manifest | Sidebar/Routen nur bei Zugang |
 
-**Empfehlung:** `/teacher/flow/*` fuer den MVP. Das bestehende `ProtectedRoute`-Wrapping deckt die Authentifizierung ab. Falls spaeter ein eigener Pfad gewuenscht ist, kann das in App.tsx ergaenzt werden.
+Flow kann unabhaengig von anderen Modulen aktiviert/deaktiviert werden. Das Routing unter `/teacher/` ist nur der URL-Pfad -- die Modul-Logik (Laden, Auth, Sichtbarkeit) laeuft komplett eigenstaendig.
 
 ### Registry-Eintrag (src/modules/registry.ts)
 
