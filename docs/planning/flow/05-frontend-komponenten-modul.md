@@ -7,8 +7,69 @@
 > - `src/modules/flow/hooks/*.ts`
 > - `src/modules/flow/utils/*.ts`
 > Aenderungen in:
-> - `src/modules/registry.ts`
+> - `src/modules/registry.ts` (Interface + Import)
+> - `src/App.tsx` (Guard fuer Module ohne PublicPage)
+> - `src/pages/LandingPage.tsx` (Filter fuer interne Module)
 > - CSS: `--module-accent-flow` definieren
+
+## Entscheidung (2026-03-20): Rein internes Modul
+
+Flow ist **kein oeffentliches Buchungstool**. Es gibt:
+- Keine Kachel auf der Landing Page
+- Keine oeffentliche Seite (`PublicPage`)
+- Keinen oeffentlichen `basePath`
+
+Zugang nur ueber den eingeloggten Bereich (Lehrer-/Admin-Layout).
+
+### Konsequenz: Anpassung am Modulsystem
+
+Flow ist das erste Modul ohne oeffentlichen Einstiegspunkt. Das erfordert drei Aenderungen am bestehenden Code:
+
+#### 1. `src/modules/registry.ts` -- PublicPage optional machen
+
+```ts
+// VORHER:
+PublicPage: LazyExoticComponent<ComponentType>;
+
+// NACHHER:
+PublicPage?: LazyExoticComponent<ComponentType>;
+```
+
+Die bestehenden Module (Elternsprechtag, SSW, BL) sind davon nicht betroffen -- sie setzen `PublicPage` weiterhin.
+
+#### 2. `src/App.tsx` -- Guard fuer Module ohne PublicPage
+
+In der Route-Generierung (ca. Zeile 53-59) muss geprueft werden, ob `mod.PublicPage` existiert:
+
+```tsx
+// VORHER:
+{activeModules.map((mod) => (
+    <Route key={mod.id} path={`${mod.basePath}/*`}
+        element={<mod.PublicPage />} />
+))}
+
+// NACHHER:
+{activeModules.filter((mod) => mod.PublicPage).map((mod) => (
+    <Route key={mod.id} path={`${mod.basePath}/*`}
+        element={<mod.PublicPage />} />
+))}
+```
+
+#### 3. `src/pages/LandingPage.tsx` -- Interne Module ausfiltern
+
+Die Landing Page rendert Kacheln fuer alle `activeModules`. Module ohne `PublicPage` muessen herausgefiltert werden:
+
+```tsx
+// VORHER:
+{activeModules.map((mod) => (
+    <Link to={mod.basePath}>...</Link>
+))}
+
+// NACHHER:
+{activeModules.filter((mod) => mod.PublicPage).map((mod) => (
+    <Link to={mod.basePath}>...</Link>
+))}
+```
 
 ## Modul-Registrierung
 
@@ -18,12 +79,16 @@
 import { lazy } from 'react';
 import type { ModuleDefinition } from '../registry';
 
-const FlowApp = lazy(() =>
-    import('./components/FlowApp').then((m) => ({ default: m.FlowApp }))
-);
-
 const FlowDashboard = lazy(() =>
     import('./components/FlowDashboard').then((m) => ({ default: m.FlowDashboard }))
+);
+
+const FlowRouter = lazy(() =>
+    import('./components/FlowRouter').then((m) => ({ default: m.FlowRouter }))
+);
+
+const AbteilungsDashboard = lazy(() =>
+    import('./components/AbteilungsDashboard').then((m) => ({ default: m.AbteilungsDashboard }))
 );
 
 const flowModule: ModuleDefinition = {
@@ -33,14 +98,19 @@ const flowModule: ModuleDefinition = {
     icon: '',
     basePath: '/flow',
     accent: 'var(--module-accent-flow)',
-    accentRgb: '59, 130, 246',  // Blau-Ton, muss abgestimmt werden
+    accentRgb: '59, 130, 246',
     requiredModule: 'flow',
-    PublicPage: FlowApp,
-    adminRoutes: [],  // Flow hat kein separates Admin-Panel
-    teacherLayout: FlowDashboard,
+    // KEIN PublicPage -- rein internes Modul
+    adminRoutes: [
+        {
+            path: '/admin/flow/abteilung',
+            label: 'Flow Abteilungssicht',
+            Component: AbteilungsDashboard,
+        },
+    ],
+    teacherLayout: FlowRouter,
     teacherRoutes: [
         { index: true, Component: FlowDashboard },
-        // Weitere Routen werden hier ergaenzt
     ],
     sidebarNav: {
         label: 'Flow',
@@ -54,18 +124,25 @@ const flowModule: ModuleDefinition = {
 export default flowModule;
 ```
 
+### Offener Punkt: Routing-Einhaengung
+
+Aktuell werden `teacherLayout`-Module unter `/teacher/*` gemountet. Nur Elternsprechtag nutzt das bisher. Fuer Flow muss geklaert werden:
+
+- Laeuft Flow unter `/teacher/flow/*`? (Konsistent mit bestehendem Pattern)
+- Oder bekommt Flow einen eigenen Top-Level-Pfad `/flow/*`? (Erfordert Anpassung in `App.tsx`)
+
+**Empfehlung:** `/teacher/flow/*` fuer den MVP. Das bestehende `ProtectedRoute`-Wrapping deckt die Authentifizierung ab. Falls spaeter ein eigener Pfad gewuenscht ist, kann das in App.tsx ergaenzt werden.
+
 ### Registry-Eintrag (src/modules/registry.ts)
 
 ```ts
-// Hinzufuegen:
 import flowModule from './flow/index';
 
-// In allModules[]:
 const allModules: ModuleDefinition[] = [
     elternsprechtagModule,
     schulsozialarbeitModule,
     beratungslehrerModule,
-    flowModule,              // NEU
+    flowModule,              // NEU – kein PublicPage
 ];
 ```
 
@@ -77,9 +154,9 @@ Das Fachkonzept definiert eine umfangreiche Komponentenhierarchie. Fuer die Inte
 
 ```
 src/modules/flow/
-├── index.ts                          # ModuleDefinition
+├── index.ts                          # ModuleDefinition (kein PublicPage)
 ├── components/
-│   ├── FlowApp.tsx                   # Einstiegspunkt (PublicPage)
+│   ├── FlowRouter.tsx                # Internes Routing (teacherLayout)
 │   ├── FlowDashboard.tsx             # Persoenliches Dashboard
 │   ├── BildungsgangUebersicht.tsx    # Bildungsgang-Detail
 │   ├── ArbeitspaketErstellen.tsx     # Neues Paket anlegen
@@ -133,13 +210,13 @@ src/modules/flow/
 
 ## Routing innerhalb des Moduls
 
-Flow braucht mehr Routen als die bisherigen Module. Empfehlung: eigenen Router innerhalb von `FlowApp.tsx`.
+Flow nutzt `FlowRouter.tsx` als `teacherLayout`. Dieser rendert ein `<Outlet>` und definiert die Unterrouten.
 
 ```tsx
-// FlowApp.tsx
-import { Routes, Route } from 'react-router-dom';
+// FlowRouter.tsx – wird als teacherLayout gemountet
+import { Outlet, Routes, Route } from 'react-router-dom';
 
-export function FlowApp() {
+export function FlowRouter() {
     return (
         <Routes>
             <Route index element={<FlowDashboard />} />
@@ -148,13 +225,14 @@ export function FlowApp() {
             <Route path="arbeitspaket/:id" element={<ArbeitspaketDetail />} />
             <Route path="arbeitspaket/:id/tagung/:tid" element={<TagungDetail />} />
             <Route path="aufgaben" element={<MeineAufgaben />} />
-            <Route path="abteilung" element={<AbteilungsDashboard />} />
         </Routes>
     );
 }
 ```
 
-Alle Pfade relativ zu `/flow/`.
+Alle Pfade relativ zum Mount-Point (vermutlich `/teacher/flow/`).
+
+Die Abteilungssicht laeuft **separat** als `adminRoute` unter `/admin/flow/abteilung` -- damit ist sie nur fuer User mit `flow_abteilungsleitung`-Eintrag erreichbar und physisch vom Arbeitspaket-Routing getrennt.
 
 ## State Management
 

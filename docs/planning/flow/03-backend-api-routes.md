@@ -45,6 +45,8 @@ export default {
 };
 ```
 
+**Entscheidung (2026-03-20): Rein internes Modul.** Alle Routen erfordern `requireAuth` + `requireModuleAccess('flow')`. Es gibt keine oeffentlichen Endpunkte (kein `rateLimiters.booking` ohne Auth). Einzige Ausnahme: der Kalender-Feed nutzt Token-Auth statt JWT.
+
 ## Route-Aufteilung
 
 ### Abweichung vom Fachkonzept
