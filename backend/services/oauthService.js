@@ -215,12 +215,20 @@ export async function validateIdToken(idToken, provider, discovery) {
         throw new Error('ID-Token ist abgelaufen oder hat keinen exp-Claim');
     }
 
+    // Validate not-before (nbf) if present
+    if (payload.nbf && payload.nbf > Math.floor(Date.now() / 1000)) {
+        throw new Error('ID-Token noch nicht gueltig (nbf)');
+    }
+
     // Validate signature with JWKS (mandatory)
     if (!discovery.jwks_uri) {
         throw new Error('jwks_uri fehlt im Discovery-Dokument – Signaturvalidierung nicht moeglich');
     }
 
     {
+        if (!header.kid) {
+            throw new Error('ID-Token-Header enthaelt kein kid');
+        }
         const keys = await fetchJWKS(discovery.jwks_uri);
         const matchingKey = keys.find((k) => k.kid === header.kid);
         if (!matchingKey) {
@@ -318,28 +326,35 @@ export async function matchOrCreateUser(claims, provider) {
 
     // Create new user (teacher role, no password)
     let username = email.split('@')[0];
-    // Ensure unique username
-    const existing = await query(`SELECT id FROM users WHERE username = $1`, [username]);
-    if (existing.rows.length > 0) {
-        username = `${username}_${Date.now() % 10000}`;
+    // Ensure unique username (retry with random suffix on conflict)
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            const newUser = await query(
+                `INSERT INTO users (username, email, role, password_hash)
+                 VALUES ($1, $2, 'teacher', NULL)
+                 RETURNING id, username, role, teacher_id, token_version, force_password_change`,
+                [username, email]
+            );
+            const created = newUser.rows[0];
+
+            // Create link
+            await query(
+                `INSERT INTO oauth_user_links (user_id, provider_id, provider_subject, provider_email, last_login_at)
+                 VALUES ($1, $2, $3, $4, NOW())`,
+                [created.id, provider.id, sub, email]
+            );
+
+            logger.info({ userId: created.id, email, provider: provider.provider_key }, 'Neuer OAuth-User angelegt (Auto-Provisioning)');
+            return buildUserObject(created);
+        } catch (insertErr) {
+            if (insertErr.code === '23505' && insertErr.constraint?.includes('username')) {
+                username = `${email.split('@')[0]}_${crypto.randomBytes(4).toString('hex')}`;
+                continue;
+            }
+            throw insertErr;
+        }
     }
-    const newUser = await query(
-        `INSERT INTO users (username, email, role, password_hash)
-         VALUES ($1, $2, 'teacher', NULL)
-         RETURNING id, username, role, teacher_id, token_version, force_password_change`,
-        [username, email]
-    );
-    const created = newUser.rows[0];
-
-    // Create link
-    await query(
-        `INSERT INTO oauth_user_links (user_id, provider_id, provider_subject, provider_email, last_login_at)
-         VALUES ($1, $2, $3, $4, NOW())`,
-        [created.id, provider.id, sub, email]
-    );
-
-    logger.info({ userId: created.id, email, provider: provider.provider_key }, 'Neuer OAuth-User angelegt (Auto-Provisioning)');
-    return buildUserObject(created);
+    throw new Error('Username-Vergabe fehlgeschlagen nach mehreren Versuchen');
 }
 
 function buildUserObject(row) {
@@ -369,8 +384,8 @@ export async function saveOAuthTokens(userId, providerId, tokens) {
         values.push(encrypt(tokens.access_token));
     }
     if (tokens.expires_in) {
-        updates.push(`token_expires_at = NOW() + ($${idx++} || ' seconds')::INTERVAL`);
-        values.push(String(parseInt(tokens.expires_in, 10) || 3600));
+        updates.push(`token_expires_at = NOW() + make_interval(secs => $${idx++}::int)`);
+        values.push(parseInt(tokens.expires_in, 10) || 3600);
     }
 
     if (updates.length === 0) return;

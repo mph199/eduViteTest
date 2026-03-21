@@ -187,7 +187,8 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
         logSecurityEvent(user.id, 'OAUTH_LOGIN_SUCCESS', { provider: provider.provider_key }, req.ip);
         logger.info({ userId: user.id, provider: provider.provider_key }, 'OAuth-Login erfolgreich');
 
-        res.redirect('/teacher');
+        const roleRedirects = { admin: '/admin', superadmin: '/admin', ssw: '/ssw' };
+        res.redirect(roleRedirects[user.role] || '/teacher');
     } catch (err) {
         logger.error({ err, provider: req.params.providerKey }, 'OAuth Callback fehlgeschlagen');
 
