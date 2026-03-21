@@ -8,6 +8,7 @@
 > - Sidebar: ein einzelner Einstiegslink "Hier geht's zu Flow" (`path: '/teacher/flow'`)
 > - `hooks/`- und `utils/`-Verzeichnis nicht angelegt – Logik direkt in Seiten-Komponenten
 > - `pages/`-Unterordner fuer Seiten, `components/` fuer wiederverwendbare UI-Teile
+> - **Refactoring (2026-03-21):** ArbeitspaketPage.tsx (755 → 321 Zeilen) in 5 Tab-Komponenten aufgeteilt: AufgabenTab, TagungenTab, MitgliederTab, DateienTab, AktivitaetenTab (alle in `components/`). Neue shared Komponente ErrorBanner.tsx in `components/`; genutzt von ArbeitspaketPage, TagungDetailPage, ArbeitspaketErstellenPage.
 
 > Abhaengigkeiten: Phase 4 (Types + API Client)
 > Neue Dateien:
@@ -175,19 +176,25 @@ src/modules/flow/
 │   ├── FlowSidebar.tsx                   # Sidebar mit rollenabhaengiger Admin-Sektion
 │   ├── StatusBadge.tsx                   # Entwurf/Geplant/Aktiv/Abgeschlossen
 │   ├── FortschrittsBalken.tsx            # x von y Aufgaben
-│   └── DeadlineAnzeige.tsx               # ok/bald/ueberfaellig
+│   ├── DeadlineAnzeige.tsx               # ok/bald/ueberfaellig
+│   ├── ErrorBanner.tsx                   # Fehleranzeige (genutzt von ArbeitspaketPage, TagungDetailPage, ArbeitspaketErstellenPage)
+│   ├── AufgabenTab.tsx                   # Tab-Inhalt: Aufgaben-CRUD
+│   ├── TagungenTab.tsx                   # Tab-Inhalt: Tagungen
+│   ├── MitgliederTab.tsx                 # Tab-Inhalt: Mitglieder verwalten
+│   ├── DateienTab.tsx                    # Tab-Inhalt: Datei-Upload und -Liste
+│   └── AktivitaetenTab.tsx               # Tab-Inhalt: Aktivitaeten-Feed
 └── pages/
     ├── FlowDashboard.tsx                 # Persoenliches Dashboard (klickbare Tagungen)
     ├── BildungsgangPage.tsx              # Bildungsgang-Detail mit Mitglieder-Anzeige
     ├── ArbeitspaketErstellenPage.tsx     # Neues Paket anlegen
-    ├── ArbeitspaketPage.tsx              # Tab-basiert: Aufgaben, Tagungen, Mitglieder, Dateien, Aktivitaeten
+    ├── ArbeitspaketPage.tsx              # Tab-Shell (321 Zeilen): bindet Tab-Komponenten ein
     ├── TagungDetailPage.tsx              # Agenda-Editor, Dokumentation, Aufgabenerstellung
     ├── MeineAufgabenPage.tsx             # Paketuebergreifend mit Links zu Arbeitspaketen
     ├── AbteilungPage.tsx                 # Aggregierte Abteilungssicht (klickbar)
     └── AdminBGLVerwaltung.tsx            # BGL-Verwaltung (admin/superadmin)
 ```
 
-Hinweis: `hooks/`- und `utils/`-Verzeichnis nicht angelegt. Logik liegt direkt in den Seiten-Komponenten. Sub-Komponenten (AufgabenListe, TagungDetail, MitgliederVerwalten, DateiBereich, AbschlussDialog etc.) sind als Sections innerhalb der Page-Komponenten implementiert, nicht als eigene Dateien.
+Hinweis: `hooks/`- und `utils/`-Verzeichnis nicht angelegt. Logik liegt direkt in den Seiten- und Tab-Komponenten. Die Tab-Inhalte von ArbeitspaketPage sind als eigene Dateien in `components/` ausgelagert (AufgabenTab, TagungenTab, MitgliederTab, DateienTab, AktivitaetenTab).
 
 ### Abweichungen vom Fachkonzept
 
