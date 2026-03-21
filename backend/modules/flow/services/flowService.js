@@ -75,7 +75,7 @@ export async function createBildungsgang(name, erlaubtMitgliedernPaketErstellung
          RETURNING *`,
         [name, erlaubtMitgliedernPaketErstellung]
     );
-    return result.rows[0];
+    return mapRow(result.rows[0]);
 }
 
 export async function getBildungsgangMitglieder(bildungsgangId) {
@@ -102,7 +102,7 @@ export async function addBildungsgangMitglied(bildungsgangId, userId, rolle) {
          RETURNING *`,
         [bildungsgangId, userId, rolle]
     );
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 export async function updateBildungsgangMitgliedRolle(bildungsgangId, userId, rolle) {
@@ -112,7 +112,7 @@ export async function updateBildungsgangMitgliedRolle(bildungsgangId, userId, ro
          RETURNING *`,
         [rolle, bildungsgangId, userId]
     );
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 export async function removeBildungsgangMitglied(bildungsgangId, userId) {
@@ -122,7 +122,7 @@ export async function removeBildungsgangMitglied(bildungsgangId, userId) {
          RETURNING *`,
         [bildungsgangId, userId]
     );
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 // ── Arbeitspaket ──
@@ -145,7 +145,7 @@ export async function createArbeitspaket(bildungsgangId, data, erstelltVon) {
 
     await erstelleAktivitaet('arbeitspaket_erstellt', erstelltVon, paket.id, { titel: data.titel });
 
-    return paket;
+    return mapRow(paket);
 }
 
 export async function getArbeitspaketDetail(paketId, userId) {
@@ -232,7 +232,7 @@ export async function updateArbeitspaket(paketId, data, expectedUpdatedAt) {
         values
     );
 
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 const ERLAUBTE_UEBERGAENGE = {
@@ -268,7 +268,7 @@ export async function updateArbeitspaketStatus(paketId, zielStatus, userId) {
         von: aktuellerStatus, nach: zielStatus
     });
 
-    return { paket: result.rows[0] };
+    return { paket: mapRow(result.rows[0]) };
 }
 
 export async function deleteArbeitspaket(paketId) {
@@ -293,7 +293,7 @@ export async function abschliessenArbeitspaket(paketId, data, userId) {
     if (result.rows.length === 0) return null;
 
     await erstelleAktivitaet('arbeitspaket_abgeschlossen', userId, paketId, {});
-    return result.rows[0];
+    return mapRow(result.rows[0]);
 }
 
 export async function wiederaufnehmenArbeitspaket(paketId, userId) {
@@ -308,7 +308,7 @@ export async function wiederaufnehmenArbeitspaket(paketId, userId) {
     if (result.rows.length === 0) return null;
 
     await erstelleAktivitaet('arbeitspaket_wiederaufgenommen', userId, paketId, {});
-    return result.rows[0];
+    return mapRow(result.rows[0]);
 }
 
 // ── Mitglieder ──
@@ -340,7 +340,7 @@ export async function addMitglied(paketId, userId, rolle, akteur) {
     if (result.rows.length > 0) {
         await erstelleAktivitaet('mitglied_hinzugefuegt', akteur, paketId, { userId, rolle });
     }
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 export async function updateMitgliedRolle(paketId, userId, rolle, akteur) {
@@ -353,7 +353,7 @@ export async function updateMitgliedRolle(paketId, userId, rolle, akteur) {
     if (result.rows.length > 0) {
         await erstelleAktivitaet('rolle_geaendert', akteur, paketId, { userId, rolle });
     }
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 export async function removeMitglied(paketId, userId, akteur) {
@@ -366,7 +366,7 @@ export async function removeMitglied(paketId, userId, akteur) {
     if (result.rows.length > 0) {
         await erstelleAktivitaet('mitglied_entfernt', akteur, paketId, { userId });
     }
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 // ── Aufgaben ──
@@ -402,7 +402,7 @@ export async function createAufgabe(paketId, data, erstelltVon) {
         aufgabeId: result.rows[0].id, titel: data.titel
     });
 
-    return result.rows[0];
+    return mapRow(result.rows[0]);
 }
 
 const ERLAUBTE_AUFGABE_FELDER = ['titel', 'beschreibung', 'zustaendig', 'deadline'];
@@ -431,7 +431,7 @@ export async function updateAufgabe(aufgabeId, data) {
          RETURNING *`,
         values
     );
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 export async function updateAufgabeStatus(aufgabeId, status, userId) {
@@ -449,7 +449,7 @@ export async function updateAufgabeStatus(aufgabeId, status, userId) {
     await erstelleAktivitaet('aufgabe_status_geaendert', userId, aufgabe.arbeitspaket_id, {
         aufgabeId, status
     });
-    return aufgabe;
+    return mapRow(aufgabe);
 }
 
 export async function deleteAufgabe(aufgabeId, userId) {
@@ -460,7 +460,7 @@ export async function deleteAufgabe(aufgabeId, userId) {
     await erstelleAktivitaet('aufgabe_geloescht', userId, aufgabe.rows[0].arbeitspaket_id, {
         aufgabeId, titel: aufgabe.rows[0].titel
     });
-    return aufgabe.rows[0];
+    return mapRow(aufgabe.rows[0]);
 }
 
 export async function getMeineAufgaben(userId, filter = {}) {
@@ -528,7 +528,7 @@ export async function createTagung(paketId, data, erstelltVon) {
         tagungId: tagung.id, titel: data.titel
     });
 
-    return tagung;
+    return mapRow(tagung);
 }
 
 export async function getTagungDetail(tagungId) {
@@ -586,7 +586,7 @@ export async function updateTagung(tagungId, data) {
          RETURNING *`,
         values
     );
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 export async function deleteTagung(tagungId) {
@@ -607,7 +607,7 @@ export async function addAgendaPunkt(tagungId, data) {
          RETURNING *`,
         [tagungId, data.titel, data.beschreibung || '', data.referenzierteAufgabeId || null, maxSort.rows[0].next]
     );
-    return result.rows[0];
+    return mapRow(result.rows[0]);
 }
 
 export async function dokumentiereAgendaPunkt(punktId, data) {
@@ -633,7 +633,7 @@ export async function dokumentiereAgendaPunkt(punktId, data) {
          RETURNING *`,
         values
     );
-    return result.rows[0] || null;
+    return mapRow(result.rows[0]) || null;
 }
 
 // ── Dateien ──
@@ -665,7 +665,7 @@ export async function addDateiMetadaten(paketId, data, hochgeladenVon) {
         dateiId: result.rows[0].id, name: data.originalName
     });
 
-    return result.rows[0];
+    return mapRow(result.rows[0]);
 }
 
 export async function deleteDatei(dateiId) {

@@ -5,6 +5,7 @@
     --flow-bg: #f7f8fa;
     --flow-surface: #ffffff;
     --flow-surface-hover: #f9fafb;
+    --flow-bg-hover: #f0f2f6;
 
     /* Text */
     --flow-text: var(--brand-ink);
@@ -670,6 +671,17 @@
 
 .flow-btn--secondary:hover {
     background: var(--flow-surface-hover);
+}
+
+.flow-btn--danger {
+    background: var(--flow-red-light);
+    color: var(--flow-red);
+    border-color: var(--flow-red);
+}
+
+.flow-btn--danger:hover {
+    background: var(--flow-red);
+    color: #fff;
 }
 
 .flow-btn--sm {
