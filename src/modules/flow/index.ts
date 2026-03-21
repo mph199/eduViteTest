@@ -25,6 +25,10 @@ const AbteilungPage = lazy(() =>
     import('./pages/AbteilungPage').then((m) => ({ default: m.AbteilungPage }))
 );
 
+const AdminBGLVerwaltung = lazy(() =>
+    import('./pages/AdminBGLVerwaltung').then((m) => ({ default: m.AdminBGLVerwaltung }))
+);
+
 const flowModule: ModuleDefinition = {
     id: 'flow',
     title: 'Flow',
@@ -41,6 +45,11 @@ const flowModule: ModuleDefinition = {
             path: '/admin/flow/abteilung',
             label: 'Flow Abteilungssicht',
             Component: AbteilungPage,
+        },
+        {
+            path: '/admin/flow/bgl',
+            label: 'Bildungsgang-Verwaltung',
+            Component: AdminBGLVerwaltung,
         },
     ],
     teacherLayout: FlowLayout,

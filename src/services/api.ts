@@ -754,6 +754,38 @@ const api = {
       const res = await requestJSON('/flow/abteilung/arbeitspakete');
       return res || [];
     },
+    // Admin: Verfuegbare User
+    async adminGetUsers() {
+      const res = await requestJSON('/flow/admin/users');
+      return Array.isArray(res) ? res : [];
+    },
+    // Admin: Bildungsgang-Verwaltung
+    async adminGetBildungsgaenge() {
+      const res = await requestJSON('/flow/admin/bildungsgaenge');
+      return Array.isArray(res) ? res : [];
+    },
+    async adminCreateBildungsgang(data: { name: string; erlaubtMitgliedernPaketErstellung?: boolean }) {
+      return requestJSON('/flow/admin/bildungsgaenge', {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    },
+    async adminGetBildungsgangMitglieder(bildungsgangId: number) {
+      const res = await requestJSON(`/flow/admin/bildungsgaenge/${bildungsgangId}/mitglieder`);
+      return Array.isArray(res) ? res : [];
+    },
+    async adminAddBildungsgangMitglied(bildungsgangId: number, userId: number, rolle: string) {
+      return requestJSON(`/flow/admin/bildungsgaenge/${bildungsgangId}/mitglieder`, {
+        method: 'POST', body: JSON.stringify({ userId, rolle }),
+      });
+    },
+    async adminUpdateBildungsgangMitgliedRolle(bildungsgangId: number, userId: number, rolle: string) {
+      return requestJSON(`/flow/admin/bildungsgaenge/${bildungsgangId}/mitglieder/${userId}`, {
+        method: 'PATCH', body: JSON.stringify({ rolle }),
+      });
+    },
+    async adminRemoveBildungsgangMitglied(bildungsgangId: number, userId: number) {
+      return requestJSON(`/flow/admin/bildungsgaenge/${bildungsgangId}/mitglieder/${userId}`, { method: 'DELETE' });
+    },
     async getAktivitaeten(paketId: number) {
       const res = await requestJSON(`/flow/arbeitspakete/${paketId}/aktivitaeten`);
       return res || [];

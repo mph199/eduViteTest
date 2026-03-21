@@ -6,7 +6,7 @@
  * Abteilungssicht zusaetzlich per requireFlowAbteilungsleitung gesichert.
  */
 
-import { requireAuth, requireModuleAccess } from '../../middleware/auth.js';
+import { requireAuth, requireAdmin, requireModuleAccess } from '../../middleware/auth.js';
 import { requireFlowAbteilungsleitung } from './middleware/flowAuth.js';
 import bildungsgangRouter from './routes/bildungsgang.js';
 import arbeitspaketRouter from './routes/arbeitspaket.js';
@@ -15,6 +15,7 @@ import tagungRouter from './routes/tagung.js';
 import dashboardRouter from './routes/dashboard.js';
 import abteilungRouter from './routes/abteilung.js';
 import dateiRouter from './routes/datei.js';
+import adminRouter from './routes/admin.js';
 
 export default {
     id: 'flow',
@@ -22,6 +23,9 @@ export default {
 
     register(app, { rateLimiters }) {
         const auth = [rateLimiters.auth, requireAuth, requireModuleAccess('flow')];
+
+        // Admin-Routen: BGL-Verwaltung (vor spezifischeren Pfaden)
+        app.use('/api/flow/admin', rateLimiters.admin, requireAuth, requireAdmin, requireModuleAccess('flow'), adminRouter);
 
         // Reihenfolge: spezifischere Pfade zuerst
         app.use('/api/flow/abteilung', rateLimiters.admin, requireAuth, requireModuleAccess('flow'), requireFlowAbteilungsleitung, abteilungRouter);

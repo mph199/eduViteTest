@@ -51,6 +51,72 @@ export async function getBildungsgangDetail(bildungsgangId) {
     };
 }
 
+// ── Bildungsgang Admin ──
+
+export async function getAllBildungsgaenge() {
+    const result = await query(
+        `SELECT bg.*,
+                (SELECT COUNT(*) FROM flow_bildungsgang_mitglied WHERE bildungsgang_id = bg.id) AS mitglieder_count,
+                (SELECT COUNT(*) FROM flow_arbeitspaket WHERE bildungsgang_id = bg.id) AS arbeitspakete_count
+         FROM flow_bildungsgang bg
+         ORDER BY bg.name`
+    );
+    return result.rows;
+}
+
+export async function createBildungsgang(name, erlaubtMitgliedernPaketErstellung = false) {
+    const result = await query(
+        `INSERT INTO flow_bildungsgang (name, erlaubt_mitgliedern_paket_erstellung)
+         VALUES ($1, $2)
+         RETURNING *`,
+        [name, erlaubtMitgliedernPaketErstellung]
+    );
+    return result.rows[0];
+}
+
+export async function getBildungsgangMitglieder(bildungsgangId) {
+    const result = await query(
+        `SELECT bgm.id, bgm.user_id, u.vorname, u.nachname, bgm.rolle, bgm.hinzugefuegt_am
+         FROM flow_bildungsgang_mitglied bgm
+         JOIN users u ON u.id = bgm.user_id
+         WHERE bgm.bildungsgang_id = $1
+         ORDER BY bgm.rolle DESC, u.nachname`,
+        [bildungsgangId]
+    );
+    return result.rows;
+}
+
+export async function addBildungsgangMitglied(bildungsgangId, userId, rolle) {
+    const result = await query(
+        `INSERT INTO flow_bildungsgang_mitglied (bildungsgang_id, user_id, rolle)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (bildungsgang_id, user_id) DO NOTHING
+         RETURNING *`,
+        [bildungsgangId, userId, rolle]
+    );
+    return result.rows[0] || null;
+}
+
+export async function updateBildungsgangMitgliedRolle(bildungsgangId, userId, rolle) {
+    const result = await query(
+        `UPDATE flow_bildungsgang_mitglied SET rolle = $1
+         WHERE bildungsgang_id = $2 AND user_id = $3
+         RETURNING *`,
+        [rolle, bildungsgangId, userId]
+    );
+    return result.rows[0] || null;
+}
+
+export async function removeBildungsgangMitglied(bildungsgangId, userId) {
+    const result = await query(
+        `DELETE FROM flow_bildungsgang_mitglied
+         WHERE bildungsgang_id = $1 AND user_id = $2
+         RETURNING *`,
+        [bildungsgangId, userId]
+    );
+    return result.rows[0] || null;
+}
+
 // ── Arbeitspaket ──
 
 export async function createArbeitspaket(bildungsgangId, data, erstelltVon) {
