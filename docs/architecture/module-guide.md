@@ -134,7 +134,7 @@ matchen (nur Kleinbuchstaben, Ziffern, `_`, `-`).
 ### 1.4 (Optional) Eigene Migration
 
 Falls das Modul eigene Tabellen braucht, eine nummerierte SQL-Datei anlegen.
-**Aktuelle hoechste Nummer pruefen** (aktuell: 051).
+**Aktuelle hoechste Nummer pruefen** (aktuell: 052).
 
 ```sql
 -- backend/migrations/048_meinmodul_tabellen.sql

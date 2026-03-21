@@ -92,6 +92,32 @@ Beyond roles, users can have module access via `user_module_access` table:
 | `requireBeratungslehrer` | users with beratungslehrer module access, admin, superadmin |
 | `requireModuleAccess(key)` | Factory for custom module checks |
 
+### OAuth / OIDC Authentication
+
+Parallel zum Passwort-Login koennen Schulen sich ueber ihren Identity Provider anmelden (Microsoft Entra ID, Logineo NRW, generisches OIDC).
+
+**Flow:**
+1. User klickt OAuth-Button auf LoginPage → `GET /api/auth/oauth/:providerKey`
+2. Backend generiert PKCE (`code_verifier` + `code_challenge`) und State-Token
+3. State + Code Verifier werden als httpOnly Cookie gespeichert (10 Min TTL)
+4. Redirect zum IdP Authorization Endpoint
+5. User authentifiziert sich beim IdP → Redirect zurueck mit Authorization Code
+6. Backend tauscht Code gegen ID-Token + Access-Token (`/token` Endpoint)
+7. ID-Token wird vollstaendig validiert (JWKS-Signatur, Issuer, Audience, exp, nbf)
+8. User-Matching: `oauth_user_links.provider_subject` → E-Mail-Match → Auto-Provisioning
+9. JWT-Cookie wird gesetzt (identisch zum Passwort-Login)
+10. Redirect basierend auf User-Rolle (admin → `/admin`, ssw → `/ssw`, teacher → `/teacher`)
+
+**Sicherheitsmassnahmen:**
+- PKCE (SHA-256 Code Challenge) verhindert Authorization Code Interception
+- State-Parameter in httpOnly Cookie verhindert CSRF bei OAuth-Callbacks
+- JWKS-Signaturvalidierung ist Pflicht (RSA + EC Algorithmen)
+- `exp`- und `nbf`-Claims werden erzwungen
+- Domain-Einschraenkung ueber `oauth_providers.allowed_domains`
+- Client-Secrets und Tokens AES-256-GCM verschluesselt (`backend/config/encryption.js`)
+
+**Dateien:** `backend/routes/oauth.js`, `backend/services/oauthService.js`, `backend/config/encryption.js`
+
 ### Account Lockout (Migration 042)
 
 After repeated failed logins, accounts are temporarily locked. Tracked via `users` columns:
@@ -126,6 +152,30 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 | `feedback` | User feedback messages |
 | `site_branding` | School branding (colors, name, logo) |
 | `module_config` | Per-module enable/disable state (module_id, enabled, updated_at) |
+
+### OAuth Tables (Migration 052)
+
+| Table | Purpose |
+|-------|---------|
+| `oauth_providers` | OAuth/OIDC Provider-Konfiguration (client_id, client_secret_encrypted, discovery_url, scopes, allowed_domains, auto_provisioning) |
+| `oauth_user_links` | Verknuepfung IdP-User ↔ eduVite-User (provider_subject, provider_email, refresh_token_encrypted, access_token_encrypted, token_expires_at) |
+
+**Hinweis:** `users.password_hash` ist nullable (OAuth-only User haben kein Passwort).
+
+### Flow Tables (prefix: `flow_`, Migration 049/050)
+
+| Table | Purpose |
+|-------|---------|
+| `flow_bildungsgang` | Bildungsgaenge (Bezeichnung, Abteilung, Status) |
+| `flow_bildungsgang_mitglied` | Mitglieder eines Bildungsgangs (User-Zuordnung, Rolle) |
+| `flow_abteilungsleitung` | Abteilungsleitungs-Zuordnungen |
+| `flow_arbeitspaket` | Arbeitspakete innerhalb eines Bildungsgangs |
+| `flow_ap_mitglied` | Mitglieder eines Arbeitspakets |
+| `flow_aufgabe` | Aufgaben innerhalb von Arbeitspaketen |
+| `flow_tagung` | Tagungen/Sitzungen eines Bildungsgangs |
+| `flow_tagung_teilnehmer` | Teilnehmer einer Tagung |
+| `flow_agenda_punkt` | Agendapunkte einer Tagung |
+| `flow_datei` | Datei-Referenzen (Arbeitspakete, Aufgaben) |
 
 ### SSW Tables (prefix: `ssw_`)
 
@@ -212,13 +262,14 @@ No global store. Component-local state + context:
 - `mediaUtils.ts` – logo/background/tile URL resolvers
 
 Namespaces in `api.ts`:
-- `api.auth.*` – login, verify, logout
+- `api.auth.*` – login, verify, logout, getProviders (OAuth)
 - `api.admin.*` – teachers, bookings, events, slots, settings, feedback, users
 - `api.teacher.*` – bookings, slots, requests, password, feedback
 - `api.bl.*` – beratungslehrer module endpoints
 - `api.ssw.*` – schulsozialarbeit module endpoints
 - `api.events.*`, `api.bookings.*` – public endpoints
-- `api.superadmin.*` – school management, module config (enable/disable)
+- `api.superadmin.*` – school management, module config (enable/disable), OAuth provider CRUD
+- `api.flow.*` – bildungsgang, arbeitspaket, aufgaben, tagungen, abteilung, dateien, dashboard, admin
 - `api.dataSubject.*` – DSAR-Endpunkte: `search`, `exportData`, `deleteData`, `correctData`, `restrict`, `getAuditLog`, `exportAuditLog`
 
 All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` event.
@@ -370,6 +421,7 @@ backend/
   index.js              # Express app setup, core route mounting
   routes/
     auth.js             # Login, logout, verify
+    oauth.js            # OAuth/OIDC routes (redirect, callback, provider list)
     admin/              # Admin CRUD (split by resource)
       index.js          # Aggregates all sub-routers
       teacherRoutes.js  # Teacher CRUD, CSV import, BL integration, slot generation
@@ -390,6 +442,8 @@ backend/
     generateUsername.js       # Umlaut-Transliteration fuer Benutzernamen (dedupliziert)
     sqlGuards.js              # SQL guard utilities for safe dynamic queries
     validatePassword.js       # Shared password validation logic
+  services/
+    oauthService.js     # OIDC discovery, token exchange, user matching, JWKS validation
   modules/
     elternsprechtag/    # Core module (teacher schedule, events, teacher routes)
       routes/
@@ -413,6 +467,7 @@ backend/
     db.js               # PostgreSQL pool (query + getClient for transactions)
     email.js            # Nodemailer config
     logger.js           # Pino logger (JSON in prod, pretty-print in dev)
+    encryption.js       # AES-256-GCM for OAuth secrets and tokens
   utils/
     resolveActiveEvent.js  # Shared active-event resolution logic
     timeWindows.js         # Slot generation helpers
@@ -456,7 +511,7 @@ Module differences are handled via config parameters (table prefix, topic schema
 12. **Touch target minimum 44px** – All interactive elements (buttons, slots, navigation arrows) enforce min-height 44px on mobile viewports per WCAG 2.5.5.
 13. **iOS Safari compatibility** – `background-attachment: fixed` is replaced with `scroll` on viewports <768px to prevent flicker on iOS Safari.
 14. **Background image pattern** – Branding images applied as `::before` pseudo-element with `opacity: 0.10` and `z-index: 0` so they never obscure content. CSS custom property (`--admin-bg`, `--landing-bg`, `--booking-bg`) set via inline style from `useBranding()`. Covers: landing page, admin/teacher area (shared `admin` slot), each module's public booking page.
-15. **Universal post-login redirect** – All roles (admin, superadmin, teacher, ssw) are redirected to `/teacher` after login. Role-specific areas are then reachable via the hamburger menu.
+15. **Post-login redirect** – Password login redirects all roles to `/teacher`. OAuth login redirects based on role (admin/superadmin → `/admin`, ssw → `/ssw`, teacher → `/teacher`). Role-specific areas are also reachable via the hamburger menu.
 
 ## Responsive Strategy
 
@@ -503,6 +558,7 @@ Module differences are handled via config parameters (table prefix, topic schema
 | `DB_USER` | No | Database user (default: `postgres`) |
 | `DB_PASSWORD` | No | Database password |
 | `DB_SSL` | No | `true` to enable SSL for PostgreSQL connection |
+| `DB_SSL_CA` | No | Path to CA certificate for PostgreSQL SSL |
 | `DB_SSL_REJECT_UNAUTHORIZED` | No | `false` to allow self-signed certs (development only, default: `true`) |
 | `DB_POOL_MAX` | No | Max connections in pool (default: `20`) |
 | `DB_POOL_CONNECT_TIMEOUT` | No | Connection timeout in ms (default: `5000`) |
@@ -534,6 +590,8 @@ Module differences are handled via config parameters (table prefix, topic schema
 |----------|----------|-------------|
 | `ADMIN_USERNAME` | No | Legacy admin username (middleware/auth.js) |
 | `ADMIN_PASSWORD_HASH` | No | Legacy admin password hash (middleware/auth.js) |
+| `OAUTH_ENCRYPTION_KEY` | If OAuth | 32-byte key for AES-256-GCM (base64 or hex encoded) |
+| `COOKIE_SECURE` | No | `true` to force Secure cookie flag (default: auto-detect from NODE_ENV) |
 
 ### Frontend (Vite)
 
