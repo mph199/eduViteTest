@@ -94,8 +94,6 @@ router.get('/:id/mitglieder', requireFlowPaketRolle(ALLE), async (req, res) => {
     }
 });
 
-const ERLAUBTE_AP_ROLLEN = ['koordination', 'mitwirkende', 'lesezugriff'];
-
 // POST /:id/mitglieder
 router.post('/:id/mitglieder', requireFlowPaketRolle(NUR_KOORDINATION), async (req, res) => {
     try {
@@ -104,7 +102,7 @@ router.post('/:id/mitglieder', requireFlowPaketRolle(NUR_KOORDINATION), async (r
         if (isNaN(userId) || !rolle) {
             return res.status(400).json({ error: 'userId und rolle sind erforderlich' });
         }
-        if (!ERLAUBTE_AP_ROLLEN.includes(rolle)) {
+        if (!ALLE.includes(rolle)) {
             return res.status(400).json({ error: 'Rolle muss koordination, mitwirkende oder lesezugriff sein' });
         }
         const mitglied = await flowService.addMitglied(
@@ -122,7 +120,7 @@ router.post('/:id/mitglieder', requireFlowPaketRolle(NUR_KOORDINATION), async (r
 router.patch('/:id/mitglieder/:uid', requireFlowPaketRolle(NUR_KOORDINATION), async (req, res) => {
     try {
         const { rolle } = req.body;
-        if (!rolle || !ERLAUBTE_AP_ROLLEN.includes(rolle)) {
+        if (!rolle || !ALLE.includes(rolle)) {
             return res.status(400).json({ error: 'Rolle muss koordination, mitwirkende oder lesezugriff sein' });
         }
         const mitglied = await flowService.updateMitgliedRolle(
