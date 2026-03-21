@@ -33,7 +33,7 @@ export function TagungDetailPage() {
     const [aufgabeZustaendig, setAufgabeZustaendig] = useState('');
     const [error, setError] = useState('');
 
-    const { data: tagung, isLoading } = useQuery<FlowTagung>({
+    const { data: tagung, isLoading, isError } = useQuery<FlowTagung>({
         queryKey: ['flow', 'tagung', id],
         queryFn: () => api.flow.getTagung(tagungId),
         enabled: !!id,
@@ -86,6 +86,10 @@ export function TagungDetailPage() {
 
     if (isLoading) {
         return <div className="flow-empty"><div className="flow-empty__text">Laden...</div></div>;
+    }
+
+    if (isError) {
+        return <div className="flow-empty"><div className="flow-empty__text">Fehler beim Laden der Tagung</div></div>;
     }
 
     if (!tagung) {
@@ -239,9 +243,13 @@ export function TagungDetailPage() {
                                                             placeholder="Aufgabentitel" style={fieldStyle} autoFocus />
                                                     </div>
                                                     <div style={{ flex: 1 }}>
-                                                        <label style={labelStyle}>Zustaendig (User-ID) *</label>
-                                                        <input type="number" value={aufgabeZustaendig} onChange={(e) => setAufgabeZustaendig(e.target.value)}
-                                                            placeholder="User-ID" style={fieldStyle} />
+                                                        <label style={labelStyle}>Zustaendig *</label>
+                                                        <select value={aufgabeZustaendig} onChange={(e) => setAufgabeZustaendig(e.target.value)} style={fieldStyle}>
+                                                            <option value="">-- Auswaehlen --</option>
+                                                            {Array.isArray(tagung.teilnehmende) && tagung.teilnehmende.map((t) => (
+                                                                <option key={t.userId} value={t.userId}>{t.vorname} {t.nachname}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: 8 }}>

@@ -111,7 +111,7 @@ export function ArbeitspaketPage() {
     const createAufgabeMutation = useMutation({
         mutationFn: () => api.flow.createAufgabe(paketId, {
             titel: aufgabeTitel.trim(),
-            zustaendig: aufgabeZustaendig!,
+            zustaendig: aufgabeZustaendig ?? 0,
             deadline: aufgabeDeadline || null,
         }),
         onSuccess: () => {
@@ -127,6 +127,7 @@ export function ArbeitspaketPage() {
     const deleteAufgabeMutation = useMutation({
         mutationFn: (aufgabeId: number) => api.flow.deleteAufgabe(aufgabeId),
         onSuccess: invalidateAll,
+        onError: () => setError('Aufgabe konnte nicht geloescht werden'),
     });
 
     const paketStatusMutation = useMutation({
@@ -141,6 +142,7 @@ export function ArbeitspaketPage() {
             queryClient.invalidateQueries({ queryKey: ['flow'] });
             navigate(-1);
         },
+        onError: () => setError('Arbeitspaket konnte nicht geloescht werden'),
     });
 
     const abschliessenMutation = useMutation({
@@ -175,6 +177,7 @@ export function ArbeitspaketPage() {
         mutationFn: ({ userId, rolle }: { userId: number; rolle: string }) =>
             api.flow.updateMitgliedRolle(paketId, userId, rolle),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['flow', 'mitglieder', id] }),
+        onError: () => setError('Rolle konnte nicht geaendert werden'),
     });
 
     const removeMitgliedMutation = useMutation({
@@ -183,6 +186,7 @@ export function ArbeitspaketPage() {
             queryClient.invalidateQueries({ queryKey: ['flow', 'mitglieder', id] });
             invalidateAll();
         },
+        onError: () => setError('Mitglied konnte nicht entfernt werden'),
     });
 
     const addDateiMutation = useMutation({
@@ -204,6 +208,7 @@ export function ArbeitspaketPage() {
     const deleteDateiMutation = useMutation({
         mutationFn: (dateiId: number) => api.flow.deleteDatei(dateiId),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['flow', 'dateien', id] }),
+        onError: () => setError('Datei konnte nicht entfernt werden'),
     });
 
     const createTagungMutation = useMutation({
@@ -415,7 +420,7 @@ export function ArbeitspaketPage() {
                                     <button className="flow-btn flow-btn--secondary flow-btn--sm" onClick={() => setShowAufgabeForm(false)}>Abbrechen</button>
                                     <button className="flow-btn flow-btn--primary flow-btn--sm"
                                         onClick={() => createAufgabeMutation.mutate()}
-                                        disabled={!aufgabeTitel.trim() || createAufgabeMutation.isPending}>
+                                        disabled={!aufgabeTitel.trim() || aufgabeZustaendig === null || createAufgabeMutation.isPending}>
                                         Erstellen
                                     </button>
                                 </div>
