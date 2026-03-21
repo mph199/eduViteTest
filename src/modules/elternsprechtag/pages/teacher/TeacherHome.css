@@ -250,7 +250,7 @@
 .teacher-home__flow-banner {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #3b6de0 0%, #2851b0 60%, #1e3f8f 100%);
+  background: linear-gradient(135deg, var(--flow-brand) 0%, var(--flow-brand-dark) 60%, var(--brand-primary-dark) 100%);
   border-radius: 14px;
   padding: 1.2rem 1.3rem;
   color: var(--color-white);
@@ -259,7 +259,7 @@
 }
 
 .teacher-home__flow-banner:hover {
-  box-shadow: 0 6px 24px rgba(59, 109, 224, 0.3);
+  box-shadow: 0 6px 24px rgba(var(--flow-brand-rgb), 0.3);
   transform: translateY(-1px);
 }
 
@@ -288,7 +288,7 @@
   margin: 0.25rem 0 0;
   font-size: 0.88rem;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(var(--color-white-rgb), 0.82);
 }
 
 .teacher-home__flow-banner-btn {
@@ -299,7 +299,7 @@
   padding: 0.55rem 1.1rem;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #3b6de0;
+  color: var(--flow-brand);
   background: var(--color-white);
   border: none;
   border-radius: 8px;
@@ -309,7 +309,7 @@
 }
 
 .teacher-home__flow-banner-btn:hover {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(var(--color-white-rgb), 0.92);
   transform: translateX(2px);
 }
 
@@ -333,7 +333,7 @@
 .teacher-home__flow-node {
   position: absolute;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(var(--color-white-rgb), 0.18);
 }
 
 .teacher-home__flow-node--1 {
@@ -341,7 +341,7 @@
   height: 10px;
   top: 20%;
   right: 75%;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(var(--color-white-rgb), 0.3);
 }
 
 .teacher-home__flow-node--2 {
@@ -349,7 +349,7 @@
   height: 14px;
   top: 45%;
   right: 40%;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(var(--color-white-rgb), 0.25);
 }
 
 .teacher-home__flow-node--3 {
@@ -357,7 +357,7 @@
   height: 8px;
   top: 22%;
   right: 12%;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(var(--color-white-rgb), 0.35);
 }
 
 /* ── Responsive ── */

@@ -50,7 +50,7 @@ function getBaseUrl(req) {
 
 // ── GET /api/auth/providers – Liste aktiver Provider (public) ──
 
-router.get('/providers', async (_req, res) => {
+router.get('/providers', oauthLimiter, async (_req, res) => {
     try {
         const providers = await getEnabledProviders();
         res.json(providers);

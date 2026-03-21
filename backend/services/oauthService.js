@@ -169,15 +169,6 @@ export async function exchangeCode(provider, code, codeVerifier, redirectUri, di
     return res.json();
 }
 
-// ── ID Token Parsing (basic – full validation with JWKS in production) ──
-
-export function parseIdToken(idToken) {
-    const parts = idToken.split('.');
-    if (parts.length !== 3) throw new Error('Ungueltiges ID-Token-Format');
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-    return payload;
-}
-
 // ── JWKS Validation ──
 
 const jwksCache = new Map();
@@ -219,13 +210,17 @@ export async function validateIdToken(idToken, provider, discovery) {
         throw new Error('Audience stimmt nicht mit client_id ueberein');
     }
 
-    // Validate expiry
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        throw new Error('ID-Token ist abgelaufen');
+    // Validate expiry (mandatory per OIDC spec)
+    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
+        throw new Error('ID-Token ist abgelaufen oder hat keinen exp-Claim');
     }
 
-    // Validate signature with JWKS
-    if (discovery.jwks_uri) {
+    // Validate signature with JWKS (mandatory)
+    if (!discovery.jwks_uri) {
+        throw new Error('jwks_uri fehlt im Discovery-Dokument – Signaturvalidierung nicht moeglich');
+    }
+
+    {
         const keys = await fetchJWKS(discovery.jwks_uri);
         const matchingKey = keys.find((k) => k.kid === header.kid);
         if (!matchingKey) {
@@ -235,15 +230,19 @@ export async function validateIdToken(idToken, provider, discovery) {
         const signatureInput = `${parts[0]}.${parts[1]}`;
         const signature = Buffer.from(parts[2], 'base64url');
 
-        const algMap = { RS256: 'RSA-SHA256', RS384: 'RSA-SHA384', RS512: 'RSA-SHA512' };
+        const algMap = {
+            RS256: 'RSA-SHA256', RS384: 'RSA-SHA384', RS512: 'RSA-SHA512',
+            ES256: 'SHA256', ES384: 'SHA384', ES512: 'SHA512',
+        };
         const alg = algMap[header.alg];
         if (!alg) {
             throw new Error(`Nicht unterstuetzter Algorithmus: ${header.alg}`);
         }
 
+        const verifyOpts = header.alg.startsWith('ES') ? { dsaEncoding: 'ieee-p1363' } : undefined;
         const isValid = crypto.createVerify(alg)
             .update(signatureInput)
-            .verify(publicKey, signature);
+            .verify({ key: publicKey, ...(verifyOpts ? { dsaEncoding: verifyOpts.dsaEncoding } : {}) }, signature);
         if (!isValid) {
             throw new Error('ID-Token-Signatur ungueltig');
         }
@@ -318,7 +317,12 @@ export async function matchOrCreateUser(claims, provider) {
     }
 
     // Create new user (teacher role, no password)
-    const username = email.split('@')[0];
+    let username = email.split('@')[0];
+    // Ensure unique username
+    const existing = await query(`SELECT id FROM users WHERE username = $1`, [username]);
+    if (existing.rows.length > 0) {
+        username = `${username}_${Date.now() % 10000}`;
+    }
     const newUser = await query(
         `INSERT INTO users (username, email, role, password_hash)
          VALUES ($1, $2, 'teacher', NULL)
