@@ -32,8 +32,8 @@
 
 ## Planung
 
-- [IONOS Migration](planning/ionos-migration.md) -- Migrationsfahrplan Supabase → IONOS
-- [Docker Roadmap](planning/docker-roadmap.md) -- Docker-Infrastruktur, Phasen 1-4
+- [IONOS Migration](planning/ionos-migration.md) -- Migrationshistorie: Supabase → VPS-Docker
+- [Docker Roadmap](planning/docker-roadmap.md) -- Docker-Infrastruktur, Phasen 1-14
 - [OAuth Integration](planning/oauth-integration.md) -- OAuth/OIDC-Anbindung (Logineo, MS365, OX)
 - [WebDAV Integration](planning/webdav-integration.md) -- WebDAV-Anbindung fuer Schul-Cloudspeicher
 - [Slot-Vorschlaege UX](planning/slot-suggestions-ux.md) -- Terminanzeige: 5 Vorschlaege + "Weitere anzeigen"

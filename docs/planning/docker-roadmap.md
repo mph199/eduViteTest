@@ -294,7 +294,7 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 > **Stand: 2026-03-21** – Phasen 1-7, 11, 12 (SSW), 14 (Responsive) abgeschlossen.
 > DSGVO P0+P1 komplett. Naechste Schritte: VPS-Launch-Checkliste (HTTPS, Security-Headers,
-> Docker-Netzwerk-Isolation), IONOS-Migration (Domain/SSL, Frontend Deploy, Smoke-Tests),
+> Docker-Netzwerk-Isolation), VPS-Finalisierung (Domain/SSL, Smoke-Tests),
 > dann Phase 8 (MS365 Login) und Phase 10 (Erinnerungen) als Post-Launch Features.
 
 ---
