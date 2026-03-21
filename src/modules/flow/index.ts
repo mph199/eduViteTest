@@ -40,32 +40,19 @@ const flowModule: ModuleDefinition = {
     requiredModule: 'flow',
     // Kein PublicPage – rein internes Modul
     teacherBasePath: '/teacher/flow',
-    adminRoutes: [
-        {
-            path: '/admin/flow/abteilung',
-            label: 'Flow Abteilungssicht',
-            Component: AbteilungPage,
-        },
-        {
-            path: '/admin/flow/bgl',
-            label: 'Bildungsgang-Verwaltung',
-            Component: AdminBGLVerwaltung,
-        },
-    ],
     teacherLayout: FlowLayout,
     teacherRoutes: [
         { index: true, Component: FlowDashboard },
         { path: 'aufgaben', Component: MeineAufgabenPage },
         { path: 'bildungsgang/:id', Component: BildungsgangPage },
         { path: 'arbeitspaket/:id', Component: ArbeitspaketPage },
+        { path: 'admin/bgl', Component: AdminBGLVerwaltung },
+        { path: 'admin/abteilung', Component: AbteilungPage },
     ],
     sidebarNav: {
         label: 'Flow',
         items: [
-            { path: '/admin/flow/bgl', label: 'Bildungsgang-Verwaltung', roles: ['admin', 'superadmin'] },
-            { path: '/admin/flow/abteilung', label: 'Abteilungssicht', roles: ['admin', 'superadmin'] },
-            { path: '/teacher/flow', label: 'Dashboard' },
-            { path: '/teacher/flow/aufgaben', label: 'Meine Aufgaben' },
+            { path: '/teacher/flow', label: "Hier geht's zu Flow" },
         ],
     },
 };

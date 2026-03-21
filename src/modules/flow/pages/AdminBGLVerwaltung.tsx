@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import api from '../../../services/api';
 import type { FlowBildungsgangRolle } from '../../../types/index';
 import '../flow.css';
@@ -30,11 +29,7 @@ interface FlowUser {
     role: string;
 }
 
-const queryClient = new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
-});
-
-function BGLVerwaltungInner() {
+export function AdminBGLVerwaltung() {
     const qc = useQueryClient();
     const [selectedBgId, setSelectedBgId] = useState<number | null>(null);
     const [neuerName, setNeuerName] = useState('');
@@ -296,10 +291,3 @@ function BGLVerwaltungInner() {
     );
 }
 
-export function AdminBGLVerwaltung() {
-    return (
-        <QueryClientProvider client={queryClient}>
-            <BGLVerwaltungInner />
-        </QueryClientProvider>
-    );
-}

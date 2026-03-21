@@ -17,10 +17,14 @@ function parseId(value) {
 router.get('/users', async (_req, res) => {
     try {
         const result = await query(
-            `SELECT u.id, u.username, u.vorname, u.nachname, u.role
+            `SELECT u.id, u.username,
+                    COALESCE(t.first_name, '') AS vorname,
+                    COALESCE(t.last_name, '') AS nachname,
+                    u.role
              FROM users u
+             LEFT JOIN teachers t ON t.id = u.teacher_id
              WHERE u.role IN ('teacher', 'admin', 'superadmin')
-             ORDER BY u.nachname, u.vorname, u.username`
+             ORDER BY t.last_name NULLS LAST, t.first_name NULLS LAST, u.username`
         );
         res.json(result.rows);
     } catch (err) {

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
+import { useAuth } from '../../../contexts/useAuth';
 
 interface NavItem {
     path: string;
@@ -12,6 +13,9 @@ interface NavItem {
 export function FlowSidebar() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
     const { data: dashboard } = useQuery({
         queryKey: ['flow', 'dashboard'],
@@ -38,12 +42,39 @@ export function FlowSidebar() {
         },
     ];
 
+    const adminNav: NavItem[] = isAdmin ? [
+        {
+            path: '/teacher/flow/admin/bgl',
+            label: 'Bildungsgang-Verwaltung',
+            icon: '\u2699',
+        },
+        {
+            path: '/teacher/flow/admin/abteilung',
+            label: 'Abteilungssicht',
+            icon: '\u25A4',
+        },
+    ] : [];
+
     const isActive = (path: string) => {
         if (path === '/teacher/flow') {
             return location.pathname === '/teacher/flow' || location.pathname === '/teacher/flow/';
         }
         return location.pathname.startsWith(path);
     };
+
+    const renderNavItem = (item: NavItem) => (
+        <button
+            key={item.path}
+            className={`flow-sidebar__link ${isActive(item.path) ? 'flow-sidebar__link--active' : ''}`}
+            onClick={() => navigate(item.path)}
+        >
+            <span className="flow-sidebar__link-icon">{item.icon}</span>
+            {item.label}
+            {item.badge !== undefined && item.badge > 0 && (
+                <span className="flow-sidebar__badge">{item.badge}</span>
+            )}
+        </button>
+    );
 
     return (
         <aside className="flow-sidebar">
@@ -53,19 +84,7 @@ export function FlowSidebar() {
             </div>
 
             <nav className="flow-sidebar__nav">
-                {hauptNav.map((item) => (
-                    <button
-                        key={item.path}
-                        className={`flow-sidebar__link ${isActive(item.path) ? 'flow-sidebar__link--active' : ''}`}
-                        onClick={() => navigate(item.path)}
-                    >
-                        <span className="flow-sidebar__link-icon">{item.icon}</span>
-                        {item.label}
-                        {item.badge !== undefined && item.badge > 0 && (
-                            <span className="flow-sidebar__badge">{item.badge}</span>
-                        )}
-                    </button>
-                ))}
+                {hauptNav.map(renderNavItem)}
 
                 {Array.isArray(bildungsgaenge) && bildungsgaenge.length > 0 && (
                     <>
@@ -80,6 +99,13 @@ export function FlowSidebar() {
                                 {bg.name}
                             </button>
                         ))}
+                    </>
+                )}
+
+                {adminNav.length > 0 && (
+                    <>
+                        <div className="flow-sidebar__section-label">Administration</div>
+                        {adminNav.map(renderNavItem)}
                     </>
                 )}
             </nav>

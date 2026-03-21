@@ -23,11 +23,15 @@ export async function getBildungsgangDetail(bildungsgangId) {
     if (bgResult.rows.length === 0) return null;
 
     const mitgliederResult = await query(
-        `SELECT bgm.id, bgm.user_id, u.vorname, u.nachname, bgm.rolle, bgm.hinzugefuegt_am
+        `SELECT bgm.id, bgm.user_id,
+                COALESCE(t.first_name, '') AS vorname,
+                COALESCE(t.last_name, u.username) AS nachname,
+                bgm.rolle, bgm.hinzugefuegt_am
          FROM flow_bildungsgang_mitglied bgm
          JOIN users u ON u.id = bgm.user_id
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE bgm.bildungsgang_id = $1
-         ORDER BY bgm.rolle DESC, u.nachname`,
+         ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
         [bildungsgangId]
     );
 
@@ -76,11 +80,15 @@ export async function createBildungsgang(name, erlaubtMitgliedernPaketErstellung
 
 export async function getBildungsgangMitglieder(bildungsgangId) {
     const result = await query(
-        `SELECT bgm.id, bgm.user_id, u.vorname, u.nachname, bgm.rolle, bgm.hinzugefuegt_am
+        `SELECT bgm.id, bgm.user_id,
+                COALESCE(t.first_name, '') AS vorname,
+                COALESCE(t.last_name, u.username) AS nachname,
+                bgm.rolle, bgm.hinzugefuegt_am
          FROM flow_bildungsgang_mitglied bgm
          JOIN users u ON u.id = bgm.user_id
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE bgm.bildungsgang_id = $1
-         ORDER BY bgm.rolle DESC, u.nachname`,
+         ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
         [bildungsgangId]
     );
     return result.rows;
@@ -151,11 +159,15 @@ export async function getArbeitspaketDetail(paketId, userId) {
     if (apResult.rows.length === 0) return null;
 
     const mitgliederResult = await query(
-        `SELECT apm.id, apm.user_id, u.vorname, u.nachname, apm.rolle, apm.hinzugefuegt_am
+        `SELECT apm.id, apm.user_id,
+                COALESCE(t.first_name, '') AS vorname,
+                COALESCE(t.last_name, u.username) AS nachname,
+                apm.rolle, apm.hinzugefuegt_am
          FROM flow_arbeitspaket_mitglied apm
          JOIN users u ON u.id = apm.user_id
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE apm.arbeitspaket_id = $1
-         ORDER BY apm.rolle, u.nachname`,
+         ORDER BY apm.rolle, t.last_name NULLS LAST`,
         [paketId]
     );
 
@@ -303,11 +315,15 @@ export async function wiederaufnehmenArbeitspaket(paketId, userId) {
 
 export async function getMitglieder(paketId) {
     const result = await query(
-        `SELECT apm.id, apm.user_id, u.vorname, u.nachname, apm.rolle, apm.hinzugefuegt_am
+        `SELECT apm.id, apm.user_id,
+                COALESCE(t.first_name, '') AS vorname,
+                COALESCE(t.last_name, u.username) AS nachname,
+                apm.rolle, apm.hinzugefuegt_am
          FROM flow_arbeitspaket_mitglied apm
          JOIN users u ON u.id = apm.user_id
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE apm.arbeitspaket_id = $1
-         ORDER BY apm.rolle, u.nachname`,
+         ORDER BY apm.rolle, t.last_name NULLS LAST`,
         [paketId]
     );
     return result.rows;
@@ -357,9 +373,12 @@ export async function removeMitglied(paketId, userId, akteur) {
 
 export async function getAufgaben(paketId) {
     const result = await query(
-        `SELECT a.*, u.vorname AS zustaendig_vorname, u.nachname AS zustaendig_nachname
+        `SELECT a.*,
+                COALESCE(t.first_name, '') AS zustaendig_vorname,
+                COALESCE(t.last_name, u.username) AS zustaendig_nachname
          FROM flow_aufgabe a
          LEFT JOIN users u ON u.id = a.zustaendig
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE a.arbeitspaket_id = $1
          ORDER BY a.status, a.deadline NULLS LAST, a.created_at`,
         [paketId]
@@ -459,10 +478,12 @@ export async function getMeineAufgaben(userId, filter = {}) {
 
     const result = await query(
         `SELECT a.*, ap.titel AS arbeitspaket_titel,
-                u.vorname AS zustaendig_vorname, u.nachname AS zustaendig_nachname
+                COALESCE(t.first_name, '') AS zustaendig_vorname,
+                COALESCE(t.last_name, u.username) AS zustaendig_nachname
          FROM flow_aufgabe a
          JOIN flow_arbeitspaket ap ON ap.id = a.arbeitspaket_id
          LEFT JOIN users u ON u.id = a.zustaendig
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE ${where}
          ORDER BY a.deadline NULLS LAST, a.created_at`,
         values
@@ -514,11 +535,14 @@ export async function getTagungDetail(tagungId) {
     if (tagungResult.rows.length === 0) return null;
 
     const teilnehmerResult = await query(
-        `SELECT tt.user_id, u.vorname, u.nachname
+        `SELECT tt.user_id,
+                COALESCE(t.first_name, '') AS vorname,
+                COALESCE(t.last_name, u.username) AS nachname
          FROM flow_tagung_teilnehmer tt
          JOIN users u ON u.id = tt.user_id
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE tt.tagung_id = $1
-         ORDER BY u.nachname`,
+         ORDER BY t.last_name NULLS LAST`,
         [tagungId]
     );
 
@@ -615,9 +639,12 @@ export async function dokumentiereAgendaPunkt(punktId, data) {
 
 export async function getDateien(paketId) {
     const result = await query(
-        `SELECT d.*, u.vorname AS hochgeladen_von_vorname, u.nachname AS hochgeladen_von_nachname
+        `SELECT d.*,
+                COALESCE(t.first_name, '') AS hochgeladen_von_vorname,
+                COALESCE(t.last_name, u.username) AS hochgeladen_von_nachname
          FROM flow_datei d
          LEFT JOIN users u ON u.id = d.hochgeladen_von
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE d.arbeitspaket_id = $1
          ORDER BY d.created_at DESC`,
         [paketId]
@@ -723,9 +750,12 @@ export async function getAbteilungsUebersicht() {
 
 export async function getAktivitaeten(paketId, limit = 20) {
     const result = await query(
-        `SELECT a.*, u.vorname AS akteur_vorname, u.nachname AS akteur_nachname
+        `SELECT a.*,
+                COALESCE(t.first_name, '') AS akteur_vorname,
+                COALESCE(t.last_name, u.username) AS akteur_nachname
          FROM flow_aktivitaet a
          LEFT JOIN users u ON u.id = a.akteur
+         LEFT JOIN teachers t ON t.id = u.teacher_id
          WHERE a.arbeitspaket_id = $1
          ORDER BY a.created_at DESC
          LIMIT $2`,
