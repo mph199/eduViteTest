@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
+import { fieldStyle, labelStyle } from '../components/formStyles';
 import '../flow.css';
 
 export function ArbeitspaketErstellenPage() {
@@ -45,25 +46,6 @@ export function ArbeitspaketErstellenPage() {
         createMutation.mutate();
     };
 
-    const fieldStyle: React.CSSProperties = {
-        width: '100%',
-        padding: '8px 12px',
-        fontSize: 14,
-        border: '1px solid var(--flow-border)',
-        borderRadius: 8,
-        background: 'var(--flow-bg)',
-        color: 'var(--flow-text)',
-        resize: 'vertical' as const,
-    };
-
-    const labelStyle: React.CSSProperties = {
-        display: 'block',
-        marginBottom: 4,
-        fontSize: 13,
-        fontWeight: 600,
-        color: 'var(--flow-text)',
-    };
-
     return (
         <>
             <div className="flow-breadcrumb">
@@ -77,7 +59,9 @@ export function ArbeitspaketErstellenPage() {
             <h1 className="flow-page-title">Neues Arbeitspaket</h1>
             <p className="flow-page-subtitle">Erstellen Sie ein neues Arbeitspaket fuer diesen Bildungsgang</p>
 
-            {error && <div className="admin-error" style={{ marginBottom: 14 }}>{error}</div>}
+            {error && <div className="flow-hinweis-chip flow-hinweis-chip--alert" style={{ marginBottom: 14 }}>
+                <span className="flow-hinweis-chip__dot" />{error}
+            </div>}
 
             <div className="flow-panel" style={{ maxWidth: 680 }}>
                 <div className="flow-panel__body">
