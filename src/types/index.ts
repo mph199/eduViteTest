@@ -597,3 +597,33 @@ export interface OAuthProvider {
   providerKey: string;
   displayName: string;
 }
+
+export interface OAuthProviderFull {
+  id: number;
+  provider_key: string;
+  display_name: string;
+  enabled: boolean;
+  client_id: string;
+  discovery_url: string;
+  scopes: string;
+  email_claim: string;
+  name_claim: string;
+  allowed_domains: string | null;
+  auto_provisioning: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OAuthProviderFormData {
+  providerKey: string;
+  displayName: string;
+  clientId: string;
+  clientSecret: string;
+  discoveryUrl: string;
+  scopes: string;
+  emailClaim: string;
+  nameClaim: string;
+  allowedDomains: string;
+  autoProvisioning: boolean;
+  enabled: boolean;
+}

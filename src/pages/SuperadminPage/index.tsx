@@ -11,6 +11,7 @@ import { TextBrandingTab } from './TextBrandingTab';
 import { BackgroundImagesTab } from './BackgroundImagesTab';
 import { ModulesTab } from './ModulesTab';
 import { DataProtectionTab } from './DataProtectionTab';
+import { OAuthTab } from './OAuthTab';
 import '../SuperadminPage.css';
 
 const DEFAULT_EMAIL_BRANDING: EmailBranding = {
@@ -20,7 +21,7 @@ const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team',
 };
 
-type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts' | 'datenschutz';
+type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts' | 'datenschutz' | 'oauth';
 
 export function SuperadminPage() {
   const { user } = useAuth();
@@ -199,6 +200,9 @@ export function SuperadminPage() {
           <button type="button" className={`superadmin__tab ${activeTab === 'datenschutz' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('datenschutz')}>
             Datenschutz
           </button>
+          <button type="button" className={`superadmin__tab ${activeTab === 'oauth' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('oauth')}>
+            SSO / OAuth
+          </button>
         </div>
 
         {activeTab === 'modules' && (
@@ -258,6 +262,10 @@ export function SuperadminPage() {
 
         {activeTab === 'datenschutz' && (
           <DataProtectionTab />
+        )}
+
+        {activeTab === 'oauth' && (
+          <OAuthTab />
         )}
       </div>
     </div>

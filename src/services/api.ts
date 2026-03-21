@@ -604,6 +604,28 @@ const api = {
         body: JSON.stringify({ enabled }),
       });
     },
+    // ── OAuth Provider Management ─────────────────────
+    async getOAuthProviders() {
+      const res = await requestJSON('/superadmin/oauth/providers');
+      return Array.isArray(res) ? res : [];
+    },
+    async createOAuthProvider(payload: Record<string, unknown>) {
+      return requestJSON('/superadmin/oauth/providers', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateOAuthProvider(id: number, payload: Record<string, unknown>) {
+      return requestJSON(`/superadmin/oauth/providers/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+    },
+    async deleteOAuthProvider(id: number) {
+      return requestJSON(`/superadmin/oauth/providers/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+    },
   },
 
   // Flow – Kollaborationsformat
