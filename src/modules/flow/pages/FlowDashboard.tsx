@@ -108,7 +108,8 @@ export function FlowDashboard() {
                 <div className="flow-panel__body--flush">
                     {Array.isArray(dashboard.naechsteTagungen) && dashboard.naechsteTagungen.length > 0 ? (
                         dashboard.naechsteTagungen.map((tagung) => (
-                            <div key={tagung.id} className="flow-task-row">
+                            <div key={tagung.id} className="flow-task-row" style={{ cursor: 'pointer' }}
+                                onClick={() => navigate(`/teacher/flow/tagung/${tagung.id}`)}>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--flow-text)' }}>{tagung.titel}</div>
                                     <div style={{ fontSize: 11, color: 'var(--flow-text-muted)', marginTop: 2 }}>

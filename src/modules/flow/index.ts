@@ -33,6 +33,10 @@ const AdminBGLVerwaltung = lazy(() =>
     import('./pages/AdminBGLVerwaltung').then((m) => ({ default: m.AdminBGLVerwaltung }))
 );
 
+const TagungDetailPage = lazy(() =>
+    import('./pages/TagungDetailPage').then((m) => ({ default: m.TagungDetailPage }))
+);
+
 const flowModule: ModuleDefinition = {
     id: 'flow',
     title: 'Flow',
@@ -51,6 +55,7 @@ const flowModule: ModuleDefinition = {
         { path: 'bildungsgang/:id', Component: BildungsgangPage },
         { path: 'arbeitspaket/neu/:bildungsgangId', Component: ArbeitspaketErstellenPage },
         { path: 'arbeitspaket/:id', Component: ArbeitspaketPage },
+        { path: 'tagung/:id', Component: TagungDetailPage },
         { path: 'admin/bgl', Component: AdminBGLVerwaltung },
         { path: 'admin/abteilung', Component: AbteilungPage },
     ],

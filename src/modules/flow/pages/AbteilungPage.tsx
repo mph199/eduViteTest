@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/useAuth';
@@ -7,6 +8,7 @@ import type { FlowAbteilungsPaket } from '../../../types/index';
 
 export function AbteilungPage() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const { data: pakete, isLoading, isError } = useQuery<FlowAbteilungsPaket[]>({
         queryKey: ['flow', 'abteilung'],
         queryFn: () => api.flow.getAbteilungsPakete(),
@@ -49,8 +51,11 @@ export function AbteilungPage() {
                             </thead>
                             <tbody>
                                 {pakete.map((p) => (
-                                    <tr key={p.id} style={{ borderBottom: '1px solid var(--flow-border)' }}>
-                                        <td style={{ padding: '10px 18px' }}>{p.titel}</td>
+                                    <tr key={p.id}
+                                        style={{ borderBottom: '1px solid var(--flow-border)', cursor: 'pointer' }}
+                                        onClick={() => navigate(`/teacher/flow/arbeitspaket/${p.id}`)}
+                                    >
+                                        <td style={{ padding: '10px 18px', color: 'var(--flow-brand)', fontWeight: 500 }}>{p.titel}</td>
                                         <td style={{ padding: '10px 18px', color: 'var(--flow-text-muted)' }}>{p.bildungsgang}</td>
                                         <td style={{ padding: '10px 18px' }}><StatusBadge status={p.status} /></td>
                                         <td style={{ padding: '10px 18px' }}><DeadlineAnzeige deadline={p.deadline} /></td>

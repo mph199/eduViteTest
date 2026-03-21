@@ -107,12 +107,14 @@ export function requireFlowPaketRolle(erlaubteRollen) {
 
 Fuer den aggregierten Abteilungsleitungs-Endpunkt. Prueft gegen die **dedizierte Tabelle** `flow_abteilungsleitung` (keine Systemrolle).
 
+**Entscheidung (2026-03-21):** Bypass fuer `admin` UND `superadmin`, da Admins die Abteilungssicht zur Schulverwaltung benoetigen.
+
 ```js
 export async function requireFlowAbteilungsleitung(req, res, next) {
     const userId = req.user.id;
 
-    // Superadmin hat immer Zugriff auf die Abteilungssicht
-    if (req.user.role === 'superadmin') return next();
+    // Admin und Superadmin haben immer Zugriff auf die Abteilungssicht
+    if (['admin', 'superadmin'].includes(req.user.role)) return next();
 
     const result = await query(
         'SELECT 1 FROM flow_abteilungsleitung WHERE user_id = $1',
