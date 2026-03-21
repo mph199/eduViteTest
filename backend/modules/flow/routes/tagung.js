@@ -43,6 +43,9 @@ router.delete('/:id', requireFlowTagungZugang(NUR_KOORDINATION), async (req, res
 // POST /:id/agenda – Agenda-Punkt hinzufuegen
 router.post('/:id/agenda', requireFlowTagungZugang(SCHREIBEN), async (req, res) => {
     try {
+        if (!req.body.titel || !req.body.titel.trim()) {
+            return res.status(400).json({ error: 'Titel ist erforderlich' });
+        }
         const punkt = await flowService.addAgendaPunkt(parseInt(req.params.id), req.body);
         res.status(201).json(punkt);
     } catch (err) {

@@ -27,7 +27,7 @@ export function requireFlowBildungsgangRolle(minRolle) {
             }
 
             const rolle = result.rows[0].rolle;
-            if (BG_ROLLEN_HIERARCHIE[rolle] < BG_ROLLEN_HIERARCHIE[minRolle]) {
+            if (!(BG_ROLLEN_HIERARCHIE[rolle] >= BG_ROLLEN_HIERARCHIE[minRolle])) {
                 return res.status(403).json({ error: 'Bildungsgangleitung erforderlich' });
             }
 
