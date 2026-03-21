@@ -1,17 +1,33 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
+import { useAuth } from '../../../contexts/useAuth';
 import { StatusBadge } from '../components/StatusBadge';
 import { DeadlineAnzeige } from '../components/DeadlineAnzeige';
 import type { FlowAbteilungsPaket } from '../../../types/index';
 
 export function AbteilungPage() {
-    const { data: pakete, isLoading } = useQuery<FlowAbteilungsPaket[]>({
+    const { user } = useAuth();
+    const { data: pakete, isLoading, isError } = useQuery<FlowAbteilungsPaket[]>({
         queryKey: ['flow', 'abteilung'],
         queryFn: () => api.flow.getAbteilungsPakete(),
+        enabled: user?.role === 'admin' || user?.role === 'superadmin',
     });
+
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    if (!isAdmin) {
+        return (
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur fuer Administratoren</div></div>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return <div className="flow-empty"><div className="flow-empty__text">Laden...</div></div>;
+    }
+
+    if (isError) {
+        return <div className="flow-empty"><div className="flow-empty__text">Fehler beim Laden der Abteilungsdaten</div></div>;
     }
 
     return (

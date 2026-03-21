@@ -19,7 +19,7 @@ router.get('/users', async (_req, res) => {
         const result = await query(
             `SELECT u.id, u.username,
                     COALESCE(t.first_name, '') AS vorname,
-                    COALESCE(t.last_name, '') AS nachname,
+                    COALESCE(t.last_name, u.username) AS nachname,
                     u.role
              FROM users u
              LEFT JOIN teachers t ON t.id = u.teacher_id

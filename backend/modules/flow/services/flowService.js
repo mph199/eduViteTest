@@ -435,9 +435,10 @@ export async function updateAufgabe(aufgabeId, data) {
 }
 
 export async function updateAufgabeStatus(aufgabeId, status, userId) {
-    const erledigtAt = status === 'erledigt' ? 'NOW()' : 'NULL';
     const result = await query(
-        `UPDATE flow_aufgabe SET status = $1, erledigt_at = ${erledigtAt}, updated_at = NOW()
+        `UPDATE flow_aufgabe SET status = $1,
+         erledigt_at = CASE WHEN $1 = 'erledigt' THEN NOW() ELSE NULL END,
+         updated_at = NOW()
          WHERE id = $2
          RETURNING *`,
         [status, aufgabeId]

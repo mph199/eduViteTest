@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
+import { useAuth } from '../../../contexts/useAuth';
 import type { FlowBildungsgangRolle } from '../../../types/index';
 import '../flow.css';
 
@@ -30,11 +31,21 @@ interface FlowUser {
 }
 
 export function AdminBGLVerwaltung() {
+    const { user } = useAuth();
     const qc = useQueryClient();
     const [selectedBgId, setSelectedBgId] = useState<number | null>(null);
     const [neuerName, setNeuerName] = useState('');
     const [neuerUserRolle, setNeuerUserRolle] = useState<FlowBildungsgangRolle>('mitglied');
     const [neuerUserId, setNeuerUserId] = useState<number | ''>('');
+
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    if (!isAdmin) {
+        return (
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur fuer Administratoren</div></div>
+            </div>
+        );
+    }
 
     // ── Queries ──
     const { data: bildungsgaenge = [], isLoading: bgLoading } = useQuery<BGListItem[]>({
