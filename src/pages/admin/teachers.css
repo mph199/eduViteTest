@@ -690,6 +690,15 @@
   white-space: nowrap;
 }
 
+.reset-feedback {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.reset-feedback .btn-secondary {
+  margin-left: 0.5rem;
+}
+
 /* Match confirm (btn-primary) to cancel button sizing within table actions */
 .action-buttons .btn-primary {
   padding: 0.5rem 0.85rem;

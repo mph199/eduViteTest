@@ -38,9 +38,9 @@ function ResetLoginButton({ teacher, className }: { teacher: ApiTeacher; classNa
         <span aria-hidden="true">↺</span> Login zuruecksetzen
       </button>
       {feedback && (
-        <div className={feedback.type === 'success' ? 'admin-success' : 'admin-error'} style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+        <div className={`reset-feedback ${feedback.type === 'success' ? 'admin-success' : 'admin-error'}`}>
           {feedback.message}
-          <button type="button" className="btn-secondary btn-secondary--sm" style={{ marginLeft: '0.5rem' }} onClick={() => setFeedback(null)}>OK</button>
+          <button type="button" className="btn-secondary btn-secondary--sm" onClick={() => setFeedback(null)}>OK</button>
         </div>
       )}
     </>
