@@ -28,7 +28,7 @@ export function BLSprechzeitenTab({ profile, initialSchedule, showFlash }: Props
       await api.bl.updateSchedule(schedule);
       showFlash('Sprechzeiten gespeichert.');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Speichern');
     } finally {
       setSaving(false);
     }

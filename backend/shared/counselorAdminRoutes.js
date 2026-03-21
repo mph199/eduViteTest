@@ -27,6 +27,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '../config/db.js';
 import { generateSlotsForDateRange, upsertWeeklySchedule } from './counselorService.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
+import { generateUsername } from './generateUsername.js';
 import logger from '../config/logger.js';
 import { validatePassword } from './validatePassword.js';
 

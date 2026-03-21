@@ -22,7 +22,7 @@ export function SSWCategoriesTab({ categories, showFlash, loadData }: Props) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { alert('Name ist Pflicht.'); return; }
+    if (!form.name.trim()) { showFlash('Name ist Pflicht.'); return; }
     try {
       if (editingId) {
         await api.ssw.updateCategory(editingId, form);
@@ -36,7 +36,7 @@ export function SSWCategoriesTab({ categories, showFlash, loadData }: Props) {
       setForm(emptyCategory);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
+      showFlash(err instanceof Error ? err.message : 'Fehler');
     }
   };
 

@@ -17,7 +17,7 @@ export function BLTopicsTab({ topics, showFlash, loadAdminData }: Props) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { alert('Name ist Pflicht.'); return; }
+    if (!form.name.trim()) { showFlash('Name ist Pflicht.'); return; }
     try {
       if (editingId) {
         await api.bl.updateTopic(editingId, form);
@@ -31,7 +31,7 @@ export function BLTopicsTab({ topics, showFlash, loadAdminData }: Props) {
       setForm(emptyTopic);
       loadAdminData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
+      showFlash(err instanceof Error ? err.message : 'Fehler');
     }
   };
 

@@ -3,6 +3,7 @@ import { requireSuperadmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import logger from '../../config/logger.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
+import { writeAuditLog } from '../../middleware/audit-log.js';
 
 const router = express.Router();
 
@@ -11,21 +12,6 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/**
- * Log an action to the audit_log table (fire-and-forget).
- */
-async function auditLog(userId, action, tableName, recordId, details, ipAddress) {
-  try {
-    await query(
-      `INSERT INTO audit_log (user_id, action, table_name, record_id, details, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, action, tableName, recordId, details ? JSON.stringify(details) : '{}', ipAddress]
-    );
-  } catch (err) {
-    logger.error({ err, action, tableName }, 'Failed to write audit log');
-  }
-}
 
 /**
  * Collect all PII for a given email across all relevant tables.
@@ -136,7 +122,7 @@ router.get('/data-subject/search', requireSuperadmin, async (req, res) => {
     const data = await collectPersonData(email.trim());
     const totalRecords = Object.values(data).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
 
-    await auditLog(req.user?.id, 'READ', 'data_subject', null, { email: email.trim(), tables: Object.keys(data) }, req.ip);
+    await writeAuditLog(req.user?.id, 'READ', 'data_subject', null, { email: email.trim(), tables: Object.keys(data) }, req.ip);
 
     res.json({ email: email.trim(), total_records: totalRecords, data });
   } catch (err) {
@@ -158,7 +144,7 @@ router.get('/data-subject/export', requireSuperadmin, async (req, res) => {
 
     const data = await collectPersonData(email.trim());
 
-    await auditLog(req.user?.id, 'EXPORT', 'data_subject', null, { email: email.trim(), format }, req.ip);
+    await writeAuditLog(req.user?.id, 'EXPORT', 'data_subject', null, { email: email.trim(), format }, req.ip);
 
     if (format === 'csv') {
       const csv = dataToCsv(data);
@@ -261,7 +247,7 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
 
     const totalAnonymized = protocol.actions.reduce((sum, a) => sum + a.anonymized, 0);
 
-    await auditLog(req.user?.id, 'DELETE', 'data_subject', null, protocol, req.ip);
+    await writeAuditLog(req.user?.id, 'DELETE', 'data_subject', null, protocol, req.ip);
 
     res.json({
       message: `${totalAnonymized} Datensaetze anonymisiert`,
@@ -341,7 +327,7 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
       client.release();
     }
 
-    await auditLog(req.user?.id, 'WRITE', 'data_subject', null, {
+    await writeAuditLog(req.user?.id, 'WRITE', 'data_subject', null, {
       email: trimmedEmail,
       corrections,
       results,
@@ -386,7 +372,7 @@ router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
       }
     }
 
-    await auditLog(req.user?.id, 'RESTRICT', 'data_subject', null, {
+    await writeAuditLog(req.user?.id, 'RESTRICT', 'data_subject', null, {
       email: trimmedEmail,
       restricted,
       results,
@@ -518,7 +504,7 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
     const rows = Array.isArray(result.rows) ? result.rows : [];
     const truncated = rows.length >= EXPORT_LIMIT;
 
-    await auditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length, truncated }, req.ip);
+    await writeAuditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length, truncated }, req.ip);
 
     if (format === 'csv') {
       const headers = ['id', 'user_id', 'user_name', 'action', 'table_name', 'record_id', 'details', 'ip_address', 'created_at'];

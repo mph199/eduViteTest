@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActiveView } from '../../../hooks/useActiveView';
 import { useBgStyle } from '../../../hooks/useBgStyle';
+import { useFlash } from '../../../hooks/useFlash';
 import api from '../../../services/api';
 import type { TimeSlot as ApiSlot, Teacher as ApiTeacher, GenerateSlotsResponse } from '../../../types';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
@@ -18,6 +19,7 @@ export function AdminSlots() {
   const [editingSlot, setEditingSlot] = useState<ApiSlot | null>(null);
   const [formData, setFormData] = useState({ time: '', date: '' });
   const [bulkCreating, setBulkCreating] = useState(false);
+  const [flash, showFlash] = useFlash();
   useActiveView('admin');
   const adminBgStyle = useBgStyle('admin', '--page-bg');
 
@@ -60,12 +62,12 @@ export function AdminSlots() {
     e.preventDefault();
     
     if (!formData.time.trim() || !formData.date) {
-      alert('Bitte alle Felder ausfüllen');
+      showFlash('Bitte alle Felder ausfuellen');
       return;
     }
 
     if (!selectedTeacherId) {
-      alert('Bitte wählen Sie eine Lehrkraft aus');
+      showFlash('Bitte waehlen Sie eine Lehrkraft aus');
       return;
     }
 
@@ -83,7 +85,7 @@ export function AdminSlots() {
       setEditingSlot(null);
       setFormData({ time: '', date: '' });
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
   };
 
@@ -107,7 +109,7 @@ export function AdminSlots() {
         await loadSlots(selectedTeacherId);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Löschen');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Loeschen');
     }
   };
 
@@ -121,6 +123,7 @@ export function AdminSlots() {
 
   return (
     <AdminPageWrapper style={adminBgStyle}>
+        {flash && <div className="admin-success">{flash}</div>}
         <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Sprechzeiten verwalten</h3>
@@ -145,9 +148,9 @@ export function AdminSlots() {
                       const skipped = parsed?.skipped ?? 0;
                       const eventDate = parsed?.eventDate ?? null;
                       await loadSlots(selectedTeacherId);
-                      alert(`Sprechzeiten angelegt${eventDate ? ` (${eventDate})` : ''}: ${created}\nBereits vorhanden: ${skipped}`);
+                      showFlash(`Sprechzeiten angelegt${eventDate ? ` (${eventDate})` : ''}: ${created} | Bereits vorhanden: ${skipped}`);
                     } catch (err) {
-                      alert(err instanceof Error ? err.message : 'Fehler beim Anlegen der Sprechzeiten');
+                      showFlash(err instanceof Error ? err.message : 'Fehler beim Anlegen der Sprechzeiten');
                     } finally {
                       setBulkCreating(false);
                     }
