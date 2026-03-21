@@ -5,12 +5,18 @@ import api from '../../../services/api';
 import { StatusBadge } from '../components/StatusBadge';
 import { FortschrittsBalken } from '../components/FortschrittsBalken';
 import { DeadlineAnzeige } from '../components/DeadlineAnzeige';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { AufgabenTab } from '../components/AufgabenTab';
+import { TagungenTab } from '../components/TagungenTab';
+import { MitgliederTab } from '../components/MitgliederTab';
+import { DateienTab } from '../components/DateienTab';
+import { AktivitaetenTab } from '../components/AktivitaetenTab';
+import { fieldStyle, labelStyle } from '../components/formStyles';
 import type {
-    FlowArbeitspaket, FlowAufgabe, FlowAufgabenStatus,
-    FlowArbeitspaketMitglied, FlowArbeitspaketRolle,
+    FlowArbeitspaket, FlowAufgabe,
+    FlowArbeitspaketMitglied,
     FlowTagungSummary, FlowDatei, FlowAktivitaet,
 } from '../../../types/index';
-import { fieldStyle, labelStyle } from '../components/formStyles';
 
 type Tab = 'aufgaben' | 'tagungen' | 'mitglieder' | 'dateien' | 'aktivitaeten';
 
@@ -28,23 +34,9 @@ export function ArbeitspaketPage() {
     const paketId = Number(id);
 
     const [activeTab, setActiveTab] = useState<Tab>('aufgaben');
-    const [showAufgabeForm, setShowAufgabeForm] = useState(false);
-    const [aufgabeTitel, setAufgabeTitel] = useState('');
-    const [aufgabeZustaendig, setAufgabeZustaendig] = useState<number | null>(null);
-    const [aufgabeDeadline, setAufgabeDeadline] = useState('');
-    const [showMitgliedForm, setShowMitgliedForm] = useState(false);
-    const [neuesMitgliedId, setNeuesMitgliedId] = useState('');
-    const [neuesMitgliedRolle, setNeuesMitgliedRolle] = useState<FlowArbeitspaketRolle>('mitwirkende');
     const [showAbschluss, setShowAbschluss] = useState(false);
     const [abschlussText, setAbschlussText] = useState('');
     const [reflexionText, setReflexionText] = useState('');
-    const [showDateiForm, setShowDateiForm] = useState(false);
-    const [dateiName, setDateiName] = useState('');
-    const [dateiUrl, setDateiUrl] = useState('');
-    const [showTagungForm, setShowTagungForm] = useState(false);
-    const [tagungTitel, setTagungTitel] = useState('');
-    const [tagungStart, setTagungStart] = useState('');
-    const [tagungRaum, setTagungRaum] = useState('');
     const [error, setError] = useState('');
 
     // ── Queries ──────────────────────────────────────────────────────
@@ -84,40 +76,12 @@ export function ArbeitspaketPage() {
         enabled: !!id && activeTab === 'aktivitaeten',
     });
 
-    // ── Mutations ────────────────────────────────────────────────────
+    // ── Mutations (page-level only) ───────────────────────────────────
     const invalidateAll = () => {
         queryClient.invalidateQueries({ queryKey: ['flow', 'arbeitspakete', id] });
         queryClient.invalidateQueries({ queryKey: ['flow', 'aufgaben', id] });
         queryClient.invalidateQueries({ queryKey: ['flow', 'dashboard'] });
     };
-
-    const aufgabeStatusMutation = useMutation({
-        mutationFn: ({ aufgabeId, status }: { aufgabeId: number; status: FlowAufgabenStatus }) =>
-            api.flow.updateAufgabeStatus(aufgabeId, status),
-        onSuccess: invalidateAll,
-    });
-
-    const createAufgabeMutation = useMutation({
-        mutationFn: () => api.flow.createAufgabe(paketId, {
-            titel: aufgabeTitel.trim(),
-            zustaendig: aufgabeZustaendig ?? 0,
-            deadline: aufgabeDeadline || null,
-        }),
-        onSuccess: () => {
-            invalidateAll();
-            setShowAufgabeForm(false);
-            setAufgabeTitel('');
-            setAufgabeZustaendig(null);
-            setAufgabeDeadline('');
-        },
-        onError: () => setError('Fehler beim Erstellen der Aufgabe'),
-    });
-
-    const deleteAufgabeMutation = useMutation({
-        mutationFn: (aufgabeId: number) => api.flow.deleteAufgabe(aufgabeId),
-        onSuccess: invalidateAll,
-        onError: () => setError('Aufgabe konnte nicht geloescht werden'),
-    });
 
     const paketStatusMutation = useMutation({
         mutationFn: (status: string) => api.flow.updateArbeitspaketStatus(paketId, status),
@@ -149,73 +113,6 @@ export function ArbeitspaketPage() {
     const wiederaufnehmenMutation = useMutation({
         mutationFn: () => api.flow.wiederaufnehmenArbeitspaket(paketId),
         onSuccess: invalidateAll,
-    });
-
-    const addMitgliedMutation = useMutation({
-        mutationFn: () => api.flow.addMitglied(paketId, Number(neuesMitgliedId), neuesMitgliedRolle),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['flow', 'mitglieder', id] });
-            invalidateAll();
-            setShowMitgliedForm(false);
-            setNeuesMitgliedId('');
-        },
-        onError: () => setError('Mitglied konnte nicht hinzugefuegt werden'),
-    });
-
-    const updateRolleMutation = useMutation({
-        mutationFn: ({ userId, rolle }: { userId: number; rolle: string }) =>
-            api.flow.updateMitgliedRolle(paketId, userId, rolle),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['flow', 'mitglieder', id] }),
-        onError: () => setError('Rolle konnte nicht geaendert werden'),
-    });
-
-    const removeMitgliedMutation = useMutation({
-        mutationFn: (userId: number) => api.flow.removeMitglied(paketId, userId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['flow', 'mitglieder', id] });
-            invalidateAll();
-        },
-        onError: () => setError('Mitglied konnte nicht entfernt werden'),
-    });
-
-    const addDateiMutation = useMutation({
-        mutationFn: () => api.flow.addDateiMetadaten(paketId, {
-            name: dateiName.trim(),
-            originalName: dateiName.trim(),
-            mimeType: 'application/octet-stream',
-            groesse: 0,
-            externalUrl: dateiUrl.trim() || undefined,
-        }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['flow', 'dateien', id] });
-            setShowDateiForm(false);
-            setDateiName('');
-            setDateiUrl('');
-        },
-    });
-
-    const deleteDateiMutation = useMutation({
-        mutationFn: (dateiId: number) => api.flow.deleteDatei(dateiId),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['flow', 'dateien', id] }),
-        onError: () => setError('Datei konnte nicht entfernt werden'),
-    });
-
-    const createTagungMutation = useMutation({
-        mutationFn: () => api.flow.createTagung(paketId, {
-            titel: tagungTitel.trim(),
-            startAt: tagungStart,
-            raum: tagungRaum.trim() || null,
-            teilnehmende: [],
-        }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['flow', 'tagungen', id] });
-            invalidateAll();
-            setShowTagungForm(false);
-            setTagungTitel('');
-            setTagungStart('');
-            setTagungRaum('');
-        },
-        onError: () => setError('Tagung konnte nicht erstellt werden'),
     });
 
     // ── Helpers ──────────────────────────────────────────────────────
@@ -256,10 +153,7 @@ export function ArbeitspaketPage() {
                 <span>{paket.titel}</span>
             </div>
 
-            {error && <div className="flow-hinweis-chip flow-hinweis-chip--alert" style={{ marginBottom: 12 }}>
-                <span className="flow-hinweis-chip__dot" />{error}
-                <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', marginLeft: 8 }}>x</button>
-            </div>}
+            <ErrorBanner error={error} onDismiss={() => setError('')} />
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
@@ -368,331 +262,24 @@ export function ArbeitspaketPage() {
                 ))}
             </div>
 
-            {/* ── Tab: Aufgaben ────────────────────────────────────────── */}
             {activeTab === 'aufgaben' && (
-                <div className="flow-panel">
-                    <div className="flow-panel__header">
-                        <span className="flow-panel__title">Aufgaben ({Array.isArray(aufgaben) ? aufgaben.length : 0})</span>
-                        {kannSchreiben && (
-                            <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                onClick={() => setShowAufgabeForm(!showAufgabeForm)}>
-                                + Aufgabe
-                            </button>
-                        )}
-                    </div>
-
-                    {showAufgabeForm && (
-                        <div className="flow-panel__body" style={{ borderBottom: '1px solid var(--flow-border)' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <div>
-                                    <label style={labelStyle}>Titel *</label>
-                                    <input type="text" value={aufgabeTitel} onChange={(e) => setAufgabeTitel(e.target.value)}
-                                        placeholder="Aufgabe beschreiben" style={fieldStyle} autoFocus />
-                                </div>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={labelStyle}>Zustaendig</label>
-                                        <select value={aufgabeZustaendig ?? ''} onChange={(e) => setAufgabeZustaendig(e.target.value ? Number(e.target.value) : null)}
-                                            style={fieldStyle}>
-                                            <option value="">-- Nicht zugewiesen --</option>
-                                            {Array.isArray(paket.mitglieder) && paket.mitglieder.map((m) => (
-                                                <option key={m.userId} value={m.userId}>{m.vorname} {m.nachname}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={labelStyle}>Deadline</label>
-                                        <input type="date" value={aufgabeDeadline} onChange={(e) => setAufgabeDeadline(e.target.value)} style={fieldStyle} />
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                    <button className="flow-btn flow-btn--secondary flow-btn--sm" onClick={() => setShowAufgabeForm(false)}>Abbrechen</button>
-                                    <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                        onClick={() => createAufgabeMutation.mutate()}
-                                        disabled={!aufgabeTitel.trim() || aufgabeZustaendig === null || createAufgabeMutation.isPending}>
-                                        Erstellen
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flow-panel__body--flush">
-                        {Array.isArray(aufgaben) && aufgaben.length > 0 ? (
-                            aufgaben.map((aufgabe) => (
-                                <div key={aufgabe.id} className="flow-task-row">
-                                    <button
-                                        className={`flow-task-row__checkbox ${
-                                            aufgabe.status === 'erledigt' ? 'flow-task-row__checkbox--done' :
-                                            aufgabe.status === 'in_bearbeitung' ? 'flow-task-row__checkbox--in-progress' : ''
-                                        }`}
-                                        onClick={() => aufgabeStatusMutation.mutate({
-                                            aufgabeId: aufgabe.id,
-                                            status: aufgabe.status === 'erledigt' ? 'offen' : 'erledigt'
-                                        })}
-                                        aria-label={aufgabe.status === 'erledigt' ? 'Als offen markieren' : 'Als erledigt markieren'}
-                                    >
-                                        {aufgabe.status === 'erledigt' && '\u2713'}
-                                    </button>
-                                    <div className={`flow-task-row__title ${aufgabe.status === 'erledigt' ? 'flow-task-row__title--done' : ''}`}>
-                                        {aufgabe.titel}
-                                    </div>
-                                    <div className="flow-task-row__meta">
-                                        {aufgabe.zustaendigName && (
-                                            <span style={{ fontSize: 11, color: 'var(--flow-text-muted)' }}>{aufgabe.zustaendigName}</span>
-                                        )}
-                                        <DeadlineAnzeige deadline={aufgabe.deadline} erledigt={aufgabe.status === 'erledigt'} />
-                                        {istKoordination && (
-                                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--flow-red)', fontSize: 12 }}
-                                                onClick={() => { if (confirm('Aufgabe loeschen?')) deleteAufgabeMutation.mutate(aufgabe.id); }}>
-                                                Loeschen
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flow-empty"><div className="flow-empty__text">Noch keine Aufgaben</div></div>
-                        )}
-                    </div>
-                </div>
+                <AufgabenTab paketId={paketId} id={id!} aufgaben={aufgaben} mitglieder={paket.mitglieder}
+                    kannSchreiben={kannSchreiben} istKoordination={istKoordination} onError={setError} />
             )}
-
-            {/* ── Tab: Tagungen ────────────────────────────────────────── */}
             {activeTab === 'tagungen' && (
-                <div className="flow-panel">
-                    <div className="flow-panel__header">
-                        <span className="flow-panel__title">Tagungen</span>
-                        {istKoordination && (
-                            <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                onClick={() => setShowTagungForm(!showTagungForm)}>
-                                + Tagung
-                            </button>
-                        )}
-                    </div>
-
-                    {showTagungForm && (
-                        <div className="flow-panel__body" style={{ borderBottom: '1px solid var(--flow-border)' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <div>
-                                    <label style={labelStyle}>Titel *</label>
-                                    <input type="text" value={tagungTitel} onChange={(e) => setTagungTitel(e.target.value)}
-                                        placeholder="z.B. Kick-off Lehrplanrevision" style={fieldStyle} autoFocus />
-                                </div>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={labelStyle}>Start *</label>
-                                        <input type="datetime-local" value={tagungStart} onChange={(e) => setTagungStart(e.target.value)} style={fieldStyle} />
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={labelStyle}>Raum</label>
-                                        <input type="text" value={tagungRaum} onChange={(e) => setTagungRaum(e.target.value)}
-                                            placeholder="z.B. A203" style={fieldStyle} />
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                    <button className="flow-btn flow-btn--secondary flow-btn--sm" onClick={() => setShowTagungForm(false)}>Abbrechen</button>
-                                    <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                        onClick={() => createTagungMutation.mutate()}
-                                        disabled={!tagungTitel.trim() || !tagungStart || createTagungMutation.isPending}>
-                                        Erstellen
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flow-panel__body--flush">
-                        {Array.isArray(tagungen) && tagungen.length > 0 ? (
-                            tagungen.map((t) => (
-                                <div key={t.id} className="flow-task-row" style={{ cursor: 'pointer' }}
-                                    onClick={() => navigate(`/teacher/flow/tagung/${t.id}`)}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--flow-text)' }}>{t.titel}</div>
-                                        <div style={{ fontSize: 11, color: 'var(--flow-text-muted)', marginTop: 2 }}>
-                                            {t.teilnehmendeCount} Teilnehmende{t.raum && ` \u2022 ${t.raum}`}
-                                        </div>
-                                    </div>
-                                    <span className="flow-deadline flow-deadline--ok" style={{ fontFamily: 'var(--flow-font-mono)' }}>
-                                        {new Date(t.startAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flow-empty"><div className="flow-empty__text">Noch keine Tagungen</div></div>
-                        )}
-                    </div>
-                </div>
+                <TagungenTab paketId={paketId} id={id!} tagungen={tagungen}
+                    istKoordination={istKoordination} onError={setError} />
             )}
-
-            {/* ── Tab: Mitglieder ──────────────────────────────────────── */}
             {activeTab === 'mitglieder' && (
-                <div className="flow-panel">
-                    <div className="flow-panel__header">
-                        <span className="flow-panel__title">Mitglieder ({Array.isArray(mitglieder) ? mitglieder.length : paket.mitglieder?.length || 0})</span>
-                        {istKoordination && (
-                            <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                onClick={() => setShowMitgliedForm(!showMitgliedForm)}>
-                                + Mitglied
-                            </button>
-                        )}
-                    </div>
-
-                    {showMitgliedForm && (
-                        <div className="flow-panel__body" style={{ borderBottom: '1px solid var(--flow-border)' }}>
-                            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={labelStyle}>User-ID</label>
-                                    <input type="number" value={neuesMitgliedId} onChange={(e) => setNeuesMitgliedId(e.target.value)}
-                                        placeholder="User-ID" style={fieldStyle} />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={labelStyle}>Rolle</label>
-                                    <select value={neuesMitgliedRolle} onChange={(e) => setNeuesMitgliedRolle(e.target.value as FlowArbeitspaketRolle)} style={fieldStyle}>
-                                        <option value="mitwirkende">Mitwirkende</option>
-                                        <option value="koordination">Koordination</option>
-                                        <option value="lesezugriff">Lesezugriff</option>
-                                    </select>
-                                </div>
-                                <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                    onClick={() => addMitgliedMutation.mutate()}
-                                    disabled={!neuesMitgliedId || addMitgliedMutation.isPending}>
-                                    Hinzufuegen
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flow-panel__body--flush">
-                        {(Array.isArray(mitglieder) ? mitglieder : paket.mitglieder || []).map((m) => (
-                            <div key={m.userId || m.id} className="flow-task-row">
-                                <div className="flow-avatar" style={{ background: 'var(--flow-brand)' }}>
-                                    {m.vorname?.[0]}{m.nachname?.[0]}
-                                </div>
-                                <div style={{ flex: 1 }}>{m.vorname} {m.nachname}</div>
-                                {istKoordination ? (
-                                    <select value={m.rolle}
-                                        onChange={(e) => updateRolleMutation.mutate({ userId: m.userId, rolle: e.target.value })}
-                                        style={{ ...fieldStyle, width: 'auto', padding: '4px 8px', fontSize: 12 }}>
-                                        <option value="koordination">Koordination</option>
-                                        <option value="mitwirkende">Mitwirkende</option>
-                                        <option value="lesezugriff">Lesezugriff</option>
-                                    </select>
-                                ) : (
-                                    <span className="flow-status-badge flow-status-badge--geplant">{m.rolle}</span>
-                                )}
-                                {istKoordination && (
-                                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--flow-red)', fontSize: 12 }}
-                                        onClick={() => { if (confirm(`${m.vorname} ${m.nachname} entfernen?`)) removeMitgliedMutation.mutate(m.userId); }}>
-                                        Entfernen
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <MitgliederTab paketId={paketId} id={id!} mitglieder={mitglieder} paketMitglieder={paket.mitglieder}
+                    istKoordination={istKoordination} onError={setError} />
             )}
-
-            {/* ── Tab: Dateien ─────────────────────────────────────────── */}
             {activeTab === 'dateien' && (
-                <div className="flow-panel">
-                    <div className="flow-panel__header">
-                        <span className="flow-panel__title">Dateien</span>
-                        {kannSchreiben && (
-                            <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                onClick={() => setShowDateiForm(!showDateiForm)}>
-                                + Datei / Link
-                            </button>
-                        )}
-                    </div>
-
-                    {showDateiForm && (
-                        <div className="flow-panel__body" style={{ borderBottom: '1px solid var(--flow-border)' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <div>
-                                    <label style={labelStyle}>Name *</label>
-                                    <input type="text" value={dateiName} onChange={(e) => setDateiName(e.target.value)}
-                                        placeholder="z.B. Protokoll Kick-off.pdf" style={fieldStyle} autoFocus />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Externer Link (optional)</label>
-                                    <input type="url" value={dateiUrl} onChange={(e) => setDateiUrl(e.target.value)}
-                                        placeholder="https://..." style={fieldStyle} maxLength={2048} />
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                    <button className="flow-btn flow-btn--secondary flow-btn--sm" onClick={() => setShowDateiForm(false)}>Abbrechen</button>
-                                    <button className="flow-btn flow-btn--primary flow-btn--sm"
-                                        onClick={() => addDateiMutation.mutate()}
-                                        disabled={!dateiName.trim() || addDateiMutation.isPending}>
-                                        Hinzufuegen
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flow-panel__body--flush">
-                        {Array.isArray(dateien) && dateien.length > 0 ? (
-                            dateien.map((d) => (
-                                <div key={d.id} className="flow-task-row">
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--flow-text)' }}>
-                                            {d.externalUrl && /^https?:\/\//i.test(d.externalUrl) ? (
-                                                <a href={d.externalUrl} target="_blank" rel="noopener noreferrer"
-                                                    style={{ color: 'var(--flow-brand)', textDecoration: 'none' }}>
-                                                    {d.originalName || d.name}
-                                                </a>
-                                            ) : (
-                                                d.originalName || d.name
-                                            )}
-                                        </div>
-                                        <div style={{ fontSize: 11, color: 'var(--flow-text-muted)', marginTop: 2 }}>
-                                            {d.hochgeladenVonName && `${d.hochgeladenVonName} \u2022 `}
-                                            {new Date(d.createdAt).toLocaleDateString('de-DE')}
-                                            {d.groesse > 0 && ` \u2022 ${(d.groesse / 1024).toFixed(0)} KB`}
-                                        </div>
-                                    </div>
-                                    {istKoordination && (
-                                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--flow-red)', fontSize: 12 }}
-                                            onClick={() => { if (confirm('Datei entfernen?')) deleteDateiMutation.mutate(d.id); }}>
-                                            Entfernen
-                                        </button>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flow-empty"><div className="flow-empty__text">Noch keine Dateien</div></div>
-                        )}
-                    </div>
-                </div>
+                <DateienTab paketId={paketId} id={id!} dateien={dateien}
+                    kannSchreiben={kannSchreiben} istKoordination={istKoordination} onError={setError} />
             )}
-
-            {/* ── Tab: Aktivitaeten ────────────────────────────────────── */}
             {activeTab === 'aktivitaeten' && (
-                <div className="flow-panel">
-                    <div className="flow-panel__header">
-                        <span className="flow-panel__title">Aktivitaeten</span>
-                    </div>
-                    <div className="flow-panel__body--flush">
-                        {Array.isArray(aktivitaeten) && aktivitaeten.length > 0 ? (
-                            aktivitaeten.map((a) => (
-                                <div key={a.id} className="flow-task-row">
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 13, color: 'var(--flow-text)' }}>
-                                            {a.akteurName && <strong>{a.akteurName}</strong>}{' '}
-                                            {formatAktivitaet(a.typ)}
-                                        </div>
-                                    </div>
-                                    <span style={{ fontSize: 11, color: 'var(--flow-text-muted)', fontFamily: 'var(--flow-font-mono)', whiteSpace: 'nowrap' }}>
-                                        {new Date(a.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flow-empty"><div className="flow-empty__text">Noch keine Aktivitaeten</div></div>
-                        )}
-                    </div>
-                </div>
+                <AktivitaetenTab aktivitaeten={aktivitaeten} />
             )}
 
             {/* ── Abschluss-Dialog ────────────────────────────────────── */}
@@ -731,24 +318,4 @@ export function ArbeitspaketPage() {
             )}
         </>
     );
-}
-
-function formatAktivitaet(typ: string): string {
-    const labels: Record<string, string> = {
-        aufgabe_erstellt: 'hat eine Aufgabe erstellt',
-        aufgabe_erledigt: 'hat eine Aufgabe als erledigt markiert',
-        aufgabe_status_geaendert: 'hat den Aufgabenstatus geaendert',
-        aufgabe_geloescht: 'hat eine Aufgabe geloescht',
-        tagung_erstellt: 'hat eine Tagung erstellt',
-        tagung_dokumentiert: 'hat eine Tagung dokumentiert',
-        datei_hochgeladen: 'hat eine Datei hinzugefuegt',
-        arbeitspaket_erstellt: 'hat das Arbeitspaket erstellt',
-        arbeitspaket_status_geaendert: 'hat den Status geaendert',
-        arbeitspaket_abgeschlossen: 'hat das Arbeitspaket abgeschlossen',
-        arbeitspaket_wiederaufgenommen: 'hat das Arbeitspaket wiederaufgenommen',
-        mitglied_hinzugefuegt: 'hat ein Mitglied hinzugefuegt',
-        mitglied_entfernt: 'hat ein Mitglied entfernt',
-        rolle_geaendert: 'hat eine Rolle geaendert',
-    };
-    return labels[typ] || typ;
 }

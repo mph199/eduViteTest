@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
+import { ErrorBanner } from '../components/ErrorBanner';
 import type { FlowTagung, FlowAgendaPunkt } from '../../../types/index';
 import { fieldStyle, labelStyle } from '../components/formStyles';
 
@@ -97,10 +98,7 @@ export function TagungDetailPage() {
                 <span>{tagung.titel}</span>
             </div>
 
-            {error && <div className="flow-hinweis-chip flow-hinweis-chip--alert" style={{ marginBottom: 12 }}>
-                <span className="flow-hinweis-chip__dot" />{error}
-                <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', marginLeft: 8 }}>x</button>
-            </div>}
+            <ErrorBanner error={error} onDismiss={() => setError('')} />
 
             <h1 className="flow-page-title">{tagung.titel}</h1>
             <p className="flow-page-subtitle">

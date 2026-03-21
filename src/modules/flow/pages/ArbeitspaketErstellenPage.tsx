@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { fieldStyle, labelStyle } from '../components/formStyles';
 import '../flow.css';
 
@@ -59,9 +60,7 @@ export function ArbeitspaketErstellenPage() {
             <h1 className="flow-page-title">Neues Arbeitspaket</h1>
             <p className="flow-page-subtitle">Erstellen Sie ein neues Arbeitspaket fuer diesen Bildungsgang</p>
 
-            {error && <div className="flow-hinweis-chip flow-hinweis-chip--alert" style={{ marginBottom: 14 }}>
-                <span className="flow-hinweis-chip__dot" />{error}
-            </div>}
+            <ErrorBanner error={error} onDismiss={() => setError('')} style={{ marginBottom: 14 }} />
 
             <div className="flow-panel" style={{ maxWidth: 680 }}>
                 <div className="flow-panel__body">
