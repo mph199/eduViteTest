@@ -34,7 +34,7 @@ export function OAuthTab() {
       const res = await api.superadmin.getOAuthProviders();
       setProviders(res);
     } catch {
-      // keep empty
+      flash('Fehler beim Laden der Provider');
     }
   }, []);
 
@@ -156,7 +156,7 @@ export function OAuthTab() {
               </div>
               <div className="superadmin__module-meta">
                 <span>Key: <code>{p.provider_key}</code></span>
-                <span>Client-ID: <code>{p.client_id.substring(0, 16)}...</code></span>
+                <span>Client-ID: <code>{p.client_id.length > 16 ? `${p.client_id.substring(0, 16)}...` : p.client_id}</code></span>
                 {p.allowed_domains && <span>Domains: <code>{p.allowed_domains}</code></span>}
                 {p.auto_provisioning && <span>Auto-Provisioning: aktiv</span>}
               </div>
@@ -173,7 +173,7 @@ export function OAuthTab() {
               <button
                 type="button"
                 className="superadmin__btn superadmin__btn--secondary"
-                style={{ color: '#dc2626' }}
+                style={{ color: 'var(--sa-error)' }}
                 onClick={() => setDeleteTarget(p)}
                 disabled={saving}
               >
