@@ -7,6 +7,7 @@
 
 import publicRouter from './routes/public.js';
 import teacherRouter from './routes/teacher.js';
+import { requireAuth } from '../../middleware/auth.js';
 
 export default {
   id: 'elternsprechtag',
@@ -14,7 +15,7 @@ export default {
 
   /** Express-Routen registrieren */
   register(app, { rateLimiters }) {
-    app.use('/api/teacher', rateLimiters.auth, teacherRouter);
+    app.use('/api/teacher', rateLimiters.auth, requireAuth, teacherRouter);
     // Rate-Limit nur auf oeffentliche Buchungs-Pfade (nicht alle /api/*)
     app.use('/api/teachers', rateLimiters.booking);
     app.use('/api/slots', rateLimiters.booking);

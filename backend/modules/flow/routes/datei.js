@@ -30,10 +30,9 @@ router.delete('/:id', async (req, res) => {
             [paketId, req.user.id]
         );
 
-        const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
         const rolle = mitgliedResult.rows[0]?.rolle;
 
-        if (!isAdmin && (!rolle || rolle === 'lesezugriff')) {
+        if (!rolle || rolle === 'lesezugriff') {
             return res.status(403).json({ error: 'Keine Berechtigung zum Loeschen von Dateien' });
         }
 

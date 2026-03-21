@@ -130,7 +130,7 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
 
         // CSRF check
         if (!stored.state || stored.state !== state) {
-            logSecurityEvent(null, 'OAUTH_STATE_MISMATCH', { providerKey: req.params.providerKey }, req.ip);
+            logSecurityEvent('OAUTH_STATE_MISMATCH', { providerKey: req.params.providerKey }, req.ip);
             return res.redirect('/login?error=oauth_state_mismatch');
         }
 

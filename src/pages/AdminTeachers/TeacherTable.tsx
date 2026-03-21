@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import api from '../../services/api';
 import type { Teacher as ApiTeacher, UserAccount, TeacherLoginResponse } from '../../types';
 
@@ -14,25 +15,35 @@ interface Props {
 }
 
 function ResetLoginButton({ teacher, className }: { teacher: ApiTeacher; className?: string }) {
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   return (
-    <button
-      onClick={async () => {
-        try {
-          const res = await api.admin.resetTeacherLogin(teacher.id);
-          const typed = res as TeacherLoginResponse;
-          if (typed?.user) {
-            alert(`Login zurückgesetzt\n\nBenutzername: ${typed.user.username}\nTemporäres Passwort: ${typed.user.tempPassword}`);
-          } else {
-            alert('Login zurückgesetzt.');
+    <>
+      <button
+        onClick={async () => {
+          try {
+            const res = await api.admin.resetTeacherLogin(teacher.id);
+            const typed = res as TeacherLoginResponse;
+            if (typed?.user) {
+              setFeedback({ type: 'success', message: `Login zurueckgesetzt – Benutzer: ${typed.user.username}, Passwort: ${typed.user.tempPassword}` });
+            } else {
+              setFeedback({ type: 'success', message: 'Login zurueckgesetzt.' });
+            }
+          } catch (err) {
+            setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Fehler beim Zuruecksetzen des Logins' });
           }
-        } catch (err) {
-          alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins');
-        }
-      }}
-      className={`reset-button${className ? ` ${className}` : ''}`}
-    >
-      <span aria-hidden="true">↺</span> Login zurücksetzen
-    </button>
+        }}
+        className={`reset-button${className ? ` ${className}` : ''}`}
+      >
+        <span aria-hidden="true">↺</span> Login zuruecksetzen
+      </button>
+      {feedback && (
+        <div className={feedback.type === 'success' ? 'admin-success' : 'admin-error'} style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+          {feedback.message}
+          <button type="button" className="btn-secondary btn-secondary--sm" style={{ marginLeft: '0.5rem' }} onClick={() => setFeedback(null)}>OK</button>
+        </div>
+      )}
+    </>
   );
 }
 

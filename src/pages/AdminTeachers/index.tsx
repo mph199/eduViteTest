@@ -73,24 +73,24 @@ export function AdminTeachers() {
     e.preventDefault();
 
     if (!formData.last_name.trim() || !formData.email.trim() || !formData.salutation) {
-      alert('Bitte Nachname, Anrede und E-Mail ausfüllen');
+      setError('Bitte Nachname, Anrede und E-Mail ausfuellen');
       return;
     }
 
     const normalizedEmail = formData.email.trim().toLowerCase();
     const isValidEmail = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalizedEmail);
     if (!isValidEmail) {
-      alert('Bitte eine gültige E-Mail-Adresse eingeben.');
+      setError('Bitte eine gueltige E-Mail-Adresse eingeben.');
       return;
     }
 
     if (!editingTeacher) {
       if (!formData.username.trim()) {
-        alert('Bitte einen Benutzernamen eingeben');
+        setError('Bitte einen Benutzernamen eingeben');
         return;
       }
       if (!formData.password || formData.password.length < 8) {
-        alert('Bitte ein Passwort mit mindestens 8 Zeichen eingeben');
+        setError('Bitte ein Passwort mit mindestens 8 Zeichen eingeben');
         return;
       }
     }
@@ -144,7 +144,7 @@ export function AdminTeachers() {
       setFormData(defaultFormData());
       setBlForm(defaultBlForm());
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
   };
 
@@ -196,9 +196,9 @@ export function AdminTeachers() {
     try {
       await api.admin.deleteTeacher(id);
       await loadTeachers();
-      alert(`Lehrkraft "${name}" wurde erfolgreich gelöscht.`);
+      showFlash(`Lehrkraft "${name}" wurde erfolgreich geloescht.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Löschen');
+      setError(err instanceof Error ? err.message : 'Fehler beim Loeschen');
     }
   };
 
@@ -250,7 +250,7 @@ export function AdminTeachers() {
 
     const isSelf = !!user?.username && target.username === user.username;
     if (isSelf && currentRole === 'admin') {
-      alert('Du kannst deine eigenen Adminrechte nicht entfernen.');
+      setError('Du kannst deine eigenen Adminrechte nicht entfernen.');
       return;
     }
 
@@ -270,7 +270,7 @@ export function AdminTeachers() {
       showFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
     } catch (e) {
       setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: currentRole as UserAccount['role'] } : u)));
-      alert(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
+      setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
     } finally {
       setRoleSaving((prev) => ({ ...prev, [target.id]: false }));
     }
