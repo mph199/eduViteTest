@@ -9,7 +9,7 @@ export function ErrorBanner({ error, onDismiss, style }: ErrorBannerProps) {
     return (
         <div className="flow-hinweis-chip flow-hinweis-chip--alert" style={{ marginBottom: 12, ...style }}>
             <span className="flow-hinweis-chip__dot" />{error}
-            <button onClick={onDismiss} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', marginLeft: 8 }}>x</button>
+            <button onClick={onDismiss} aria-label="Schliessen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', marginLeft: 8 }}>{'\u00d7'}</button>
         </div>
     );
 }
