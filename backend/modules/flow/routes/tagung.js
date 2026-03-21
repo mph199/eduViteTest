@@ -72,7 +72,7 @@ router.post('/:id/agenda/:aid/aufgaben', requireFlowTagungZugang(SCHREIBEN), asy
         if (!tagung) return res.status(404).json({ error: 'Tagung nicht gefunden' });
 
         const aufgabe = await flowService.createAufgabe(
-            tagung.arbeitspaket_id,
+            tagung.arbeitspaketId,
             { ...req.body, tagungId },
             req.user.id
         );

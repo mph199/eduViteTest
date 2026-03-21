@@ -25,6 +25,10 @@ const AbteilungPage = lazy(() =>
     import('./pages/AbteilungPage').then((m) => ({ default: m.AbteilungPage }))
 );
 
+const ArbeitspaketErstellenPage = lazy(() =>
+    import('./pages/ArbeitspaketErstellenPage').then((m) => ({ default: m.ArbeitspaketErstellenPage }))
+);
+
 const AdminBGLVerwaltung = lazy(() =>
     import('./pages/AdminBGLVerwaltung').then((m) => ({ default: m.AdminBGLVerwaltung }))
 );
@@ -45,6 +49,7 @@ const flowModule: ModuleDefinition = {
         { index: true, Component: FlowDashboard },
         { path: 'aufgaben', Component: MeineAufgabenPage },
         { path: 'bildungsgang/:id', Component: BildungsgangPage },
+        { path: 'arbeitspaket/neu/:bildungsgangId', Component: ArbeitspaketErstellenPage },
         { path: 'arbeitspaket/:id', Component: ArbeitspaketPage },
         { path: 'admin/bgl', Component: AdminBGLVerwaltung },
         { path: 'admin/abteilung', Component: AbteilungPage },

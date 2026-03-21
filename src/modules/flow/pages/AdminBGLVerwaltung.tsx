@@ -8,18 +8,18 @@ import '../flow.css';
 interface BGListItem {
     id: number;
     name: string;
-    erlaubt_mitgliedern_paket_erstellung: boolean;
-    mitglieder_count: string;
-    arbeitspakete_count: string;
+    erlaubtMitgliedernPaketErstellung: boolean;
+    mitgliederCount: string;
+    arbeitspaketeCount: string;
 }
 
 interface BGMitglied {
     id: number;
-    user_id: number;
+    userId: number;
     vorname: string;
     nachname: string;
     rolle: FlowBildungsgangRolle;
-    hinzugefuegt_am: string;
+    hinzugefuegtAm: string;
 }
 
 interface FlowUser {
@@ -103,7 +103,7 @@ export function AdminBGLVerwaltung() {
 
     // User die noch nicht Mitglied sind
     const verfuegbareUsers = users.filter(
-        (u) => !mitglieder.some((m) => m.user_id === u.id)
+        (u) => !mitglieder.some((m) => m.userId === u.id)
     );
 
     const userName = (u: FlowUser) =>
@@ -146,8 +146,8 @@ export function AdminBGLVerwaltung() {
                                             }}
                                         >
                                             <td style={{ padding: '10px 18px' }}>{bg.name}</td>
-                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.mitglieder_count}</td>
-                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.arbeitspakete_count}</td>
+                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.mitgliederCount}</td>
+                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.arbeitspaketeCount}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -218,7 +218,7 @@ export function AdminBGLVerwaltung() {
                                                 <select
                                                     value={m.rolle}
                                                     onChange={(e) =>
-                                                        updateRolle.mutate({ userId: m.user_id, rolle: e.target.value })
+                                                        updateRolle.mutate({ userId: m.userId, rolle: e.target.value })
                                                     }
                                                     style={{
                                                         padding: '4px 8px', fontSize: 12,
@@ -232,7 +232,7 @@ export function AdminBGLVerwaltung() {
                                             </td>
                                             <td style={{ padding: '10px 18px', textAlign: 'right' }}>
                                                 <button
-                                                    onClick={() => removeMitglied.mutate(m.user_id)}
+                                                    onClick={() => removeMitglied.mutate(m.userId)}
                                                     className="flow-btn flow-btn--danger"
                                                     style={{ fontSize: 12, padding: '4px 10px' }}
                                                 >
