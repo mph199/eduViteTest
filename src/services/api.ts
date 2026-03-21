@@ -117,6 +117,14 @@ const api = {
     async logout() {
       return requestJSON('/auth/logout', { method: 'DELETE' });
     },
+    async getProviders() {
+      try {
+        const res = await requestJSON('/auth/providers');
+        return Array.isArray(res) ? res : [];
+      } catch {
+        return [];
+      }
+    },
   },
 
   // Admin endpoints

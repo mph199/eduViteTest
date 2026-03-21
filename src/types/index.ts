@@ -590,3 +590,10 @@ export interface FlowAbteilungsPaket {
   status: FlowArbeitspaketStatus;
   deadline: string | null;
 }
+
+// ── OAuth ──
+
+export interface OAuthProvider {
+  providerKey: string;
+  displayName: string;
+}

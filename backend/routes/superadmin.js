@@ -6,6 +6,7 @@ import multer from 'multer';
 import rateLimit from 'express-rate-limit';
 import { requireSuperadmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
+import * as oauthService from '../services/oauthService.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
 import logger from '../config/logger.js';
@@ -443,6 +444,70 @@ router.put('/modules/:moduleId', requireSuperadmin, async (req, res) => {
     logger.error({ err: error }, 'Error updating module config');
     return res.status(500).json({ error: 'Failed to update module config' });
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// OAuth Provider Management
+// ═══════════════════════════════════════════════════════════════════════
+
+// GET /api/superadmin/oauth/providers
+router.get('/oauth/providers', requireSuperadmin, async (_req, res) => {
+    try {
+        const providers = await oauthService.getAllProviders();
+        res.json(providers);
+    } catch (err) {
+        logger.error({ err }, 'Fehler beim Laden der OAuth-Provider');
+        res.status(500).json({ error: 'Fehler beim Laden der OAuth-Provider' });
+    }
+});
+
+// POST /api/superadmin/oauth/providers
+router.post('/oauth/providers', requireSuperadmin, async (req, res) => {
+    try {
+        const { providerKey, displayName, clientId, clientSecret, discoveryUrl, scopes, emailClaim, nameClaim, allowedDomains, autoProvisioning, enabled } = req.body;
+        if (!providerKey || !displayName || !clientId || !clientSecret || !discoveryUrl) {
+            return res.status(400).json({ error: 'providerKey, displayName, clientId, clientSecret und discoveryUrl sind erforderlich' });
+        }
+        const provider = await oauthService.createProvider({
+            providerKey, displayName, clientId, clientSecret, discoveryUrl,
+            scopes, emailClaim, nameClaim, allowedDomains, autoProvisioning, enabled,
+        });
+        res.status(201).json(provider);
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ error: 'Provider-Key existiert bereits' });
+        }
+        logger.error({ err }, 'Fehler beim Erstellen des OAuth-Providers');
+        res.status(500).json({ error: 'Fehler beim Erstellen des OAuth-Providers' });
+    }
+});
+
+// PUT /api/superadmin/oauth/providers/:id
+router.put('/oauth/providers/:id', requireSuperadmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ error: 'Ungueltige ID' });
+        const updated = await oauthService.updateProvider(id, req.body);
+        if (!updated) return res.status(404).json({ error: 'Provider nicht gefunden' });
+        res.json(updated);
+    } catch (err) {
+        logger.error({ err }, 'Fehler beim Aktualisieren des OAuth-Providers');
+        res.status(500).json({ error: 'Fehler beim Aktualisieren des OAuth-Providers' });
+    }
+});
+
+// DELETE /api/superadmin/oauth/providers/:id
+router.delete('/oauth/providers/:id', requireSuperadmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ error: 'Ungueltige ID' });
+        const deleted = await oauthService.deleteProvider(id);
+        if (!deleted) return res.status(404).json({ error: 'Provider nicht gefunden' });
+        res.status(204).end();
+    } catch (err) {
+        logger.error({ err }, 'Fehler beim Loeschen des OAuth-Providers');
+        res.status(500).json({ error: 'Fehler beim Loeschen des OAuth-Providers' });
+    }
 });
 
 export default router;
