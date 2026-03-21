@@ -219,6 +219,9 @@ router.get('/:id/dateien', requireFlowPaketRolle(ALLE), async (req, res) => {
 // POST /:id/dateien
 router.post('/:id/dateien', requireFlowPaketRolle(SCHREIBEN), async (req, res) => {
     try {
+        if (req.body.externalUrl && !/^https?:\/\//i.test(req.body.externalUrl)) {
+            return res.status(400).json({ error: 'Nur http:// und https:// URLs sind erlaubt' });
+        }
         const datei = await flowService.addDateiMetadaten(
             parseInt(req.params.id), req.body, req.user.id
         );

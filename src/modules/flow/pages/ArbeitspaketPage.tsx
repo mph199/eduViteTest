@@ -628,7 +628,7 @@ export function ArbeitspaketPage() {
                                 <div>
                                     <label style={labelStyle}>Externer Link (optional)</label>
                                     <input type="url" value={dateiUrl} onChange={(e) => setDateiUrl(e.target.value)}
-                                        placeholder="https://..." style={fieldStyle} />
+                                        placeholder="https://..." style={fieldStyle} maxLength={2048} />
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                     <button className="flow-btn flow-btn--secondary flow-btn--sm" onClick={() => setShowDateiForm(false)}>Abbrechen</button>
@@ -648,7 +648,7 @@ export function ArbeitspaketPage() {
                                 <div key={d.id} className="flow-task-row">
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--flow-text)' }}>
-                                            {d.externalUrl ? (
+                                            {d.externalUrl && /^https?:\/\//i.test(d.externalUrl) ? (
                                                 <a href={d.externalUrl} target="_blank" rel="noopener noreferrer"
                                                     style={{ color: 'var(--flow-brand)', textDecoration: 'none' }}>
                                                     {d.originalName || d.name}
