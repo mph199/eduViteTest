@@ -12,7 +12,7 @@ export async function getBildungsgaengeForUser(userId) {
          ORDER BY bg.name`,
         [userId]
     );
-    return result.rows;
+    return mapRows(result.rows);
 }
 
 export async function getBildungsgangDetail(bildungsgangId) {
@@ -46,12 +46,12 @@ export async function getBildungsgangDetail(bildungsgangId) {
     );
 
     return {
-        ...bgResult.rows[0],
-        mitglieder: mitgliederResult.rows,
-        arbeitspakete: paketeResult.rows.map(p => ({
-            ...p,
-            fortschritt: { erledigt: parseInt(p.erledigt), gesamt: parseInt(p.gesamt) }
-        }))
+        ...mapRow(bgResult.rows[0]),
+        mitglieder: mapRows(mitgliederResult.rows),
+        arbeitspakete: paketeResult.rows.map(p => {
+            const mapped = mapRow(p);
+            return { ...mapped, fortschritt: { erledigt: parseInt(p.erledigt), gesamt: parseInt(p.gesamt) } };
+        })
     };
 }
 
@@ -65,7 +65,7 @@ export async function getAllBildungsgaenge() {
          FROM flow_bildungsgang bg
          ORDER BY bg.name`
     );
-    return result.rows;
+    return mapRows(result.rows);
 }
 
 export async function createBildungsgang(name, erlaubtMitgliedernPaketErstellung = false) {
@@ -91,7 +91,7 @@ export async function getBildungsgangMitglieder(bildungsgangId) {
          ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
         [bildungsgangId]
     );
-    return result.rows;
+    return mapRows(result.rows);
 }
 
 export async function addBildungsgangMitglied(bildungsgangId, userId, rolle) {
@@ -197,8 +197,8 @@ export async function getArbeitspaketDetail(paketId, userId) {
     const tagungen = tagungsResult.rows[0];
 
     return {
-        ...ap,
-        mitglieder: mitgliederResult.rows,
+        ...mapRow(ap),
+        mitglieder: mapRows(mitgliederResult.rows),
         meineRolle: meineRolleResult.rows[0]?.rolle || null,
         fortschritt: { erledigt: parseInt(fortschritt.erledigt), gesamt: parseInt(fortschritt.gesamt) },
         tagungsZaehler: { durchgefuehrt: parseInt(tagungen.durchgefuehrt), geplant: parseInt(tagungen.geplant) }
@@ -326,7 +326,7 @@ export async function getMitglieder(paketId) {
          ORDER BY apm.rolle, t.last_name NULLS LAST`,
         [paketId]
     );
-    return result.rows;
+    return mapRows(result.rows);
 }
 
 export async function addMitglied(paketId, userId, rolle, akteur) {
@@ -383,7 +383,7 @@ export async function getAufgaben(paketId) {
          ORDER BY a.status, a.deadline NULLS LAST, a.created_at`,
         [paketId]
     );
-    return result.rows;
+    return mapRows(result.rows).map(r => composeName(r, 'zustaendig'));
 }
 
 export async function createAufgabe(paketId, data, erstelltVon) {
@@ -489,7 +489,7 @@ export async function getMeineAufgaben(userId, filter = {}) {
          ORDER BY a.deadline NULLS LAST, a.created_at`,
         values
     );
-    return result.rows;
+    return mapRows(result.rows).map(r => composeName(r, 'zustaendig'));
 }
 
 // ── Tagungen ──
@@ -502,7 +502,7 @@ export async function getTagungen(paketId) {
          ORDER BY t.start_at DESC`,
         [paketId]
     );
-    return result.rows;
+    return mapRows(result.rows);
 }
 
 export async function createTagung(paketId, data, erstelltVon) {
@@ -555,9 +555,9 @@ export async function getTagungDetail(tagungId) {
     );
 
     return {
-        ...tagungResult.rows[0],
-        teilnehmende: teilnehmerResult.rows,
-        agendaPunkte: agendaResult.rows
+        ...mapRow(tagungResult.rows[0]),
+        teilnehmende: mapRows(teilnehmerResult.rows),
+        agendaPunkte: mapRows(agendaResult.rows)
     };
 }
 
@@ -650,7 +650,7 @@ export async function getDateien(paketId) {
          ORDER BY d.created_at DESC`,
         [paketId]
     );
-    return result.rows;
+    return mapRows(result.rows).map(r => composeName(r, 'hochgeladenVon'));
 }
 
 export async function addDateiMetadaten(paketId, data, hochgeladenVon) {
@@ -726,12 +726,12 @@ export async function getDashboardDaten(userId) {
             ueberfaellig: parseInt(stat.ueberfaellig),
             erledigtDiesenMonat: parseInt(stat.erledigt_diesen_monat)
         },
-        meineAufgaben: aufgabenResult.rows,
-        aktiveArbeitspakete: paketeResult.rows.map(p => ({
-            ...p,
-            fortschritt: { erledigt: parseInt(p.erledigt), gesamt: parseInt(p.gesamt) }
-        })),
-        naechsteTagungen: tagungenResult.rows
+        meineAufgaben: mapRows(aufgabenResult.rows),
+        aktiveArbeitspakete: paketeResult.rows.map(p => {
+            const mapped = mapRow(p);
+            return { ...mapped, fortschritt: { erledigt: parseInt(p.erledigt), gesamt: parseInt(p.gesamt) } };
+        }),
+        naechsteTagungen: mapRows(tagungenResult.rows)
     };
 }
 
@@ -744,7 +744,7 @@ export async function getAbteilungsUebersicht() {
          JOIN flow_bildungsgang bg ON bg.id = ap.bildungsgang_id
          ORDER BY bg.name, ap.status, ap.deadline NULLS LAST`
     );
-    return result.rows;
+    return mapRows(result.rows);
 }
 
 // ── Aktivitaeten ──
@@ -762,7 +762,7 @@ export async function getAktivitaeten(paketId, limit = 20) {
          LIMIT $2`,
         [paketId, limit]
     );
-    return result.rows;
+    return mapRows(result.rows).map(r => composeName(r, 'akteur'));
 }
 
 export async function erstelleAktivitaet(typ, akteur, arbeitspaketId, details) {
@@ -777,4 +777,34 @@ export async function erstelleAktivitaet(typ, akteur, arbeitspaketId, details) {
 
 function camelToSnake(str) {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+function snakeToCamel(obj) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+        const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+        result[camelKey] = value;
+    }
+    return result;
+}
+
+function mapRow(row) {
+    return row ? snakeToCamel(row) : null;
+}
+
+function mapRows(rows) {
+    return rows.map(snakeToCamel);
+}
+
+function composeName(row, prefix) {
+    const vornameKey = `${prefix}Vorname`;
+    const nachnameKey = `${prefix}Nachname`;
+    const nameKey = `${prefix}Name`;
+    const vorname = row[vornameKey] || '';
+    const nachname = row[nachnameKey] || '';
+    row[nameKey] = `${vorname} ${nachname}`.trim();
+    delete row[vornameKey];
+    delete row[nachnameKey];
+    return row;
 }
