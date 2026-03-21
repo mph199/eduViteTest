@@ -1,5 +1,13 @@
 # Flow Modul – Phase 5: Frontend-Komponenten und Modul-Registrierung
 
+> **Implementierungsstand (2026-03-21):**
+> - Alle Kern-Komponenten implementiert (FlowLayout, FlowSidebar, FlowDashboard, etc.)
+> - Admin-Seiten (BGL-Verwaltung, Abteilungssicht) laufen jetzt unter `/teacher/flow/admin/*` innerhalb FlowLayout (statt unter `/admin/flow/*` als separate adminRoutes)
+> - FlowSidebar zeigt rollenabhaengig Admin-Sektion fuer admin/superadmin
+> - Burger-Menue zeigt nur noch einen einzelnen Einstiegslink "Hier geht's zu Flow"
+> - Hooks-Verzeichnis (`hooks/`) und Utils-Verzeichnis (`utils/`) nicht implementiert – Logik direkt in Komponenten
+> - QueryClientProvider liegt zentral in FlowLayout (nicht pro Seite)
+
 > Abhaengigkeiten: Phase 4 (Types + API Client)
 > Neue Dateien:
 > - `src/modules/flow/index.ts`

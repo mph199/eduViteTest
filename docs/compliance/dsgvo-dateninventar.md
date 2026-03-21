@@ -159,6 +159,75 @@
 |--------|----------|---------------|--------|-----------|--------------|
 | message | Anonymer Freitext | Pseudonym / potentiell direkt | Nein | Ja (DELETE) | Manuell |
 
+### 1.6 Flow-Modul (Bildungsgang-Kollaboration)
+
+> **Hinzugefuegt:** 2026-03-21
+
+#### Tabelle: `flow_bildungsgang_mitglied`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| user_id | FK → users | Indirekt – Lehrkraft/Admin | Nein | CASCADE (bei BG-Loeschung) | Bis BG-Loeschung |
+| rolle | Funktionszuordnung (leitung/mitglied) | Indirekt | Nein | CASCADE | Bis BG-Loeschung |
+
+#### Tabelle: `flow_arbeitspaket`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| abgeschlossen_von | FK → users | Indirekt | Nein | ON DELETE SET NULL | Bis Paket-Loeschung |
+| abschluss_zusammenfassung | Freitext | Potentiell direkt | Nein | CASCADE (BG) | Bis BG-Loeschung |
+| reflexion | Freitext | Potentiell direkt | Nein | CASCADE (BG) | Bis BG-Loeschung |
+
+#### Tabelle: `flow_arbeitspaket_mitglied`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| user_id | FK → users | Indirekt – Lehrkraft | Nein | CASCADE (bei Paket-Loeschung) | Bis Paket-Loeschung |
+| rolle | Funktionszuordnung | Indirekt | Nein | CASCADE | Bis Paket-Loeschung |
+
+#### Tabelle: `flow_aufgabe`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| zustaendig | FK → users | Indirekt – Lehrkraft | Nein | ON DELETE SET NULL | Bis Paket-Loeschung |
+| erstellt_von | FK → users | Indirekt | Nein | ON DELETE SET NULL | Bis Paket-Loeschung |
+| titel | Aufgabentitel | Potentiell indirekt | Nein | CASCADE | Bis Paket-Loeschung |
+| beschreibung | Freitext | Potentiell direkt | Nein | CASCADE | Bis Paket-Loeschung |
+
+#### Tabelle: `flow_tagung`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| raum | Raumbezeichnung | Kein | Nein | CASCADE | Bis Paket-Loeschung |
+
+#### Tabelle: `flow_tagung_teilnehmer`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| user_id | FK → users | Indirekt – Teilnehmer | Nein | CASCADE | Bis Tagung-Loeschung |
+
+#### Tabelle: `flow_datei`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| hochgeladen_von | FK → users | Indirekt | Nein | ON DELETE SET NULL | Bis Paket-Loeschung |
+| external_url | URL zu Cloud-Datei | Kein (Metadaten) | Nein | CASCADE | Bis Paket-Loeschung |
+
+#### Tabelle: `flow_aktivitaet`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| akteur | FK → users | Indirekt | Nein | ON DELETE SET NULL | Bis Paket-Loeschung |
+| details | JSONB (Aktivitaetsdaten) | Potentiell indirekt | Nein | CASCADE | Bis Paket-Loeschung |
+
+#### Tabelle: `flow_abteilungsleitung`
+
+| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
+|--------|----------|---------------|--------|-----------|--------------|
+| user_id | FK → users | Indirekt – Lehrkraft/Admin | Nein | CASCADE (bei User-Loeschung) | Bis Entfernung |
+
+**Loeschkonzept Flow:** Kaskadierende Loeschung ueber `flow_bildungsgang`. Loeschen eines Bildungsgangs entfernt alle zugehoerigen Arbeitspakete, Aufgaben, Tagungen, Dateien und Aktivitaeten. User-Referenzen werden bei User-Loeschung auf NULL gesetzt (ON DELETE SET NULL), sodass Inhalte erhalten bleiben.
+
 ---
 
 ## 2. Datenfluss-Diagramm
@@ -204,8 +273,9 @@
 |-----------|----------|---------------|
 | Schueler/innen (Minderjaehrige) | slots, booking_requests, ssw_appointments, bl_appointments | Erhoehter Schutz, Einwilligung der Erziehungsberechtigten |
 | Erziehungsberechtigte | slots, booking_requests | Direkte Erhebung |
-| Lehrkraefte | teachers, users | Mitarbeiterdaten, Rechtsgrundlage: Arbeitsvertrag |
+| Lehrkraefte | teachers, users, flow_*_mitglied, flow_aufgabe, flow_aktivitaet | Mitarbeiterdaten, Rechtsgrundlage: Arbeitsvertrag |
 | Beratungskraefte (SSW/BL) | ssw_counselors, bl_counselors, users | Mitarbeiterdaten |
+| Bildungsgangleitungen (BGL) | flow_bildungsgang_mitglied (rolle=leitung), flow_abteilungsleitung | Mitarbeiterdaten, Funktionszuordnung |
 | Ausbilder/Firmenvertreter | slots, booking_requests | Vertragserfuellung |
 | Website-Besucher (bei Buchung) | consent_receipts | IP-Adresse, User-Agent |
 

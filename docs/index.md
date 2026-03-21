@@ -1,6 +1,6 @@
 # Dokumentation
 
-> Stand: 2026-03-18
+> Stand: 2026-03-21
 
 ## Architektur
 
@@ -34,10 +34,22 @@
 
 - [IONOS Migration](planning/ionos-migration.md) -- Migrationsfahrplan Supabase → IONOS
 - [Docker Roadmap](planning/docker-roadmap.md) -- Docker-Infrastruktur, Phasen 1-4
+- [OAuth Integration](planning/oauth-integration.md) -- OAuth/OIDC-Anbindung (Logineo, MS365, OX)
+- [WebDAV Integration](planning/webdav-integration.md) -- WebDAV-Anbindung fuer Schul-Cloudspeicher
 - [Slot-Vorschlaege UX](planning/slot-suggestions-ux.md) -- Terminanzeige: 5 Vorschlaege + "Weitere anzeigen"
 - [DSGVO Consent-Checkbox](planning/dsgvo-consent-checkbox.md) -- Datenverarbeitungs-Einwilligung fuer Buchungsmodule
 - [P0 Sprint-Plan](planning/p0-sprint-plan.md) -- 4 Sprints fuer Go-Live-Blocker (DSGVO P0)
 - [DSAR-Endpunkte](api/dsar-endpoints.md) -- API-Referenz Betroffenenrechte Art. 15-21 + Audit-Log
+
+### Flow-Modul Planung
+
+- [DB-Schema](planning/flow/01-datenbank-schema.md) -- DDL, Designentscheidungen
+- [Backend Auth](planning/flow/02-backend-auth-middleware.md) -- flowAuth Middleware, Rollenhierarchie
+- [Backend API](planning/flow/03-backend-api-routes.md) -- Alle Endpunkte + Middleware-Ketten
+- [Frontend Types+API](planning/flow/04-frontend-types-api.md) -- TypeScript-Interfaces, api.flow.*
+- [Frontend Komponenten](planning/flow/05-frontend-komponenten-modul.md) -- Komponentenstruktur
+- [Docker Integration](planning/flow/06-docker-integration.md) -- Module-Config, TanStack Query
+- [UI-Architektur](planning/flow/07-ui-architektur-abgleich.md) -- CSS Custom Properties, Layout
 
 ## UX
 

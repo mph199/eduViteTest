@@ -54,6 +54,7 @@ Each module implements `ModuleDefinition` (defined in `registry.ts`, not `types/
 | Elternsprechtag | `elternsprechtag` | `/api/teacher`, `/api/` (public) | `/elternsprechtag` | `slots`, `bookings`, `events`, `teachers` |
 | Schulsozialarbeit | `schulsozialarbeit` | `/api/ssw` | `/schulsozialarbeit` | `ssw_*` |
 | Beratungslehrer | `beratungslehrer` | `/api/bl` | `/beratungslehrer` | `bl_*` |
+| Flow | `flow` | `/api/flow` | (kein PublicPage) | `flow_*` |
 
 ## Authentication & Authorization
 
