@@ -81,15 +81,20 @@ async function initDatabase() {
 }
 
 /**
- * Ensures no DB user has role 'superadmin'.
- * Superadmin is reserved for the env-based system account only.
+ * Ensures 'Start' is the only superadmin in the DB.
+ * All other DB users with superadmin role are demoted to admin.
  * Runs on every startup (container deploy).
  */
 async function enforceSuperadminPolicy() {
   const client = await pool.connect();
   try {
+    // Ensure Start is superadmin
+    await client.query(
+      "UPDATE users SET role = 'superadmin' WHERE username = 'Start' AND role != 'superadmin'"
+    );
+    // Demote everyone else
     const { rowCount } = await client.query(
-      "UPDATE users SET role = 'admin' WHERE role = 'superadmin'"
+      "UPDATE users SET role = 'admin' WHERE role = 'superadmin' AND username != 'Start'"
     );
     if (rowCount > 0) {
       logger.info(`Superadmin policy enforced: ${rowCount} user(s) demoted to admin`);
