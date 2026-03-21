@@ -64,7 +64,7 @@ Browser (React 19)
 | Lebensdauer | 8 Stunden | `backend/middleware/auth.js` (`JWT_EXPIRES_IN`) |
 | Cookie maxAge | 8 Stunden | `backend/routes/auth.js` (`cookieOptions`) |
 | httpOnly | true | `backend/routes/auth.js` (`cookieOptions`) |
-| secure | true (nur in Production) | `backend/routes/auth.js` (`cookieOptions`) |
+| secure | konfigurierbar via `COOKIE_SECURE` (Default: true in Production) | `backend/routes/auth.js` (`cookieOptions`) |
 | sameSite | lax | `backend/routes/auth.js` (`cookieOptions`) |
 | path | / | `backend/routes/auth.js` (`cookieOptions`) |
 

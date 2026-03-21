@@ -43,6 +43,7 @@ services:
       DB_SSL: ${DB_SSL:-false}
       DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-true}
       DB_SSL_CA: ${DB_SSL_CA:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
     volumes:
       - uploads:/app/uploads
     ports:
@@ -57,9 +58,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    # Loopback only – external access via reverse proxy (nginx/Caddy)
     ports:
-      - "127.0.0.1:3000:80"
+      - "${FRONTEND_BIND:-127.0.0.1}:${FRONTEND_PORT:-80}:80"
 
 volumes:
   pg_data:

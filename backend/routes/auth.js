@@ -20,6 +20,12 @@ const loginLimiter = rateLimit({
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Cookie secure flag: explicit env wins, otherwise derive from NODE_ENV.
+// Set COOKIE_SECURE=false on VPS deployments without HTTPS (IP-only access).
+const cookieSecure = process.env.COOKIE_SECURE && process.env.COOKIE_SECURE !== ''
+  ? process.env.COOKIE_SECURE === 'true'
+  : isProduction;
+
 // Account lockout configuration
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -31,7 +37,7 @@ let adminLockedUntil = 0;
 function cookieOptions() {
   return {
     httpOnly: true,
-    secure: isProduction,
+    secure: cookieSecure,
     sameSite: 'lax', // 'lax' statt 'strict' damit E-Mail-Links (Verify, Buchung) funktionieren
     maxAge: 8 * 60 * 60 * 1000, // 8 hours (matches JWT expiry)
     path: '/',
