@@ -33,6 +33,7 @@ export function DateienTab({ paketId, id, dateien, kannSchreiben, istKoordinatio
             setName('');
             setUrl('');
         },
+        onError: () => onError('Datei konnte nicht hinzugefuegt werden'),
     });
 
     const deleteMutation = useMutation({
