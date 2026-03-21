@@ -184,7 +184,7 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
             await saveOAuthTokens(user.id, provider.id, tokens);
         }
 
-        logSecurityEvent(user.id, 'OAUTH_LOGIN_SUCCESS', { provider: provider.provider_key }, req.ip);
+        logSecurityEvent('OAUTH_LOGIN_SUCCESS', { userId: user.id, provider: provider.provider_key }, req.ip);
         logger.info({ userId: user.id, provider: provider.provider_key }, 'OAuth-Login erfolgreich');
 
         const roleRedirects = { admin: '/admin', superadmin: '/admin', ssw: '/ssw' };
