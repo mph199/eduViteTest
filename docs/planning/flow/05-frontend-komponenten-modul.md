@@ -1,12 +1,13 @@
 # Flow Modul – Phase 5: Frontend-Komponenten und Modul-Registrierung
 
 > **Implementierungsstand (2026-03-21):**
-> - Alle Kern-Komponenten implementiert (FlowLayout, FlowSidebar, FlowDashboard, etc.)
-> - Admin-Seiten (BGL-Verwaltung, Abteilungssicht) laufen jetzt unter `/teacher/flow/admin/*` innerhalb FlowLayout (statt unter `/admin/flow/*` als separate adminRoutes)
-> - FlowSidebar zeigt rollenabhaengig Admin-Sektion fuer admin/superadmin
-> - Burger-Menue zeigt nur noch einen einzelnen Einstiegslink "Hier geht's zu Flow"
-> - Hooks-Verzeichnis (`hooks/`) und Utils-Verzeichnis (`utils/`) nicht implementiert – Logik direkt in Komponenten
-> - QueryClientProvider liegt zentral in FlowLayout (nicht pro Seite)
+> - Alle Kern-Seiten implementiert: FlowDashboard, BildungsgangPage (mit Mitglieder-Anzeige), ArbeitspaketPage (Tab-basiert: Aufgaben-CRUD, Tagungen, Mitglieder, Dateien, Aktivitaeten, Status-Workflow, Abschluss-Dialog), TagungDetailPage (Agenda-Editor, Dokumentation, Aufgabenerstellung aus Agenda), MeineAufgabenPage (mit Links zu Arbeitspaketen), AbteilungPage (klickbare Navigation), ArbeitspaketErstellenPage, AdminBGLVerwaltung
+> - Layout: FlowLayout (teacherLayout, QueryClientProvider zentral), FlowSidebar (rollenabhaengige Admin-Sektion), DeadlineAnzeige, FortschrittsBalken, StatusBadge
+> - Admin-Seiten laufen als `teacherRoutes` unter `/teacher/flow/admin/*` innerhalb FlowLayout – keine separaten `adminRoutes`
+> - Neue Route: `/teacher/flow/tagung/:id` (TagungDetailPage) – flache Route, nicht nested unter `arbeitspaket/:id`
+> - Sidebar: ein einzelner Einstiegslink "Hier geht's zu Flow" (`path: '/teacher/flow'`)
+> - `hooks/`- und `utils/`-Verzeichnis nicht angelegt – Logik direkt in Seiten-Komponenten
+> - `pages/`-Unterordner fuer Seiten, `components/` fuer wiederverwendbare UI-Teile
 
 > Abhaengigkeiten: Phase 4 (Types + API Client)
 > Neue Dateien:
@@ -167,45 +168,26 @@ Das Fachkonzept definiert eine umfangreiche Komponentenhierarchie. Fuer die Inte
 
 ```
 src/modules/flow/
-├── index.ts                          # ModuleDefinition (kein PublicPage)
+├── index.ts                              # ModuleDefinition (kein PublicPage, teacherBasePath)
+├── flow.css                              # Design-Tokens, Layout, Komponenten-Styles
 ├── components/
-│   ├── FlowRouter.tsx                # Internes Routing (teacherLayout)
-│   ├── FlowDashboard.tsx             # Persoenliches Dashboard
-│   ├── BildungsgangUebersicht.tsx    # Bildungsgang-Detail
-│   ├── ArbeitspaketErstellen.tsx     # Neues Paket anlegen
-│   ├── ArbeitspaketDetail.tsx        # Hauptansicht eines Pakets
-│   ├── ArbeitspaketHeader.tsx        # Status, Deadline, Zaehler
-│   ├── ProblemBeschreibung.tsx       # Ist/Soll-Anzeige
-│   ├── AufgabenListe.tsx            # Checkliste
-│   ├── AufgabeItem.tsx              # Einzelne Aufgabe mit Status
-│   ├── AufgabeErstellen.tsx         # Formular
-│   ├── MeineAufgaben.tsx            # Paketuebergreifend
-│   ├── TagungenUebersicht.tsx       # Alle Tagungen
-│   ├── TagungDetail.tsx             # Agenda + Dokumentation
-│   ├── TagungErstellen.tsx          # Formular
-│   ├── AgendaPunktEditor.tsx        # Ergebnis/Entscheidung/Aufgaben
-│   ├── MitgliederVerwalten.tsx      # Rollen zuweisen
-│   ├── DateiBereich.tsx             # Metadaten + externe Links (kein lokaler Upload)
-│   ├── AbschlussDialog.tsx          # Zusammenfassung + Reflexion
-│   ├── AbschlussZusammenfassung.tsx # Ergebnisseite
-│   ├── AbteilungsDashboard.tsx      # Aggregierte Sicht
-│   ├── HinweisLeiste.tsx            # Kontextbezogene Hinweise
-│   ├── StatusBadge.tsx              # Entwurf/Geplant/Aktiv/Abgeschlossen
-│   ├── FortschrittsBalken.tsx       # x von y Aufgaben
-│   └── DeadlineAnzeige.tsx          # ok/bald/ueberfaellig
-├── hooks/
-│   ├── useArbeitspakete.ts          # CRUD + Status (TanStack Query)
-│   ├── useAufgaben.ts              # CRUD + Statuswechsel
-│   ├── useTagungen.ts              # CRUD + Dokumentation
-│   ├── useMeineAufgaben.ts         # Persoenliche Aggregation
-│   ├── useBildungsgang.ts          # Bildungsgang-Daten
-│   ├── useFlowBerechtigungen.ts    # Rollenbasierte Pruefung
-│   └── useHinweise.ts              # Hinweis-Berechnung
-└── utils/
-    ├── berechtigungen.ts            # darfAusfuehren()
-    ├── statusmaschine.ts            # pruefeUebergang()
-    └── hinweise.ts                  # berechneHinweise()
+│   ├── FlowLayout.tsx                    # teacherLayout mit QueryClientProvider + FlowSidebar
+│   ├── FlowSidebar.tsx                   # Sidebar mit rollenabhaengiger Admin-Sektion
+│   ├── StatusBadge.tsx                   # Entwurf/Geplant/Aktiv/Abgeschlossen
+│   ├── FortschrittsBalken.tsx            # x von y Aufgaben
+│   └── DeadlineAnzeige.tsx               # ok/bald/ueberfaellig
+└── pages/
+    ├── FlowDashboard.tsx                 # Persoenliches Dashboard (klickbare Tagungen)
+    ├── BildungsgangPage.tsx              # Bildungsgang-Detail mit Mitglieder-Anzeige
+    ├── ArbeitspaketErstellenPage.tsx     # Neues Paket anlegen
+    ├── ArbeitspaketPage.tsx              # Tab-basiert: Aufgaben, Tagungen, Mitglieder, Dateien, Aktivitaeten
+    ├── TagungDetailPage.tsx              # Agenda-Editor, Dokumentation, Aufgabenerstellung
+    ├── MeineAufgabenPage.tsx             # Paketuebergreifend mit Links zu Arbeitspaketen
+    ├── AbteilungPage.tsx                 # Aggregierte Abteilungssicht (klickbar)
+    └── AdminBGLVerwaltung.tsx            # BGL-Verwaltung (admin/superadmin)
 ```
+
+Hinweis: `hooks/`- und `utils/`-Verzeichnis nicht angelegt. Logik liegt direkt in den Seiten-Komponenten. Sub-Komponenten (AufgabenListe, TagungDetail, MitgliederVerwalten, DateiBereich, AbschlussDialog etc.) sind als Sections innerhalb der Page-Komponenten implementiert, nicht als eigene Dateien.
 
 ### Abweichungen vom Fachkonzept
 
@@ -223,29 +205,25 @@ src/modules/flow/
 
 ## Routing innerhalb des Moduls
 
-Flow nutzt `FlowRouter.tsx` als `teacherLayout`. Dieser rendert ein `<Outlet>` und definiert die Unterrouten.
+Flow nutzt `FlowLayout.tsx` als `teacherLayout`. Die Routen werden als `teacherRoutes` im Modul-Manifest definiert:
 
-```tsx
-// FlowRouter.tsx – wird als teacherLayout gemountet
-import { Outlet, Routes, Route } from 'react-router-dom';
-
-export function FlowRouter() {
-    return (
-        <Routes>
-            <Route index element={<FlowDashboard />} />
-            <Route path="bildungsgang/:id" element={<BildungsgangUebersicht />} />
-            <Route path="arbeitspaket/neu/:bgId" element={<ArbeitspaketErstellen />} />
-            <Route path="arbeitspaket/:id" element={<ArbeitspaketDetail />} />
-            <Route path="arbeitspaket/:id/tagung/:tid" element={<TagungDetail />} />
-            <Route path="aufgaben" element={<MeineAufgaben />} />
-        </Routes>
-    );
-}
+```ts
+// src/modules/flow/index.ts – teacherRoutes (Stand 2026-03-21)
+teacherRoutes: [
+    { index: true, Component: FlowDashboard },
+    { path: 'aufgaben', Component: MeineAufgabenPage },
+    { path: 'bildungsgang/:id', Component: BildungsgangPage },
+    { path: 'arbeitspaket/neu/:bildungsgangId', Component: ArbeitspaketErstellenPage },
+    { path: 'arbeitspaket/:id', Component: ArbeitspaketPage },
+    { path: 'tagung/:id', Component: TagungDetailPage },
+    { path: 'admin/bgl', Component: AdminBGLVerwaltung },
+    { path: 'admin/abteilung', Component: AbteilungPage },
+],
 ```
 
-Alle Pfade relativ zum Mount-Point (vermutlich `/teacher/flow/`).
+Alle Pfade relativ zum Mount-Point `/teacher/flow/`. Die Tagung-Route ist **flach** (`tagung/:id`), nicht nested unter `arbeitspaket/:id`.
 
-Die Abteilungssicht laeuft **separat** als `adminRoute` unter `/admin/flow/abteilung` -- damit ist sie nur fuer User mit `flow_abteilungsleitung`-Eintrag erreichbar und physisch vom Arbeitspaket-Routing getrennt.
+Admin-Seiten (BGL-Verwaltung, Abteilungssicht) laufen als `teacherRoutes` unter `/teacher/flow/admin/*` – keine separaten `adminRoutes`.
 
 ## State Management
 

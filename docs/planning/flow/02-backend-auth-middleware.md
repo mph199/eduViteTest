@@ -182,7 +182,7 @@ Selbst wenn ein Admin/Superadmin die Detail-API aufruft, prueft `requireFlowPake
 
 **Entscheidung (2026-03-20):** Admin-Bypass ist fuer Flow bewusst **deaktiviert**. Admins sehen nur die aggregierte Abteilungssicht (falls sie in `flow_abteilungsleitung` eingetragen sind). Fuer Paketdetails muessen sie explizit als Mitglied eingeladen werden. Das ist eine bewusste Abweichung vom bisherigen Pattern, die dem datenschutzrechtlichen Grundsatz der Datensparsamkeit entspricht.
 
-Einzige Ausnahme: `superadmin` hat Zugriff auf die Abteilungssicht (Systemverwaltung).
+Einzige Ausnahme: `admin` und `superadmin` haben Zugriff auf die Abteilungssicht (Schulverwaltung bzw. Systemverwaltung) – auch ohne Eintrag in `flow_abteilungsleitung`. Alle anderen Rollen benoetigen einen expliziten Eintrag in der Tabelle.
 
 ## Aufgaben-Erstellung: Kontextbasierte Berechtigung
 
