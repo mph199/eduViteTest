@@ -118,10 +118,11 @@ export function AufgabenTab({ paketId, id, aufgaben, mitglieder, kannSchreiben, 
                                     aufgabe.status === 'erledigt' ? 'flow-task-row__checkbox--done' :
                                     aufgabe.status === 'in_bearbeitung' ? 'flow-task-row__checkbox--in-progress' : ''
                                 }`}
-                                onClick={() => statusMutation.mutate({
+                                onClick={kannSchreiben ? () => statusMutation.mutate({
                                     aufgabeId: aufgabe.id,
                                     status: aufgabe.status === 'erledigt' ? 'offen' : 'erledigt'
-                                })}
+                                }) : undefined}
+                                disabled={!kannSchreiben}
                                 aria-label={aufgabe.status === 'erledigt' ? 'Als offen markieren' : 'Als erledigt markieren'}
                             >
                                 {aufgabe.status === 'erledigt' && CHECKMARK}

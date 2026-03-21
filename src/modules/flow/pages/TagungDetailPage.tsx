@@ -87,6 +87,7 @@ export function TagungDetailPage() {
     }
 
     const agendaPunkte: FlowAgendaPunkt[] = Array.isArray(tagung.agendaPunkte) ? tagung.agendaPunkte : [];
+    const kannSchreiben = tagung.meineRolle === 'koordination' || tagung.meineRolle === 'mitwirkende';
 
     return (
         <>
@@ -125,10 +126,12 @@ export function TagungDetailPage() {
             <div className="flow-panel">
                 <div className="flow-panel__header">
                     <span className="flow-panel__title">Agenda ({agendaPunkte.length})</span>
-                    <button className="flow-btn flow-btn--primary flow-btn--sm"
-                        onClick={() => setShowAgendaForm(!showAgendaForm)}>
-                        + Agenda-Punkt
-                    </button>
+                    {kannSchreiben && (
+                        <button className="flow-btn flow-btn--primary flow-btn--sm"
+                            onClick={() => setShowAgendaForm(!showAgendaForm)}>
+                            + Agenda-Punkt
+                        </button>
+                    )}
                 </div>
 
                 {showAgendaForm && (
@@ -252,7 +255,7 @@ export function TagungDetailPage() {
                                     </div>
 
                                     {/* Action buttons */}
-                                    {editingPunkt !== punkt.id && showAufgabeForm !== punkt.id && (
+                                    {kannSchreiben && editingPunkt !== punkt.id && showAufgabeForm !== punkt.id && (
                                         <div style={{ display: 'flex', gap: 4 }}>
                                             <button className="flow-btn flow-btn--secondary flow-btn--sm"
                                                 onClick={() => {

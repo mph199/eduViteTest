@@ -285,12 +285,12 @@ export function ArbeitspaketPage() {
             {/* ── Abschluss-Dialog ────────────────────────────────────── */}
             {showAbschluss && (
                 <div style={{
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                    position: 'fixed', inset: 0, background: 'var(--flow-overlay-bg)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
                 }}>
                     <div style={{
                         background: 'var(--flow-surface)', borderRadius: 8, padding: 24,
-                        width: '100%', maxWidth: 520, boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                        width: '100%', maxWidth: 520, boxShadow: 'var(--flow-shadow-modal)',
                     }}>
                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--flow-text)' }}>Arbeitspaket abschliessen</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

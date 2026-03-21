@@ -13,7 +13,7 @@ router.get('/:id', requireFlowTagungZugang(ALLE), async (req, res) => {
     try {
         const tagung = await flowService.getTagungDetail(parseInt(req.params.id));
         if (!tagung) return res.status(404).json({ error: 'Tagung nicht gefunden' });
-        res.json(tagung);
+        res.json({ ...tagung, meineRolle: req.flowPaketRolle });
     } catch (err) {
         res.status(500).json({ error: 'Fehler beim Laden der Tagung' });
     }

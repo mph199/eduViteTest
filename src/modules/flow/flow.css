@@ -30,6 +30,10 @@
     --flow-red: #c53030;
     --flow-red-light: #fdf2f2;
 
+    /* Overlay */
+    --flow-overlay-bg: rgba(0, 0, 0, 0.4);
+    --flow-shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.2);
+
     /* Ist/Soll */
     --flow-ist-label: #9b6b6b;
     --flow-soll-label: #5a8a6e;

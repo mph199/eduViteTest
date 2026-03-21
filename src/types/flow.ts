@@ -101,6 +101,7 @@ export interface FlowTagung {
   raum: string | null;
   teilnehmende: FlowTagungTeilnehmer[];
   agendaPunkte: FlowAgendaPunkt[];
+  meineRolle: FlowArbeitspaketRolle | null;
   createdAt: string;
 }
 
