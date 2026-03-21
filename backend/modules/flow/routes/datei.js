@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../../../config/db.js';
 import * as flowService from '../services/flowService.js';
+import { writeAuditLog } from '../../../middleware/audit-log.js';
 import logger from '../../../config/logger.js';
 
 const router = Router();
@@ -37,6 +38,7 @@ router.delete('/:id', async (req, res) => {
         }
 
         await flowService.deleteDatei(dateiId);
+        writeAuditLog(req.user.id, 'FLOW_DATEI_DELETED', 'flow_datei', dateiId, { paketId }, req.ip);
         res.status(204).end();
     } catch (err) {
         logger.error({ err }, 'Fehler beim Loeschen der Datei');

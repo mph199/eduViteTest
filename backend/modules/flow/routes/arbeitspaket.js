@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireFlowPaketRolle, requireFlowAufgabeErstellen } from '../middleware/flowAuth.js';
 import * as flowService from '../services/flowService.js';
+import { writeAuditLog } from '../../../middleware/audit-log.js';
 
 const router = Router();
 
@@ -110,6 +111,7 @@ router.post('/:id/mitglieder', requireFlowPaketRolle(NUR_KOORDINATION), async (r
             parseInt(req.params.id), userId, rolle, req.user.id
         );
         if (!mitglied) return res.status(409).json({ error: 'Mitglied existiert bereits' });
+        writeAuditLog(req.user.id, 'FLOW_MITGLIED_ADDED', 'flow_arbeitspaket_mitglied', mitglied.id, { paketId: parseInt(req.params.id), userId, rolle }, req.ip);
         res.status(201).json(mitglied);
     } catch (err) {
         res.status(500).json({ error: 'Fehler beim Hinzufuegen' });
@@ -127,6 +129,7 @@ router.patch('/:id/mitglieder/:uid', requireFlowPaketRolle(NUR_KOORDINATION), as
             parseInt(req.params.id), parseInt(req.params.uid), rolle, req.user.id
         );
         if (!mitglied) return res.status(404).json({ error: 'Mitglied nicht gefunden' });
+        writeAuditLog(req.user.id, 'FLOW_MITGLIED_ROLE_CHANGED', 'flow_arbeitspaket_mitglied', mitglied.id, { paketId: parseInt(req.params.id), userId: parseInt(req.params.uid), rolle }, req.ip);
         res.json(mitglied);
     } catch (err) {
         res.status(500).json({ error: 'Fehler beim Aendern der Rolle' });
@@ -140,6 +143,7 @@ router.delete('/:id/mitglieder/:uid', requireFlowPaketRolle(NUR_KOORDINATION), a
             parseInt(req.params.id), parseInt(req.params.uid), req.user.id
         );
         if (!mitglied) return res.status(404).json({ error: 'Mitglied nicht gefunden' });
+        writeAuditLog(req.user.id, 'FLOW_MITGLIED_REMOVED', 'flow_arbeitspaket_mitglied', null, { paketId: parseInt(req.params.id), userId: parseInt(req.params.uid) }, req.ip);
         res.status(204).end();
     } catch (err) {
         res.status(500).json({ error: 'Fehler beim Entfernen' });

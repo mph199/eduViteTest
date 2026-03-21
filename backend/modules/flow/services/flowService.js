@@ -30,7 +30,7 @@ export async function getBildungsgangDetail(bildungsgangId) {
          FROM flow_bildungsgang_mitglied bgm
          JOIN users u ON u.id = bgm.user_id
          LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE bgm.bildungsgang_id = $1
+         WHERE bgm.bildungsgang_id = $1 AND bgm.restricted IS NOT TRUE
          ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
         [bildungsgangId]
     );
@@ -87,7 +87,7 @@ export async function getBildungsgangMitglieder(bildungsgangId) {
          FROM flow_bildungsgang_mitglied bgm
          JOIN users u ON u.id = bgm.user_id
          LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE bgm.bildungsgang_id = $1
+         WHERE bgm.bildungsgang_id = $1 AND bgm.restricted IS NOT TRUE
          ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
         [bildungsgangId]
     );
@@ -166,7 +166,7 @@ export async function getArbeitspaketDetail(paketId, userId) {
          FROM flow_arbeitspaket_mitglied apm
          JOIN users u ON u.id = apm.user_id
          LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE apm.arbeitspaket_id = $1
+         WHERE apm.arbeitspaket_id = $1 AND apm.restricted IS NOT TRUE
          ORDER BY apm.rolle, t.last_name NULLS LAST`,
         [paketId]
     );
@@ -322,7 +322,7 @@ export async function getMitglieder(paketId) {
          FROM flow_arbeitspaket_mitglied apm
          JOIN users u ON u.id = apm.user_id
          LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE apm.arbeitspaket_id = $1
+         WHERE apm.arbeitspaket_id = $1 AND apm.restricted IS NOT TRUE
          ORDER BY apm.rolle, t.last_name NULLS LAST`,
         [paketId]
     );
@@ -379,7 +379,7 @@ export async function getAufgaben(paketId) {
          FROM flow_aufgabe a
          LEFT JOIN users u ON u.id = a.zustaendig
          LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE a.arbeitspaket_id = $1
+         WHERE a.arbeitspaket_id = $1 AND a.restricted IS NOT TRUE
          ORDER BY a.status, a.deadline NULLS LAST, a.created_at`,
         [paketId]
     );
@@ -464,7 +464,7 @@ export async function deleteAufgabe(aufgabeId, userId) {
 }
 
 export async function getMeineAufgaben(userId, filter = {}) {
-    let where = 'a.zustaendig = $1';
+    let where = 'a.zustaendig = $1 AND a.restricted IS NOT TRUE';
     const values = [userId];
     let idx = 2;
 
@@ -757,7 +757,7 @@ export async function getAktivitaeten(paketId, limit = 20) {
          FROM flow_aktivitaet a
          LEFT JOIN users u ON u.id = a.akteur
          LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE a.arbeitspaket_id = $1
+         WHERE a.arbeitspaket_id = $1 AND a.restricted IS NOT TRUE
          ORDER BY a.created_at DESC
          LIMIT $2`,
         [paketId, limit]
