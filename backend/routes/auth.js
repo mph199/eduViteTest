@@ -12,7 +12,7 @@ const router = express.Router();
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: 8,                      // 8 login attempts per window
+  max: 20,                      // 20 login attempts per window
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Zu viele Anmeldeversuche. Bitte spaeter erneut versuchen.' },
