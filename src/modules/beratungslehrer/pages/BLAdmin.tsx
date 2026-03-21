@@ -6,6 +6,7 @@ import { useFlash } from '../../../hooks/useFlash';
 import type { Counselor, ScheduleEntry, CounselorTopic as Topic } from '../../../types';
 import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
+import { buildDefaultSchedule, mergeScheduleEntries } from '../../../shared/utils/schedule';
 import { BLSprechzeitenTab } from './BLSprechzeitenTab';
 import { BLTermineTab } from './BLTermineTab';
 import { BLAnfragenTab } from './BLAnfragenTab';
@@ -15,12 +16,7 @@ import '../../../pages/AdminDashboard.css';
 
 type Tab = 'sprechzeiten' | 'termine' | 'anfragen' | 'counselors' | 'topics';
 
-const defaultSchedule: ScheduleEntry[] = [1, 2, 3, 4, 5].map(wd => ({
-  weekday: wd,
-  start_time: '08:00',
-  end_time: '14:00',
-  active: false,
-}));
+const defaultSchedule: ScheduleEntry[] = buildDefaultSchedule([1, 2, 3, 4, 5]);
 
 export function BLAdmin() {
   const { user } = useAuth();
@@ -57,16 +53,7 @@ export function BLAdmin() {
     try {
       const data = await api.bl.getSchedule();
       const entries: ScheduleEntry[] = Array.isArray(data?.schedule) ? data.schedule : [];
-      const merged = defaultSchedule.map(def => {
-        const existing = entries.find(e => e.weekday === def.weekday);
-        return existing ? {
-          weekday: existing.weekday,
-          start_time: existing.start_time?.toString().slice(0, 5) || def.start_time,
-          end_time: existing.end_time?.toString().slice(0, 5) || def.end_time,
-          active: existing.active,
-        } : def;
-      });
-      setSchedule(merged);
+      setSchedule(mergeScheduleEntries(defaultSchedule, entries));
     } catch {
       setSchedule(defaultSchedule);
     }

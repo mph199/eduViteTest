@@ -2,14 +2,13 @@ import { useState } from 'react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { WEEKDAY_LABELS_FULL } from '../../../shared/constants/weekdays';
+import { buildDefaultSchedule, mergeScheduleEntries } from '../../../shared/utils/schedule';
 
 function defaultSchedule(): ScheduleEntry[] {
-  return WEEKDAY_LABELS_FULL.map((_, i) => ({
-    weekday: i,
-    start_time: '08:00',
-    end_time: '14:00',
-    active: i < 5,
-  }));
+  return buildDefaultSchedule(
+    WEEKDAY_LABELS_FULL.map((_, i) => i),
+    wd => wd < 5,
+  );
 }
 
 const emptyCounselor = {
@@ -48,15 +47,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
     try {
       const data = await api.ssw.getAdminCounselorSchedule(counselorId);
       const rows: ScheduleEntry[] = data?.schedule || [];
-      if (rows.length > 0) {
-        const merged = defaultSchedule().map(def => {
-          const found = rows.find(r => r.weekday === def.weekday);
-          return found ? { weekday: found.weekday, start_time: found.start_time?.toString().slice(0, 5) || '08:00', end_time: found.end_time?.toString().slice(0, 5) || '14:00', active: found.active } : def;
-        });
-        setSchedule(merged);
-      } else {
-        setSchedule(defaultSchedule());
-      }
+      setSchedule(rows.length > 0 ? mergeScheduleEntries(defaultSchedule(), rows) : defaultSchedule());
     } catch {
       setSchedule(defaultSchedule());
     } finally {

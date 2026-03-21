@@ -1,5 +1,5 @@
 import api from '../../services/api';
-import type { ApiTeacher, UserAccount, TeacherLoginResponse } from './types';
+import type { Teacher as ApiTeacher, UserAccount, TeacherLoginResponse } from '../../types';
 
 interface Props {
   filtered: ApiTeacher[];

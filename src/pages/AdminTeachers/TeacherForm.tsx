@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { ApiTeacher, BlFormData, TeacherFormData } from './types';
-import { WEEKDAYS } from './types';
+import type { Teacher as ApiTeacher, BlFormData, TeacherFormData } from '../../types';
+import { WEEKDAY_LABELS as WEEKDAYS } from '../../shared/constants/weekdays';
 
 function normalizeForUsername(str: string): string {
   return str.toLowerCase()

@@ -6,13 +6,25 @@ import { useFlash } from '../../hooks/useFlash';
 import api from '../../services/api';
 import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
 import { useModuleConfig } from '../../contexts/ModuleConfigContext';
-import type { Teacher as ApiTeacher, UserAccount } from '../../types';
-import type { BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from './types';
-import { defaultBlForm, defaultFormData } from './types';
+import type { Teacher as ApiTeacher, UserAccount, BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from '../../types';
+import { WEEKDAY_LABELS } from '../../shared/constants/weekdays';
 import { TeacherForm } from './TeacherForm';
 import { CsvImportDialog } from './CsvImportDialog';
 import { TeacherTable } from './TeacherTable';
 import '../AdminDashboard.css';
+
+const defaultBlForm = (): BlFormData => ({
+  enabled: false,
+  phone: '',
+  specializations: '',
+  slot_duration_minutes: 30,
+  schedule: WEEKDAY_LABELS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
+});
+
+const defaultFormData = (): TeacherFormData => ({
+  first_name: '', last_name: '', email: '', salutation: 'Herr',
+  available_from: '16:00', available_until: '19:00', username: '', password: '',
+});
 
 export function AdminTeachers() {
   const { isModuleEnabled } = useModuleConfig();
@@ -156,13 +168,12 @@ export function AdminTeachers() {
           const c = blData.counselor;
           type ScheduleEntry = { weekday: number; start_time: string; end_time: string; active: boolean };
           const scheduleMap = new Map<number, ScheduleEntry>((blData.schedule || []).map((s: ScheduleEntry) => [s.weekday, s]));
-          const { WEEKDAYS } = await import('./types');
           setBlForm({
             enabled: c.active !== false,
             phone: c.phone || '',
             specializations: c.specializations || '',
             slot_duration_minutes: c.slot_duration_minutes || 30,
-            schedule: WEEKDAYS.map((_, i) => {
+            schedule: WEEKDAY_LABELS.map((_, i) => {
               const wd = i + 1;
               const existing = scheduleMap.get(wd);
               return existing
