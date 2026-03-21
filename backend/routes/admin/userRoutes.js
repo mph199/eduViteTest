@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAdmin } from '../../middleware/auth.js';
+import { requireAdmin, requireSuperadmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import logger from '../../config/logger.js';
@@ -40,27 +40,40 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'role must be "admin", "teacher", "superadmin" or "ssw"' });
   }
 
-  // Prevent an admin from demoting themselves.
   try {
-    if (req.user?.username) {
-      const { rows: meRows } = await query('SELECT id, role FROM users WHERE username = $1 LIMIT 1', [req.user.username]);
-      const me = meRows[0] || null;
-      if (me && Number(me.id) === userId && roleStr !== 'admin') {
-        return res.status(400).json({ error: 'You cannot remove your own admin role.' });
+    // Fetch target user
+    const { rows: targetRows } = await query('SELECT id, role FROM users WHERE id = $1 LIMIT 1', [userId]);
+    if (!targetRows.length) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const targetUser = targetRows[0];
+
+    // Only superadmins may change a superadmin's role or grant superadmin
+    if ((targetUser.role === 'superadmin' || roleStr === 'superadmin') && req.user?.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Nur Superadmins duerfen Superadmin-Rollen aendern.' });
+    }
+
+    // Prevent demoting the last superadmin
+    if (targetUser.role === 'superadmin' && roleStr !== 'superadmin') {
+      const { rows: saRows } = await query("SELECT COUNT(*)::int AS cnt FROM users WHERE role = 'superadmin'", []);
+      if (saRows[0].cnt <= 1) {
+        return res.status(400).json({ error: 'Der letzte Superadmin kann nicht herabgestuft werden.' });
       }
     }
-  } catch {
-    // ignore safety check failures
-  }
 
-  try {
+    // Prevent an admin from demoting themselves
+    if (req.user?.username) {
+      const { rows: meRows } = await query('SELECT id FROM users WHERE username = $1 LIMIT 1', [req.user.username]);
+      const me = meRows[0] || null;
+      if (me && Number(me.id) === userId && roleStr !== targetUser.role && (targetUser.role === 'admin' || targetUser.role === 'superadmin')) {
+        return res.status(400).json({ error: 'Sie koennen Ihre eigene Rolle nicht herabstufen.' });
+      }
+    }
+
     const { rows } = await query(
       'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, username, role, teacher_id, created_at, updated_at',
       [roleStr, userId]
     );
-    if (!rows.length) {
-      return res.status(404).json({ error: 'User not found' });
-    }
     return res.json({ success: true, user: rows[0] });
   } catch (error) {
     logger.error({ err: error }, 'Error updating admin user role');
