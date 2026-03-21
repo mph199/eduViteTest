@@ -6,7 +6,7 @@ import { useFlash } from '../../../hooks/useFlash';
 import type { Counselor, ScheduleEntry, CounselorTopic as Topic } from '../../../types';
 import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
-import { buildDefaultSchedule, mergeScheduleEntries } from '../../../shared/utils/schedule';
+import { buildDefaultSchedule, mergeScheduleEntries, loadSchedulesMap } from '../../../shared/utils/schedule';
 import { BLSprechzeitenTab } from './BLSprechzeitenTab';
 import { BLTermineTab } from './BLTermineTab';
 import { BLAnfragenTab } from './BLAnfragenTab';
@@ -69,14 +69,7 @@ export function BLAdmin() {
       const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
       setCounselors(cList);
       setTopics(Array.isArray(tData?.topics) ? tData.topics : []);
-      if (cList.length > 0) {
-        const scheduleResults = await Promise.all(
-          cList.map(c => api.bl.getAdminCounselorSchedule(c.id).catch(() => ({ schedule: [] })))
-        );
-        const map: Record<number, ScheduleEntry[]> = {};
-        cList.forEach((c, i) => { map[c.id] = Array.isArray(scheduleResults[i]?.schedule) ? scheduleResults[i].schedule : []; });
-        setAdminSchedulesMap(map);
-      }
+      setAdminSchedulesMap(await loadSchedulesMap(cList, api.bl.getAdminCounselorSchedule));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden');
     }

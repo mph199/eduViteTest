@@ -1,4 +1,4 @@
-import type { ScheduleEntry } from '../../types';
+import type { Counselor, ScheduleEntry } from '../../types';
 
 /**
  * Build a default weekly schedule.
@@ -38,4 +38,23 @@ export function mergeScheduleEntries(
       active: found.active,
     };
   });
+}
+
+/**
+ * Load schedules for a list of counselors and build a map { counselorId -> ScheduleEntry[] }.
+ * Used by BLAdmin and SSWAdmin to avoid duplicated Promise.all + forEach patterns.
+ */
+export async function loadSchedulesMap(
+  counselors: Counselor[],
+  getScheduleFn: (counselorId: number) => Promise<{ schedule?: ScheduleEntry[] } | null>,
+): Promise<Record<number, ScheduleEntry[]>> {
+  if (counselors.length === 0) return {};
+  const results = await Promise.all(
+    counselors.map(c => getScheduleFn(c.id).catch(() => ({ schedule: [] }))),
+  );
+  const map: Record<number, ScheduleEntry[]> = {};
+  counselors.forEach((c, i) => {
+    map[c.id] = Array.isArray(results[i]?.schedule) ? results[i].schedule : [];
+  });
+  return map;
 }

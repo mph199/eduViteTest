@@ -11,6 +11,10 @@ async function uploadFile(endpoint: string, fieldName: string, file: File): Prom
     credentials: 'include',
     body: form,
   });
+  if (res.status === 401) {
+    try { window.dispatchEvent(new Event('auth:logout')); } catch { /* ignore */ }
+    throw new Error('Nicht angemeldet (401) – bitte neu einloggen.');
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
     throw new Error(err.error || 'Upload fehlgeschlagen');
@@ -54,6 +58,41 @@ async function requestJSON(path: string, options: RequestInit = {}) {
   }
 
   return await tryParse();
+}
+
+/**
+ * Fetch a raw Response (for binary downloads / streaming).
+ * Handles auth-logout on 401 like requestJSON.
+ */
+async function requestRaw(path: string, options: RequestInit = {}): Promise<Response> {
+  const response = await fetch(`${API_BASE}${path}`, { ...options, credentials: 'include' });
+  if (response.status === 401) {
+    try { window.dispatchEvent(new Event('auth:logout')); } catch { /* ignore */ }
+    throw new Error('Nicht angemeldet (401) – bitte neu einloggen.');
+  }
+  if (!response.ok) throw new Error(`Fehler ${response.status}`);
+  return response;
+}
+
+/**
+ * Shared admin methods for counselor modules (BL / SSW).
+ * Avoids duplication of getAdminAppointments, deleteAppointments, getAdminCounselorSchedule.
+ */
+function counselorAdminApi(prefix: string) {
+  return {
+    async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
+      return requestJSON(`/${prefix}/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`);
+    },
+    async deleteAppointments(ids: number[]) {
+      return requestJSON(`/${prefix}/admin/appointments`, {
+        method: 'DELETE',
+        body: JSON.stringify({ ids }),
+      });
+    },
+    async getAdminCounselorSchedule(counselorId: number) {
+      return requestJSON(`/${prefix}/admin/counselors/${encodeURIComponent(counselorId)}/schedule`);
+    },
+  };
 }
 
 const api = {
@@ -165,18 +204,7 @@ const api = {
       return requestJSON(`/admin/teachers/${teacherId}/bl`);
     },
     async importTeachersCSV(file: File) {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch(`${API_BASE}/admin/teachers/import-csv`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error((data as any)?.error || `Fehler ${response.status}`);
-      }
-      return data;
+      return uploadFile('/admin/teachers/import-csv', 'file', file);
     },
     async getSlots() {
       return requestJSON('/admin/slots');
@@ -263,6 +291,7 @@ const api = {
       return (res && (res as any).user) || null;
     },
     async updateUserModules(id: number, modules: string[], force = false) {
+      // 409 = conflict (counselor has appointments) — return data instead of throwing
       const response = await fetch(`${API_BASE}/admin/users/${id}/modules`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -416,19 +445,7 @@ const api = {
         body: JSON.stringify(payload),
       });
     },
-    async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON(`/bl/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`);
-    },
-    async deleteAppointments(ids: number[]) {
-      return requestJSON('/bl/admin/appointments', {
-        method: 'DELETE',
-
-        body: JSON.stringify({ ids }),
-      });
-    },
-    async getAdminCounselorSchedule(counselorId: number) {
-      return requestJSON(`/bl/admin/counselors/${encodeURIComponent(counselorId)}/schedule`);
-    },
+    ...counselorAdminApi('bl'),
   },
 
   // Schulsozialarbeit (SSW) endpoints
@@ -477,19 +494,7 @@ const api = {
     async getAdminStats() {
       return requestJSON('/ssw/admin/stats');
     },
-    async getAdminAppointments(counselorId: number, dateFrom: string, dateUntil: string) {
-      return requestJSON(`/ssw/admin/appointments?counselor_id=${encodeURIComponent(counselorId)}&date_from=${encodeURIComponent(dateFrom)}&date_until=${encodeURIComponent(dateUntil)}`);
-    },
-    async deleteAppointments(ids: number[]) {
-      return requestJSON('/ssw/admin/appointments', {
-        method: 'DELETE',
-
-        body: JSON.stringify({ ids }),
-      });
-    },
-    async getAdminCounselorSchedule(counselorId: number) {
-      return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`);
-    },
+    ...counselorAdminApi('ssw'),
     async updateAdminCounselorSchedule(counselorId: number, schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {
         method: 'PUT',
@@ -828,12 +833,7 @@ const api = {
       return requestJSON(`/admin/data-subject/search?email=${encodeURIComponent(email)}`);
     },
     async exportData(email: string, format: 'json' | 'csv' = 'json') {
-      const response = await fetch(
-        `${API_BASE}/admin/data-subject/export?email=${encodeURIComponent(email)}&format=${format}`,
-        { credentials: 'include' }
-      );
-      if (!response.ok) throw new Error('Export fehlgeschlagen');
-      return response;
+      return requestRaw(`/admin/data-subject/export?email=${encodeURIComponent(email)}&format=${format}`);
     },
     async deleteData(email: string) {
       return requestJSON(`/admin/data-subject?email=${encodeURIComponent(email)}`, {
@@ -866,12 +866,7 @@ const api = {
       const searchParams = new URLSearchParams({ format: 'csv' });
       if (from) searchParams.set('from', from);
       if (to) searchParams.set('to', to);
-      const response = await fetch(
-        `${API_BASE}/admin/audit-log/export?${searchParams.toString()}`,
-        { credentials: 'include' }
-      );
-      if (!response.ok) throw new Error('Audit-Log-Export fehlgeschlagen');
-      return response;
+      return requestRaw(`/admin/audit-log/export?${searchParams.toString()}`);
     },
   },
 };

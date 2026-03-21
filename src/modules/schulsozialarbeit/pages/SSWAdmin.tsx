@@ -5,6 +5,7 @@ import { useBgStyle } from '../../../hooks/useBgStyle';
 import { useFlash } from '../../../hooks/useFlash';
 import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
+import { loadSchedulesMap } from '../../../shared/utils/schedule';
 import { SSWCounselorsTab } from './SSWCounselorsTab';
 import { SSWTermineTab } from './SSWTermineTab';
 import { SSWAnfragenTab } from './SSWAnfragenTab';
@@ -36,14 +37,7 @@ export function SSWAdmin() {
       setCounselors(Array.isArray(cData?.counselors) ? cData.counselors : []);
       setCategories(Array.isArray(catData?.categories) ? catData.categories : []);
       const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
-      if (cList.length > 0) {
-        const scheduleResults = await Promise.all(
-          cList.map(c => api.ssw.getAdminCounselorSchedule(c.id).catch(() => ({ schedule: [] })))
-        );
-        const map: Record<number, ScheduleEntry[]> = {};
-        cList.forEach((c, i) => { map[c.id] = scheduleResults[i]?.schedule || []; });
-        setSchedulesMap(map);
-      }
+      setSchedulesMap(await loadSchedulesMap(cList, api.ssw.getAdminCounselorSchedule));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden');
     } finally {
