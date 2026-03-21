@@ -62,6 +62,8 @@ const flowModule: ModuleDefinition = {
     sidebarNav: {
         label: 'Flow',
         items: [
+            { path: '/admin/flow/bgl', label: 'Bildungsgang-Verwaltung', roles: ['admin', 'superadmin'] },
+            { path: '/admin/flow/abteilung', label: 'Abteilungssicht', roles: ['admin', 'superadmin'] },
             { path: '/teacher/flow', label: 'Dashboard' },
             { path: '/teacher/flow/aufgaben', label: 'Meine Aufgaben' },
         ],
