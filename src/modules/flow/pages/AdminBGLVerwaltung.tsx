@@ -2,33 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../services/api';
 import { useAuth } from '../../../contexts/useAuth';
-import type { FlowBildungsgangRolle } from '../../../types/index';
+import type { FlowBildungsgangRolle, FlowBildungsgangListItem, FlowBildungsgangMitglied, FlowUser } from '../../../types/index';
 import '../flow.css';
-
-interface BGListItem {
-    id: number;
-    name: string;
-    erlaubtMitgliedernPaketErstellung: boolean;
-    mitgliederCount: string;
-    arbeitspaketeCount: string;
-}
-
-interface BGMitglied {
-    id: number;
-    userId: number;
-    vorname: string;
-    nachname: string;
-    rolle: FlowBildungsgangRolle;
-    hinzugefuegtAm: string;
-}
-
-interface FlowUser {
-    id: number;
-    username: string;
-    vorname: string | null;
-    nachname: string | null;
-    role: string;
-}
 
 export function AdminBGLVerwaltung() {
     const { user } = useAuth();
@@ -39,21 +14,14 @@ export function AdminBGLVerwaltung() {
     const [neuerUserId, setNeuerUserId] = useState<number | ''>('');
 
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
-    if (!isAdmin) {
-        return (
-            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
-                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur fuer Administratoren</div></div>
-            </div>
-        );
-    }
 
     // ── Queries ──
-    const { data: bildungsgaenge = [], isLoading: bgLoading } = useQuery<BGListItem[]>({
+    const { data: bildungsgaenge = [], isLoading: bgLoading } = useQuery<FlowBildungsgangListItem[]>({
         queryKey: ['flow', 'admin', 'bildungsgaenge'],
         queryFn: () => api.flow.adminGetBildungsgaenge(),
     });
 
-    const { data: mitglieder = [], isLoading: mitgliederLoading } = useQuery<BGMitglied[]>({
+    const { data: mitglieder = [], isLoading: mitgliederLoading } = useQuery<FlowBildungsgangMitglied[]>({
         queryKey: ['flow', 'admin', 'bildungsgaenge', selectedBgId, 'mitglieder'],
         queryFn: () => api.flow.adminGetBildungsgangMitglieder(selectedBgId!),
         enabled: selectedBgId !== null,
@@ -98,6 +66,14 @@ export function AdminBGLVerwaltung() {
             qc.invalidateQueries({ queryKey: ['flow', 'admin', 'bildungsgaenge'] });
         },
     });
+
+    if (!isAdmin) {
+        return (
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur fuer Administratoren</div></div>
+            </div>
+        );
+    }
 
     const selectedBg = bildungsgaenge.find((bg) => bg.id === selectedBgId);
 

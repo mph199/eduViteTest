@@ -114,6 +114,9 @@ export function createCounselorAdminRoutes(config) {
         }
       }
 
+      if (userInfo?.tempPassword) {
+        res.set('Cache-Control', 'no-store');
+      }
       res.json({ success: true, counselor, user: userInfo });
     } catch (err) {
       logger.error({ err }, `${tablePrefix} create counselor error`);

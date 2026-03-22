@@ -393,6 +393,7 @@ export interface GenerateSlotsResponse {
 // ── Flow types (extracted to types/flow.ts) ──
 export type {
   FlowBildungsgangRolle, FlowBildungsgangMitglied, FlowBildungsgang,
+  FlowBildungsgangListItem, FlowUser,
   FlowArbeitspaketStatus, FlowArbeitspaketRolle, FlowArbeitspaketMitglied,
   FlowArbeitspaket, FlowArbeitspaketSummary,
   FlowAufgabenStatus, FlowAufgabe,

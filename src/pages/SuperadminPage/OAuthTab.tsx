@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { OAuthProviderFull, OAuthProviderFormData } from '../../types';
 import api from '../../services/api';
+import { useFlash } from '../../hooks/useFlash';
 
 const EMPTY_FORM: OAuthProviderFormData = {
   providerKey: '',
@@ -18,7 +19,7 @@ const EMPTY_FORM: OAuthProviderFormData = {
 
 export function OAuthTab() {
   const [providers, setProviders] = useState<OAuthProviderFull[]>([]);
-  const [msg, setMsg] = useState('');
+  const [msg, flash] = useFlash(4000);
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -39,11 +40,6 @@ export function OAuthTab() {
   }, []);
 
   useEffect(() => { loadProviders(); }, [loadProviders]);
-
-  const flash = (text: string) => {
-    setMsg(text);
-    setTimeout(() => setMsg(''), 4000);
-  };
 
   const setField = <K extends keyof OAuthProviderFormData>(key: K, value: OAuthProviderFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -88,7 +84,7 @@ export function OAuthTab() {
     }
 
     setSaving(true);
-    setMsg('');
+    flash('');
     try {
       if (mode === 'create') {
         await api.superadmin.createOAuthProvider(form as unknown as Record<string, unknown>);

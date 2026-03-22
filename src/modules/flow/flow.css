@@ -23,11 +23,14 @@
 
     /* Semantic */
     --flow-green: #2f855a;
+    --flow-green-rgb: 47, 133, 90;
     --flow-green-light: #f0faf4;
     --flow-green-muted: #5a8a6e;
     --flow-amber: #b7791f;
+    --flow-amber-rgb: 183, 121, 31;
     --flow-amber-light: #fefcf3;
     --flow-red: #c53030;
+    --flow-red-rgb: 197, 48, 48;
     --flow-red-light: #fdf2f2;
 
     /* Overlay */
@@ -312,9 +315,9 @@
 }
 
 .flow-status-badge--entwurf {
-    background: #f7f8fa;
-    color: #6b7280;
-    border-color: #e5e7eb;
+    background: var(--flow-bg);
+    color: var(--flow-text-muted);
+    border-color: var(--flow-border);
 }
 
 .flow-status-badge--geplant {
@@ -326,13 +329,13 @@
 .flow-status-badge--aktiv {
     background: var(--flow-green-light);
     color: var(--flow-green);
-    border-color: rgba(47, 133, 90, 0.2);
+    border-color: rgba(var(--flow-green-rgb), 0.2);
 }
 
 .flow-status-badge--abgeschlossen {
-    background: #f0f0f0;
-    color: #6b7280;
-    border-color: #d1d5db;
+    background: var(--flow-bg-hover);
+    color: var(--flow-text-muted);
+    border-color: var(--flow-border-strong);
 }
 
 /* ══ Progress Bar ═══════════════════════════════════════════════════ */
@@ -503,7 +506,7 @@
 
 .flow-hinweis-chip--warn {
     background: var(--flow-amber-light);
-    border-color: rgba(183, 121, 31, 0.15);
+    border-color: rgba(var(--flow-amber-rgb), 0.15);
     color: var(--flow-amber);
 }
 
@@ -513,7 +516,7 @@
 
 .flow-hinweis-chip--alert {
     background: var(--flow-red-light);
-    border-color: rgba(197, 48, 48, 0.15);
+    border-color: rgba(var(--flow-red-rgb), 0.15);
     color: var(--flow-red);
 }
 
@@ -651,7 +654,7 @@
 
 .flow-btn--danger:hover {
     background: var(--flow-red);
-    color: #fff;
+    color: var(--flow-surface);
 }
 
 .flow-btn--sm {

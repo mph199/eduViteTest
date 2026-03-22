@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAvatarColor, getAvatarInitial } from '../utils/avatarColor';
 import api from '../services/api';
-import type { User } from '../contexts/AuthContextBase';
+import type { User } from '../types';
 import { useAuth } from '../contexts/useAuth';
 import './SidebarProfile.css';
 

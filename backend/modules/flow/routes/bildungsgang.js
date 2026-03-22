@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireFlowBildungsgangRolle, requireFlowPaketAnlage } from '../middleware/flowAuth.js';
 import * as flowService from '../services/flowService.js';
+import logger from '../../../config/logger.js';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router.get('/', async (req, res) => {
         const bildungsgaenge = await flowService.getBildungsgaengeForUser(req.user.id);
         res.json(bildungsgaenge);
     } catch (err) {
+        logger.error({ err }, 'flow bildungsgang: Fehler beim Laden der Bildungsgaenge');
         res.status(500).json({ error: 'Fehler beim Laden der Bildungsgaenge' });
     }
 });
@@ -21,6 +23,7 @@ router.get('/:id', requireFlowBildungsgangRolle('mitglied'), async (req, res) =>
         if (!detail) return res.status(404).json({ error: 'Bildungsgang nicht gefunden' });
         res.json(detail);
     } catch (err) {
+        logger.error({ err }, 'flow bildungsgang: Fehler beim Laden des Bildungsgang-Details');
         res.status(500).json({ error: 'Fehler beim Laden des Bildungsgangs' });
     }
 });
@@ -39,6 +42,7 @@ router.post('/:id/arbeitspakete', requireFlowPaketAnlage, async (req, res) => {
         );
         res.status(201).json(paket);
     } catch (err) {
+        logger.error({ err }, 'flow bildungsgang: Fehler beim Erstellen des Arbeitspakets');
         res.status(500).json({ error: 'Fehler beim Erstellen des Arbeitspakets' });
     }
 });

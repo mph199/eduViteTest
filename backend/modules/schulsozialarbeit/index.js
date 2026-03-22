@@ -19,7 +19,7 @@ export default {
     // Admin- und Berater-Routen ZUERST (ohne Booking-Limiter)
     // Defense in depth: auth on mount level + per-route
     app.use('/api/ssw/admin', rateLimiters.admin, requireSSW, adminRouter);
-    app.use('/api/ssw/counselor', requireAuth, counselorRouter);
+    app.use('/api/ssw/counselor', rateLimiters.auth, requireAuth, counselorRouter);
     // Öffentliche Routen (Termin buchen) – mit Rate-Limit
     app.use('/api/ssw', rateLimiters.booking, publicRouter);
   },

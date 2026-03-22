@@ -26,6 +26,7 @@ router.put('/teachers/:id/reset-login', requireAdmin, async (req, res) => {
 
     await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, force_password_change = true WHERE id = $2', [passwordHash, user.id]);
 
+    res.set('Cache-Control', 'no-store');
     res.json({ success: true, user: { username: user.username, tempPassword } });
   } catch (error) {
     logger.error({ err: error }, 'Error resetting teacher login');

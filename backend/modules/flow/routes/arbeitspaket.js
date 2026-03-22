@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireFlowPaketRolle, requireFlowAufgabeErstellen } from '../middleware/flowAuth.js';
 import * as flowService from '../services/flowService.js';
 import { writeAuditLog } from '../../../middleware/audit-log.js';
+import logger from '../../../config/logger.js';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.get('/:id', requireFlowPaketRolle(ALLE), async (req, res) => {
         if (!paket) return res.status(404).json({ error: 'Arbeitspaket nicht gefunden' });
         res.json(paket);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Laden des Arbeitspaket-Details');
         res.status(500).json({ error: 'Fehler beim Laden des Arbeitspakets' });
     }
 });
@@ -28,6 +30,7 @@ router.patch('/:id', requireFlowPaketRolle(NUR_KOORDINATION), async (req, res) =
         if (!paket) return res.status(409).json({ error: 'Konflikt: Das Objekt wurde zwischenzeitlich geaendert' });
         res.json(paket);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Aktualisieren des Arbeitspakets');
         res.status(500).json({ error: 'Fehler beim Aktualisieren' });
     }
 });
@@ -41,6 +44,7 @@ router.patch('/:id/status', requireFlowPaketRolle(NUR_KOORDINATION), async (req,
         if (result.error) return res.status(400).json(result);
         res.json(result.paket);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Statusuebergang');
         res.status(500).json({ error: 'Fehler beim Statusuebergang' });
     }
 });
@@ -52,6 +56,7 @@ router.delete('/:id', requireFlowPaketRolle(NUR_KOORDINATION), async (req, res) 
         if (result.error) return res.status(400).json(result);
         res.status(204).end();
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Loeschen des Arbeitspakets');
         res.status(500).json({ error: 'Fehler beim Loeschen' });
     }
 });
@@ -65,6 +70,7 @@ router.post('/:id/abschliessen', requireFlowPaketRolle(NUR_KOORDINATION), async 
         if (!paket) return res.status(400).json({ error: 'Nur aktive Arbeitspakete koennen abgeschlossen werden' });
         res.json(paket);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Abschliessen des Arbeitspakets');
         res.status(500).json({ error: 'Fehler beim Abschliessen' });
     }
 });
@@ -78,6 +84,7 @@ router.post('/:id/wiederaufnehmen', requireFlowPaketRolle(NUR_KOORDINATION), asy
         if (!paket) return res.status(400).json({ error: 'Nur abgeschlossene Arbeitspakete koennen wiederaufgenommen werden' });
         res.json(paket);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler bei der Wiederaufnahme');
         res.status(500).json({ error: 'Fehler bei der Wiederaufnahme' });
     }
 });
@@ -90,6 +97,7 @@ router.get('/:id/mitglieder', requireFlowPaketRolle(ALLE), async (req, res) => {
         const mitglieder = await flowService.getMitglieder(parseInt(req.params.id));
         res.json(mitglieder);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Laden der Mitglieder');
         res.status(500).json({ error: 'Fehler beim Laden der Mitglieder' });
     }
 });
@@ -112,6 +120,7 @@ router.post('/:id/mitglieder', requireFlowPaketRolle(NUR_KOORDINATION), async (r
         writeAuditLog(req.user.id, 'FLOW_MITGLIED_ADDED', 'flow_arbeitspaket_mitglied', mitglied.id, { paketId: parseInt(req.params.id), userId, rolle }, req.ip);
         res.status(201).json(mitglied);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Hinzufuegen eines Mitglieds');
         res.status(500).json({ error: 'Fehler beim Hinzufuegen' });
     }
 });
@@ -130,6 +139,7 @@ router.patch('/:id/mitglieder/:uid', requireFlowPaketRolle(NUR_KOORDINATION), as
         writeAuditLog(req.user.id, 'FLOW_MITGLIED_ROLE_CHANGED', 'flow_arbeitspaket_mitglied', mitglied.id, { paketId: parseInt(req.params.id), userId: parseInt(req.params.uid), rolle }, req.ip);
         res.json(mitglied);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Aendern der Mitglied-Rolle');
         res.status(500).json({ error: 'Fehler beim Aendern der Rolle' });
     }
 });
@@ -144,6 +154,7 @@ router.delete('/:id/mitglieder/:uid', requireFlowPaketRolle(NUR_KOORDINATION), a
         writeAuditLog(req.user.id, 'FLOW_MITGLIED_REMOVED', 'flow_arbeitspaket_mitglied', null, { paketId: parseInt(req.params.id), userId: parseInt(req.params.uid) }, req.ip);
         res.status(204).end();
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Entfernen eines Mitglieds');
         res.status(500).json({ error: 'Fehler beim Entfernen' });
     }
 });
@@ -156,6 +167,7 @@ router.get('/:id/aufgaben', requireFlowPaketRolle(ALLE), async (req, res) => {
         const aufgaben = await flowService.getAufgaben(parseInt(req.params.id));
         res.json(aufgaben);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Laden der Aufgaben');
         res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
     }
 });
@@ -171,6 +183,7 @@ router.post('/:id/aufgaben', requireFlowPaketRolle(SCHREIBEN), requireFlowAufgab
         );
         res.status(201).json(aufgabe);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Erstellen einer Aufgabe');
         res.status(500).json({ error: 'Fehler beim Erstellen der Aufgabe' });
     }
 });
@@ -183,6 +196,7 @@ router.get('/:id/tagungen', requireFlowPaketRolle(ALLE), async (req, res) => {
         const tagungen = await flowService.getTagungen(parseInt(req.params.id));
         res.json(tagungen);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Laden der Tagungen');
         res.status(500).json({ error: 'Fehler beim Laden der Tagungen' });
     }
 });
@@ -198,6 +212,7 @@ router.post('/:id/tagungen', requireFlowPaketRolle(NUR_KOORDINATION), async (req
         );
         res.status(201).json(tagung);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Erstellen einer Tagung');
         res.status(500).json({ error: 'Fehler beim Erstellen der Tagung' });
     }
 });
@@ -210,6 +225,7 @@ router.get('/:id/dateien', requireFlowPaketRolle(ALLE), async (req, res) => {
         const dateien = await flowService.getDateien(parseInt(req.params.id));
         res.json(dateien);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Laden der Dateien');
         res.status(500).json({ error: 'Fehler beim Laden der Dateien' });
     }
 });
@@ -225,6 +241,7 @@ router.post('/:id/dateien', requireFlowPaketRolle(SCHREIBEN), async (req, res) =
         );
         res.status(201).json(datei);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Speichern der Datei-Metadaten');
         res.status(500).json({ error: 'Fehler beim Speichern der Datei-Metadaten' });
     }
 });
@@ -237,6 +254,7 @@ router.get('/:id/aktivitaeten', requireFlowPaketRolle(ALLE), async (req, res) =>
         const aktivitaeten = await flowService.getAktivitaeten(parseInt(req.params.id));
         res.json(aktivitaeten);
     } catch (err) {
+        logger.error({ err }, 'flow arbeitspaket: Fehler beim Laden der Aktivitaeten');
         res.status(500).json({ error: 'Fehler beim Laden der Aktivitaeten' });
     }
 });

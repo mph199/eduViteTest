@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireFlowAufgabeZugang } from '../middleware/flowAuth.js';
 import * as flowService from '../services/flowService.js';
+import logger from '../../../config/logger.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.get('/meine', async (req, res) => {
         const aufgaben = await flowService.getMeineAufgaben(req.user.id, filter);
         res.json(aufgaben);
     } catch (err) {
+        logger.error({ err }, 'flow aufgabe: Fehler beim Laden der eigenen Aufgaben');
         res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
     }
 });
@@ -34,6 +36,7 @@ router.patch('/:id', requireFlowAufgabeZugang(SCHREIBEN), async (req, res) => {
         if (!aufgabe) return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
         res.json(aufgabe);
     } catch (err) {
+        logger.error({ err }, 'flow aufgabe: Fehler beim Aktualisieren der Aufgabe');
         res.status(500).json({ error: 'Fehler beim Aktualisieren' });
     }
 });
@@ -50,6 +53,7 @@ router.patch('/:id/status', requireFlowAufgabeZugang(SCHREIBEN), async (req, res
         if (!aufgabe) return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
         res.json(aufgabe);
     } catch (err) {
+        logger.error({ err }, 'flow aufgabe: Fehler beim Statuswechsel der Aufgabe');
         res.status(500).json({ error: 'Fehler beim Statuswechsel' });
     }
 });
@@ -61,6 +65,7 @@ router.delete('/:id', requireFlowAufgabeZugang(SCHREIBEN), async (req, res) => {
         if (!aufgabe) return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
         res.status(204).end();
     } catch (err) {
+        logger.error({ err }, 'flow aufgabe: Fehler beim Loeschen der Aufgabe');
         res.status(500).json({ error: 'Fehler beim Loeschen' });
     }
 });

@@ -21,6 +21,22 @@ export interface FlowBildungsgang {
   updatedAt: string;
 }
 
+export interface FlowBildungsgangListItem {
+  id: number;
+  name: string;
+  erlaubtMitgliedernPaketErstellung: boolean;
+  mitgliederCount: string;
+  arbeitspaketeCount: string;
+}
+
+export interface FlowUser {
+  id: number;
+  username: string;
+  vorname: string | null;
+  nachname: string | null;
+  role: string;
+}
+
 // ── Flow: Arbeitspaket ──────────────────────────────────────────────
 
 export type FlowArbeitspaketStatus = 'entwurf' | 'geplant' | 'aktiv' | 'abgeschlossen';

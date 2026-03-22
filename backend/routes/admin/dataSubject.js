@@ -4,14 +4,29 @@ import { query, getClient } from '../../config/db.js';
 import logger from '../../config/logger.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import { writeAuditLog } from '../../middleware/audit-log.js';
+import { EMAIL_RE } from '../../utils/validators.js';
 
 const router = express.Router();
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+/**
+ * Escape a value for semicolon-separated CSV.
+ */
+function csvEscapeValue(val) {
+  if (val === null || val === undefined) return '';
+  const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
+}
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * Convert an array of rows to CSV lines (semicolon-separated).
+ */
+function rowsToCsvLines(headers, rows) {
+  const lines = [headers.join(';')];
+  for (const row of rows) {
+    lines.push(headers.map(h => csvEscapeValue(row[h])).join(';'));
+  }
+  return lines;
+}
 
 /**
  * Collect all PII for a given email across all relevant tables.
@@ -89,15 +104,7 @@ function dataToCsv(data) {
     if (!Array.isArray(rows) || rows.length === 0) continue;
     lines.push(`--- ${tableName} ---`);
     const headers = Object.keys(rows[0]);
-    lines.push(headers.join(';'));
-    for (const row of rows) {
-      lines.push(headers.map(h => {
-        const val = row[h];
-        if (val === null || val === undefined) return '';
-        const str = String(val);
-        return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
-      }).join(';'));
-    }
+    lines.push(...rowsToCsvLines(headers, rows));
     lines.push('');
   }
 
@@ -202,7 +209,8 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
         `UPDATE slots
          SET parent_name = NULL, student_name = NULL, company_name = NULL,
              trainee_name = NULL, representative_name = NULL, class_name = NULL,
-             email = NULL, message = NULL, updated_at = NOW()
+             email = NULL, message = NULL, verification_token_hash = NULL,
+             updated_at = NOW()
          WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
          RETURNING id`,
         [trimmedEmail]
@@ -508,15 +516,7 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
 
     if (format === 'csv') {
       const headers = ['id', 'user_id', 'user_name', 'action', 'table_name', 'record_id', 'details', 'ip_address', 'created_at'];
-      const csvLines = [headers.join(';')];
-      for (const row of rows) {
-        csvLines.push(headers.map(h => {
-          const val = row[h];
-          if (val === null || val === undefined) return '';
-          const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
-          return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
-        }).join(';'));
-      }
+      const csvLines = rowsToCsvLines(headers, rows);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="audit-log-${Date.now()}.csv"`);
       return res.send(csvLines.join('\n'));

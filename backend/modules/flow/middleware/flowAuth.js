@@ -133,78 +133,64 @@ export async function requireFlowPaketAnlage(req, res, next) {
 }
 
 /**
+ * Generische Middleware: Ermittelt die Arbeitspaket-ID ueber eine Lookup-Tabelle
+ * und prueft Paket-Mitgliedschaft.
+ * Setzt req.flowPaketRolle.
+ * @param {string} entityTable - Quelltabelle (flow_aufgabe oder flow_tagung)
+ * @param {string} entityLabel - Label fuer Fehlermeldungen
+ * @param {Function} storeResult - (req, arbeitspaketId) => void
+ */
+function requireFlowEntityZugang(entityTable, entityLabel, storeResult) {
+    return (erlaubteRollen) => {
+        return async (req, res, next) => {
+            try {
+                const entityResult = await query(
+                    `SELECT arbeitspaket_id FROM ${entityTable} WHERE id = $1`,
+                    [req.params.id]
+                );
+                if (entityResult.rows.length === 0) {
+                    return res.status(404).json({ error: `${entityLabel} nicht gefunden` });
+                }
+                const arbeitspaketId = entityResult.rows[0].arbeitspaket_id;
+                storeResult(req, arbeitspaketId);
+
+                const result = await query(
+                    'SELECT rolle FROM flow_arbeitspaket_mitglied WHERE arbeitspaket_id = $1 AND user_id = $2',
+                    [arbeitspaketId, req.user.id]
+                );
+                if (result.rows.length === 0) {
+                    return res.status(403).json({ error: 'Kein Zugang zu diesem Arbeitspaket' });
+                }
+                const rolle = result.rows[0].rolle;
+                if (!erlaubteRollen.includes(rolle)) {
+                    return res.status(403).json({ error: 'Unzureichende Berechtigung' });
+                }
+                req.flowPaketRolle = rolle;
+                next();
+            } catch (err) {
+                return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
+            }
+        };
+    };
+}
+
+/**
  * Ermittelt die Arbeitspaket-ID aus einer Aufgabe und prueft Paket-Mitgliedschaft.
  * Setzt req.flowPaketRolle und req.params.arbeitspaketId.
  */
-export function requireFlowAufgabeZugang(erlaubteRollen) {
-    return async (req, res, next) => {
-        try {
-            const aufgabeId = req.params.id;
-            const aufgabeResult = await query(
-                'SELECT arbeitspaket_id FROM flow_aufgabe WHERE id = $1',
-                [aufgabeId]
-            );
-            if (aufgabeResult.rows.length === 0) {
-                return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
-            }
-            const arbeitspaketId = aufgabeResult.rows[0].arbeitspaket_id;
-            req.params.arbeitspaketId = String(arbeitspaketId);
-
-            const result = await query(
-                'SELECT rolle FROM flow_arbeitspaket_mitglied WHERE arbeitspaket_id = $1 AND user_id = $2',
-                [arbeitspaketId, req.user.id]
-            );
-            if (result.rows.length === 0) {
-                return res.status(403).json({ error: 'Kein Zugang zu diesem Arbeitspaket' });
-            }
-            const rolle = result.rows[0].rolle;
-            if (!erlaubteRollen.includes(rolle)) {
-                return res.status(403).json({ error: 'Unzureichende Berechtigung' });
-            }
-            req.flowPaketRolle = rolle;
-            next();
-        } catch (err) {
-            return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
-        }
-    };
-}
+export const requireFlowAufgabeZugang = requireFlowEntityZugang(
+    'flow_aufgabe', 'Aufgabe',
+    (req, id) => { req.params.arbeitspaketId = String(id); }
+);
 
 /**
  * Ermittelt die Arbeitspaket-ID aus einer Tagung und prueft Paket-Mitgliedschaft.
  * Setzt req.flowPaketRolle und req.flowTagungPaketId.
  */
-export function requireFlowTagungZugang(erlaubteRollen) {
-    return async (req, res, next) => {
-        try {
-            const tagungId = req.params.id;
-            const tagungResult = await query(
-                'SELECT arbeitspaket_id FROM flow_tagung WHERE id = $1',
-                [tagungId]
-            );
-            if (tagungResult.rows.length === 0) {
-                return res.status(404).json({ error: 'Tagung nicht gefunden' });
-            }
-            const arbeitspaketId = tagungResult.rows[0].arbeitspaket_id;
-            req.flowTagungPaketId = arbeitspaketId;
-
-            const result = await query(
-                'SELECT rolle FROM flow_arbeitspaket_mitglied WHERE arbeitspaket_id = $1 AND user_id = $2',
-                [arbeitspaketId, req.user.id]
-            );
-            if (result.rows.length === 0) {
-                return res.status(403).json({ error: 'Kein Zugang zu diesem Arbeitspaket' });
-            }
-            const rolle = result.rows[0].rolle;
-            if (!erlaubteRollen.includes(rolle)) {
-                return res.status(403).json({ error: 'Unzureichende Berechtigung' });
-            }
-            req.flowPaketRolle = rolle;
-            next();
-        } catch (err) {
-            return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
-        }
-    };
-}
+export const requireFlowTagungZugang = requireFlowEntityZugang(
+    'flow_tagung', 'Tagung',
+    (req, id) => { req.flowTagungPaketId = id; }
+);
 
 /**
  * Prueft Aufgaben-Erstellungsberechtigung.
