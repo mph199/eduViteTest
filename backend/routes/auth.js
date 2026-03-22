@@ -257,7 +257,8 @@ router.get('/verify', async (req, res) => {
     return res.json({ authenticated: false });
   }
 
-  // Check token_version for DB-users (pre-migration tokens without tv claim default to -1)
+  // Check token_version and load live data for DB-users
+  let liveModules = decoded.modules || [];
   if (decoded.id) {
     try {
       const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
@@ -269,6 +270,13 @@ router.get('/verify', async (req, res) => {
       if (rows.length > 0) {
         decoded._fpc = !!rows[0].force_password_change;
       }
+
+      // Module-Berechtigungen live aus DB laden (statt aus JWT-Claim)
+      const { rows: moduleRows } = await query(
+        'SELECT module_key FROM user_module_access WHERE user_id = $1',
+        [decoded.id]
+      );
+      liveModules = moduleRows.map(r => r.module_key);
     } catch (verifyErr) {
       // fail open for availability – but log for debugging
       logger.warn({ err: verifyErr }, 'Token version check failed, proceeding without');
@@ -281,7 +289,7 @@ router.get('/verify', async (req, res) => {
       username: decoded.username,
       role: decoded.role,
       teacherId: decoded.teacherId,
-      modules: decoded.modules || [],
+      modules: liveModules,
       forcePasswordChange: decoded._fpc ?? !!decoded.fpc,
     }
   });
