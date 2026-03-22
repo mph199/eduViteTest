@@ -459,7 +459,9 @@ router.get('/events/active', async (_req, res) => {
   try {
     const now = new Date().toISOString();
     const { rows } = await query(
-      `SELECT * FROM events
+      `SELECT id, name, school_year, starts_at, ends_at, timezone, status,
+              booking_opens_at, booking_closes_at
+       FROM events
        WHERE status = 'published'
          AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
          AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
@@ -481,7 +483,9 @@ router.get('/events/upcoming', async (_req, res) => {
   try {
     const now = new Date().toISOString();
     const { rows } = await query(
-      `SELECT * FROM events
+      `SELECT id, name, school_year, starts_at, ends_at, timezone, status,
+              booking_opens_at, booking_closes_at
+       FROM events
        WHERE status = 'published' AND starts_at >= $1
        ORDER BY starts_at ASC LIMIT 3`,
       [now]
@@ -498,21 +502,11 @@ router.get('/events/upcoming', async (_req, res) => {
 
 router.get('/health', async (_req, res) => {
   try {
-    const [teacherResult, slotResult, bookedResult] = await Promise.all([
-      query('SELECT COUNT(*) AS count FROM teachers'),
-      query('SELECT COUNT(*) AS count FROM slots'),
-      query('SELECT COUNT(*) AS count FROM slots WHERE booked = true')
-    ]);
-
-    res.json({
-      status: 'ok',
-      teacherCount: parseInt(teacherResult.rows[0].count, 10) || 0,
-      slotCount: parseInt(slotResult.rows[0].count, 10) || 0,
-      bookedCount: parseInt(bookedResult.rows[0].count, 10) || 0
-    });
+    await query('SELECT 1');
+    res.json({ status: 'ok' });
   } catch (error) {
     logger.error({ err: error }, 'Error in health check');
-    res.status(500).json({ status: 'error', message: 'Health check failed' });
+    res.status(500).json({ status: 'error' });
   }
 });
 

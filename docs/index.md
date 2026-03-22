@@ -1,6 +1,6 @@
 # Dokumentation
 
-> Stand: 2026-03-21
+> Stand: 2026-03-22
 
 ## Architektur
 
@@ -14,6 +14,7 @@
 
 - [Installation](deployment/install.md) -- Docker-Compose-Deployment, Ersteinrichtung
 - [Reverse Proxy](deployment/reverse-proxy-examples.md) -- Nginx, Caddy, Traefik Konfigurationen
+- [VPS Launch Checklist](deployment/vps-launch-checklist.md) -- Go-Live Checkliste fuer VPS-Deployment
 
 ## Compliance (DSGVO)
 
@@ -29,6 +30,9 @@
 - [DB-Audit](security/db-audit-2026-03-17.md) -- Schema-Inventar, Hygiene-Befunde, DSGVO-Gaps
 - [Audit 2026-03-18](security/audit-2026-03-18.md) -- Security, Hygiene, Modul, Konventionen (38 Befunde)
 - [Nachtpruefung 2026-03-18](security/audit-2026-03-18-nachtpruefung.md) -- Folge-Audit mit 38 Befunden, Token-Revocation, Lockout
+- [Audit-Todo 2026-03-18](security/audit-todo-2026-03-18.md) -- Offene Security-Aufgaben
+- [DB-Audit 2026-03-19](security/db-audit-2026-03-19.md) -- Folge-DB-Audit
+- [Buchungstool-Audit 2026-03-22](security/audit-booking-2026-03-22.md) -- Buchungstool Security/Hygiene/Doku-Audit
 
 ## Planung
 
@@ -56,3 +60,7 @@
 - [Responsive Admin](ux/responsive-admin.md) -- Admin-Bereich Responsive-Audit
 - [Responsive Buchungstool](ux/responsive-buchungstool.md) -- Buchungstool Responsive-Audit
 - [Responsive Lehrer](ux/responsive-lehrer.md) -- Lehrer-Bereich Responsive-Audit
+
+## Intern
+
+- [Vertriebsanalyse](company/vertriebsanalyse.md) -- Vertriebsstrategie und Marktanalyse

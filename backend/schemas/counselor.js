@@ -8,4 +8,4 @@ export const counselorBookingSchema = z.object({
   phone: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
   is_urgent: z.boolean().optional().default(false),
   consent_version: z.string().min(1, 'Einwilligung ist erforderlich').max(20),
-}).passthrough();
+});

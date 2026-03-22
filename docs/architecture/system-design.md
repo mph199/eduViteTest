@@ -17,11 +17,15 @@ Plugin architecture. Modules are independently toggleable via `ENABLED_MODULES` 
 
 `backend/moduleLoader.js` scans `backend/modules/*/index.js`. Each module exports:
 ```js
-export function register(app, { rateLimiters }) {
-  app.use('/api/<prefix>/admin', adminRouter);
-  app.use('/api/<prefix>/counselor', counselorRouter);
-  app.use('/api/<prefix>', publicRouter);  // rate limited
-}
+export default {
+  id: '<module-id>',
+  name: '<Module Name>',
+  register(app, { rateLimiters }) {
+    app.use('/api/<prefix>/admin', adminRouter);
+    app.use('/api/<prefix>/counselor', counselorRouter);
+    app.use('/api/<prefix>', publicRouter);  // rate limited
+  }
+};
 ```
 
 ### Frontend Module Loading
@@ -484,7 +488,7 @@ backend/
 
 Each counseling module follows the same 3-router pattern, built from shared factories in `backend/shared/`:
 1. **public.js** – Rate-limited. Counselor list, topics, available slots, booking → `createCounselorPublicRoutes()`. Booking checks `counselor.requires_confirmation`: when `FALSE`, sets status directly to `confirmed` instead of `requested`.
-2. **counselor.js** – `requireAuth` + local counselor check. Own appointments (with `?status=` and `?date_from=`/`?date_until=` filters for requests tab), schedule (module-specific, not shared)
+2. **counselor.js** – `requireAuth` + local counselor check. Own appointments (with `?status=` and `?date_from=`/`?date_until=` filters for requests tab). BL adds module-specific endpoints (`/profile`, GET/PUT `/schedule`); SSW is a pure `createCounselorRoutes()` wrapper without extra endpoints.
 3. **admin.js** – `requireModuleAccess`. Full CRUD for counselors (including `requires_confirmation`), topics, appointments → `createCounselorAdminRoutes()`
 
 Module differences are handled via config parameters (table prefix, topic schema, auth middleware, user creation/deletion callbacks).

@@ -284,6 +284,11 @@ export function createCounselorAdminRoutes(config) {
       const dateFrom = req.query.date_from;
       const dateUntil = req.query.date_until;
       if (!dateFrom || !dateUntil) return res.status(400).json({ error: 'date_from und date_until erforderlich' });
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(dateFrom) || !dateRegex.test(dateUntil)
+          || isNaN(new Date(dateFrom).getTime()) || isNaN(new Date(dateUntil).getTime())) {
+        return res.status(400).json({ error: 'Datumsformat muss YYYY-MM-DD sein' });
+      }
 
       const { rows } = await query(
         `SELECT a.*, t.name AS ${topicJoinAlias}
@@ -305,6 +310,9 @@ export function createCounselorAdminRoutes(config) {
       const { ids } = req.body || {};
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: 'ids-Array erforderlich' });
+      }
+      if (ids.length > 500) {
+        return res.status(400).json({ error: 'Maximal 500 IDs pro Request erlaubt' });
       }
 
       const numericIds = ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
