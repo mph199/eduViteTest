@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import { createRateLimiter } from './config/rateLimiter.js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -66,7 +66,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
 // Rate limiting
-const authLimiter = rateLimit({
+const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,  // 15 minutes
   max: 40,                     // 40 requests per window (verify, logout, etc.)
   standardHeaders: true,
@@ -74,7 +74,7 @@ const authLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen. Bitte später erneut versuchen.' },
 });
 
-const bookingLimiter = rateLimit({
+const bookingLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 30,
   standardHeaders: true,
@@ -82,7 +82,7 @@ const bookingLimiter = rateLimit({
   message: { error: 'Zu viele Buchungsanfragen. Bitte später erneut versuchen.' },
 });
 
-const adminLimiter = rateLimit({
+const adminLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,

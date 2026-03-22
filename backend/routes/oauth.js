@@ -1,5 +1,5 @@
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import { createRateLimiter } from '../config/rateLimiter.js';
 import {
     fetchDiscovery,
     getEnabledProviders,
@@ -33,7 +33,7 @@ function cookieOptions() {
     };
 }
 
-const oauthLimiter = rateLimit({
+const oauthLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
     max: 30,
     standardHeaders: true,
