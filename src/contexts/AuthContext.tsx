@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
 import { AuthContext } from './AuthContextBase.ts';
-import type { User, ActiveView } from './AuthContextBase.ts';
+import type { User, ActiveView } from '../types';
 import { teacherPersonName } from '../utils/teacherDisplayName.ts';
 
 // AuthContext wird in `AuthContextBase.ts` definiert
