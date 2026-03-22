@@ -6,7 +6,7 @@
  */
 
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import { createRateLimiter } from '../config/rateLimiter.js';
 import { query } from '../config/db.js';
 import logger from '../config/logger.js';
 import { validate } from '../middleware/validate.js';
@@ -14,7 +14,7 @@ import { consentWithdrawSchema } from '../schemas/booking.js';
 
 const router = express.Router();
 
-const consentLimiter = rateLimit({
+const consentLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: 'Zu viele Anfragen. Bitte spaeter erneut versuchen.' },

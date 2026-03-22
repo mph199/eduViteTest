@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import rateLimit from 'express-rate-limit';
+import { createRateLimiter } from '../config/rateLimiter.js';
 import { query } from '../config/db.js';
 import { verifyCredentials, ADMIN_USER, generateToken, verifyToken } from '../middleware/auth.js';
 import { logSecurityEvent } from '../middleware/audit-log.js';
@@ -10,7 +10,7 @@ import { loginSchema } from '../schemas/auth.js';
 
 const router = express.Router();
 
-const loginLimiter = rateLimit({
+const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,  // 15 minutes
   max: 20,                      // 20 login attempts per window
   standardHeaders: true,

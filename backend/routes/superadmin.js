@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
-import rateLimit from 'express-rate-limit';
+import { createRateLimiter } from '../config/rateLimiter.js';
 import { requireSuperadmin } from '../middleware/auth.js';
 import { query } from '../config/db.js';
 import * as oauthService from '../services/oauthService.js';
@@ -29,7 +29,7 @@ function sanitizeImageMap(obj) {
   return result;
 }
 
-const publicLimiter = rateLimit({
+const publicLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 60,
   standardHeaders: true,
