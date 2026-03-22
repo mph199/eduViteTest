@@ -12,6 +12,8 @@ interface Props {
   loadData: () => void;
   api: TopicCategoryApi;
   labels: {
+    singular: string;
+    plural: string;
     created: string;
     updated: string;
   };
@@ -58,18 +60,18 @@ export function TopicCategoryTab({ items, showFlash, loadData, api, labels, idPr
   return (
     <>
       <div className="admin-section-header">
-        <h3>Themen</h3>
+        <h3>{labels.plural}</h3>
         <button
           className="btn-primary"
           onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(true); }}
         >
-          + Neues Thema
+          + {labels.singular}
         </button>
       </div>
 
       {showForm && (
         <div className="teacher-form-container">
-          <h3>{editingId ? 'Thema bearbeiten' : 'Neues Thema'}</h3>
+          <h3>{editingId ? `${labels.singular} bearbeiten` : labels.singular}</h3>
           <form className="teacher-form" onSubmit={handleSave}>
             <div className="form-group">
               <label htmlFor={`${idPrefix}-name`}>Name</label>
@@ -103,7 +105,7 @@ export function TopicCategoryTab({ items, showFlash, loadData, api, labels, idPr
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={4}>Keine Themen vorhanden.</td></tr>
+              <tr><td colSpan={4}>Keine {labels.plural.toLowerCase()} vorhanden.</td></tr>
             ) : items.map(item => (
               <tr key={item.id}>
                 <td data-label="Name">{item.name}</td>

@@ -9,7 +9,7 @@ interface Props {
 }
 
 const blApi = { create: api.bl.createTopic, update: api.bl.updateTopic };
-const blLabels = { created: 'Thema erstellt.', updated: 'Thema aktualisiert.' };
+const blLabels = { singular: 'Neues Thema', plural: 'Themen', created: 'Thema erstellt.', updated: 'Thema aktualisiert.' };
 
 export function BLTopicsTab({ topics, showFlash, loadAdminData }: Props) {
   return (

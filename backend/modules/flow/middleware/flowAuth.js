@@ -1,4 +1,5 @@
 import { query } from '../../../config/db.js';
+import { assertSafeIdentifier } from '../../../shared/sqlGuards.js';
 
 const BG_ROLLEN_HIERARCHIE = { leitung: 2, mitglied: 1 };
 
@@ -141,6 +142,7 @@ export async function requireFlowPaketAnlage(req, res, next) {
  * @param {Function} storeResult - (req, arbeitspaketId) => void
  */
 function requireFlowEntityZugang(entityTable, entityLabel, storeResult) {
+    assertSafeIdentifier(entityTable, 'entityTable');
     return (erlaubteRollen) => {
         return async (req, res, next) => {
             try {
