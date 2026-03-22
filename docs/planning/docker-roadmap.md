@@ -116,63 +116,55 @@ entkoppelt und können einzeln aktiviert / angedockt werden.
 
 ## Phase 9 – DSGVO & Datenhygiene
 
-> Ziel: Vollständige DSGVO-Konformität (Verordnung (EU) 2016/679) für den Betrieb
-> an öffentlichen Schulen und in Zusammenarbeit mit Schulträgern. Schulen sind
-> verantwortliche Stellen i. S. d. DSGVO; die Software muss alle technischen und
-> organisatorischen Maßnahmen (TOMs) unterstützen.
+> **Stand: 2026-03-21** – Phase 9 ist weitgehend umgesetzt. Detaillierter Fortschritt
+> in `docs/compliance/dsgvo-saas-todo.md` (P0: 100%, P1: 100%, P2: 40%).
+>
+> Art.-9-Daten (concern/notes) wurden komplett entfernt (Migration 035).
+> Damit entfallen DSFA, spezielle Verschluesselung und Art.-9-Consent.
 
 ### 9a – Bestandsaufnahme personenbezogener Daten
 
-Folgende Tabellen enthalten personenbezogene Daten (PII), die unter die DSGVO fallen:
+- [x] **Dateninventar** – `docs/compliance/dsgvo-dateninventar.md` mit allen PII-Tabellen, Kategorien, Rechtsgrundlagen
 
-| Tabelle | PII-Spalten | Kategorie | Aufbewahrungszweck |
-|---------|-------------|-----------|-------------------|
-| `users` | `username`, `email`, `password_hash` | Beschäftigtendaten | Authentifizierung |
-| `teachers` | `first_name`, `last_name`, `email`, `phone`, `salutation` | Beschäftigtendaten | Lehrkräfte-Verwaltung |
-| `slots` | `email`, `parent_name`, `student_name`, `company_name`, `message` | Eltern-/Schülerdaten | Terminbuchung |
-| `booking_requests` | `email`, `parent_name`, `student_name`, `representative_name`, `message` | Eltern-/Schülerdaten | Buchungsanfragen |
-| `ssw_counselors` | `first_name`, `last_name`, `email`, `phone` | Beschäftigtendaten | Beraterverwaltung |
-| `ssw_appointments` | `student_name`, `notes` | Schülerdaten (sensibel) | Beratungstermine |
-| `feedback` | `message` | Pseudonym/anonym | Rückmeldungen |
+### 9b – Automatische Datenloeschung (Speicherfristkonzept)
 
-### 9b – Automatische Datenlöschung (Speicherfristkonzept)
+- [x] **Aufbewahrungsfristen konfigurierbar** – `backend/config/retention.js` mit Env-Variablen
+- [x] **Retention-Cron-Job** – `backend/jobs/retention-cleanup.js` anonymisiert abgelaufene Daten (EST 6 Monate, SSW/BL 12 Monate, storniert 30 Tage)
+- [x] **PII-Anonymisierung booking_requests** – Bei Event-Abschluss (Migration 034)
+- [x] **PII-Anonymisierung SSW/BL Cancel** – Bei Stornierung werden PII-Felder genullt
+- [x] **DELETE-Endpunkt booking_requests** – Admin-Route zum manuellen Loeschen
+- [x] **Audit-Log** – Loeschvorgaenge in `audit_log` protokolliert
+- [ ] **Superadmin-UI: Speicherfristen** – Tab "Datenschutz" fuer konfigurierbare Fristen (aktuell nur via Env-Variablen)
+- [ ] **Manueller Loesch-Button** – Admin-UI: "Alte Daten jetzt bereinigen" mit Vorschau
 
-- [ ] **Admin-Settings-Tabelle** – Neue Migration: `settings`-Tabelle mit Key-Value-Paaren für Retention-Zeiträume (z. B. `booking_retention_days = 90`, `ssw_retention_days = 365`)
-- [ ] **Superadmin-UI: Speicherfristen** – Neuer Tab "Datenschutz" im Superadmin-Bereich: Eingabefelder für Aufbewahrungsfristen pro Datentyp (Buchungen, SSW-Termine, Feedback), Mindest-/Maximalwerte
-- [ ] **Cleanup-Cronjob** – `node-cron`-Job im Backend (täglich 02:00 Uhr): Löscht/anonymisiert abgelaufene Datensätze basierend auf `created_at` + konfigurierter Frist
-- [ ] **Anonymisierung statt Löschung** – Option: Statt `DELETE` werden PII-Felder durch Platzhalter ersetzt (`parent_name → 'Gelöscht'`, `email → NULL`), damit Statistiken erhalten bleiben
-- [ ] **Audit-Log** – Löschvorgänge protokollieren: Wann, welche Tabelle, wie viele Datensätze, durch wen/was ausgelöst (Cronjob vs. manuell)
-- [ ] **Manueller Lösch-Button** – Admin-UI: "Alte Daten jetzt bereinigen" mit Vorschau (X Datensätze betroffen) und Bestätigungsdialog
+### 9c – Betroffenenrechte (Art. 15-21 DSGVO)
 
-Empfohlene Standard-Fristen (konfigurierbar):
-- Buchungsdaten (`slots`, `booking_requests`): **90 Tage** nach Event-Datum
-- SSW-Termine (`ssw_appointments`): **365 Tage** (besondere Kategorie, schulrechtliche Aufbewahrungspflicht)
-- Feedback: **180 Tage**
-- Benutzerkonten: Manuell durch Admin (kein Auto-Delete für Beschäftigte)
-
-### 9c – Betroffenenrechte (Art. 15–21 DSGVO)
-
-- [ ] **Datenauskunft (Art. 15)** – API-Endpoint `GET /api/admin/data-export?email=` durchsucht alle PII-Tabellen nach einer E-Mail-Adresse und liefert alle gespeicherten Daten als JSON oder CSV
-- [ ] **Recht auf Löschung (Art. 17)** – API-Endpoint `DELETE /api/admin/data-deletion?email=` löscht/anonymisiert alle Datensätze einer Person (mit Bestätigung und Audit-Log)
-- [ ] **Admin-UI: Datenschutz-Anfragen** – Formular im Admin-Bereich: E-Mail eingeben → Vorschau aller Treffer in allen Tabellen → Buttons "Daten exportieren (CSV)" / "Daten löschen"
-- [ ] **Datenportabilität (Art. 20)** – Export als maschinenlesbares JSON (bereits durch Art.-15-Export abgedeckt)
-- [ ] **Widerspruchsrecht (Art. 21)** – Bei automatisierten E-Mail-Erinnerungen (Phase 10): Opt-Out-Link in jeder E-Mail, Flag `email_opt_out` in `booking_requests`
+- [x] **Datenauskunft (Art. 15)** – `GET /api/admin/data-subject/export?email=&format=json|csv`
+- [x] **Recht auf Loeschung (Art. 17)** – `DELETE /api/admin/data-subject?email=` mit Audit-Log
+- [x] **Datenberichtigung (Art. 16)** – `PATCH /api/admin/data-subject?email=`
+- [x] **Verarbeitungseinschraenkung (Art. 18)** – `restricted`-Flag in booking_requests, ssw/bl_appointments (Migration 038)
+- [x] **Datenuebertragbarkeit (Art. 20)** – JSON + CSV Export
+- [x] **Admin-UI: Datenschutz-Tab** – Im Superadmin integriert (`DataProtectionTab.tsx`)
+- [ ] **Widerspruchsrecht (Art. 21)** – Opt-Out fuer automatische E-Mails (erst relevant mit Phase 10)
 
 ### 9d – Datenschutzhinweise & Einwilligungen
 
-- [ ] **Datenschutzhinweis auf Buchungsseite** – Pflichthinweis vor Buchungsabschluss: Welche Daten werden gespeichert (Name, E-Mail, Terminwunsch), Zweck (Terminkoordination), Speicherdauer (konfiguriert), Verantwortliche Stelle (Schulname aus Branding), Rechte der Betroffenen (Auskunft, Löschung, Beschwerde bei Aufsichtsbehörde)
-- [ ] **Einwilligungs-Checkbox** – Pflicht-Checkbox im Buchungsformular: "Ich habe die Datenschutzhinweise gelesen und stimme der Verarbeitung meiner Daten zum Zweck der Terminbuchung zu." (Buchung ohne Häkchen nicht möglich)
-- [ ] **Impressum/Datenschutz editierbar** – (verknüpft mit Phase 7c): Superadmin pflegt Impressum und Datenschutzerklärung als Freitext, wird auf `/datenschutz` und `/impressum` angezeigt
-- [ ] **Auftragsverarbeitung (AV-Vertrag)** – Muster-AV-Vertrag als PDF/Markdown in `docs/AV-Vertrag-Muster.md`: Gegenstand der Verarbeitung, Art der Daten, Kreis der Betroffenen, TOMs des Auftragsverarbeiters, Unterauftragsverhältnisse, Löschkonzept
-- [ ] **Verarbeitungsverzeichnis** – Vorlage für das Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO) in `docs/Verarbeitungsverzeichnis.md`: Name des Systems, Zweck, Kategorien betroffener Personen, Kategorien personenbezogener Daten, Empfänger, Löschfristen
+- [x] **Consent-Checkbox** – `ConsentCheckbox.tsx` mit versioniertem Consent (ssw-v2, bl-v2, est-v2)
+- [x] **Consent-Receipt in DB** – Append-only `consent_receipts`-Tabelle (Migration 036)
+- [x] **Widerruf-Endpunkt** – `POST /api/consent/withdraw` mit Rate-Limiting
+- [x] **Datenschutzseite dynamisch** – `Datenschutz.tsx` mit allen Modulen, DSB aus API
+- [x] **Datenschutz-Footer in E-Mails** – `backend/emails/template.js` (Art. 13/14)
+- [x] **DSB-Kontaktdaten konfigurierbar** – Migration 037, Superadmin-UI
+- [x] **Verarbeitungsverzeichnis (Art. 30)** – `docs/compliance/verarbeitungsverzeichnis.md`
+- [x] **AV-Verzeichnis** – `docs/compliance/av-verzeichnis.md`
+- [ ] **Impressum/Datenschutz editierbar** – Superadmin pflegt als Freitext (verknuepft mit Phase 7c)
 
-### 9e – Technische Datenschutzmaßnahmen
+### 9e – Technische Datenschutzmassnahmen
 
-- [ ] **Verschlüsselung at Rest** – PostgreSQL-Volume mit LUKS/dm-crypt verschlüsseln (Dokumentation in install.md), alternativ: Managed PostgreSQL mit Encryption at Rest
-- [ ] **Verschlüsselung in Transit** – HTTPS-Pflicht dokumentieren (Reverse-Proxy mit TLS), interne Docker-Kommunikation über isoliertes Netzwerk
-- [ ] **Minimale Datenerhebung** – Prüfung: Welche Felder sind wirklich nötig? `company_name` und `message` in Slots als optional markieren, nicht-benötigte Felder entfernen
-- [ ] **Pseudonymisierung SSW-Daten** – Besonders sensible SSW-Beratungsdaten (`notes`): Verschlüsselung auf Anwendungsebene (AES-256-GCM), Schlüssel pro Schule, nur autorisierte SSW-Berater können entschlüsseln
-- [ ] **Backup-Verschlüsselung** – `scripts/backup.sh` erweitern: DB-Dumps mit GPG verschlüsseln, Schlüsselmanagement dokumentieren
+- [x] **Verschluesselung in Transit** – HTTPS-Pflicht dokumentiert in install.md, Reverse-Proxy-Configs
+- [x] **Art.-9-Daten entfernt** – concern/notes komplett entfernt (Migration 035), keine Pseudonymisierung noetig
+- [ ] **Verschluesselung at Rest** – PostgreSQL-Volume mit LUKS/dm-crypt (Dokumentation in install.md)
+- [ ] **Backup-Verschluesselung** – `scripts/backup.sh` mit GPG erweitern
 
 ## Phase 10 – Automatische Erinnerungen
 
@@ -204,19 +196,24 @@ Empfohlene Standard-Fristen (konfigurierbar):
 > Ziel: Die Anwendung gegen die häufigsten Angriffsvektoren absichern (OWASP Top 10)
 > und für den Betrieb an Schulen mit sensiblen Schülerdaten produktionsreif machen.
 
-### Aktueller Sicherheitsstand (Ist-Zustand)
+### Aktueller Sicherheitsstand (Ist-Zustand, Stand 2026-03-21)
 
-| Maßnahme | Status | Details |
+| Massnahme | Status | Details |
 |----------|--------|---------|
 | SQL-Injection-Schutz | Implementiert | Alle Queries parametrisiert (`$1`, `$2`, ...) |
 | Passwort-Hashing | Implementiert | bcrypt mit 10 Runden |
 | httpOnly-Cookies | Implementiert | JWT in Cookie, `SameSite=Lax`, `Secure` in Prod |
-| Rate Limiting | Implementiert | Auth: 20/15min, Booking: 30/15min |
+| Rate Limiting | Implementiert | Auth: 20/15min, Booking: 30/15min, Admin: 100/15min |
 | CORS | Implementiert | Dynamisch via `CORS_ORIGINS` Env-Variable |
-| Helmet.js | Implementiert | Standard-Security-Headers inkl. CSP |
+| Helmet.js + CSP | Implementiert | Standard-Security-Headers inkl. strikter CSP |
 | Graceful Shutdown | Implementiert | SIGTERM/SIGINT mit 10s Force-Timeout |
-| Structured Logging | Implementiert | Pino, keine Stack-Traces in Production |
-| Row Level Security | Implementiert | `feedback`, `events`, `booking_requests` |
+| Structured Logging | Implementiert | Pino JSON, keine Stack-Traces in Production |
+| Row Level Security | Implementiert | `feedback`, `events`, `booking_requests`, `users`, `ssw/bl`-Tabellen |
+| Account-Lockout | Implementiert | DB-basiert (5 Versuche / 15 Min) + In-Memory fuer ADMIN_USER |
+| Token-Revocation | Implementiert | `token_version` in users, Logout invalidiert alte Tokens |
+| Audit-Logging | Implementiert | PII-Zugriff, Security-Events, DSAR-Aktionen |
+| Passwort-Policy | Implementiert | Min 8 Zeichen + Gross/Klein/Ziffer, zentrale Validierung |
+| Info-Disclosure-Fix | Implementiert | Keine internen Details bei HTTP 500 |
 
 ### 13a – Content Security Policy (CSP)
 
@@ -244,11 +241,15 @@ Empfohlene Standard-Fristen (konfigurierbar):
 - [x] **JWT-Secret Rotation** – Dokumentiert in `../security/security-baseline.md` Abschnitt 11 (Vorgehensweise, Rhythmus, Auswirkungen)
 - [x] **Token-Lebensdauer** – 8h konfiguriert (`backend/middleware/auth.js:20`), Cookie-maxAge synchron (`backend/routes/auth.js:16`)
 - [x] **Cookie-Security** – httpOnly, secure (Prod), sameSite=lax. Bearer-Header-Extraktion entfernt (`backend/middleware/auth.js:63-68`)
-- [ ] **Token-Lebensdauer verkürzen** – Von 8h auf 4h (Standard) / 2h (Admin) reduzieren
+- [x] **Account-Lockout (DB-User)** – 5 Fehlversuche → 15 Min Sperre. Atomares SQL-UPDATE. Migration 041: `failed_login_attempts`, `locked_until` Spalten
+- [x] **Account-Lockout (ADMIN_USER)** – In-Memory-Lockout fuer System-Admin. 5 Versuche / 15 Min
+- [x] **Timing-Attack-Prevention** – Dummy-bcrypt bei "User not found" gegen User-Enumeration
+- [x] **bcrypt-DoS-Schutz** – Passwort-Laenge auf 1024 Zeichen begrenzt
+- [x] **Passwort-Richtlinien** – Zentrale `validatePassword()`: min 8 Zeichen + Gross/Klein/Ziffer (`backend/shared/validatePassword.js`)
+- [x] **Passwort-Aenderung erzwingen** – `force_password_change`-Flag in `users`-Tabelle (Migration 048)
+- [x] **Token-Revocation** – `token_version` in users (Migration 043). Logout/Passwortwechsel invalidiert alte Tokens
+- [ ] **Token-Lebensdauer verkuerzen** – Von 8h auf 4h (Standard) / 2h (Admin) reduzieren
 - [ ] **Refresh-Token-Mechanismus** – Access-Token 15min + Refresh-Token 7d in separatem httpOnly-Cookie
-- [ ] **Account-Lockout** – Nach 5 Fehlversuchen: 15min Sperre auf Account-Ebene
-- [ ] **Passwort-Richtlinien** – Min. 10 Zeichen, Komplexitaetspruefung
-- [ ] **Passwort-Änderung erzwingen** – `force_password_change`-Flag in `users`-Tabelle
 
 ### 13e – API-Sicherheit
 
@@ -275,7 +276,8 @@ Empfohlene Standard-Fristen (konfigurierbar):
 
 - [x] **Incident-Response-Plan** – Dokumentiert in `../security/security-baseline.md` Abschnitt 13 (Meldekette, 72h DSGVO-Frist, Sofortmassnahmen, Backup/Restore)
 - [x] **Penetration-Test-Checkliste** – Dokumentiert in `../security/security-baseline.md` Abschnitt 14 (14 automatisierte + 5 manuelle Testfaelle)
-- [ ] **Security-Event-Logging** – Fehlgeschlagene Logins + 403/401 in separatem Log-Stream erfassen
+- [x] **Security-Event-Logging** – `logSecurityEvent()` fuer LOGIN_FAIL, ACCESS_DENIED in auth.js + auth-Middleware
+- [x] **Audit-Log-Export** – `GET /api/admin/audit-log` (Pagination + Filter) + CSV-Export im Superadmin-Tab
 - [ ] **Alerting** – Benachrichtigung bei auffaelligen Mustern (>10 Failed Logins/Minute)
 
 ### Mögliche Module (Ideen)
@@ -290,7 +292,10 @@ Empfohlene Standard-Fristen (konfigurierbar):
 
 ---
 
-> **Nächster konkreter Schritt:** Phase 1 – Dockerfile + docker-compose.yml erstellen und lokal testen.
+> **Stand: 2026-03-21** – Phasen 1-7, 11, 12 (SSW), 14 (Responsive) abgeschlossen.
+> DSGVO P0+P1 komplett. Naechste Schritte: VPS-Launch-Checkliste (HTTPS, Security-Headers,
+> Docker-Netzwerk-Isolation), VPS-Finalisierung (Domain/SSL, Smoke-Tests),
+> dann Phase 8 (MS365 Login) und Phase 10 (Erinnerungen) als Post-Launch Features.
 
 ---
 

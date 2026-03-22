@@ -1,53 +1,27 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import api from '../../../services/api';
-import type { FlowBildungsgangRolle } from '../../../types/index';
+import { useAuth } from '../../../contexts/useAuth';
+import type { FlowBildungsgangRolle, FlowBildungsgangListItem, FlowBildungsgangMitglied, FlowUser } from '../../../types/index';
 import '../flow.css';
 
-interface BGListItem {
-    id: number;
-    name: string;
-    erlaubt_mitgliedern_paket_erstellung: boolean;
-    mitglieder_count: string;
-    arbeitspakete_count: string;
-}
-
-interface BGMitglied {
-    id: number;
-    user_id: number;
-    vorname: string;
-    nachname: string;
-    rolle: FlowBildungsgangRolle;
-    hinzugefuegt_am: string;
-}
-
-interface FlowUser {
-    id: number;
-    username: string;
-    vorname: string | null;
-    nachname: string | null;
-    role: string;
-}
-
-const queryClient = new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
-});
-
-function BGLVerwaltungInner() {
+export function AdminBGLVerwaltung() {
+    const { user } = useAuth();
     const qc = useQueryClient();
     const [selectedBgId, setSelectedBgId] = useState<number | null>(null);
     const [neuerName, setNeuerName] = useState('');
     const [neuerUserRolle, setNeuerUserRolle] = useState<FlowBildungsgangRolle>('mitglied');
     const [neuerUserId, setNeuerUserId] = useState<number | ''>('');
 
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
     // ── Queries ──
-    const { data: bildungsgaenge = [], isLoading: bgLoading } = useQuery<BGListItem[]>({
+    const { data: bildungsgaenge = [], isLoading: bgLoading } = useQuery<FlowBildungsgangListItem[]>({
         queryKey: ['flow', 'admin', 'bildungsgaenge'],
         queryFn: () => api.flow.adminGetBildungsgaenge(),
     });
 
-    const { data: mitglieder = [], isLoading: mitgliederLoading } = useQuery<BGMitglied[]>({
+    const { data: mitglieder = [], isLoading: mitgliederLoading } = useQuery<FlowBildungsgangMitglied[]>({
         queryKey: ['flow', 'admin', 'bildungsgaenge', selectedBgId, 'mitglieder'],
         queryFn: () => api.flow.adminGetBildungsgangMitglieder(selectedBgId!),
         enabled: selectedBgId !== null,
@@ -93,11 +67,19 @@ function BGLVerwaltungInner() {
         },
     });
 
+    if (!isAdmin) {
+        return (
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur fuer Administratoren</div></div>
+            </div>
+        );
+    }
+
     const selectedBg = bildungsgaenge.find((bg) => bg.id === selectedBgId);
 
     // User die noch nicht Mitglied sind
     const verfuegbareUsers = users.filter(
-        (u) => !mitglieder.some((m) => m.user_id === u.id)
+        (u) => !mitglieder.some((m) => m.userId === u.id)
     );
 
     const userName = (u: FlowUser) =>
@@ -140,8 +122,8 @@ function BGLVerwaltungInner() {
                                             }}
                                         >
                                             <td style={{ padding: '10px 18px' }}>{bg.name}</td>
-                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.mitglieder_count}</td>
-                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.arbeitspakete_count}</td>
+                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.mitgliederCount}</td>
+                                            <td style={{ padding: '10px 18px', textAlign: 'center', color: 'var(--flow-text-muted)' }}>{bg.arbeitspaketeCount}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -212,7 +194,7 @@ function BGLVerwaltungInner() {
                                                 <select
                                                     value={m.rolle}
                                                     onChange={(e) =>
-                                                        updateRolle.mutate({ userId: m.user_id, rolle: e.target.value })
+                                                        updateRolle.mutate({ userId: m.userId, rolle: e.target.value })
                                                     }
                                                     style={{
                                                         padding: '4px 8px', fontSize: 12,
@@ -226,7 +208,7 @@ function BGLVerwaltungInner() {
                                             </td>
                                             <td style={{ padding: '10px 18px', textAlign: 'right' }}>
                                                 <button
-                                                    onClick={() => removeMitglied.mutate(m.user_id)}
+                                                    onClick={() => removeMitglied.mutate(m.userId)}
                                                     className="flow-btn flow-btn--danger"
                                                     style={{ fontSize: 12, padding: '4px 10px' }}
                                                 >
@@ -296,10 +278,3 @@ function BGLVerwaltungInner() {
     );
 }
 
-export function AdminBGLVerwaltung() {
-    return (
-        <QueryClientProvider client={queryClient}>
-            <BGLVerwaltungInner />
-        </QueryClientProvider>
-    );
-}

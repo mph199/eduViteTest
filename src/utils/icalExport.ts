@@ -176,11 +176,11 @@ export function exportBookingsToICal(
         'END:VEVENT'
       ].join('\r\n');
     } catch (e) {
-      console.warn('Überspringe ungültigen Termin beim Export:', booking, e);
+      console.error('Ueberspringe ungueltigen Termin beim Export:', e);
       return null;
     }
   }).filter(Boolean).join('\r\n');
-  
+
   if (!events) {
     alert('Export fehlgeschlagen: Keine gültigen Termine gefunden. Bitte prüfen Sie die Daten.');
     return;
@@ -258,11 +258,11 @@ export function exportTeacherSlotsToICal(
         'END:VEVENT'
       ].join('\r\n');
     } catch (e) {
-      console.warn('Überspringe ungültigen Slot beim Export:', slot, e);
+      console.error('Ueberspringe ungueltigen Slot beim Export:', e);
       return null;
     }
   }).filter(Boolean).join('\r\n');
-  
+
   if (!events) {
     alert('Export fehlgeschlagen: Keine gültigen Slots gefunden. Bitte prüfen Sie die Daten.');
     return;

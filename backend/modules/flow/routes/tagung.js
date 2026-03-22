@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireFlowTagungZugang } from '../middleware/flowAuth.js';
 import * as flowService from '../services/flowService.js';
+import logger from '../../../config/logger.js';
 
 const router = Router();
 
@@ -13,8 +14,9 @@ router.get('/:id', requireFlowTagungZugang(ALLE), async (req, res) => {
     try {
         const tagung = await flowService.getTagungDetail(parseInt(req.params.id));
         if (!tagung) return res.status(404).json({ error: 'Tagung nicht gefunden' });
-        res.json(tagung);
+        res.json({ ...tagung, meineRolle: req.flowPaketRolle });
     } catch (err) {
+        logger.error({ err }, 'flow tagung: Fehler beim Laden der Tagung');
         res.status(500).json({ error: 'Fehler beim Laden der Tagung' });
     }
 });
@@ -26,6 +28,7 @@ router.patch('/:id', requireFlowTagungZugang(NUR_KOORDINATION), async (req, res)
         if (!tagung) return res.status(404).json({ error: 'Tagung nicht gefunden' });
         res.json(tagung);
     } catch (err) {
+        logger.error({ err }, 'flow tagung: Fehler beim Aktualisieren der Tagung');
         res.status(500).json({ error: 'Fehler beim Aktualisieren' });
     }
 });
@@ -36,6 +39,7 @@ router.delete('/:id', requireFlowTagungZugang(NUR_KOORDINATION), async (req, res
         await flowService.deleteTagung(parseInt(req.params.id));
         res.status(204).end();
     } catch (err) {
+        logger.error({ err }, 'flow tagung: Fehler beim Loeschen der Tagung');
         res.status(500).json({ error: 'Fehler beim Loeschen' });
     }
 });
@@ -43,9 +47,13 @@ router.delete('/:id', requireFlowTagungZugang(NUR_KOORDINATION), async (req, res
 // POST /:id/agenda – Agenda-Punkt hinzufuegen
 router.post('/:id/agenda', requireFlowTagungZugang(SCHREIBEN), async (req, res) => {
     try {
+        if (!req.body.titel || !req.body.titel.trim()) {
+            return res.status(400).json({ error: 'Titel ist erforderlich' });
+        }
         const punkt = await flowService.addAgendaPunkt(parseInt(req.params.id), req.body);
         res.status(201).json(punkt);
     } catch (err) {
+        logger.error({ err }, 'flow tagung: Fehler beim Erstellen des Agenda-Punkts');
         res.status(500).json({ error: 'Fehler beim Erstellen des Agenda-Punkts' });
     }
 });
@@ -57,6 +65,7 @@ router.patch('/:id/agenda/:aid', requireFlowTagungZugang(SCHREIBEN), async (req,
         if (!punkt) return res.status(404).json({ error: 'Agenda-Punkt nicht gefunden' });
         res.json(punkt);
     } catch (err) {
+        logger.error({ err }, 'flow tagung: Fehler beim Dokumentieren des Agenda-Punkts');
         res.status(500).json({ error: 'Fehler beim Dokumentieren' });
     }
 });
@@ -69,12 +78,13 @@ router.post('/:id/agenda/:aid/aufgaben', requireFlowTagungZugang(SCHREIBEN), asy
         if (!tagung) return res.status(404).json({ error: 'Tagung nicht gefunden' });
 
         const aufgabe = await flowService.createAufgabe(
-            tagung.arbeitspaket_id,
+            tagung.arbeitspaketId,
             { ...req.body, tagungId },
             req.user.id
         );
         res.status(201).json(aufgabe);
     } catch (err) {
+        logger.error({ err }, 'flow tagung: Fehler beim Erstellen der Aufgabe aus Agenda-Punkt');
         res.status(500).json({ error: 'Fehler beim Erstellen der Aufgabe' });
     }
 });

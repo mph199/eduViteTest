@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as flowService from '../services/flowService.js';
+import logger from '../../../config/logger.js';
 
 const router = Router();
 
@@ -9,6 +10,7 @@ router.get('/', async (req, res) => {
         const dashboard = await flowService.getDashboardDaten(req.user.id);
         res.json(dashboard);
     } catch (err) {
+        logger.error({ err }, 'flow dashboard: Fehler beim Laden des Dashboards');
         res.status(500).json({ error: 'Fehler beim Laden des Dashboards' });
     }
 });

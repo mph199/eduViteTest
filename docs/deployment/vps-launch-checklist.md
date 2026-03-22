@@ -13,11 +13,6 @@ Stand: 2026-03-19
 | K1 | ~~Backend-Port 4000 oeffentlich~~ | Security | `docker-compose.yml:46` | **ERLEDIGT** (2026-03-19) – `"127.0.0.1:4000:4000"` |
 | K2 | ~~Default-Admin `Start/Start` ohne `force_password_change`~~ | Security | Migration 048 + `ProtectedRoute.tsx` | **ERLEDIGT** (2026-03-19) – Migration 048 setzt `force_password_change=TRUE` fuer Default-Admin; Admin-Ausnahme in ProtectedRoute entfernt |
 | K3 | ~~Connection-Pool nicht konfiguriert~~ | DB | `backend/config/db.js` | **ERLEDIGT** (2026-03-19) – `max=20`, `connectionTimeoutMillis=5000`, `idleTimeoutMillis=30000` via `DB_POOL_MAX`, `DB_POOL_CONNECT_TIMEOUT`, `DB_POOL_IDLE_TIMEOUT` |
-|---|--------|--------|-------|--------|
-| K1 | ~~Backend-Port 4000 oeffentlich~~ | Security | `docker-compose.yml:46` | **ERLEDIGT** (2026-03-19) – `"127.0.0.1:4000:4000"` |
-| K2 | ~~Default-Admin `Start/Start` ohne `force_password_change`~~ | Security | Migration 048 + `ProtectedRoute.tsx` | **ERLEDIGT** (2026-03-19) – Migration 048 setzt `force_password_change=TRUE` fuer Default-Admin; Admin-Ausnahme in ProtectedRoute entfernt |
-| K3 | ~~Connection-Pool nicht konfiguriert~~ | DB | `backend/config/db.js` | **ERLEDIGT** (2026-03-19) – `max=20`, `connectionTimeoutMillis=5000`, `idleTimeoutMillis=30000` via `DB_POOL_MAX`, `DB_POOL_CONNECT_TIMEOUT`, `DB_POOL_IDLE_TIMEOUT` |
->>>>>>> origin/claude/review-project-overview-YgD1t
 | K4 | HTTPS/TLS nicht in nginx.conf – externer Reverse Proxy MUSS konfiguriert werden | Config | `nginx.conf` | Caddy als Reverse Proxy (wie in install.md dokumentiert) ODER Security-Headers direkt in nginx.conf |
 
 ---

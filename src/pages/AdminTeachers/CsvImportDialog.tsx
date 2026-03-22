@@ -1,4 +1,4 @@
-import type { CsvImportResult, CsvImportedTeacher, CsvSkippedRow } from './types';
+import type { CsvImportResult, CsvImportedTeacher, CsvSkippedRow } from '../../types';
 
 interface Props {
   csvImport: { show: boolean; uploading: boolean; result: CsvImportResult | null };

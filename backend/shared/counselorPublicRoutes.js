@@ -22,6 +22,7 @@ import { query } from '../config/db.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
 import { validate } from '../middleware/validate.js';
 import { counselorBookingSchema } from '../schemas/counselor.js';
+import logger from '../config/logger.js';
 
 // Default booking limiter: stricter than general public limiter
 const defaultBookingLimiter = rateLimit({
@@ -53,6 +54,7 @@ export function createCounselorPublicRoutes(service, config) {
       const counselors = await service.listCounselors();
       res.json({ counselors });
     } catch (err) {
+      logger.error({ err }, `Public: Fehler beim Laden der ${counselorLabel}`);
       res.status(500).json({ error: `Fehler beim Laden der ${counselorLabel}` });
     }
   });
@@ -63,6 +65,7 @@ export function createCounselorPublicRoutes(service, config) {
       const items = await service.listTopics();
       res.json({ [topicResponseKey]: items });
     } catch (err) {
+      logger.error({ err }, `Public: Fehler beim Laden der ${topicResponseKey}`);
       res.status(500).json({ error: `Fehler beim Laden der ${topicResponseKey}` });
     }
   });
@@ -82,6 +85,7 @@ export function createCounselorPublicRoutes(service, config) {
       res.json({ appointments });
     } catch (err) {
       const status = err.statusCode || 500;
+      if (status >= 500) logger.error({ err }, 'Public: Fehler beim Laden der Termine');
       res.status(status).json({ error: status < 500 ? (err.message || 'Fehler beim Laden der Termine') : 'Fehler beim Laden der Termine' });
     }
   });
@@ -136,6 +140,7 @@ export function createCounselorPublicRoutes(service, config) {
       res.json({ success: true, appointment });
     } catch (err) {
       const status = err.statusCode || 500;
+      if (status >= 500) logger.error({ err }, 'Public: Fehler beim Buchen');
       res.status(status).json({ error: status < 500 ? (err.message || 'Fehler beim Buchen') : 'Fehler beim Buchen' });
     }
   });

@@ -10,7 +10,7 @@ import { useBranding } from '../contexts/BrandingContext';
 import { modules } from '../modules/registry';
 import type { SidebarNavItem } from '../modules/registry';
 import { useModuleConfig } from '../contexts/ModuleConfigContext';
-import type { ActiveView } from '../contexts/AuthContextBase';
+import type { ActiveView } from '../types';
 import './GlobalTopHeader.css';
 
 interface NavGroup {
@@ -165,6 +165,7 @@ export function GlobalTopHeader() {
       if (pathname.includes('/teacher/bookings')) return 'Lehrkraft · Meine Buchungen';
       if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort ändern';
       if (pathname.includes('/teacher/feedback')) return 'Lehrkraft · Feedback senden';
+      if (pathname.startsWith('/teacher/flow')) return 'Flow';
       return 'Lehrkraft';
     }
 

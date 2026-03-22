@@ -25,8 +25,16 @@ const AbteilungPage = lazy(() =>
     import('./pages/AbteilungPage').then((m) => ({ default: m.AbteilungPage }))
 );
 
+const ArbeitspaketErstellenPage = lazy(() =>
+    import('./pages/ArbeitspaketErstellenPage').then((m) => ({ default: m.ArbeitspaketErstellenPage }))
+);
+
 const AdminBGLVerwaltung = lazy(() =>
     import('./pages/AdminBGLVerwaltung').then((m) => ({ default: m.AdminBGLVerwaltung }))
+);
+
+const TagungDetailPage = lazy(() =>
+    import('./pages/TagungDetailPage').then((m) => ({ default: m.TagungDetailPage }))
 );
 
 const flowModule: ModuleDefinition = {
@@ -40,32 +48,21 @@ const flowModule: ModuleDefinition = {
     requiredModule: 'flow',
     // Kein PublicPage – rein internes Modul
     teacherBasePath: '/teacher/flow',
-    adminRoutes: [
-        {
-            path: '/admin/flow/abteilung',
-            label: 'Flow Abteilungssicht',
-            Component: AbteilungPage,
-        },
-        {
-            path: '/admin/flow/bgl',
-            label: 'Bildungsgang-Verwaltung',
-            Component: AdminBGLVerwaltung,
-        },
-    ],
     teacherLayout: FlowLayout,
     teacherRoutes: [
         { index: true, Component: FlowDashboard },
         { path: 'aufgaben', Component: MeineAufgabenPage },
         { path: 'bildungsgang/:id', Component: BildungsgangPage },
+        { path: 'arbeitspaket/neu/:bildungsgangId', Component: ArbeitspaketErstellenPage },
         { path: 'arbeitspaket/:id', Component: ArbeitspaketPage },
+        { path: 'tagung/:id', Component: TagungDetailPage },
+        { path: 'admin/bgl', Component: AdminBGLVerwaltung },
+        { path: 'admin/abteilung', Component: AbteilungPage },
     ],
     sidebarNav: {
         label: 'Flow',
         items: [
-            { path: '/admin/flow/bgl', label: 'Bildungsgang-Verwaltung', roles: ['admin', 'superadmin'] },
-            { path: '/admin/flow/abteilung', label: 'Abteilungssicht', roles: ['admin', 'superadmin'] },
-            { path: '/teacher/flow', label: 'Dashboard' },
-            { path: '/teacher/flow/aufgaben', label: 'Meine Aufgaben' },
+            { path: '/teacher/flow', label: "Hier geht's zu Flow" },
         ],
     },
 };

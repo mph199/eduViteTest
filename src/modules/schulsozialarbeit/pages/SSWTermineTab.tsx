@@ -49,7 +49,7 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
 
   const handleGenerateSlots = async () => {
     if (!calCounselorId || !slotGenFrom || !slotGenUntil) {
-      alert('Bitte Berater/in und Zeitraum waehlen.');
+      showFlash('Bitte Berater/in und Zeitraum waehlen.');
       return;
     }
     setGenerating(true);
@@ -61,7 +61,7 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
       loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler');
+      showFlash(err instanceof Error ? err.message : 'Fehler');
     } finally {
       setGenerating(false);
     }
@@ -79,7 +79,7 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
       if (calCounselorId) loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Loeschen');
     } finally {
       setCalDeleting(false);
     }

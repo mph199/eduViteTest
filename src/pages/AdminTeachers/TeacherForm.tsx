@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { ApiTeacher, BlFormData, TeacherFormData } from './types';
-import { WEEKDAYS } from './types';
+import type { Teacher as ApiTeacher, BlFormData, TeacherFormData } from '../../types';
+import { WEEKDAY_LABELS as WEEKDAYS } from '../../shared/constants/weekdays';
 
 function normalizeForUsername(str: string): string {
   return str.toLowerCase()
@@ -245,10 +245,13 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, editingT
             <button
               type="button"
               className="btn-secondary"
-              onClick={() => {
+              onClick={(e) => {
                 try {
                   navigator.clipboard.writeText(createdCreds.tempPassword);
-                  alert('Passwort kopiert');
+                  const btn = e.currentTarget;
+                  const orig = btn.textContent;
+                  btn.textContent = 'Kopiert!';
+                  setTimeout(() => { btn.textContent = orig; }, 2000);
                 } catch {
                   // ignore
                 }

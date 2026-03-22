@@ -124,6 +124,55 @@
   text-decoration: underline;
 }
 
+/* ── OAuth ── */
+.login-oauth {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.login-oauth__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-gray-400);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.login-oauth__divider::before,
+.login-oauth__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-gray-200);
+}
+
+.login-oauth__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  background: var(--color-white);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.login-oauth__button:hover {
+  border-color: var(--brand-login);
+  background: rgba(var(--brand-primary-rgb), 0.04);
+  color: var(--brand-login);
+}
+
 @media (max-width: 480px) {
   .login-container {
     padding: 2rem 1.5rem;

@@ -129,6 +129,7 @@ async function cleanupExpiredSlots() {
          class_name = NULL,
          email = NULL,
          message = NULL,
+         verification_token_hash = NULL,
          updated_at = NOW()
      FROM events e
      WHERE s.event_id = e.id

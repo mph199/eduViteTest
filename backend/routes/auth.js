@@ -269,8 +269,9 @@ router.get('/verify', async (req, res) => {
       if (rows.length > 0) {
         decoded._fpc = !!rows[0].force_password_change;
       }
-    } catch (_err) {
-      // fail open for availability
+    } catch (verifyErr) {
+      // fail open for availability – but log for debugging
+      logger.warn({ err: verifyErr }, 'Token version check failed, proceeding without');
     }
   }
 

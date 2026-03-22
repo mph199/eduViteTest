@@ -41,6 +41,9 @@ Browser (React 19)
 | Logging | Pino (JSON in Prod, Pretty in Dev), Request-Logging | Aktiv |
 | Passwort-Hashing | bcrypt mit 10 Runden | Aktiv |
 | Row Level Security | PostgreSQL RLS auf events, feedback, booking_requests | Aktiv |
+| OAuth/OIDC | PKCE (SHA-256), State-Cookie (CSRF), JWKS-Signaturvalidierung (RSA+EC) | Aktiv |
+| Token-Verschluesselung | AES-256-GCM fuer OAuth Client-Secrets und Refresh-/Access-Tokens | Aktiv |
+| Domain-Einschraenkung | `allowed_domains` pro OAuth-Provider | Aktiv |
 
 ---
 
@@ -55,6 +58,27 @@ Browser (React 19)
 5. Logout: Cookie wird geloescht (`POST /api/auth/logout`)
 
 **Dateien:** `backend/routes/auth.js`, `backend/middleware/auth.js`
+
+### OAuth/OIDC-Login-Flow
+
+Parallelbetrieb mit dem Passwort-Login. OAuth-User erhalten denselben JWT-Cookie.
+
+1. Redirect zum IdP mit PKCE (`code_challenge_method: S256`) und State-Cookie
+2. IdP authentifiziert User → Redirect zurueck mit Authorization Code
+3. Backend tauscht Code gegen ID-Token + Access-Token
+4. ID-Token-Validierung:
+   - JWKS-Signaturpruefung (Pflicht, RSA + EC Algorithmen)
+   - Issuer-Pruefung gegen Discovery-Dokument
+   - Audience-Pruefung gegen `client_id`
+   - `exp`-Claim erzwungen (kein Token ohne Ablaufzeit)
+   - `nbf`-Claim geprueft (Not Before)
+   - `kid`-Header erzwungen (Key-Identifikation)
+5. User-Matching: `oauth_user_links.provider_subject` → E-Mail-Match → Auto-Provisioning
+6. JWT-Cookie gesetzt → Redirect basierend auf Rolle
+
+**Verschluesselung:** Client-Secrets und Tokens werden mit AES-256-GCM verschluesselt (`backend/config/encryption.js`). Key: `OAUTH_ENCRYPTION_KEY` (32 Byte, base64 oder hex). Format: `iv:ciphertext:authTag` (hex-kodiert).
+
+**Dateien:** `backend/routes/oauth.js`, `backend/services/oauthService.js`, `backend/config/encryption.js`
 
 ### Token-Konfiguration
 
@@ -369,8 +393,8 @@ implementiert und in den meisten Faellen nicht noetig (8h Token-Lebensdauer).
 
 | Luecke | Risiko | Empfohlene Massnahme |
 |--------|--------|---------------------|
-| Kein Account-Lockout | Brute-Force trotz Rate Limiting | Nach 5 Fehlversuchen: 15min Sperre auf Account-Ebene |
-| Kein Security-Event-Logging | Angriffe nicht erkennbar | Failed Logins + 403er loggen (separater Log-Stream) |
+| ~~Kein Account-Lockout~~ | ~~Brute-Force trotz Rate Limiting~~ | **Behoben** (Migration 042): 5 Fehlversuche → 15min Sperre |
+| ~~Kein Security-Event-Logging~~ | ~~Angriffe nicht erkennbar~~ | **Behoben**: `logSecurityEvent()` in `audit-log.js`, auch fuer OAuth-Events |
 | Default-Secrets in Compose | Unsichere Defaults in Production | .env-Template mit Generierungsanleitung |
 | ~~PostgreSQL Port exponiert~~ | ~~DB von aussen erreichbar~~ | **Behoben** (2026-03-19): Postgres `127.0.0.1:5432:5432`, Backend `127.0.0.1:4000:4000` |
 

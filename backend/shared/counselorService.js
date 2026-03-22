@@ -154,13 +154,14 @@ export function generateTimeSlots(availFrom, availUntil, durationMinutes) {
  * @param {Array} schedule – [{ weekday, start_time, end_time, active }]
  * @param {string} scheduleTable – e.g. 'bl_weekly_schedule'
  * @param {object} [opts]
+ * @param {Function} [opts.queryFn] – custom query function (e.g. transaction client), defaults to pool query
  * @param {number} [opts.minDay=0] – minimum valid weekday
  * @param {number} [opts.maxDay=6] – maximum valid weekday
  * @returns {Promise<Array>} – updated schedule rows
  */
 export async function upsertWeeklySchedule(counselorId, schedule, scheduleTable, opts = {}) {
   assertSafeIdentifier(scheduleTable, 'scheduleTable');
-  const { minDay = 0, maxDay = 6 } = opts;
+  const { minDay = 0, maxDay = 6, queryFn = query } = opts;
 
   if (!Array.isArray(schedule)) {
     const err = new Error('schedule muss ein Array sein');
@@ -184,7 +185,7 @@ export async function upsertWeeklySchedule(counselorId, schedule, scheduleTable,
 
   for (const entry of schedule) {
     const wd = parseInt(entry.weekday, 10);
-    await query(
+    await queryFn(
       `INSERT INTO ${scheduleTable} (counselor_id, weekday, start_time, end_time, active)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (counselor_id, weekday)
@@ -193,8 +194,8 @@ export async function upsertWeeklySchedule(counselorId, schedule, scheduleTable,
     );
   }
 
-  const { rows } = await query(
-    `SELECT * FROM ${scheduleTable} WHERE counselor_id = $1 ORDER BY weekday`,
+  const { rows } = await queryFn(
+    `SELECT id, counselor_id, weekday, start_time, end_time, active FROM ${scheduleTable} WHERE counselor_id = $1 ORDER BY weekday`,
     [counselorId]
   );
   return rows;

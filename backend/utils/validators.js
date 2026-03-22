@@ -1,6 +1,9 @@
 /**
- * Shared validation helpers for teacher fields.
+ * Shared validation helpers.
  */
+
+/** Basic email format check (RFC 5322 simplified). */
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function normalizeAndValidateTeacherEmail(rawEmail) {
   const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';

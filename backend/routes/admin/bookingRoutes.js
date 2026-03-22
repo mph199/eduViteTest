@@ -39,7 +39,7 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
     // Best-effort cancellation email (only if the booking email was verified)
     if (previous && previous.email && previous.verified_at && isEmailConfigured()) {
       try {
-        const { rows: tRows } = await query('SELECT * FROM teachers WHERE id = $1', [previous.teacher_id]);
+        const { rows: tRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [previous.teacher_id]);
         const teacher = tRows[0] || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('cancellation', {

@@ -1,4 +1,4 @@
-import { query } from '../../../../../config/db.js';
+import { query, getClient } from '../../../../../config/db.js';
 import { isEmailConfigured, sendMail } from '../../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../../emails/template.js';
 import logger from '../../../../../config/logger.js';
@@ -81,7 +81,7 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
   if (!updatedSlot?.email || !isEmailConfigured()) return;
 
   try {
-    const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const { rows: teacherRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
     const branding = await getEmailBranding();
@@ -103,7 +103,7 @@ export async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId,
 
   const now = new Date().toISOString();
   try {
-    const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const { rows: teacherRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
 
@@ -205,32 +205,48 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   const slotValues = slotUpdateKeys.map((k) => slotUpdate[k]);
   const slotOffset = slotValues.length;
 
-  const { rows: updatedSlotRows } = await query(
-    `UPDATE slots SET ${slotSetClauses.join(', ')}
-     WHERE id = $${slotOffset + 1} AND teacher_id = $${slotOffset + 2} AND booked = false
-     RETURNING *`,
-    [...slotValues, slot.id, teacherId]
-  );
+  // Wrap both UPDATEs in a transaction to prevent inconsistent state
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
 
-  if (updatedSlotRows.length === 0) {
-    return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
+    const { rows: updatedSlotRows } = await client.query(
+      `UPDATE slots SET ${slotSetClauses.join(', ')}
+       WHERE id = $${slotOffset + 1} AND teacher_id = $${slotOffset + 2} AND booked = false
+       RETURNING *`,
+      [...slotValues, slot.id, teacherId]
+    );
+
+    if (updatedSlotRows.length === 0) {
+      await client.query('ROLLBACK');
+      return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
+    }
+    const updatedSlot = updatedSlotRows[0];
+
+    const { rows: updatedReqRows } = await client.query(
+      `UPDATE booking_requests SET status = 'accepted', assigned_slot_id = $1, updated_at = $2
+       WHERE id = $3 AND teacher_id = $4 AND status = 'requested'
+       RETURNING *`,
+      [updatedSlot.id, now, current.id, teacherId]
+    );
+
+    if (updatedReqRows.length === 0) {
+      await client.query('ROLLBACK');
+      return { ok: false, code: 'REQUEST_NOT_PENDING_ANYMORE' };
+    }
+    const updatedReq = updatedReqRows[0];
+
+    await client.query('COMMIT');
+
+    // Email sending outside transaction – non-critical
+    await sendRequestConfirmationIfPossible(updatedSlot, updatedReq, teacherId, now, teacherMessage);
+    return { ok: true, updatedSlot, updatedReq };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
-  const updatedSlot = updatedSlotRows[0];
-
-  const { rows: updatedReqRows } = await query(
-    `UPDATE booking_requests SET status = 'accepted', assigned_slot_id = $1, updated_at = $2
-     WHERE id = $3 AND teacher_id = $4 AND status = 'requested'
-     RETURNING *`,
-    [updatedSlot.id, now, current.id, teacherId]
-  );
-
-  if (updatedReqRows.length === 0) {
-    return { ok: false, code: 'REQUEST_NOT_PENDING_ANYMORE' };
-  }
-  const updatedReq = updatedReqRows[0];
-
-  await sendRequestConfirmationIfPossible(updatedSlot, updatedReq, teacherId, now, teacherMessage);
-  return { ok: true, updatedSlot, updatedReq };
 }
 
 export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
@@ -276,16 +292,29 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
   const extraVals = extraKeys.map((k) => slotUpdate[k]);
   const extraOff = extraVals.length;
 
-  const { rows: updatedSlotRows } = await query(
-    `UPDATE slots SET ${extraSet.join(', ')}
-     WHERE id = $${extraOff + 1} AND teacher_id = $${extraOff + 2} AND booked = false
-     RETURNING *`,
-    [...extraVals, slot.id, teacherId]
-  );
+  // Wrap in transaction for consistency with assignRequestToSlot
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
 
-  if (updatedSlotRows.length === 0) {
-    return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
+    const { rows: updatedSlotRows } = await client.query(
+      `UPDATE slots SET ${extraSet.join(', ')}
+       WHERE id = $${extraOff + 1} AND teacher_id = $${extraOff + 2} AND booked = false
+       RETURNING *`,
+      [...extraVals, slot.id, teacherId]
+    );
+
+    if (updatedSlotRows.length === 0) {
+      await client.query('ROLLBACK');
+      return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
+    }
+
+    await client.query('COMMIT');
+    return { ok: true, updatedSlot: updatedSlotRows[0] };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
-
-  return { ok: true, updatedSlot: updatedSlotRows[0] };
 }

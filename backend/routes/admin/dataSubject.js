@@ -3,28 +3,29 @@ import { requireSuperadmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import logger from '../../config/logger.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
+import { writeAuditLog } from '../../middleware/audit-log.js';
+import { EMAIL_RE } from '../../utils/validators.js';
 
 const router = express.Router();
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * Escape a value for semicolon-separated CSV.
+ */
+function csvEscapeValue(val) {
+  if (val === null || val === undefined) return '';
+  const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
+}
 
 /**
- * Log an action to the audit_log table (fire-and-forget).
+ * Convert an array of rows to CSV lines (semicolon-separated).
  */
-async function auditLog(userId, action, tableName, recordId, details, ipAddress) {
-  try {
-    await query(
-      `INSERT INTO audit_log (user_id, action, table_name, record_id, details, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, action, tableName, recordId, details ? JSON.stringify(details) : '{}', ipAddress]
-    );
-  } catch (err) {
-    logger.error({ err, action, tableName }, 'Failed to write audit log');
+function rowsToCsvLines(headers, rows) {
+  const lines = [headers.join(';')];
+  for (const row of rows) {
+    lines.push(headers.map(h => csvEscapeValue(row[h])).join(';'));
   }
+  return lines;
 }
 
 /**
@@ -103,15 +104,7 @@ function dataToCsv(data) {
     if (!Array.isArray(rows) || rows.length === 0) continue;
     lines.push(`--- ${tableName} ---`);
     const headers = Object.keys(rows[0]);
-    lines.push(headers.join(';'));
-    for (const row of rows) {
-      lines.push(headers.map(h => {
-        const val = row[h];
-        if (val === null || val === undefined) return '';
-        const str = String(val);
-        return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
-      }).join(';'));
-    }
+    lines.push(...rowsToCsvLines(headers, rows));
     lines.push('');
   }
 
@@ -136,7 +129,7 @@ router.get('/data-subject/search', requireSuperadmin, async (req, res) => {
     const data = await collectPersonData(email.trim());
     const totalRecords = Object.values(data).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
 
-    await auditLog(req.user?.id, 'READ', 'data_subject', null, { email: email.trim(), tables: Object.keys(data) }, req.ip);
+    await writeAuditLog(req.user?.id, 'READ', 'data_subject', null, { email: email.trim(), tables: Object.keys(data) }, req.ip);
 
     res.json({ email: email.trim(), total_records: totalRecords, data });
   } catch (err) {
@@ -158,7 +151,7 @@ router.get('/data-subject/export', requireSuperadmin, async (req, res) => {
 
     const data = await collectPersonData(email.trim());
 
-    await auditLog(req.user?.id, 'EXPORT', 'data_subject', null, { email: email.trim(), format }, req.ip);
+    await writeAuditLog(req.user?.id, 'EXPORT', 'data_subject', null, { email: email.trim(), format }, req.ip);
 
     if (format === 'csv') {
       const csv = dataToCsv(data);
@@ -216,7 +209,8 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
         `UPDATE slots
          SET parent_name = NULL, student_name = NULL, company_name = NULL,
              trainee_name = NULL, representative_name = NULL, class_name = NULL,
-             email = NULL, message = NULL, updated_at = NOW()
+             email = NULL, message = NULL, verification_token_hash = NULL,
+             updated_at = NOW()
          WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
          RETURNING id`,
         [trimmedEmail]
@@ -261,7 +255,7 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
 
     const totalAnonymized = protocol.actions.reduce((sum, a) => sum + a.anonymized, 0);
 
-    await auditLog(req.user?.id, 'DELETE', 'data_subject', null, protocol, req.ip);
+    await writeAuditLog(req.user?.id, 'DELETE', 'data_subject', null, protocol, req.ip);
 
     res.json({
       message: `${totalAnonymized} Datensaetze anonymisiert`,
@@ -341,7 +335,7 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
       client.release();
     }
 
-    await auditLog(req.user?.id, 'WRITE', 'data_subject', null, {
+    await writeAuditLog(req.user?.id, 'WRITE', 'data_subject', null, {
       email: trimmedEmail,
       corrections,
       results,
@@ -386,7 +380,7 @@ router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
       }
     }
 
-    await auditLog(req.user?.id, 'RESTRICT', 'data_subject', null, {
+    await writeAuditLog(req.user?.id, 'RESTRICT', 'data_subject', null, {
       email: trimmedEmail,
       restricted,
       results,
@@ -518,19 +512,11 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
     const rows = Array.isArray(result.rows) ? result.rows : [];
     const truncated = rows.length >= EXPORT_LIMIT;
 
-    await auditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length, truncated }, req.ip);
+    await writeAuditLog(req.user?.id, 'EXPORT', 'audit_log', null, { from, to, count: rows.length, truncated }, req.ip);
 
     if (format === 'csv') {
       const headers = ['id', 'user_id', 'user_name', 'action', 'table_name', 'record_id', 'details', 'ip_address', 'created_at'];
-      const csvLines = [headers.join(';')];
-      for (const row of rows) {
-        csvLines.push(headers.map(h => {
-          const val = row[h];
-          if (val === null || val === undefined) return '';
-          const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
-          return str.includes(';') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
-        }).join(';'));
-      }
+      const csvLines = rowsToCsvLines(headers, rows);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="audit-log-${Date.now()}.csv"`);
       return res.send(csvLines.join('\n'));

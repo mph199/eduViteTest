@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../../services/api';
+import { useModuleConfig } from '../../../../contexts/ModuleConfigContext';
 import type { BookingRequest, TimeSlot } from '../../../../types';
 import './TeacherHome.css';
 
 export function TeacherHome() {
   const navigate = useNavigate();
+  const { isModuleEnabled } = useModuleConfig();
 
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
@@ -128,6 +130,37 @@ export function TeacherHome() {
         </article>
       </section>
 
+      {isModuleEnabled('flow') && (
+        <section className="teacher-home__flow-banner" aria-label="Flow Kollaborationsformat">
+          <div className="teacher-home__flow-banner-content">
+            <div className="teacher-home__flow-banner-text">
+              <h2 className="teacher-home__flow-banner-title">Flow</h2>
+              <p className="teacher-home__flow-banner-desc">
+                Kollaborationsformat fuer Bildungsgaenge: Arbeitspakete planen, Aufgaben verteilen und Fortschritte verfolgen.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="teacher-home__flow-banner-btn"
+              onClick={() => navigate('/teacher/flow')}
+            >
+              Zu Flow
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="teacher-home__flow-banner-visual" aria-hidden="true">
+            <div className="teacher-home__flow-node teacher-home__flow-node--1" />
+            <div className="teacher-home__flow-node teacher-home__flow-node--2" />
+            <div className="teacher-home__flow-node teacher-home__flow-node--3" />
+            <svg className="teacher-home__flow-lines" viewBox="0 0 120 60" fill="none">
+              <path d="M10 50 Q40 10 60 30 T110 10" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" fill="none"/>
+              <path d="M10 30 Q50 50 70 20 T110 40" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+            </svg>
+          </div>
+        </section>
+      )}
 
     </div>
   );

@@ -1,5 +1,6 @@
 import { query } from '../../../config/db.js';
 import { generateTimeSlotsForTeacher } from '../../../utils/timeWindows.js';
+import { upsertWeeklySchedule } from '../../../shared/counselorService.js';
 import logger from '../../../config/logger.js';
 
 // ── Helper: insert slots for a teacher ──────────────────────────────────
@@ -31,22 +32,6 @@ export async function insertTeacherSlots(teacherId, availFrom, availUntil, targe
 /** Normalize db param: accepts a client (with .query) or a bare query function. */
 function asDb(db) {
   return typeof db === 'function' ? { query: db } : db;
-}
-
-async function upsertSchedule(rawDb, counselorId, schedule) {
-  if (!Array.isArray(schedule)) return;
-  const db = asDb(rawDb);
-  for (const entry of schedule) {
-    const wd = parseInt(entry.weekday, 10);
-    if (isNaN(wd) || wd < 0 || wd > 6) continue;
-    await db.query(
-      `INSERT INTO bl_weekly_schedule (counselor_id, weekday, start_time, end_time, active)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (counselor_id, weekday)
-       DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
-      [counselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
-    );
-  }
 }
 
 /**
@@ -104,8 +89,9 @@ export async function upsertBlCounselor(rawDb, userId, blData, { firstName, last
     counselorId = blRows[0]?.id;
   }
 
-  if (counselorId) {
-    await upsertSchedule(db, counselorId, blData.schedule);
+  if (counselorId && Array.isArray(blData.schedule)) {
+    const queryFn = typeof rawDb === 'function' ? rawDb : rawDb.query.bind(rawDb);
+    await upsertWeeklySchedule(counselorId, blData.schedule, 'bl_weekly_schedule', { queryFn });
   }
 
   await db.query(

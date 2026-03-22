@@ -2,13 +2,9 @@ import { useState } from 'react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { WEEKDAY_LABELS } from '../../../shared/constants/weekdays';
+import { buildDefaultSchedule } from '../../../shared/utils/schedule';
 
-const defaultSchedule: ScheduleEntry[] = [1, 2, 3, 4, 5].map(wd => ({
-  weekday: wd,
-  start_time: '08:00',
-  end_time: '14:00',
-  active: false,
-}));
+const defaultSchedule: ScheduleEntry[] = buildDefaultSchedule([1, 2, 3, 4, 5]);
 
 interface Props {
   profile: Counselor;
@@ -28,7 +24,7 @@ export function BLSprechzeitenTab({ profile, initialSchedule, showFlash }: Props
       await api.bl.updateSchedule(schedule);
       showFlash('Sprechzeiten gespeichert.');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Speichern');
     } finally {
       setSaving(false);
     }

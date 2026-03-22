@@ -2,14 +2,14 @@
 
 ## Ausgangslage
 - **Vorher:** Frontend auf Vercel (Static SPA), Backend auf Render (Node.js), Datenbank auf Supabase (PostgreSQL).
-- **Ziel:** Frontend über **IONOS Deploy Now** (statisches SPA), Backend + PostgreSQL auf **IONOS VPS**.
+- **Ziel:** Gesamtes System auf **IONOS VPS** (Docker: Frontend via nginx-Container, Backend + PostgreSQL).
 - **VPS-IP:** `217.154.146.101`
 - **Backend-Pfad auf VPS:** `/var/www/eduViteTest/backend`
 
 ## Entscheidungen
-- **Frontend:** IONOS Deploy Now (Git-basiertes Deployment für Static Sites)
-- **Backend:** IONOS VPS/Cloud-Server (Node.js-Runtime mit PM2 + Nginx)
-- **Datenbank:** PostgreSQL auf dem VPS (Schema bleibt unverändert)
+- **Frontend:** ~~IONOS Deploy Now~~ → Docker-Container (nginx) auf VPS (Entscheidung 2026-03-21: Deploy Now eingestellt)
+- **Backend:** IONOS VPS (Docker-Container, Node.js 20)
+- **Datenbank:** PostgreSQL auf dem VPS (Docker-Container)
 
 ---
 
@@ -24,12 +24,10 @@
   - Schema + Queries sind bereits darauf ausgelegt
 
 - [ ] **1.3 Domain / Subdomain einrichten**
-  - z.B. `sprechtag.meineschule.de` (Frontend via Deploy Now)
-  - API: `api.sprechtag.meineschule.de` (Backend auf VPS)
+  - z.B. `sprechtag.meineschule.de` (alles auf VPS, Docker-Reverse-Proxy)
 
 - [ ] **1.4 SSL-Zertifikat**
-  - Deploy Now: SSL automatisch (Let's Encrypt)
-  - VPS: Let's Encrypt via Certbot für API-Subdomain
+  - VPS: Let's Encrypt via Certbot / Caddy (automatisch)
 
 ---
 
@@ -87,27 +85,15 @@
 
 ---
 
-## Phase 4: Frontend auf IONOS Deploy Now deployen
+## ~~Phase 4: Frontend auf IONOS Deploy Now deployen~~ – ENTFAELLT
 
-- [ ] **4.1 Deploy Now einrichten**
-  - GitHub-Repository mit IONOS Deploy Now verbinden
-  - Framework-Erkennung: Vite/React (Static Build)
-  - Build-Befehl: `npm run build`
-  - Output-Verzeichnis: `dist`
-  - Environment-Variable setzen: `VITE_API_URL=https://api.sprechtag.meineschule.de/api`
-
-- [ ] **4.2 SPA-Routing konfigurieren**
-  - Deploy Now: `.htaccess` im `public/`-Ordner oder Deploy-Now-Config:
-    ```apache
-    RewriteEngine On
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule . /index.html [L]
-    ```
-
-- [ ] **4.3 CORS anpassen**
-  - Backend: `FRONTEND_URL` auf `https://sprechtag.meineschule.de` setzen
-  - Wird automatisch in die CORS-Whitelist aufgenommen (über `backend/index.js`)
+> **Entscheidung (2026-03-21):** IONOS Deploy Now wird nicht mehr genutzt.
+> Das Frontend wird ueber den Docker nginx-Container auf dem VPS ausgeliefert
+> (`Dockerfile.frontend` → Multi-Stage-Build → nginx). SPA-Routing erfolgt
+> ueber die nginx.conf (`try_files $uri $uri/ /index.html`).
+>
+> Entfernte Artefakte: 3 GitHub Actions Workflows (`eduViteTest-orchestration.yaml`,
+> `eduViteTest-build.yaml`, `deploy-to-ionos.yaml`), `public/.htaccess`.
 
 ---
 
@@ -142,8 +128,8 @@
 | Backend-Deployment auf VPS | 1–2h | ✅ Erledigt |
 | Datenimport (Supabase → VPS) | 0.5–1h | ⬜ Offen (falls noch Altdaten benötigt) |
 | Domain + SSL einrichten | 1–2h | ⬜ Offen |
-| E-Mail-Konfiguration (SMTP) | 0.5–1h | ⬜ Offen |
-| Frontend-Deploy (IONOS Deploy Now) | 0.5–1h | ⬜ Offen |
+| E-Mail-Konfiguration (SMTP) | 0.5–1h | ✅ Erledigt |
+| ~~Frontend-Deploy (IONOS Deploy Now)~~ | -- | ~~Entfaellt~~ (Docker nginx) |
 | Testing | 2–3h | ⬜ Offen |
 | Alte Services abschalten | 0.5h | ⬜ Offen |
 | **Gesamt** | **~14–24h** | **~5–8h verbleibend** |

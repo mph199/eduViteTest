@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as flowService from '../services/flowService.js';
+import logger from '../../../config/logger.js';
 
 const router = Router();
 
@@ -9,6 +10,7 @@ router.get('/arbeitspakete', async (req, res) => {
         const pakete = await flowService.getAbteilungsUebersicht();
         res.json(pakete);
     } catch (err) {
+        logger.error({ err }, 'flow abteilung: Fehler beim Laden der Abteilungsuebersicht');
         res.status(500).json({ error: 'Fehler beim Laden der Abteilungsuebersicht' });
     }
 });

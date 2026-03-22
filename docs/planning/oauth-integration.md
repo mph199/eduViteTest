@@ -1,7 +1,7 @@
 # OAuth-Integration – Planungsdokument
 
-> **Stand:** 2026-03-20
-> **Status:** Planung (noch nicht implementiert)
+> **Stand:** 2026-03-21
+> **Status:** Implementiert (Phase A vollstaendig, Phase B Superadmin-CRUD implementiert, Phase C Token-Persistenz implementiert)
 > **Bezug:** Phase 8 in `docker-roadmap.md`, Flow-Modul (`flow/01-datenbank-schema.md`)
 > **Ziel:** Schulen koennen sich ueber ihren bestehenden Identity Provider (Microsoft Entra ID, Logineo NRW, generisches OIDC) anmelden. Paralleler Betrieb mit bestehendem Username/Passwort-Login.
 
@@ -83,7 +83,7 @@ Jeder OIDC-konforme Provider (Keycloak, Authentik, Open-Xchange, etc.) soll unte
 
 ## 3. Datenbank-Aenderungen
 
-### Migration: `0XX_oauth_providers.sql`
+### Migration: `052_oauth.sql`
 
 ```sql
 BEGIN;
@@ -104,6 +104,8 @@ CREATE TABLE IF NOT EXISTS oauth_providers (
     name_claim VARCHAR(100) NOT NULL DEFAULT 'name',
     -- Optional: Tenant-Einschraenkung
     allowed_domains TEXT,                          -- Kommasepariert, z.B. 'schule.nrw.de,bksb.de'
+    -- Auto-Provisioning
+    auto_provisioning BOOLEAN NOT NULL DEFAULT FALSE,
     -- Metadaten
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -462,8 +464,8 @@ Die Scopes sind pro Provider in `oauth_providers.scopes` konfigurierbar.
 
 | # | Aufgabe | Dateien | Abhaengigkeit |
 |---|---------|---------|---------------|
-| A.1 | Migration: `oauth_providers`, `oauth_user_links` | `backend/migrations/0XX_oauth.sql` | - |
-| A.2 | `users.password_hash` nullable machen | `backend/migrations/0XX_oauth.sql` | - |
+| A.1 | Migration: `oauth_providers`, `oauth_user_links` | `backend/migrations/052_oauth.sql` | - |
+| A.2 | `users.password_hash` nullable machen | `backend/migrations/052_oauth.sql` | - |
 | A.3 | Encryption-Service (AES-256-GCM) | `backend/config/encryption.js` | `OAUTH_ENCRYPTION_KEY` env |
 | A.4 | OIDC-Discovery + Token-Service | `backend/services/oauthService.js` | A.3 |
 | A.5 | OAuth-Routen (Redirect, Callback) | `backend/routes/oauth.js` | A.1, A.4 |

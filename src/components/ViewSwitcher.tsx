@@ -1,4 +1,4 @@
-import type { ActiveView } from '../contexts/AuthContextBase';
+import type { ActiveView } from '../types';
 import './ViewSwitcher.css';
 
 interface ViewSwitcherOption {

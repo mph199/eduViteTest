@@ -97,7 +97,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
 
     if (current && current.email && current.verified_at && isEmailConfigured()) {
       try {
-        const { rows: tcRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+        const { rows: tcRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
         const teacher = tcRows[0] || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('cancellation', {
@@ -171,7 +171,7 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
 
     if (data && data.verified_at && !data.confirmation_sent_at && isEmailConfigured()) {
       try {
-        const { rows: teachConfirmRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+        const { rows: teachConfirmRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
         const teacher = teachConfirmRows[0] || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('confirmation', {

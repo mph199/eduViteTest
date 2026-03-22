@@ -107,12 +107,14 @@ export function requireFlowPaketRolle(erlaubteRollen) {
 
 Fuer den aggregierten Abteilungsleitungs-Endpunkt. Prueft gegen die **dedizierte Tabelle** `flow_abteilungsleitung` (keine Systemrolle).
 
+**Entscheidung (2026-03-21):** Bypass fuer `admin` UND `superadmin`, da Admins die Abteilungssicht zur Schulverwaltung benoetigen.
+
 ```js
 export async function requireFlowAbteilungsleitung(req, res, next) {
     const userId = req.user.id;
 
-    // Superadmin hat immer Zugriff auf die Abteilungssicht
-    if (req.user.role === 'superadmin') return next();
+    // Admin und Superadmin haben immer Zugriff auf die Abteilungssicht
+    if (['admin', 'superadmin'].includes(req.user.role)) return next();
 
     const result = await query(
         'SELECT 1 FROM flow_abteilungsleitung WHERE user_id = $1',
@@ -180,7 +182,7 @@ Selbst wenn ein Admin/Superadmin die Detail-API aufruft, prueft `requireFlowPake
 
 **Entscheidung (2026-03-20):** Admin-Bypass ist fuer Flow bewusst **deaktiviert**. Admins sehen nur die aggregierte Abteilungssicht (falls sie in `flow_abteilungsleitung` eingetragen sind). Fuer Paketdetails muessen sie explizit als Mitglied eingeladen werden. Das ist eine bewusste Abweichung vom bisherigen Pattern, die dem datenschutzrechtlichen Grundsatz der Datensparsamkeit entspricht.
 
-Einzige Ausnahme: `superadmin` hat Zugriff auf die Abteilungssicht (Systemverwaltung).
+Einzige Ausnahme: `admin` und `superadmin` haben Zugriff auf die Abteilungssicht (Schulverwaltung bzw. Systemverwaltung) – auch ohne Eintrag in `flow_abteilungsleitung`. Alle anderen Rollen benoetigen einen expliziten Eintrag in der Tabelle.
 
 ## Aufgaben-Erstellung: Kontextbasierte Berechtigung
 

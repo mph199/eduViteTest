@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
+import oauthRoutes from './routes/oauth.js';
 import adminRoutes from './routes/admin/index.js';
 import superadminRoutes from './routes/superadmin.js';
 import consentRoutes from './routes/consent.js';
@@ -113,6 +114,7 @@ app.use((req, _res, next) => {
 
 // Shared kernel routes
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', oauthRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/superadmin', adminLimiter, superadminRoutes);
 app.use('/api/consent', bookingLimiter, consentRoutes);

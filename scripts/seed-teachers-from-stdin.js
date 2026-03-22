@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { query } from './config/db.js';
-import { formatDateDE } from './utils/timeWindows.js';
-import logger from './config/logger.js';
+import { query } from '../backend/config/db.js';
+import { formatDateDE } from '../backend/utils/timeWindows.js';
+import logger from '../backend/config/logger.js';
 
 function parseArgs(argv) {
   const args = {

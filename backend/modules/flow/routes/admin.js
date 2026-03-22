@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../../../config/db.js';
 import * as flowService from '../services/flowService.js';
+import { writeAuditLog } from '../../../middleware/audit-log.js';
 import logger from '../../../config/logger.js';
 
 // Alle Routen dieses Routers werden ueber app.use mit
@@ -17,10 +18,14 @@ function parseId(value) {
 router.get('/users', async (_req, res) => {
     try {
         const result = await query(
-            `SELECT u.id, u.username, u.vorname, u.nachname, u.role
+            `SELECT u.id, u.username,
+                    COALESCE(t.first_name, '') AS vorname,
+                    COALESCE(t.last_name, u.username) AS nachname,
+                    u.role
              FROM users u
+             LEFT JOIN teachers t ON t.id = u.teacher_id
              WHERE u.role IN ('teacher', 'admin', 'superadmin')
-             ORDER BY u.nachname, u.vorname, u.username`
+             ORDER BY t.last_name NULLS LAST, t.first_name NULLS LAST, u.username`
         );
         res.json(result.rows);
     } catch (err) {
@@ -100,6 +105,7 @@ router.post('/bildungsgaenge/:id/mitglieder', async (req, res) => {
         if (!mitglied) {
             return res.status(409).json({ error: 'User ist bereits Mitglied dieses Bildungsgangs' });
         }
+        writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_ADDED', 'flow_bildungsgang_mitglied', mitglied.id, { bildungsgangId: id, userId: uid, rolle }, req.ip);
         res.status(201).json(mitglied);
     } catch (err) {
         logger.error({ err }, 'Fehler beim Hinzufuegen des Mitglieds');
@@ -122,6 +128,7 @@ router.patch('/bildungsgaenge/:id/mitglieder/:uid', async (req, res) => {
         if (!updated) {
             return res.status(404).json({ error: 'Mitglied nicht gefunden' });
         }
+        writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_ROLE_CHANGED', 'flow_bildungsgang_mitglied', updated.id, { bildungsgangId: id, userId: uid, rolle }, req.ip);
         res.json(updated);
     } catch (err) {
         logger.error({ err }, 'Fehler beim Aendern der Rolle');
@@ -140,6 +147,7 @@ router.delete('/bildungsgaenge/:id/mitglieder/:uid', async (req, res) => {
         if (!removed) {
             return res.status(404).json({ error: 'Mitglied nicht gefunden' });
         }
+        writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_REMOVED', 'flow_bildungsgang_mitglied', null, { bildungsgangId: id, userId: uid }, req.ip);
         res.status(204).end();
     } catch (err) {
         logger.error({ err }, 'Fehler beim Entfernen des Mitglieds');

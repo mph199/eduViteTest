@@ -78,6 +78,7 @@ router.get('/profile', requireAuth, requireBLCounselor, async (req, res) => {
     if (!counselor) return res.status(404).json({ error: 'Kein Beratungslehrer-Profil gefunden' });
     res.json({ counselor });
   } catch (err) {
+    logger.error({ err }, 'BL counselor: Fehler beim Laden des Profils');
     res.status(500).json({ error: 'Fehler beim Laden des Profils' });
   }
 });
@@ -94,6 +95,7 @@ router.get('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
     );
     res.json({ schedule: rows });
   } catch (err) {
+    logger.error({ err }, 'BL counselor: Fehler beim Laden des Wochenplans');
     res.status(500).json({ error: 'Fehler beim Laden des Wochenplans' });
   }
 });
