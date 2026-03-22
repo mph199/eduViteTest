@@ -44,6 +44,7 @@ services:
       DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-true}
       DB_SSL_CA: ${DB_SSL_CA:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-}
+      DISABLE_RATE_LIMIT: ${DISABLE_RATE_LIMIT:-false}
     volumes:
       - uploads:/app/uploads
     ports:
