@@ -105,6 +105,22 @@ router.post('/bildungsgaenge/:id/mitglieder', async (req, res) => {
         if (!mitglied) {
             return res.status(409).json({ error: 'User ist bereits Mitglied dieses Bildungsgangs' });
         }
+
+        // Sicherstellen, dass der User Zugang zum Flow-Modul hat
+        await query(
+            `INSERT INTO user_module_access (user_id, module_key)
+             VALUES ($1, 'flow')
+             ON CONFLICT (user_id, module_key) DO NOTHING`,
+            [uid]
+        );
+
+        // Token-Version inkrementieren, damit der User beim naechsten Verify
+        // die aktualisierte Modulliste erhaelt
+        await query(
+            `UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1`,
+            [uid]
+        );
+
         writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_ADDED', 'flow_bildungsgang_mitglied', mitglied.id, { bildungsgangId: id, userId: uid, rolle }, req.ip);
         res.status(201).json(mitglied);
     } catch (err) {
@@ -147,6 +163,26 @@ router.delete('/bildungsgaenge/:id/mitglieder/:uid', async (req, res) => {
         if (!removed) {
             return res.status(404).json({ error: 'Mitglied nicht gefunden' });
         }
+
+        // Pruefen ob der User noch in anderen Bildungsgaengen ist
+        const remaining = await query(
+            `SELECT 1 FROM flow_bildungsgang_mitglied WHERE user_id = $1 LIMIT 1`,
+            [uid]
+        );
+        if (remaining.rows.length === 0) {
+            // Kein BG-Zugehörigkeit mehr → Flow-Modulzugang entfernen
+            await query(
+                `DELETE FROM user_module_access WHERE user_id = $1 AND module_key = 'flow'`,
+                [uid]
+            );
+        }
+
+        // Token-Version inkrementieren
+        await query(
+            `UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1`,
+            [uid]
+        );
+
         writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_REMOVED', 'flow_bildungsgang_mitglied', null, { bildungsgangId: id, userId: uid }, req.ip);
         res.status(204).end();
     } catch (err) {
