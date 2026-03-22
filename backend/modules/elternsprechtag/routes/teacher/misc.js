@@ -44,7 +44,7 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const { rows: teacherInfoRows } = await query(
-      'SELECT * FROM teachers WHERE id = $1',
+      'SELECT id, name, first_name, last_name, email, salutation, subject, room FROM teachers WHERE id = $1',
       [teacherId]
     );
     const data = teacherInfoRows[0];

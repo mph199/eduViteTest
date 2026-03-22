@@ -81,6 +81,7 @@ export function createCounselorRoutes(config) {
       );
       res.json({ appointments: rows });
     } catch (err) {
+      logger.error({ err }, `${logPrefix}: Fehler beim Laden der Termine`);
       res.status(500).json({ error: 'Fehler beim Laden der Termine' });
     }
   });
@@ -121,6 +122,7 @@ export function createCounselorRoutes(config) {
       if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden oder nicht im Status "angefragt"' });
       res.json({ success: true, appointment: rows[0] });
     } catch (err) {
+      logger.error({ err }, `${logPrefix}: Fehler beim Bestaetigen`);
       res.status(500).json({ error: 'Fehler beim Bestaetigen' });
     }
   });
@@ -147,6 +149,7 @@ export function createCounselorRoutes(config) {
       if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden' });
       res.json({ success: true, appointment: rows[0] });
     } catch (err) {
+      logger.error({ err }, `${logPrefix}: Fehler beim Absagen`);
       res.status(500).json({ error: 'Fehler beim Absagen' });
     }
   });

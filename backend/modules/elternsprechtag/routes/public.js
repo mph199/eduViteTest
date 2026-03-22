@@ -203,7 +203,7 @@ router.post('/bookings', validate(bookingSchema), async (req, res) => {
     if (slotRow && isEmailConfigured()) {
       const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
       const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
-      const { rows: teacherLookupRows } = await query('SELECT * FROM teachers WHERE id = $1', [slotRow.teacher_id]);
+      const { rows: teacherLookupRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [slotRow.teacher_id]);
       const teacher = teacherLookupRows[0] || {};
       try {
         const branding = await getEmailBranding();
@@ -357,7 +357,7 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
     if (created && isEmailConfigured()) {
       const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
       const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
-      const { rows: teacherEmailRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherIdNum]);
+      const { rows: teacherEmailRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherIdNum]);
       const teacher = teacherEmailRows[0] || {};
       try {
         const branding = await getEmailBranding();
@@ -404,7 +404,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
     if (slot) {
       if (slot.status === 'confirmed' && !slot.confirmation_sent_at && isEmailConfigured()) {
         try {
-          const { rows: tRows } = await query('SELECT * FROM teachers WHERE id = $1', [slot.teacher_id]);
+          const { rows: tRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [slot.teacher_id]);
           const teacher = tRows[0] || {};
           const branding = await getEmailBranding();
           const { subject, text, html } = buildEmail('confirmation', {
@@ -427,7 +427,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
         try {
           const { rows: slotLookupRows } = await query('SELECT * FROM slots WHERE id = $1', [request.assigned_slot_id]);
           const slotRow = slotLookupRows[0] || null;
-          const { rows: tRows2 } = await query('SELECT * FROM teachers WHERE id = $1', [request.teacher_id]);
+          const { rows: tRows2 } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [request.teacher_id]);
           const teacher = tRows2[0] || {};
           const when = slotRow ? `${slotRow.date} ${slotRow.time}` : `${request.date} ${request.requested_time}`;
           const branding4 = await getEmailBranding();

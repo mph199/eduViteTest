@@ -70,6 +70,7 @@ export function createCounselorAdminRoutes(config) {
       const { rows } = await query(`SELECT id, user_id, first_name, last_name, email, salutation, room, phone, specializations, active, requires_confirmation, created_at FROM ${counselorsTable} ORDER BY last_name, first_name`);
       res.json({ counselors: rows });
     } catch (err) {
+      logger.error({ err }, `${tablePrefix}: Fehler beim Laden der ${counselorLabel}`);
       res.status(500).json({ error: `Fehler beim Laden der ${counselorLabel}` });
     }
   });
@@ -197,6 +198,7 @@ export function createCounselorAdminRoutes(config) {
       if (err?.code === '23503') {
         return res.status(409).json({ error: `${counselorLabel} hat noch Termine. Bitte zuerst Termine löschen oder deaktivieren.` });
       }
+      logger.error({ err }, `${tablePrefix}: Fehler beim Loeschen`);
       res.status(500).json({ error: 'Fehler beim Löschen' });
     }
   });
@@ -208,6 +210,7 @@ export function createCounselorAdminRoutes(config) {
       const { rows } = await query(`SELECT * FROM ${topicTable} ORDER BY sort_order, id`);
       res.json({ [topicResponseKey]: rows });
     } catch (err) {
+      logger.error({ err }, `${tablePrefix}: Fehler beim Laden der ${topicResponseKey}`);
       res.status(500).json({ error: `Fehler beim Laden der ${topicResponseKey}` });
     }
   });
@@ -227,6 +230,7 @@ export function createCounselorAdminRoutes(config) {
       );
       res.json({ success: true, [topicSingularKey]: rows[0] });
     } catch (err) {
+      logger.error({ err }, `${tablePrefix}: Fehler beim Anlegen`);
       res.status(500).json({ error: 'Fehler beim Anlegen' });
     }
   });
@@ -247,6 +251,7 @@ export function createCounselorAdminRoutes(config) {
       if (!rows.length) return res.status(404).json({ error: `${topicSingularKey} nicht gefunden` });
       res.json({ success: true, [topicSingularKey]: rows[0] });
     } catch (err) {
+      logger.error({ err }, `${tablePrefix}: Fehler beim Speichern`);
       res.status(500).json({ error: 'Fehler beim Speichern' });
     }
   });
@@ -264,6 +269,7 @@ export function createCounselorAdminRoutes(config) {
       `);
       res.json({ stats: counts });
     } catch (err) {
+      logger.error({ err }, `${tablePrefix}: Fehler beim Laden der Statistiken`);
       res.status(500).json({ error: 'Fehler beim Laden der Statistiken' });
     }
   });
@@ -327,6 +333,7 @@ export function createCounselorAdminRoutes(config) {
       );
       res.json({ schedule: rows });
     } catch (err) {
+      logger.error({ err }, `${tablePrefix}: Fehler beim Laden des Wochenplans`);
       res.status(500).json({ error: 'Fehler beim Laden des Wochenplans' });
     }
   });

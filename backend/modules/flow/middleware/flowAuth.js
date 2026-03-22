@@ -1,5 +1,6 @@
 import { query } from '../../../config/db.js';
 import { assertSafeIdentifier } from '../../../shared/sqlGuards.js';
+import logger from '../../../config/logger.js';
 
 const BG_ROLLEN_HIERARCHIE = { leitung: 2, mitglied: 1 };
 
@@ -35,6 +36,7 @@ export function requireFlowBildungsgangRolle(minRolle) {
             req.flowBgRolle = rolle;
             next();
         } catch (err) {
+            logger.error({ err }, 'flowAuth: Fehler bei der Berechtigungspruefung');
             return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
         }
     };
@@ -68,6 +70,7 @@ export function requireFlowPaketRolle(erlaubteRollen) {
             req.flowPaketRolle = rolle;
             next();
         } catch (err) {
+            logger.error({ err }, 'flowAuth: Fehler bei der Berechtigungspruefung');
             return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
         }
     };

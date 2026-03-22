@@ -81,7 +81,7 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
   if (!updatedSlot?.email || !isEmailConfigured()) return;
 
   try {
-    const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const { rows: teacherRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
     const branding = await getEmailBranding();
@@ -103,7 +103,7 @@ export async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId,
 
   const now = new Date().toISOString();
   try {
-    const { rows: teacherRows } = await query('SELECT * FROM teachers WHERE id = $1', [teacherId]);
+    const { rows: teacherRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
     const teacher = teacherRows[0] || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
 
