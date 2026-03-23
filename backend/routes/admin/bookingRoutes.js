@@ -4,6 +4,7 @@ import { query } from '../../config/db.js';
 import { isEmailConfigured, sendMail } from '../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../emails/template.js';
 import { listAdminBookings, cancelBookingAdmin } from '../../modules/elternsprechtag/services/slotsService.js';
+import { getTeacherById } from '../../modules/elternsprechtag/services/teachersService.js';
 import logger from '../../config/logger.js';
 
 const router = express.Router();
@@ -39,8 +40,7 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
     // Best-effort cancellation email (only if the booking email was verified)
     if (previous && previous.email && previous.verified_at && isEmailConfigured()) {
       try {
-        const { rows: tRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [previous.teacher_id]);
-        const teacher = tRows[0] || {};
+        const teacher = await getTeacherById(previous.teacher_id) || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('cancellation', {
           date: previous.date, time: previous.time,

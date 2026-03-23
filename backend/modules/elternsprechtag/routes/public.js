@@ -3,10 +3,11 @@ import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from '../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../emails/template.js';
-import { listTeachers } from '../services/teachersService.js';
+import { listTeachers, getTeacherById } from '../services/teachersService.js';
 import { reserveBooking, verifyBookingToken } from '../services/slotsService.js';
 import { mapSlotRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
+import { resolveActiveEvent, findActiveEventId } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
 import { validate } from '../../../middleware/validate.js';
 import { bookingSchema, bookingRequestSchema } from '../../../schemas/booking.js';
@@ -111,6 +112,7 @@ router.get('/slots', async (req, res) => {
     // Resolve event scope: explicit eventId OR active published event
     let resolvedEventId = null;
     let resolvedEventStartsAt = null;
+    let resolvedEventDate = null;
     if (eventId !== undefined) {
       const parsed = parseInt(String(eventId), 10);
       if (isNaN(parsed)) {
@@ -125,17 +127,15 @@ router.get('/slots', async (req, res) => {
         resolvedEventStartsAt = null;
       }
     } else {
-      const now = new Date().toISOString();
-      const { rows: activeRows } = await query(
-        `SELECT id, starts_at FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
-        [now]
-      );
-      resolvedEventId = activeRows.length ? activeRows[0].id : null;
-      resolvedEventStartsAt = activeRows.length ? activeRows[0].starts_at : null;
+      const resolved = await resolveActiveEvent();
+      resolvedEventId = resolved.eventId;
+      resolvedEventDate = resolved.eventDate;
     }
 
     const times = getTimeWindowsForTeacher(teacherRow?.available_from, teacherRow?.available_until);
-    const eventDate = formatDateDE(resolvedEventStartsAt || new Date().toISOString()) || '01.01.1970';
+    const eventDate = resolvedEventDate
+      || (resolvedEventStartsAt ? formatDateDE(resolvedEventStartsAt) : null)
+      || '01.01.1970';
 
     // Privacy: do not expose booking occupancy or visitor details on public endpoints.
     const publicSlots = times.map((time, idx) => ({
@@ -166,12 +166,8 @@ router.post('/bookings', validate(bookingSchema), async (req, res) => {
     }
 
     // Require active published event before accepting booking requests
-    const nowIso = new Date().toISOString();
-    const { rows: activeEventRows } = await query(
-      `SELECT id FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
-      [nowIso]
-    );
-    const activeEventId = activeEventRows.length ? activeEventRows[0].id : null;
+    const activeEvent = await findActiveEventId();
+    const activeEventId = activeEvent?.id || null;
     if (!activeEventId) {
       return res.status(409).json({ error: 'Buchungen sind aktuell nicht freigegeben' });
     }
@@ -201,11 +197,10 @@ router.post('/bookings', validate(bookingSchema), async (req, res) => {
 
     // Send verification email (best-effort)
     if (slotRow && isEmailConfigured()) {
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
-      const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
-      const { rows: teacherLookupRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [slotRow.teacher_id]);
-      const teacher = teacherLookupRows[0] || {};
       try {
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
+        const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
+        const teacher = await getTeacherById(slotRow.teacher_id) || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('verify-slot', {
           date: slotRow.date, time: slotRow.time,
@@ -232,12 +227,7 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
     const payload = req.body || {};
 
     // Require active published event
-    const nowIso = new Date().toISOString();
-    const { rows: activeEventRows } = await query(
-      `SELECT id, starts_at FROM events WHERE status = 'published' AND (booking_opens_at IS NULL OR booking_opens_at <= $1) AND (booking_closes_at IS NULL OR booking_closes_at >= $1) ORDER BY starts_at DESC LIMIT 1`,
-      [nowIso]
-    );
-    const activeEvent = activeEventRows.length ? activeEventRows[0] : null;
+    const activeEvent = await findActiveEventId();
     const activeEventId = activeEvent?.id || null;
     if (!activeEventId) {
       return res.status(409).json({ error: 'Buchungen sind aktuell nicht freigegeben' });
@@ -355,11 +345,10 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
 
     // Send verification email (best-effort)
     if (created && isEmailConfigured()) {
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
-      const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
-      const { rows: teacherEmailRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherIdNum]);
-      const teacher = teacherEmailRows[0] || {};
       try {
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
+        const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`;
+        const teacher = await getTeacherById(teacherIdNum) || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('verify-request', {
           date: created.date, requestedTime: created.requested_time,
@@ -404,8 +393,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
     if (slot) {
       if (slot.status === 'confirmed' && !slot.confirmation_sent_at && isEmailConfigured()) {
         try {
-          const { rows: tRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [slot.teacher_id]);
-          const teacher = tRows[0] || {};
+          const teacher = await getTeacherById(slot.teacher_id) || {};
           const branding = await getEmailBranding();
           const { subject, text, html } = buildEmail('confirmation', {
             date: slot.date, time: slot.time,
@@ -427,8 +415,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
         try {
           const { rows: slotLookupRows } = await query('SELECT * FROM slots WHERE id = $1', [request.assigned_slot_id]);
           const slotRow = slotLookupRows[0] || null;
-          const { rows: tRows2 } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [request.teacher_id]);
-          const teacher = tRows2[0] || {};
+          const teacher = await getTeacherById(request.teacher_id) || {};
           const when = slotRow ? `${slotRow.date} ${slotRow.time}` : `${request.date} ${request.requested_time}`;
           const branding4 = await getEmailBranding();
           const whenParts = when.split(' ');
@@ -459,7 +446,9 @@ router.get('/events/active', async (_req, res) => {
   try {
     const now = new Date().toISOString();
     const { rows } = await query(
-      `SELECT * FROM events
+      `SELECT id, name, school_year, starts_at, ends_at, timezone, status,
+              booking_opens_at, booking_closes_at
+       FROM events
        WHERE status = 'published'
          AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
          AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
@@ -481,7 +470,9 @@ router.get('/events/upcoming', async (_req, res) => {
   try {
     const now = new Date().toISOString();
     const { rows } = await query(
-      `SELECT * FROM events
+      `SELECT id, name, school_year, starts_at, ends_at, timezone, status,
+              booking_opens_at, booking_closes_at
+       FROM events
        WHERE status = 'published' AND starts_at >= $1
        ORDER BY starts_at ASC LIMIT 3`,
       [now]
@@ -498,21 +489,11 @@ router.get('/events/upcoming', async (_req, res) => {
 
 router.get('/health', async (_req, res) => {
   try {
-    const [teacherResult, slotResult, bookedResult] = await Promise.all([
-      query('SELECT COUNT(*) AS count FROM teachers'),
-      query('SELECT COUNT(*) AS count FROM slots'),
-      query('SELECT COUNT(*) AS count FROM slots WHERE booked = true')
-    ]);
-
-    res.json({
-      status: 'ok',
-      teacherCount: parseInt(teacherResult.rows[0].count, 10) || 0,
-      slotCount: parseInt(slotResult.rows[0].count, 10) || 0,
-      bookedCount: parseInt(bookedResult.rows[0].count, 10) || 0
-    });
+    await query('SELECT 1');
+    res.json({ status: 'ok' });
   } catch (error) {
     logger.error({ err: error }, 'Error in health check');
-    res.status(500).json({ status: 'error', message: 'Health check failed' });
+    res.status(500).json({ status: 'error' });
   }
 });
 

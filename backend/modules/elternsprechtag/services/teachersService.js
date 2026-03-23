@@ -7,3 +7,8 @@ export async function listTeachers() {
   );
   return rows;
 }
+
+export async function getTeacherById(teacherId) {
+  const { rows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
+  return rows[0] || null;
+}

@@ -134,10 +134,10 @@ matchen (nur Kleinbuchstaben, Ziffern, `_`, `-`).
 ### 1.4 (Optional) Eigene Migration
 
 Falls das Modul eigene Tabellen braucht, eine nummerierte SQL-Datei anlegen.
-**Aktuelle hoechste Nummer pruefen** (aktuell: 052).
+**Aktuelle hoechste Nummer pruefen** (aktuell: 054).
 
 ```sql
--- backend/migrations/048_meinmodul_tabellen.sql
+-- backend/migrations/055_meinmodul_tabellen.sql
 
 CREATE TABLE IF NOT EXISTS meinmodul_termine (
   id SERIAL PRIMARY KEY,
@@ -538,10 +538,13 @@ Tabellen mit `restricted BOOLEAN`-Spalte (Art. 18 DSGVO):
 
 | Datei | Funktion | Genutzt von |
 |-------|----------|-------------|
-| `counselorService.js` | DB-Queries fuer Berater-Module | SSW, BL |
+| `counselorService.js` | DB-Queries fuer Berater-Module (Slots, Termine, Wochenplan) | SSW, BL |
 | `counselorPublicRoutes.js` | Oeffentliche Routen (Slots, Buchung, Consent) | SSW, BL |
-| `counselorAdminRoutes.js` | Admin-CRUD fuer Berater | SSW, BL |
+| `counselorRoutes.js` | Authentifizierte Berater-Self-Service-Routen (Termine, Slot-Generierung) | SSW, BL |
+| `counselorAdminRoutes.js` | Admin-CRUD fuer Berater, Topics, Termine, Wochenplan | SSW, BL |
+| `sqlGuards.js` | `assertSafeIdentifier()` – Whitelist-Pruefung fuer dynamische SQL-Identifier | counselorService, counselorAdminRoutes |
 | `generateUsername.js` | `generateUsername(firstName, lastName, fallbackId, prefix)` – Umlaut-Transliteration | teacherRoutes, counselorAdminRoutes |
+| `validatePassword.js` | Passwort-Komplexitaets-Check (Laenge, Zeichenklassen) | counselorAdminRoutes, teacherRoutes |
 
 ---
 

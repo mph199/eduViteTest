@@ -10,7 +10,7 @@ export const bookingSchema = z.object({
   name: z.string().min(1, 'Name erforderlich').max(255).transform((v) => v.trim()),
   email: emailSchema,
   consent_version: z.string().min(1, 'Einwilligung ist erforderlich').max(20),
-}).passthrough();
+});
 
 export const bookingRequestSchema = z.object({
   teacherId: z.union([z.number().int().positive(), z.string().regex(/^\d+$/).transform(Number)]),
@@ -25,7 +25,7 @@ export const bookingRequestSchema = z.object({
   companyName: z.string().max(255).optional(),
   traineeName: z.string().max(255).optional(),
   representativeName: z.string().max(255).optional(),
-}).passthrough();
+});
 
 export const consentWithdrawSchema = z.object({
   email: emailSchema,

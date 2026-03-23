@@ -61,3 +61,26 @@ export async function resolveActiveEvent() {
 
   return { eventId, eventDate };
 }
+
+/**
+ * Returns the currently active event row (id, starts_at) or null.
+ * No fallbacks – returns null when no active event exists.
+ * Used by booking guard checks that must reject requests when no event is open.
+ */
+export async function findActiveEventId() {
+  try {
+    const nowIso = new Date().toISOString();
+    const { rows } = await query(
+      `SELECT id, starts_at FROM events
+       WHERE status = 'published'
+         AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
+         AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
+       ORDER BY starts_at DESC LIMIT 1`,
+      [nowIso]
+    );
+    return rows.length ? rows[0] : null;
+  } catch (e) {
+    logger.warn({ err: e }, 'Finding active event failed');
+    return null;
+  }
+}
