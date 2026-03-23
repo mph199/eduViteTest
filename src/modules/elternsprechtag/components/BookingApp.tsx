@@ -29,9 +29,7 @@ export const BookingApp = () => {
   const bookingFormRef = useRef<HTMLDivElement>(null);
 
   const scrollToRef = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
-    // setTimeout statt rAF: gibt dem Browser genuegend Zeit fuer
-    // Layout-Berechnung nach bedingtem Rendern (z.B. BookingForm null → Content)
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       if (!ref.current) return;
       const headerHeight = parseInt(
         getComputedStyle(document.documentElement)
@@ -40,7 +38,7 @@ export const BookingApp = () => {
       );
       const top = ref.current.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-    }, 150);
+    });
   }, []);
 
   const formattedEventBanner = useMemo<ReactNode>(() => {
@@ -247,7 +245,8 @@ export const BookingApp = () => {
             </div>
           )}
 
-          <div ref={bookingFormRef} className="booking-form-scroll-target">
+          <div ref={bookingFormRef} className="scroll-anchor" aria-hidden="true" />
+          <div className="booking-form-scroll-target">
             <BookingForm
               key={selectedTeacherId ?? 'no-teacher'}
               selectedSlotId={selectedSlotId}
