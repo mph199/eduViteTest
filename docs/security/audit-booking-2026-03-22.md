@@ -101,26 +101,25 @@
 
 ---
 
-## Priorisierte Massnahmen (offen)
+## Priorisierte Massnahmen
 
-### Vor naechstem Deploy
+### Behoben (Sprint 2 – 2026-03-23)
 
-1. `npm audit fix` im Root-Verzeichnis (flatted-Patch)
-2. `requiredModule: 'schulsozialarbeit'` in `src/modules/schulsozialarbeit/index.ts` setzen
+1. ~~`npm audit fix` im Root-Verzeichnis (flatted-Patch)~~ – erledigt
+2. ~~`requiredModule: 'schulsozialarbeit'`~~ – erledigt
+3. ~~`writeAuditLog()` in Counselor-Admin-Routen (CREATE/UPDATE/DELETE)~~ – erledigt
+4. ~~Migration `055_bl_requests_restricted.sql`~~ – erledigt
+5. ~~Migration `created_at NOT NULL` (SSW/BL)~~ – bereits in 054 erledigt
+6. ~~`getTeacherById()` in `teachersService.js` (9 Duplikate beseitigt)~~ – erledigt
+7. ~~`resolveActiveEvent()`/`findActiveEventId()` in `public.js` (3 Inline-Queries)~~ – erledigt
+8. ~~`buildSlotUpdateFromRequest()` in `slotAssignment.js`~~ – erledigt
+9. ~~Phone-Feld Format-Validierung in `counselor.js` Schema~~ – erledigt
 
-### Naechster Sprint
+### Backlog (offen)
 
-3. `writeAuditLog()` in Teacher- und Counselor-Routen aller 3 Module
-4. Migration fuer `bl_requests`: `restricted`-Flag + RLS
-5. Migration fuer `created_at NOT NULL` in SSW/BL-Tabellen
-6. `getTeacherById()` in `teachersService.js` (beseitigt 9 Duplikate)
-7. `resolveActiveEvent()` in `public.js` verwenden (3 Inline-Queries)
-8. `buildSlotUpdateFromRequest()` in `slotAssignment.js`
-9. Phone-Feld Format-Validierung in `counselorPublicRoutes.js`
-
-### Backlog
-
-10. `public.js` aufteilen (519 Zeilen → 4 Dateien)
-11. `src/utils/timeWindows.ts` anlegen (Frontend/Backend-Duplikat)
-12. `TeacherBookings.tsx` refactoren (Inline-Styles → CSS)
-13. Elternsprechtag Admin-Routen ins Modul migrieren oder dokumentieren
+1. `public.js` aufteilen (519 Zeilen -> 4 Dateien)
+2. `src/utils/timeWindows.ts` anlegen (Frontend/Backend-Duplikat)
+3. `TeacherBookings.tsx` refactoren (Inline-Styles -> CSS)
+4. Elternsprechtag Admin-Routen ins Modul migrieren oder dokumentieren
+5. `writeAuditLog()` in Teacher-Routen (GET /bookings PII-Lesezugriffe)
+6. `restricted`-Filter in Elternsprechtag Teacher-Routen ergaenzen

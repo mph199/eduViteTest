@@ -30,6 +30,7 @@ import { assertSafeIdentifier } from './sqlGuards.js';
 import { generateUsername } from './generateUsername.js';
 import logger from '../config/logger.js';
 import { validatePassword } from './validatePassword.js';
+import { writeAuditLog } from '../middleware/audit-log.js';
 
 export function createCounselorAdminRoutes(config) {
   const {
@@ -118,6 +119,7 @@ export function createCounselorAdminRoutes(config) {
       if (userInfo?.tempPassword) {
         res.set('Cache-Control', 'no-store');
       }
+      writeAuditLog(req.user?.id, 'CREATE', counselorsTable, counselor.id, { last_name: counselor.last_name }, req.ip);
       res.json({ success: true, counselor, user: userInfo });
     } catch (err) {
       logger.error({ err }, `${tablePrefix} create counselor error`);
@@ -171,6 +173,7 @@ export function createCounselorAdminRoutes(config) {
         }
       }
 
+      writeAuditLog(req.user?.id, 'UPDATE', counselorsTable, counselor.id, { last_name: counselor.last_name }, req.ip);
       res.json({ success: true, counselor });
     } catch (err) {
       logger.error({ err }, `${tablePrefix} update counselor error`);
@@ -193,6 +196,7 @@ export function createCounselorAdminRoutes(config) {
         await onCounselorDeleted(counselorRow);
       }
 
+      writeAuditLog(req.user?.id, 'DELETE', counselorsTable, id, null, req.ip);
       res.json({ success: true });
     } catch (err) {
       if (err?.code === '23503') {
@@ -323,6 +327,7 @@ export function createCounselorAdminRoutes(config) {
         `DELETE FROM ${appointmentsTable} WHERE id IN (${placeholders})`,
         numericIds
       );
+      writeAuditLog(req.user?.id, 'DELETE', appointmentsTable, null, { ids: numericIds, count: rowCount }, req.ip);
       res.json({ success: true, deleted: rowCount });
     } catch (err) {
       logger.error({ err }, `${tablePrefix} admin delete appointments error`);

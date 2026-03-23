@@ -4,6 +4,7 @@ import { query } from '../../../../config/db.js';
 import { isEmailConfigured, sendMail } from '../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../emails/template.js';
 import { mapSlotRow, mapBookingRowWithTeacher } from '../../../../utils/mappers.js';
+import { getTeacherById } from '../../services/teachersService.js';
 import logger from '../../../../config/logger.js';
 import { requireTeacher } from './lib/middleware.js';
 
@@ -97,8 +98,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
 
     if (current && current.email && current.verified_at && isEmailConfigured()) {
       try {
-        const { rows: tcRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
-        const teacher = tcRows[0] || {};
+        const teacher = await getTeacherById(teacherId) || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('cancellation', {
           date: current.date, time: current.time,
@@ -171,8 +171,7 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
 
     if (data && data.verified_at && !data.confirmation_sent_at && isEmailConfigured()) {
       try {
-        const { rows: teachConfirmRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
-        const teacher = teachConfirmRows[0] || {};
+        const teacher = await getTeacherById(teacherId) || {};
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('confirmation', {
           date: data.date, time: data.time,

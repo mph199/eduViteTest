@@ -1,6 +1,7 @@
 import { query, getClient } from '../../../../../config/db.js';
 import { isEmailConfigured, sendMail } from '../../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../../emails/template.js';
+import { getTeacherById } from '../../../services/teachersService.js';
 import logger from '../../../../../config/logger.js';
 
 // ── Time parsing helpers ────────────────────────────────────────────────
@@ -19,6 +20,31 @@ function fmtMinutes(mins) {
   const hh = String(Math.floor(mins / 60)).padStart(2, '0');
   const mm = String(mins % 60).padStart(2, '0');
   return `${hh}:${mm}`;
+}
+
+/**
+ * Builds the slot update object from a booking request row.
+ * Used when assigning a request to a slot (both normal and extra-slot assignment).
+ */
+export function buildSlotUpdateFromRequest(row, slot, now) {
+  return {
+    event_id: row.event_id ?? slot.event_id ?? null,
+    booked: true,
+    status: 'confirmed',
+    visitor_type: row.visitor_type,
+    class_name: row.class_name,
+    email: row.email,
+    message: row.message || null,
+    parent_name: row.parent_name,
+    student_name: row.student_name,
+    company_name: row.company_name,
+    trainee_name: row.trainee_name,
+    representative_name: row.representative_name,
+    verified_at: row.verified_at,
+    verification_token_hash: null,
+    verification_sent_at: null,
+    updated_at: now,
+  };
 }
 
 export function buildAssignableSlotTimesFromRequestedWindow(requestedTime, slotMinutes = null) {
@@ -81,8 +107,7 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
   if (!updatedSlot?.email || !isEmailConfigured()) return;
 
   try {
-    const { rows: teacherRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
-    const teacher = teacherRows[0] || {};
+    const teacher = await getTeacherById(teacherId) || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
     const branding = await getEmailBranding();
     const { subject, text, html } = buildEmail('confirmation', {
@@ -103,8 +128,7 @@ export async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId,
 
   const now = new Date().toISOString();
   try {
-    const { rows: teacherRows } = await query('SELECT id, name, room FROM teachers WHERE id = $1', [teacherId]);
-    const teacher = teacherRows[0] || {};
+    const teacher = await getTeacherById(teacherId) || {};
     const safeTeacherMessage = String(teacherMessage || '').trim();
 
     const branding = await getEmailBranding();
@@ -181,24 +205,7 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   }
 
   const now = new Date().toISOString();
-  const slotUpdate = {
-    event_id: current.event_id ?? slot.event_id ?? null,
-    booked: true,
-    status: 'confirmed',
-    visitor_type: current.visitor_type,
-    class_name: current.class_name,
-    email: current.email,
-    message: current.message || null,
-    parent_name: current.parent_name,
-    student_name: current.student_name,
-    company_name: current.company_name,
-    trainee_name: current.trainee_name,
-    representative_name: current.representative_name,
-    verified_at: current.verified_at,
-    verification_token_hash: null,
-    verification_sent_at: null,
-    updated_at: now,
-  };
+  const slotUpdate = buildSlotUpdateFromRequest(current, slot, now);
 
   const slotUpdateKeys = Object.keys(slotUpdate);
   const slotSetClauses = slotUpdateKeys.map((k, i) => `${k} = $${i + 1}`);
@@ -268,24 +275,7 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
   }
 
   const now = new Date().toISOString();
-  const slotUpdate = {
-    event_id: requestRow.event_id ?? slot.event_id ?? null,
-    booked: true,
-    status: 'confirmed',
-    visitor_type: requestRow.visitor_type,
-    class_name: requestRow.class_name,
-    email: requestRow.email,
-    message: requestRow.message || null,
-    parent_name: requestRow.parent_name,
-    student_name: requestRow.student_name,
-    company_name: requestRow.company_name,
-    trainee_name: requestRow.trainee_name,
-    representative_name: requestRow.representative_name,
-    verified_at: requestRow.verified_at,
-    verification_token_hash: null,
-    verification_sent_at: null,
-    updated_at: now,
-  };
+  const slotUpdate = buildSlotUpdateFromRequest(requestRow, slot, now);
 
   const extraKeys = Object.keys(slotUpdate);
   const extraSet = extraKeys.map((k, i) => `${k} = $${i + 1}`);

@@ -23,6 +23,7 @@ const schulsozialarbeitModule: ModuleDefinition = {
   basePath: '/schulsozialarbeit',
   accent: 'var(--module-accent-schulsozialarbeit)',
   accentRgb: '205, 92, 92',
+  requiredModule: 'schulsozialarbeit',
 
   /** Öffentliche Buchungsseite */
   PublicPage: SSWBookingApp,
