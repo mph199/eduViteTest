@@ -437,15 +437,6 @@
   z-index: 5;
 }
 
-/* Unsichtbarer Scroll-Anker – immer im DOM, unabhaengig von bedingtem Rendern */
-.scroll-anchor {
-  height: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-  pointer-events: none;
-}
-
 /* Main Content */
 .main-content {
   display: flex;

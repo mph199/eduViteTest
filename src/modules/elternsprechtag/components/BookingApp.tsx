@@ -245,8 +245,7 @@ export const BookingApp = () => {
             </div>
           )}
 
-          <div ref={bookingFormRef} className="scroll-anchor" aria-hidden="true" />
-          <div className="booking-form-scroll-target">
+          <div ref={bookingFormRef} className="booking-form-scroll-target">
             <BookingForm
               key={selectedTeacherId ?? 'no-teacher'}
               selectedSlotId={selectedSlotId}
