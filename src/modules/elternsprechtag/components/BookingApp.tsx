@@ -29,8 +29,12 @@ export const BookingApp = () => {
   const bookingFormRef = useRef<HTMLDivElement>(null);
 
   const scrollToRef = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    // Double-rAF: erster Frame wartet auf Layout-Berechnung,
+    // zweiter Frame scrollt wenn das DOM vollstaendig gerendert ist
     requestAnimationFrame(() => {
-      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      requestAnimationFrame(() => {
+        ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }, []);
 
