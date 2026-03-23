@@ -437,10 +437,13 @@
   z-index: 5;
 }
 
-/* Scroll-Offset fuer Sticky Header */
-.slot-list-scroll-target,
-.booking-form-scroll-target {
-  scroll-margin-top: calc(var(--globalTopHeaderHeight, 72px) + 1rem);
+/* Unsichtbarer Scroll-Anker – immer im DOM, unabhaengig von bedingtem Rendern */
+.scroll-anchor {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  pointer-events: none;
 }
 
 /* Main Content */

@@ -29,12 +29,15 @@ export const BookingApp = () => {
   const bookingFormRef = useRef<HTMLDivElement>(null);
 
   const scrollToRef = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
-    // Double-rAF: erster Frame wartet auf Layout-Berechnung,
-    // zweiter Frame scrollt wenn das DOM vollstaendig gerendert ist
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+      if (!ref.current) return;
+      const headerHeight = parseInt(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--globalTopHeaderHeight') || '72',
+        10
+      );
+      const top = ref.current.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     });
   }, []);
 
@@ -242,7 +245,8 @@ export const BookingApp = () => {
             </div>
           )}
 
-          <div ref={bookingFormRef} className="booking-form-scroll-target">
+          <div ref={bookingFormRef} className="scroll-anchor" aria-hidden="true" />
+          <div className="booking-form-scroll-target">
             <BookingForm
               key={selectedTeacherId ?? 'no-teacher'}
               selectedSlotId={selectedSlotId}
