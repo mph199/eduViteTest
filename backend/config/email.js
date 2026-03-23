@@ -16,7 +16,12 @@ const smtpHost = process.env.SMTP_HOST;
 const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
-const fromEmail = process.env.FROM_EMAIL || 'no-reply@example.com';
+const fromEmailRaw = process.env.FROM_EMAIL || 'no-reply@example.com';
+
+// Extract bare email for SMTP envelope (IONOS requires MAIL FROM = SMTP_USER).
+// Display name is still used in the message header (From:).
+const envelopeFrom = smtpUser || fromEmailRaw.replace(/^.*<([^>]+)>.*$/, '$1').trim();
+const fromEmail = fromEmailRaw;
 
 const mailTransport = (process.env.MAIL_TRANSPORT || '').trim().toLowerCase();
 
@@ -90,7 +95,14 @@ export async function sendMail({ to, subject, text, html }) {
     return { skipped: true };
   }
 
-  const info = await t.sendMail({ from: fromEmail, to, subject, text, html });
+  const info = await t.sendMail({
+    from: fromEmail,
+    to,
+    subject,
+    text,
+    html,
+    envelope: { from: envelopeFrom, to },
+  });
   const previewUrl = nodemailer.getTestMessageUrl(info);
   if (previewUrl) {
     logger.info({ previewUrl }, '[email] Preview URL');
