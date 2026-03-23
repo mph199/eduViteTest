@@ -40,7 +40,7 @@ const TagungDetailPage = lazy(() =>
 const flowModule: ModuleDefinition = {
     id: 'flow',
     title: 'Flow',
-    description: 'Kollaborationsformat fuer Bildungsgaenge',
+    description: 'Kollaborationsformat für Bildungsgänge',
     icon: '',
     basePath: '/flow',
     accent: 'var(--module-accent-flow)',

@@ -67,14 +67,14 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
       if (user.forcePasswordChange) {
         updateUser({ forcePasswordChange: false });
       }
-      setPwMsg({ text: 'Passwort erfolgreich geaendert.', ok: true });
+      setPwMsg({ text: 'Passwort erfolgreich geändert.', ok: true });
       setCurrentPw('');
       setNewPw('');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       const known = ['Aktuelles Passwort ist falsch', 'Neues Passwort muss mindestens 8 Zeichen haben'];
       setPwMsg({
-        text: known.some((k) => msg === k) ? msg : 'Fehler beim Aendern des Passworts.',
+        text: known.some((k) => msg === k) ? msg : 'Fehler beim Ändern des Passworts.',
         ok: false,
       });
     } finally {
@@ -109,7 +109,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
       {open && (
         <>
           <div className="sidebarProfile__backdrop" role="presentation" onClick={close} />
-          <div id="sidebarProfile-panel" className="sidebarProfile__popover" role="dialog" aria-modal="true" aria-label="Profil-Menue" ref={popoverRef} tabIndex={-1}>
+          <div id="sidebarProfile-panel" className="sidebarProfile__popover" role="dialog" aria-modal="true" aria-label="Profil-Menü" ref={popoverRef} tabIndex={-1}>
 
             {/* ── Header ── */}
             <div className="sidebarProfile__header">
@@ -154,7 +154,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
                       <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
                     </svg>
                   </span>
-                  <span className="sidebarProfile__actionLabel">Passwort aendern</span>
+                  <span className="sidebarProfile__actionLabel">Passwort ändern</span>
                   <svg className="sidebarProfile__actionChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                     <path d="M6 4l4 4-4 4" />
                   </svg>
@@ -164,7 +164,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
               {/* Password flyout (expands to the right) */}
               {canChangePw && pwOpen && (
                 <div className="sidebarProfile__pwFlyout">
-                  <div className="sidebarProfile__pwFlyoutHeader">Passwort aendern</div>
+                  <div className="sidebarProfile__pwFlyoutHeader">Passwort ändern</div>
                   <form
                     id="sidebarProfile-pwForm"
                     className="sidebarProfile__pwForm"

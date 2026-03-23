@@ -176,7 +176,7 @@ export function exportBookingsToICal(
         'END:VEVENT'
       ].join('\r\n');
     } catch (e) {
-      console.error('Ueberspringe ungueltigen Termin beim Export:', e);
+      console.error('Überspringe ungültigen Termin beim Export:', e);
       return null;
     }
   }).filter(Boolean).join('\r\n');
@@ -258,7 +258,7 @@ export function exportTeacherSlotsToICal(
         'END:VEVENT'
       ].join('\r\n');
     } catch (e) {
-      console.error('Ueberspringe ungueltigen Slot beim Export:', e);
+      console.error('Überspringe ungültigen Slot beim Export:', e);
       return null;
     }
   }).filter(Boolean).join('\r\n');

@@ -67,7 +67,7 @@ export function AdminSlots() {
     }
 
     if (!selectedTeacherId) {
-      showFlash('Bitte waehlen Sie eine Lehrkraft aus');
+      showFlash('Bitte wählen Sie eine Lehrkraft aus');
       return;
     }
 
@@ -109,7 +109,7 @@ export function AdminSlots() {
         await loadSlots(selectedTeacherId);
       }
     } catch (err) {
-      showFlash(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Löschen');
     }
   };
 

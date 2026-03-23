@@ -70,7 +70,7 @@ export function AdminBGLVerwaltung() {
     if (!isAdmin) {
         return (
             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
-                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur fuer Administratoren</div></div>
+                <div className="flow-empty"><div className="flow-empty__text">Zugriff nur für Administratoren</div></div>
             </div>
         );
     }
@@ -170,7 +170,7 @@ export function AdminBGLVerwaltung() {
                     </div>
                     <div className="flow-panel__body--flush">
                         {!selectedBgId ? (
-                            <div className="flow-empty"><div className="flow-empty__text">Bildungsgang auswaehlen</div></div>
+                            <div className="flow-empty"><div className="flow-empty__text">Bildungsgang auswählen</div></div>
                         ) : mitgliederLoading ? (
                             <div className="flow-empty"><div className="flow-empty__text">Laden...</div></div>
                         ) : mitglieder.length === 0 ? (
@@ -244,7 +244,7 @@ export function AdminBGLVerwaltung() {
                                         background: 'var(--flow-bg)', color: 'var(--flow-text)',
                                     }}
                                 >
-                                    <option value="">User auswaehlen...</option>
+                                    <option value="">User auswählen...</option>
                                     {verfuegbareUsers.map((u) => (
                                         <option key={u.id} value={u.id}>{userName(u)}</option>
                                     ))}

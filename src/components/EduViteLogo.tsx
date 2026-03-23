@@ -1,5 +1,5 @@
 /**
- * EduViteLogo – Inline-Logo-Komponente fuer Fliesstexte.
+ * EduViteLogo – Inline-Logo-Komponente für Fließtexte.
  *
  * Rendert "edu" in Textfarbe und "Vite" in Markenblau.
  * Das "V" wird initial als animierter Checkmark gezeichnet

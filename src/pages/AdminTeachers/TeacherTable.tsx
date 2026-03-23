@@ -25,17 +25,17 @@ function ResetLoginButton({ teacher, className }: { teacher: ApiTeacher; classNa
             const res = await api.admin.resetTeacherLogin(teacher.id);
             const typed = res as TeacherLoginResponse;
             if (typed?.user) {
-              setFeedback({ type: 'success', message: `Login zurueckgesetzt – Benutzer: ${typed.user.username}, Passwort: ${typed.user.tempPassword}` });
+              setFeedback({ type: 'success', message: `Login zurückgesetzt – Benutzer: ${typed.user.username}, Passwort: ${typed.user.tempPassword}` });
             } else {
-              setFeedback({ type: 'success', message: 'Login zurueckgesetzt.' });
+              setFeedback({ type: 'success', message: 'Login zurückgesetzt.' });
             }
           } catch (err) {
-            setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Fehler beim Zuruecksetzen des Logins' });
+            setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins' });
           }
         }}
         className={`reset-button${className ? ` ${className}` : ''}`}
       >
-        <span aria-hidden="true">↺</span> Login zuruecksetzen
+        <span aria-hidden="true">↺</span> Login zurücksetzen
       </button>
       {feedback && (
         <div className={`reset-feedback ${feedback.type === 'success' ? 'admin-success' : 'admin-error'}`}>

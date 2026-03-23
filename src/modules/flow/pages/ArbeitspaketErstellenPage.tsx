@@ -58,7 +58,7 @@ export function ArbeitspaketErstellenPage() {
             </div>
 
             <h1 className="flow-page-title">Neues Arbeitspaket</h1>
-            <p className="flow-page-subtitle">Erstellen Sie ein neues Arbeitspaket fuer diesen Bildungsgang</p>
+            <p className="flow-page-subtitle">Erstellen Sie ein neues Arbeitspaket für diesen Bildungsgang</p>
 
             <ErrorBanner error={error} onDismiss={() => setError('')} style={{ marginBottom: 14 }} />
 

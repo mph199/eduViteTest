@@ -55,7 +55,7 @@ export interface ModuleDefinition {
   /** RGB triplet for rgba() usage (e.g. '26, 127, 122') */
   accentRgb?: string;
 
-  /** Lazy-geladene öffentliche Hauptseite (optional fuer interne Module) */
+  /** Lazy-geladene öffentliche Hauptseite (optional für interne Module) */
   PublicPage?: LazyExoticComponent<ComponentType>;
 
   /** Zusätzliche Admin-Routen */
@@ -69,7 +69,7 @@ export interface ModuleDefinition {
 
   /** Lehrkraft-Layout-Komponente */
   teacherLayout?: LazyExoticComponent<ComponentType>;
-  /** Basis-Pfad fuer Teacher-Routen (Standard: '/teacher') */
+  /** Basis-Pfad für Teacher-Routen (Standard: '/teacher') */
   teacherBasePath?: string;
   /** Lehrkraft-Unterrouten */
   teacherRoutes?: TeacherRoute[];

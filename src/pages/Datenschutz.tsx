@@ -17,21 +17,21 @@ export const Datenschutz = () => {
   return (
     <div className="legal-page">
       <div className="legal-container">
-        <h1>Datenschutzerklaerung</h1>
+        <h1>Datenschutzerklärung</h1>
 
         <section>
           <h2>1. Datenschutz auf einen Blick</h2>
 
           <h3>Allgemeine Hinweise</h3>
           <p>
-            Die folgenden Hinweise geben einen einfachen Ueberblick darueber, was mit Ihren
+            Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren
             personenbezogenen Daten passiert, wenn Sie diese Website besuchen. Personenbezogene
-            Daten sind alle Daten, mit denen Sie persoenlich identifiziert werden koennen.
+            Daten sind alle Daten, mit denen Sie persönlich identifiziert werden können.
           </p>
 
           <h3>Datenerfassung auf dieser Website</h3>
           <p>
-            <strong>Wer ist verantwortlich fuer die Datenerfassung auf dieser Website?</strong><br />
+            <strong>Wer ist verantwortlich für die Datenerfassung auf dieser Website?</strong><br />
             Die Datenverarbeitung auf dieser Website erfolgt durch den Websitebetreiber.
             {b.responsible_name && <> Verantwortlich: {b.responsible_name}.</>}
           </p>
@@ -51,7 +51,7 @@ export const Datenschutz = () => {
 
           <h3>Verantwortliche Stelle</h3>
           <p>
-            {b.responsible_name || '[Name der Schule / des Schultraegers]'}<br />
+            {b.responsible_name || '[Name der Schule / des Schulträgers]'}<br />
             {b.responsible_address || '[Adresse]'}<br />
             {b.responsible_phone && <>Telefon: {b.responsible_phone}<br /></>}
             {b.responsible_email && <>E-Mail: {b.responsible_email}</>}
@@ -69,27 +69,27 @@ export const Datenschutz = () => {
 
           {b.supervisory_authority && (
             <>
-              <h3>Aufsichtsbehoerde</h3>
+              <h3>Aufsichtsbehörde</h3>
               <p>{b.supervisory_authority}</p>
             </>
           )}
         </section>
 
         <section>
-          <h2>4. Datenerfassung bei Buchungsvorgaengen</h2>
+          <h2>4. Datenerfassung bei Buchungsvorgängen</h2>
 
           <h3>4.1 Elternsprechtag</h3>
           <p>Bei der Buchung eines Eltern- und Ausbildersprechtags erheben wir:</p>
           <ul>
             <li>Name der erziehungsberechtigten Person oder des Firmenvertreters</li>
-            <li>Name des/der Schuelers/Schuelerinoder Auszubildenden</li>
+            <li>Name des/der Schülers/Schülerin oder Auszubildenden</li>
             <li>Klasse</li>
             <li>E-Mail-Adresse</li>
-            <li>Gewaehlter Termin und Lehrkraft</li>
+            <li>Gewählter Termin und Lehrkraft</li>
             <li>Optionale Nachricht</li>
           </ul>
           <p>
-            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfuellung – Schulverhaeltnis).
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung – Schulverhältnis).
           </p>
           <p>
             <strong>Speicherdauer:</strong> Automatische Anonymisierung nach Event-Abschluss
@@ -120,7 +120,7 @@ export const Datenschutz = () => {
         <section>
           <h2>5. Einwilligung und Widerruf</h2>
           <p>
-            Fuer die Buchung von Beratungsterminen (SSW/BL) ist Ihre ausdrueckliche Einwilligung
+            Für die Buchung von Beratungsterminen (SSW/BL) ist Ihre ausdrückliche Einwilligung
             erforderlich. Diese erteilen Sie durch Aktivieren der Einwilligungs-Checkbox im
             Buchungsformular.
           </p>
@@ -129,7 +129,7 @@ export const Datenschutz = () => {
             gespeichert (Art. 7 Abs. 1 DSGVO).
           </p>
           <p>
-            <strong>Widerruf:</strong> Sie koennen Ihre Einwilligung jederzeit mit Wirkung fuer
+            <strong>Widerruf:</strong> Sie können Ihre Einwilligung jederzeit mit Wirkung für
             die Zukunft widerrufen. Bei einem Widerruf werden Ihre Buchungsdaten anonymisiert.
             Der Nachweis der erteilten Einwilligung bleibt erhalten.
           </p>
@@ -139,17 +139,17 @@ export const Datenschutz = () => {
           <h2>6. Ihre Rechte</h2>
           <p>Sie haben folgende Rechte:</p>
           <ul>
-            <li>Recht auf Auskunft ueber Ihre gespeicherten Daten (Art. 15 DSGVO)</li>
+            <li>Recht auf Auskunft über Ihre gespeicherten Daten (Art. 15 DSGVO)</li>
             <li>Recht auf Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
-            <li>Recht auf Loeschung (Art. 17 DSGVO)</li>
-            <li>Recht auf Einschraenkung der Verarbeitung (Art. 18 DSGVO)</li>
-            <li>Recht auf Datenuebertragbarkeit (Art. 20 DSGVO)</li>
+            <li>Recht auf Löschung (Art. 17 DSGVO)</li>
+            <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+            <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
             <li>Widerspruchsrecht (Art. 21 DSGVO)</li>
-            <li>Recht auf Beschwerde bei einer Aufsichtsbehoerde (Art. 77 DSGVO)</li>
+            <li>Recht auf Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO)</li>
           </ul>
           {b.dsb_email && (
             <p>
-              Zur Ausuebung Ihrer Rechte wenden Sie sich bitte an den Datenschutzbeauftragten: {' '}
+              Zur Ausübung Ihrer Rechte wenden Sie sich bitte an den Datenschutzbeauftragten: {' '}
               {isValidEmail(b.dsb_email) && <a href={`mailto:${b.dsb_email}`}>{b.dsb_email}</a>}
             </p>
           )}
@@ -158,13 +158,13 @@ export const Datenschutz = () => {
         <section>
           <h2>7. Cookies</h2>
           <p>
-            Diese Website verwendet ausschliesslich technisch notwendige Session-Cookies
-            (httpOnly JWT) fuer den Verwaltungsbereich. Diese Cookies sind fuer den Betrieb
-            der Anwendung erforderlich und werden nach Beendigung Ihrer Sitzung geloescht.
+            Diese Website verwendet ausschließlich technisch notwendige Session-Cookies
+            (httpOnly JWT) für den Verwaltungsbereich. Diese Cookies sind für den Betrieb
+            der Anwendung erforderlich und werden nach Beendigung Ihrer Sitzung gelöscht.
           </p>
           <p>
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der
-            Funktionsfaehigkeit der Website).
+            Funktionsfähigkeit der Website).
           </p>
         </section>
 
@@ -182,12 +182,12 @@ export const Datenschutz = () => {
             <li>IP-Adresse</li>
           </ul>
           <p>
-            Diese Daten werden nicht mit anderen Datenquellen zusammengefuehrt und dienen
-            ausschliesslich dem Betrieb und der Sicherheit der Anwendung.
+            Diese Daten werden nicht mit anderen Datenquellen zusammengeführt und dienen
+            ausschließlich dem Betrieb und der Sicherheit der Anwendung.
           </p>
         </section>
 
-        <a href="/" className="back-link">Zurueck zur Startseite</a>
+        <a href="/" className="back-link">Zurück zur Startseite</a>
       </div>
     </div>
   );

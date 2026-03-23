@@ -352,10 +352,10 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
       {step === 'success' && (
         <div className="cb-success">
           <div className="cb-success__icon">&#10003;</div>
-          <h2>{bookingResult?.status === 'confirmed' ? 'Termin bestaetigt!' : 'Termin angefragt!'}</h2>
+          <h2>{bookingResult?.status === 'confirmed' ? 'Termin bestätigt!' : 'Termin angefragt!'}</h2>
           <p>{bookingResult?.status === 'confirmed'
-            ? 'Dein Termin wurde direkt bestaetigt.'
-            : 'Deine Anfrage wurde erfolgreich uebermittelt.'}</p>
+            ? 'Dein Termin wurde direkt bestätigt.'
+            : 'Deine Anfrage wurde erfolgreich übermittelt.'}</p>
           {selectedCounselor && (
             <dl className="cb-success__details">
               <dt>{config.successCounselorLabel}</dt>

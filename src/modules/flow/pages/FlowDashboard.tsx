@@ -25,7 +25,7 @@ export function FlowDashboard() {
     return (
         <>
             <h1 className="flow-page-title">Dashboard</h1>
-            <p className="flow-page-subtitle">Persoenliche Uebersicht</p>
+            <p className="flow-page-subtitle">Persönliche Übersicht</p>
 
             <div className="flow-stat-strip">
                 <div className="flow-stat-card" style={{ '--stat-accent': 'var(--flow-brand)' } as React.CSSProperties}>
@@ -33,7 +33,7 @@ export function FlowDashboard() {
                     <div className="flow-stat-card__value">{dashboard.statistik.offen}</div>
                 </div>
                 <div className="flow-stat-card" style={{ '--stat-accent': 'var(--flow-red)' } as React.CSSProperties}>
-                    <div className="flow-stat-card__label">Ueberfaellig</div>
+                    <div className="flow-stat-card__label">Überfällig</div>
                     <div className="flow-stat-card__value">{dashboard.statistik.ueberfaellig}</div>
                 </div>
                 <div className="flow-stat-card" style={{ '--stat-accent': 'var(--flow-green)' } as React.CSSProperties}>

@@ -196,9 +196,9 @@ export function AdminTeachers() {
     try {
       await api.admin.deleteTeacher(id);
       await loadTeachers();
-      showFlash(`Lehrkraft "${name}" wurde erfolgreich geloescht.`);
+      showFlash(`Lehrkraft "${name}" wurde erfolgreich gelöscht.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      setError(err instanceof Error ? err.message : 'Fehler beim Löschen');
     }
   };
 

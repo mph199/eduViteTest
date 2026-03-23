@@ -19,7 +19,7 @@ export function DataProtectionTab() {
     <div className="sa-section">
       <h2 className="sa-section__title">Datenschutz – Betroffenenrechte</h2>
       <p className="sa-section__hint">
-        Personenbezogene Daten suchen, exportieren, berichtigen, loeschen oder einschraenken (Art. 15-21 DSGVO).
+        Personenbezogene Daten suchen, exportieren, berichtigen, löschen oder einschränken (Art. 15-21 DSGVO).
       </p>
 
       {/* ── Search Bar ───────────────────────────────────── */}
@@ -77,7 +77,7 @@ export function DataProtectionTab() {
                 onClick={ds.handleDelete}
                 disabled={ds.actionLoading}
               >
-                Loeschen (Art. 17)
+                Löschen (Art. 17)
               </button>
             </div>
           </div>
@@ -112,7 +112,7 @@ export function DataProtectionTab() {
                         return next;
                       });
                     }}
-                    placeholder={`Neuer Wert fuer ${field}`}
+                    placeholder={`Neuer Wert für ${field}`}
                   />
                 </div>
               ))}
@@ -296,7 +296,7 @@ export function DataProtectionTab() {
                   disabled={audit.pagination.page <= 1}
                   onClick={() => audit.load(audit.pagination.page - 1)}
                 >
-                  Zurueck
+                  Zurück
                 </button>
                 <span style={{ color: 'var(--sa-text-muted)', fontSize: '0.8rem', alignSelf: 'center' }}>
                   Seite {audit.pagination.page} von {audit.pagination.pages} ({audit.pagination.total} Eintraege)

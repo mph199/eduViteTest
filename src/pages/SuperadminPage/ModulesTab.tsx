@@ -89,8 +89,8 @@ export function ModulesTab() {
   return (
     <>
       <div className="superadmin__hint">
-        Uebersicht aller registrierten Module. Aktivieren oder deaktivieren Sie Module ueber den Schalter.
-        Deaktivierte Module sind fuer Benutzer nicht sichtbar.
+        Übersicht aller registrierten Module. Aktivieren oder deaktivieren Sie Module über den Schalter.
+        Deaktivierte Module sind für Benutzer nicht sichtbar.
       </div>
 
       <section className="superadmin__section">
@@ -148,7 +148,7 @@ export function ModulesTab() {
               {confirm.enabling ? 'Modul aktivieren' : 'Modul deaktivieren'}: {confirm.moduleTitle}
             </h3>
             <p className="superadmin__confirm-hint">
-              Bitte bestaetige alle Punkte, bevor du fortfaehrst:
+              Bitte bestätige alle Punkte, bevor du fortfährst:
             </p>
             <ul className="superadmin__confirm-checks">
               {activeChecks.map((label, idx) => (
