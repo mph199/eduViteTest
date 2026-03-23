@@ -6,10 +6,10 @@ const pad2 = (n) => String(n).padStart(2, '0');
 const toMins = (h, m) => h * 60 + m;
 const fmt = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
 
-/** Parse "HH:MM" string to total minutes. Returns null on invalid input. */
+/** Parse "HH:MM" or "HH:MM:SS" string to total minutes. Returns null on invalid input. */
 export function parseTime(timeStr) {
   if (typeof timeStr !== 'string') return null;
-  const m = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+  const m = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
   if (!m) return null;
   return toMins(parseInt(m[1], 10), parseInt(m[2], 10));
 }
