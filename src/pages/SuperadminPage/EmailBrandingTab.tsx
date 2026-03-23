@@ -62,16 +62,16 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
         <!-- Status Badge -->
         <div style="padding:16px 28px 0;text-align:center;">
           <span style="display:inline-block;background-color:${confirmLight};border-radius:100px;padding:6px 16px 6px 12px;font-size:13px;font-weight:700;color:${confirm};line-height:20px;">
-            <span style="display:inline-block;width:8px;height:8px;background-color:${confirm};border-radius:50%;vertical-align:middle;margin-right:8px;"></span>Bestaetigt
+            <span style="display:inline-block;width:8px;height:8px;background-color:${confirm};border-radius:50%;vertical-align:middle;margin-right:8px;"></span>Bestätigt
           </span>
         </div>
         <!-- Headline -->
         <div style="padding:20px 28px 0;">
-          <h1 style="margin:0;font-size:22px;font-weight:700;line-height:30px;color:${ink};">Termin bestaetigt</h1>
+          <h1 style="margin:0;font-size:22px;font-weight:700;line-height:30px;color:${ink};">Termin bestätigt</h1>
         </div>
         <!-- Body -->
         <div style="padding:10px 28px 0;">
-          <p style="margin:0;color:${inkSoft};">Guten Tag,<br/>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.</p>
+          <p style="margin:0;color:${inkSoft};">Guten Tag,<br/>Ihre Terminanfrage wurde von der Lehrkraft angenommen.</p>
         </div>
         <!-- Booking Card -->
         <div style="padding:20px 28px 0;">
@@ -84,7 +84,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
         </div>
         <!-- Muted Hint -->
         <div style="padding:16px 28px 0;">
-          <p style="margin:0;font-size:13px;line-height:20px;color:${inkMuted};">Falls Sie diesen Termin stornieren moechten, wenden Sie sich bitte an die Lehrkraft.</p>
+          <p style="margin:0;font-size:13px;line-height:20px;color:${inkMuted};">Falls Sie diesen Termin stornieren möchten, wenden Sie sich bitte an die Lehrkraft.</p>
         </div>
         <!-- Footer -->
         <div style="padding:24px 28px 0;">
@@ -158,7 +158,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
         </div>
       </section>
 
-      {/* Primaerfarbe */}
+      {/* Primärfarbe */}
       <section className="superadmin__section">
         <h2 className="superadmin__section-title">Farbe</h2>
         <div className="superadmin__grid">
@@ -171,13 +171,13 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
         <h2 className="superadmin__section-title">Footer</h2>
         <div className="superadmin__grid">
           <div className="superadmin__field superadmin__field--wide">
-            <span className="superadmin__label">Text am Ende jeder Email (Zeilenumbrueche werden uebernommen)</span>
+            <span className="superadmin__label">Text am Ende jeder Email (Zeilenumbrüche werden übernommen)</span>
             <textarea
               className="superadmin__textarea"
               value={emailBranding.footer_text}
               onChange={(e) => setEb('footer_text', e.target.value)}
               rows={4}
-              placeholder="Mit freundlichen Gruessen&#10;&#10;Ihr Schulteam"
+              placeholder="Mit freundlichen Grüßen&#10;&#10;Ihr Schulteam"
             />
           </div>
         </div>
@@ -200,7 +200,7 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
         <h2 className="superadmin__section-title">Test-Email senden</h2>
         <div className="superadmin__grid">
           <div className="superadmin__field superadmin__field--wide">
-            <span className="superadmin__label">Empfaenger-Adresse</span>
+            <span className="superadmin__label">Empfänger-Adresse</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type="email"
@@ -231,10 +231,10 @@ export function EmailBrandingTab({ emailBranding, setEb, emailMsg, emailSaving, 
       )}
       <div className="superadmin__actions">
         <button type="button" className="superadmin__btn superadmin__btn--secondary" onClick={onReset}>
-          Zuruecksetzen
+          Zurücksetzen
         </button>
         <button type="button" className="superadmin__btn superadmin__btn--primary" onClick={onSave} disabled={emailSaving}>
-          {emailSaving ? 'Speichern\u2026' : 'Aenderungen speichern'}
+          {emailSaving ? 'Speichern\u2026' : 'Änderungen speichern'}
         </button>
       </div>
     </>
