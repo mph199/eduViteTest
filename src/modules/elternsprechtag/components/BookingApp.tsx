@@ -29,18 +29,18 @@ export const BookingApp = () => {
   const bookingFormRef = useRef<HTMLDivElement>(null);
 
   const scrollToRef = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!ref.current) return;
-        const headerHeight = parseInt(
-          getComputedStyle(document.documentElement)
-            .getPropertyValue('--globalTopHeaderHeight') || '72',
-          10
-        );
-        const top = ref.current.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
-        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-      });
-    });
+    // setTimeout statt rAF: gibt dem Browser genuegend Zeit fuer
+    // Layout-Berechnung nach bedingtem Rendern (z.B. BookingForm null → Content)
+    setTimeout(() => {
+      if (!ref.current) return;
+      const headerHeight = parseInt(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--globalTopHeaderHeight') || '72',
+        10
+      );
+      const top = ref.current.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 150);
   }, []);
 
   const formattedEventBanner = useMemo<ReactNode>(() => {
