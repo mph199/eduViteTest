@@ -45,7 +45,9 @@ async function requestJSON(path: string, options: RequestInit = {}) {
   if (!response.ok) {
     const data = await tryParse();
     const status = response.status;
-    const message = (data && ((data as any).message || (data as any).error)) || `Fehler ${status}`;
+    const baseMsg = (data && ((data as any).message || (data as any).error)) || `Fehler ${status}`;
+    const detail = data && (data as any).detail;
+    const message = detail ? `${baseMsg} (${detail})` : baseMsg;
     if (status === 401) {
       try {
         window.dispatchEvent(new Event('auth:logout'));
