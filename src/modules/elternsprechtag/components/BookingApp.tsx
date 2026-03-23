@@ -226,7 +226,7 @@ export const BookingApp = () => {
           {slotsLoading && <p className="loading-message">Lade Termine...</p>}
           {slotsError && <p className="error-message">{slotsError}</p>}
           {!slotsLoading && !slotsError && (
-            <div ref={slotListRef}>
+            <div ref={slotListRef} className="slot-list-scroll-target">
               <SlotList
                 slots={slots}
                 selectedSlotId={selectedSlotId}
@@ -238,7 +238,7 @@ export const BookingApp = () => {
             </div>
           )}
 
-          <div ref={bookingFormRef}>
+          <div ref={bookingFormRef} className="booking-form-scroll-target">
             <BookingForm
               key={selectedTeacherId ?? 'no-teacher'}
               selectedSlotId={selectedSlotId}

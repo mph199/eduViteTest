@@ -1,8 +1,4 @@
 /* BookingApp Styles */
-* {
-  scroll-behavior: smooth;
-}
-
 .booking-app {
   position: relative;
   min-height: 100vh;
@@ -439,6 +435,12 @@
   position: sticky;
   top: calc(var(--globalTopHeaderHeight, 72px) + 0.75rem);
   z-index: 5;
+}
+
+/* Scroll-Offset fuer Sticky Header */
+.slot-list-scroll-target,
+.booking-form-scroll-target {
+  scroll-margin-top: calc(var(--globalTopHeaderHeight, 72px) + 1rem);
 }
 
 /* Main Content */
