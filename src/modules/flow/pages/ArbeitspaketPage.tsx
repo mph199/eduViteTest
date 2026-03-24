@@ -126,7 +126,7 @@ export function ArbeitspaketPage() {
         { key: 'tagungen', label: 'Tagungen' },
         { key: 'mitglieder', label: 'Mitglieder', count: paket?.mitglieder?.length },
         { key: 'dateien', label: 'Dateien' },
-        { key: 'aktivitaeten', label: 'Aktivitaeten' },
+        { key: 'aktivitaeten', label: 'Aktivitäten' },
     ];
 
     if (isLoading) {

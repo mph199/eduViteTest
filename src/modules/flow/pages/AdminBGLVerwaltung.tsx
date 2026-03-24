@@ -88,19 +88,19 @@ export function AdminBGLVerwaltung() {
     return (
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
             <h1 className="flow-page-title">Bildungsgang-Verwaltung</h1>
-            <p className="flow-page-subtitle">Bildungsgaenge anlegen und Leitungen zuweisen</p>
+            <p className="flow-page-subtitle">Bildungsgänge anlegen und Leitungen zuweisen</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 20 }}>
                 {/* ── Linke Spalte: Bildungsgaenge ── */}
                 <div className="flow-panel">
                     <div className="flow-panel__header">
-                        <h2 className="flow-panel__title">Bildungsgaenge</h2>
+                        <h2 className="flow-panel__title">Bildungsgänge</h2>
                     </div>
                     <div className="flow-panel__body--flush">
                         {bgLoading ? (
                             <div className="flow-empty"><div className="flow-empty__text">Laden...</div></div>
                         ) : bildungsgaenge.length === 0 ? (
-                            <div className="flow-empty"><div className="flow-empty__text">Noch keine Bildungsgaenge angelegt</div></div>
+                            <div className="flow-empty"><div className="flow-empty__text">Noch keine Bildungsgänge angelegt</div></div>
                         ) : (
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                                 <thead>
@@ -267,7 +267,7 @@ export function AdminBGLVerwaltung() {
                                     className="flow-btn flow-btn--primary"
                                     style={{ fontSize: 13 }}
                                 >
-                                    Hinzufuegen
+                                    Hinzufügen
                                 </button>
                             </form>
                         )}

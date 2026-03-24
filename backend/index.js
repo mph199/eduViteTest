@@ -114,7 +114,7 @@ app.use((req, _res, next) => {
 
 // Shared kernel routes
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/auth', oauthRoutes);
+app.use('/api/auth', authLimiter, oauthRoutes);
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/superadmin', adminLimiter, superadminRoutes);
 app.use('/api/consent', bookingLimiter, consentRoutes);
