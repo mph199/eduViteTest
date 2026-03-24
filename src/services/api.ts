@@ -260,17 +260,6 @@ const api = {
       });
     },
 
-    // Feedback (anonymous)
-    async listFeedback() {
-      const res = await requestJSON('/admin/feedback');
-      return (res && (res as any).feedback) || [];
-    },
-
-    async deleteFeedback(id: number) {
-      const safeId = encodeURIComponent(String(id));
-      return requestJSON(`/admin/feedback/${safeId}`, { method: 'DELETE'});
-    },
-
     // Users / Roles
     async getUsers() {
       const res = await requestJSON('/admin/users');
@@ -316,14 +305,6 @@ const api = {
       const res = await requestJSON('/teacher/info');
       return (res && (res as any).teacher) || null;
     },
-    async updateRoom(room: string | null) {
-      const payload = { room };
-      const res = await requestJSON('/teacher/room', {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      });
-      return (res && (res as any).teacher) || null;
-    },
     async cancelBooking(bookingId: number, cancellationMessage: string) {
       return requestJSON(`/teacher/bookings/${bookingId}`, {
         method: 'DELETE',
@@ -358,13 +339,6 @@ const api = {
       return requestJSON('/teacher/password', {
         method: 'PUT',
         body: JSON.stringify({ currentPassword, newPassword }),
-      });
-    },
-
-    async submitFeedback(message: string) {
-      return requestJSON('/teacher/feedback', {
-        method: 'POST',
-        body: JSON.stringify({ message }),
       });
     },
 

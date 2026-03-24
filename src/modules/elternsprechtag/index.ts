@@ -29,10 +29,6 @@ const TeacherBookings = lazy(() =>
 const TeacherPassword = lazy(() =>
   import('./pages/teacher/TeacherPassword').then((m) => ({ default: m.TeacherPassword }))
 );
-const TeacherFeedback = lazy(() =>
-  import('./pages/teacher/TeacherFeedback').then((m) => ({ default: m.TeacherFeedback }))
-);
-
 const elternsprechtagModule: ModuleDefinition = {
   id: 'elternsprechtag',
   title: 'Eltern- und Ausbildersprechtag',
@@ -69,7 +65,6 @@ const elternsprechtagModule: ModuleDefinition = {
     { path: 'requests', Component: TeacherRequests },
     { path: 'bookings', Component: TeacherBookings },
     { path: 'password', Component: TeacherPassword },
-    { path: 'feedback', Component: TeacherFeedback },
   ],
 };
 

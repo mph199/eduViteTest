@@ -61,9 +61,10 @@
 
 .teacher-home__active-event {
   margin-top: 0.55rem;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.42rem;
+  width: 100%;
   color: var(--color-slate-700);
   font-weight: 600;
   font-size: 0.92rem;

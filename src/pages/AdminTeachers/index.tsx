@@ -104,7 +104,6 @@ export function AdminTeachers() {
         subject: 'Sprechstunde',
         available_from: formData.available_from,
         available_until: formData.available_until,
-        room: '',
         ...(!editingTeacher && {
           username: formData.username.trim(),
           password: formData.password,

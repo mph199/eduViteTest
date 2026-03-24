@@ -136,13 +136,6 @@ function buildVisitorDetails(slot: ApiSlot | ApiBooking): { titleTarget: string;
   };
 }
 
-function buildLocation(teacherRoom?: string): string {
-  const base = 'BKSB';
-  const room = teacherRoom?.trim();
-  if (!room) return base;
-  return `${base}, Raum ${room}`;
-}
-
 const VTIMEZONE_BERLIN_LINES = [
   'BEGIN:VTIMEZONE',
   'TZID:Europe/Berlin',
@@ -167,71 +160,12 @@ const VTIMEZONE_BERLIN_LINES = [
 /**
  * Export aller Buchungen für Admin als iCal
  */
-export function exportBookingsToICal(
-  bookings: ApiBooking[],
-  settings?: ApiSettings,
-  opts?: { teacherRoomById?: Record<number, string | undefined>; defaultRoom?: string }
-): void {
-  const timestamp = getCurrentTimestamp();
-  const eventName = settings?.event_name || 'BKSB Eltern- und Ausbildersprechtag';
-  
-  const events = bookings.map(booking => {
-    try {
-      const startDate = formatICalDateLocal(booking.date, booking.time);
-      const endDate = getEndTimeLocal(booking.date, booking.time);
-      const safeTeacherName = booking.teacherName?.trim() || 'nicht angegeben';
-      const visitor = buildVisitorDetails(booking);
-      const roomFromMap = opts?.teacherRoomById && booking.teacherId ? opts.teacherRoomById[booking.teacherId] : undefined;
-      const room = roomFromMap ?? opts?.defaultRoom;
-      return [
-        'BEGIN:VEVENT',
-        `UID:booking-${booking.id}-${startDate}@bksb-elternsprechtag.de`,
-        `DTSTAMP:${timestamp}`,
-        `DTSTART;TZID=Europe/Berlin:${startDate}`,
-        `DTEND;TZID=Europe/Berlin:${endDate}`,
-        `SUMMARY:${escapeICalText(`${eventName} – ${safeTeacherName}`)}`,
-        `DESCRIPTION:${escapeICalText(visitor.description)}`,
-        `LOCATION:${escapeICalText(buildLocation(room))}`,
-        'STATUS:CONFIRMED',
-        'SEQUENCE:0',
-        'END:VEVENT'
-      ].join('\r\n');
-    } catch (e) {
-      console.error('Überspringe ungültigen Termin beim Export:', e);
-      return null;
-    }
-  }).filter(Boolean).join('\r\n');
-
-  if (!events) {
-    alert('Export fehlgeschlagen: Keine gültigen Termine gefunden. Bitte prüfen Sie die Daten.');
-    return;
-  }
-
-  const icalLines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//BKSB Eltern- und Ausbildersprechtag//DE',
-    'CALSCALE:GREGORIAN',
-    'X-WR-TIMEZONE:Europe/Berlin',
-    ...VTIMEZONE_BERLIN_LINES,
-    `X-WR-CALNAME:${escapeICalText(`${eventName} - Alle Buchungen`)}`,
-    `X-WR-CALDESC:${escapeICalText(`Übersicht aller Termine für ${eventName}`)}`,
-    events,
-    'END:VCALENDAR',
-  ];
-
-  const dateStr = settings?.event_date ? new Date(settings.event_date).toISOString().split('T')[0] : 'termine';
-  const icalContent = buildICalContent(icalLines);
-  downloadICalFile(icalContent, `${sanitizeFileName(`Eltern-und-Ausbildersprechtag-Alle-Buchungen-${dateStr}`)}.ics`);
-}
-
 /**
  * Export Slots einer Lehrkraft für Admin als iCal
  */
 export function exportTeacherSlotsToICal(
   slots: ApiSlot[],
   teacherName: string,
-  teacherRoom?: string,
   settings?: ApiSettings
 ): void {
   const timestamp = getCurrentTimestamp();
@@ -256,7 +190,7 @@ export function exportTeacherSlotsToICal(
         `DTEND;TZID=Europe/Berlin:${endDate}`,
         `SUMMARY:${escapeICalText(`Termin: ${visitor.titleTarget}`.trim())}`,
         `DESCRIPTION:${escapeICalText(visitor.description)}`,
-        `LOCATION:${escapeICalText(buildLocation(teacherRoom))}`,
+        'LOCATION:BKSB',
         'STATUS:CONFIRMED',
         'SEQUENCE:0',
         'END:VEVENT'

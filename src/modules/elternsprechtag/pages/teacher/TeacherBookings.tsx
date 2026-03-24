@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
-import { CalendarSubscription } from '../../components/CalendarSubscription';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
 
 
@@ -176,10 +175,24 @@ export function TeacherBookings() {
               <option value="parent">Erziehungsberechtigte</option>
               <option value="company">Ausbildungsbetrieb</option>
             </select>
+            {(query || typeFilter !== 'all') && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setQuery(''); setTypeFilter('all'); }}
+              >
+                Filter zurücksetzen
+              </button>
+            )}
             <button type="button" className="btn-secondary" onClick={loadBookings}>
               Aktualisieren
             </button>
           </div>
+          {filtered.length !== bookings.length && (
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: 'var(--brand-text-secondary, #666)' }}>
+              {filtered.length} von {bookings.length} Buchungen angezeigt
+            </p>
+          )}
         </div>
 
         <div className="stat-card" style={{ flex: '1 1 220px', minWidth: 0, padding: '1.1rem 1.1rem' }}>
@@ -189,26 +202,19 @@ export function TeacherBookings() {
         </div>
       </div>
 
-      <CalendarSubscription />
-
       <section className="stat-card teacher-table-section" style={{ padding: '1.1rem 1.1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0 }}>Buchungen einsehen</h3>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {sort.key && (
-              <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearSort}>
-                Sortierung zurücksetzen
-              </button>
-            )}
-            <button type="button" className="btn-secondary" onClick={loadBookings}>
-              Aktualisieren
+          {sort.key && (
+            <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearSort}>
+              Sortierung zurücksetzen
             </button>
-          </div>
+          )}
         </div>
 
         {filteredAndSorted.length === 0 ? (
           <div className="no-bookings">
-            <p>Noch keine Buchungen vorhanden.</p>
+            <p>{(query || typeFilter !== 'all') ? 'Keine Buchungen für den aktuellen Filter gefunden.' : 'Noch keine Buchungen vorhanden.'}</p>
           </div>
         ) : (
           <div className="bookings-table-container teacher-bookings-table-container teacher-my-bookings-table-container">

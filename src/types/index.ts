@@ -6,7 +6,6 @@ export interface Teacher {
   email?: string;
   salutation?: 'Herr' | 'Frau' | 'Divers';
   subject: string;
-  room?: string;
   available_from?: string;
   available_until?: string;
 }
@@ -111,12 +110,6 @@ export interface Settings {
   event_name: string;
   event_date: string;
   updated_at?: string;
-}
-
-export interface FeedbackItem {
-  id: number;
-  message: string;
-  created_at: string;
 }
 
 export interface UserAccount {
@@ -294,7 +287,6 @@ export type TeacherInfo = {
   name: string;
   subject: string;
   system?: string;
-  room?: string;
 };
 
 export type TeacherOutletContext = {

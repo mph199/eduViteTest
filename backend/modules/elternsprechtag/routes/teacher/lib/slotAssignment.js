@@ -112,7 +112,7 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
     const branding = await getEmailBranding();
     const { subject, text, html } = buildEmail('confirmation', {
       date: updatedSlot.date, time: updatedSlot.time,
-      teacherName: teacher.name, teacherRoom: teacher.room,
+      teacherName: teacher.name,
       teacherMessage: safeTeacherMessage,
     }, branding);
     await sendMail({ to: updatedSlot.email, subject, text, html });
@@ -135,7 +135,7 @@ export async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId,
     const { subject, text, html } = buildEmail('confirmation-multi', {
       date: allSlots[0].date,
       slots: allSlots.map(s => ({ time: s.time })),
-      teacherName: teacher.name, teacherRoom: teacher.room,
+      teacherName: teacher.name,
       teacherMessage: safeTeacherMessage,
     }, branding);
     await sendMail({ to: allSlots[0].email, subject, text, html });

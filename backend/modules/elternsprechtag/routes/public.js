@@ -203,7 +203,7 @@ router.post('/bookings', validate(bookingSchema), async (req, res) => {
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('verify-slot', {
           date: slotRow.date, time: slotRow.time,
-          teacherName: teacher.name, teacherRoom: teacher.room, verifyUrl,
+          teacherName: teacher.name, verifyUrl,
         }, branding);
         await sendMail({ to: payload.email, subject, text, html });
       } catch (e) {
@@ -351,7 +351,7 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('verify-request', {
           date: created.date, requestedTime: created.requested_time,
-          teacherName: teacher.name, teacherRoom: teacher.room, verifyUrl,
+          teacherName: teacher.name, verifyUrl,
         }, branding);
         await sendMail({ to: email, subject, text, html });
       } catch (e) {
@@ -396,7 +396,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
           const branding = await getEmailBranding();
           const { subject, text, html } = buildEmail('confirmation', {
             date: slot.date, time: slot.time,
-            teacherName: teacher.name, teacherRoom: teacher.room,
+            teacherName: teacher.name,
             label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
           }, branding);
           await sendMail({ to: slot.email, subject, text, html });
@@ -420,7 +420,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
           const whenParts = when.split(' ');
           const { subject, text, html } = buildEmail('confirmation', {
             date: whenParts[0] || when, time: whenParts.slice(1).join(' ') || '',
-            teacherName: teacher.name, teacherRoom: teacher.room,
+            teacherName: teacher.name,
           }, branding4);
           await sendMail({ to: request.email, subject, text, html });
           await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, request.id]);
