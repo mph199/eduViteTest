@@ -64,19 +64,21 @@ function getCurrentTimestamp() {
 // Datums- / Zeitparsing (robust)
 // ---------------------------------------------------------------------------
 
-function parseDateToLocal(dateStr) {
+/**
+ * Extrahiert YYYYMMDD aus einem Datum-String (ISO oder DD.MM.YYYY).
+ * Verwendet kein JS-Date, um Zeitzonen-Probleme auf UTC-Servern zu vermeiden.
+ * Gibt null zurück bei ungültigem Format.
+ */
+function parseDateToICalDate(dateStr) {
   const raw = String(dateStr).trim();
-  let d = null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    d = new Date(`${raw}T00:00:00`);
-  } else if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) {
-    const [dd, mm, yyyy] = raw.split('.');
-    d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
-  } else {
-    d = new Date(raw);
+    return raw.replace(/-/g, '');
   }
-  if (!d || Number.isNaN(d.getTime())) return null;
-  return d;
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) {
+    const [dd, mm, yyyy] = raw.split('.');
+    return `${yyyy}${mm}${dd}`;
+  }
+  return null;
 }
 
 /**
@@ -100,8 +102,12 @@ function parseSlotTime(timeStr) {
   return { start, end };
 }
 
-function formatICalDateTime(date, hours, minutes) {
-  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(hours)}${pad(minutes)}00`;
+/**
+ * Formatiert ein ICS-Datetime aus YYYYMMDD-String und Stunden/Minuten.
+ * Kein JS-Date nötig — zeitzonen-unabhängig.
+ */
+function formatICalDateTime(icalDate, hours, minutes) {
+  return `${icalDate}T${pad(hours)}${pad(minutes)}00`;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,14 +197,14 @@ export function generateTeacherICS(slots, teacherName, teacherRoom, eventName, u
         continue;
       }
 
-      const date = parseDateToLocal(slot.date);
-      if (!date) {
+      const icalDate = parseDateToICalDate(slot.date);
+      if (!icalDate) {
         logger.warn({ slotId: slot.id, date: slot.date }, 'Kalender-Feed: ungültiges Datum, Slot übersprungen');
         continue;
       }
 
-      const dtStart = formatICalDateTime(date, parsed.start[0], parsed.start[1]);
-      const dtEnd = formatICalDateTime(date, parsed.end[0], parsed.end[1]);
+      const dtStart = formatICalDateTime(icalDate, parsed.start[0], parsed.start[1]);
+      const dtEnd = formatICalDateTime(icalDate, parsed.end[0], parsed.end[1]);
       const visitor = buildVisitorDetails(slot);
 
       events.push(

@@ -24,7 +24,7 @@ const CALENDAR_UID_DOMAIN = process.env.CALENDAR_UID_DOMAIN || 'calendar.schule.
 router.get('/:token/elternsprechtag.ics', async (req, res) => {
   try {
     const rawToken = req.params.token;
-    if (!rawToken || rawToken.length !== 64) {
+    if (!rawToken || !/^[0-9a-f]{64}$/.test(rawToken)) {
       return res.status(404).end();
     }
 
