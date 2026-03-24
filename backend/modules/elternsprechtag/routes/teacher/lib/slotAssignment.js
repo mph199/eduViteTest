@@ -151,7 +151,7 @@ export async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId,
 
 // ── Core assignment logic ───────────────────────────────────────────────
 
-export async function assignRequestToSlot(current, teacherId, preferredTime = null, teacherMessage = '') {
+export async function assignRequestToSlot(current, teacherId, preferredTime = null, teacherMessage = '', options = {}) {
   const candidateTimes = buildAssignableSlotTimesFromRequestedWindow(current.requested_time);
   const normalizedPreferredTime = typeof preferredTime === 'string' ? preferredTime.trim() : '';
   if (normalizedPreferredTime && !isValidSlotTimeRange(normalizedPreferredTime)) {
@@ -246,7 +246,9 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
     await client.query('COMMIT');
 
     // Email sending outside transaction – non-critical
-    await sendRequestConfirmationIfPossible(updatedSlot, updatedReq, teacherId, now, teacherMessage);
+    if (!options.skipEmail) {
+      await sendRequestConfirmationIfPossible(updatedSlot, updatedReq, teacherId, now, teacherMessage);
+    }
     return { ok: true, updatedSlot, updatedReq };
   } catch (err) {
     await client.query('ROLLBACK');
