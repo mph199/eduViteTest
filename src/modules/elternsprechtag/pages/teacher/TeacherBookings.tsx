@@ -4,6 +4,7 @@ import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { exportBookingsToICal } from '../../../../utils/icalExport';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
+import { CalendarSubscription } from '../../components/CalendarSubscription';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
 import type { TeacherOutletContext } from './TeacherLayout';
 
@@ -174,6 +175,8 @@ export function TeacherBookings() {
           </button>
         </div>
       )}
+
+      <CalendarSubscription />
 
       <div className="admin-stats" style={{ gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div className="stat-card" style={{ flex: '1 1 360px', minWidth: 240, padding: '1.1rem 1.1rem' }}>

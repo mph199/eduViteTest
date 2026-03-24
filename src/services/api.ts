@@ -382,6 +382,19 @@ const api = {
         body: JSON.stringify({ message }),
       });
     },
+
+    async getCalendarToken() {
+      return requestJSON('/teacher/calendar-token');
+    },
+    async createCalendarToken() {
+      return requestJSON('/teacher/calendar-token', { method: 'POST' });
+    },
+    async rotateCalendarToken() {
+      return requestJSON('/teacher/calendar-token/rotate', { method: 'POST' });
+    },
+    async deleteCalendarToken() {
+      return requestJSON('/teacher/calendar-token', { method: 'DELETE' });
+    },
   },
 
   // Beratungslehrer (counselor) endpoints
