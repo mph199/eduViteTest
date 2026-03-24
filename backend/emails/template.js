@@ -156,7 +156,7 @@ function renderLogoBlock(branding, tokens) {
           const ext = path.extname(filename).toLowerCase().replace('.', '');
           const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[ext] || 'image/png';
           const dataUri = `data:${mime};base64,${buf.toString('base64')}`;
-          logoContent = `<img src="${esc(dataUri)}" alt="${esc(b.school_name)}" width="auto" height="48" style="display:block;height:48px;width:auto;max-width:220px;border:0;outline:none;text-decoration:none;" />`;
+          logoContent = `<img src="${esc(dataUri)}" alt="${esc(b.school_name)}" width="auto" height="60" style="display:block;height:60px;width:auto;max-width:280px;border:0;outline:none;text-decoration:none;" />`;
         }
       }
     } catch (err) {
