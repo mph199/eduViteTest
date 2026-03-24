@@ -44,7 +44,7 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('cancellation', {
           date: previous.date, time: previous.time,
-          teacherName: teacher.name, teacherRoom: teacher.room,
+          teacherName: teacher.name,
           cancellationMessage,
         }, branding);
         await sendMail({ to: previous.email, subject, text, html });

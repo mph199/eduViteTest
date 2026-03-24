@@ -44,7 +44,7 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const { rows: teacherInfoRows } = await query(
-      'SELECT id, name, first_name, last_name, email, salutation, subject, room FROM teachers WHERE id = $1',
+      'SELECT id, name, first_name, last_name, email, salutation, subject FROM teachers WHERE id = $1',
       [teacherId]
     );
     const data = teacherInfoRows[0];
@@ -60,38 +60,11 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
         subject: data.subject,
         available_from: data.available_from,
         available_until: data.available_until,
-        room: data.room
       }
     });
   } catch (error) {
     logger.error({ err: error }, 'Error fetching teacher info');
     res.status(500).json({ error: 'Failed to fetch teacher info' });
-  }
-});
-
-/**
- * POST /api/teacher/feedback
- */
-router.post('/feedback', requireAuth, requireTeacher, async (req, res) => {
-  try {
-    const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
-    if (!message) {
-      return res.status(400).json({ error: 'Bitte eine Nachricht eingeben.' });
-    }
-    if (message.length > 2000) {
-      return res.status(400).json({ error: 'Nachricht darf maximal 2000 Zeichen lang sein.' });
-    }
-
-    const { rows: feedbackRows } = await query(
-      'INSERT INTO feedback (message) VALUES ($1) RETURNING id, message, created_at',
-      [message]
-    );
-    const data = feedbackRows[0];
-
-    return res.json({ success: true, feedback: data });
-  } catch (error) {
-    logger.error({ err: error }, 'Error creating feedback');
-    return res.status(500).json({ error: 'Feedback konnte nicht gespeichert werden.' });
   }
 });
 

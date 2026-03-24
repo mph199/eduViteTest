@@ -4,7 +4,6 @@ import { useActiveView } from '../hooks/useActiveView';
 import { useBgStyle } from '../hooks/useBgStyle';
 import api from '../services/api';
 import type { TimeSlot as ApiBooking, AdminEvent, EventStats } from '../types';
-import { exportBookingsToICal } from '../utils/icalExport';
 import { formatDateTime } from '../utils/formatters';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../utils/bookingSort';
 import './AdminDashboard.css';
@@ -190,27 +189,6 @@ export function AdminDashboard() {
     }
   };
 
-  const handleExportAll = async () => {
-    if (!bookings.length) return;
-
-    // Add rooms to LOCATION when possible (Admin has access to teachers with rooms).
-    if (user?.role === 'admin' || user?.role === 'superadmin') {
-      try {
-        const teachers = await api.admin.getTeachers();
-        const teacherRoomById: Record<number, string | undefined> = {};
-        for (const t of teachers || []) {
-          if (t?.id) teacherRoomById[Number(t.id)] = t.room;
-        }
-        exportBookingsToICal(bookings, undefined, { teacherRoomById });
-        return;
-      } catch {
-        // Fallback: export without rooms
-      }
-    }
-
-    exportBookingsToICal(bookings);
-  };
-
   if (loading) {
     return (
       <div className="admin-loading">
@@ -295,20 +273,6 @@ export function AdminDashboard() {
         <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Buchungen des Kollegiums</h3>
-            <div className="tooltip-container">
-              <button
-                onClick={handleExportAll}
-                className="btn-primary"
-                disabled={bookings.length === 0}
-              >
-                Alle Termine als Kalenderdatei exportieren
-              </button>
-              <span className="tooltip">
-                {bookings.length === 0
-                  ? 'Keine Buchungen zum Exportieren'
-                  : 'Exportiert alle Termine als .ics Kalenderdatei'}
-              </span>
-            </div>
           </div>
 
           {bookings.length > 0 && (

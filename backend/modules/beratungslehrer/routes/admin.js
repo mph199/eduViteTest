@@ -4,13 +4,13 @@
  * Verwaltung von Beratungslehrern und Themen.
  */
 
-import { requireBeratungslehrer } from '../../../middleware/auth.js';
+import { requireAdmin } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { createCounselorAdminRoutes, createCounselorUser } from '../../../shared/counselorAdminRoutes.js';
 
 export default createCounselorAdminRoutes({
   tablePrefix: 'bl',
-  authMiddleware: requireBeratungslehrer,
+  authMiddleware: requireAdmin,
   counselorLabel: 'Beratungslehrer',
   topicTable: 'bl_topics',
   topicResponseKey: 'topics',

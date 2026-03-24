@@ -8,6 +8,7 @@ import { reserveBooking, verifyBookingToken } from '../services/slotsService.js'
 import { mapSlotRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
 import { resolveActiveEvent, findActiveEventId } from '../../../utils/resolveActiveEvent.js';
+import { getVerificationTtlMs } from '../utils/tokenUtils.js';
 import logger from '../../../config/logger.js';
 import { validate } from '../../../middleware/validate.js';
 import { bookingSchema, bookingRequestSchema } from '../../../schemas/booking.js';
@@ -41,9 +42,7 @@ async function verifyBookingRequestToken(token) {
     return { requestRow: reqRow, verifiedAt: reqRow.verified_at };
   }
 
-  const ttlHoursRaw = process.env.VERIFICATION_TOKEN_TTL_HOURS;
-  const ttlHours = Number.parseInt(ttlHoursRaw || '72', 10);
-  const ttlMs = (Number.isFinite(ttlHours) ? ttlHours : 72) * 60 * 60 * 1000;
+  const ttlMs = getVerificationTtlMs();
 
   if (reqRow.verification_sent_at) {
     const sentAt = new Date(reqRow.verification_sent_at);
@@ -204,7 +203,7 @@ router.post('/bookings', validate(bookingSchema), async (req, res) => {
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('verify-slot', {
           date: slotRow.date, time: slotRow.time,
-          teacherName: teacher.name, teacherRoom: teacher.room, verifyUrl,
+          teacherName: teacher.name, verifyUrl,
         }, branding);
         await sendMail({ to: payload.email, subject, text, html });
       } catch (e) {
@@ -352,7 +351,7 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('verify-request', {
           date: created.date, requestedTime: created.requested_time,
-          teacherName: teacher.name, teacherRoom: teacher.room, verifyUrl,
+          teacherName: teacher.name, verifyUrl,
         }, branding);
         await sendMail({ to: email, subject, text, html });
       } catch (e) {
@@ -397,7 +396,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
           const branding = await getEmailBranding();
           const { subject, text, html } = buildEmail('confirmation', {
             date: slot.date, time: slot.time,
-            teacherName: teacher.name, teacherRoom: teacher.room,
+            teacherName: teacher.name,
             label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
           }, branding);
           await sendMail({ to: slot.email, subject, text, html });
@@ -421,7 +420,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
           const whenParts = when.split(' ');
           const { subject, text, html } = buildEmail('confirmation', {
             date: whenParts[0] || when, time: whenParts.slice(1).join(' ') || '',
-            teacherName: teacher.name, teacherRoom: teacher.room,
+            teacherName: teacher.name,
           }, branding4);
           await sendMail({ to: request.email, subject, text, html });
           await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, request.id]);

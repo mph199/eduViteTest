@@ -13,7 +13,7 @@ const router = express.Router();
 // ── POST /api/admin/teachers ────────────────────────────────────────────
 
 router.post('/teachers', requireAdmin, async (req, res) => {
-  const { first_name, last_name, name, email, salutation, subject, room, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
+  const { first_name, last_name, name, email, salutation, subject, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
 
   // Support both new (first_name/last_name) and legacy (name) field
   let firstName = (first_name || '').trim();
@@ -65,8 +65,8 @@ router.post('/teachers', requireAdmin, async (req, res) => {
 
     // Create teacher
     const { rows: newTeacherRows } = await client.query(
-      'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null]
+      'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil]
     );
     const teacher = newTeacherRows[0];
 
@@ -83,7 +83,6 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     if (blData && userId) {
       await upsertBlCounselor(client, userId, blData, {
         firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
-        teacherRoom: room ? room.trim() : null,
       });
     }
 
@@ -178,7 +177,7 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { first_name, last_name, name, email, salutation, subject, room, available_from, available_until } = req.body || {};
+    const { first_name, last_name, name, email, salutation, subject, available_from, available_until } = req.body || {};
 
     let firstName = (first_name || '').trim();
     let lastName  = (last_name  || '').trim();
@@ -205,9 +204,9 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
     const availUntil = available_until || '19:00';
 
     const { rows } = await query(
-      `UPDATE teachers SET first_name = $1, last_name = $2, email = $3, salutation = $4, subject = $5, available_from = $6, available_until = $7, room = $8
-       WHERE id = $9 RETURNING *`,
-      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, room ? room.trim() : null, teacherId]
+      `UPDATE teachers SET first_name = $1, last_name = $2, email = $3, salutation = $4, subject = $5, available_from = $6, available_until = $7
+       WHERE id = $8 RETURNING *`,
+      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, teacherId]
     );
 
     if (rows.length === 0) {

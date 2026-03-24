@@ -177,7 +177,12 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
         res.cookie('token', jwtToken, cookieOptions());
 
         // Clear OAuth state cookie
-        res.clearCookie('oauth_state', { path: '/api/auth/oauth' });
+        res.clearCookie('oauth_state', {
+          path: '/api/auth/oauth',
+          httpOnly: true,
+          secure: cookieSecure,
+          sameSite: 'lax',
+        });
 
         // Save refresh token for WebDAV
         if (tokens.refresh_token) {

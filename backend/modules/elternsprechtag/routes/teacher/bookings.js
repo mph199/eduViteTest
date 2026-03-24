@@ -102,7 +102,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('cancellation', {
           date: current.date, time: current.time,
-          teacherName: teacher.name, teacherRoom: teacher.room,
+          teacherName: teacher.name,
           cancellationMessage,
         }, branding);
         await sendMail({ to: current.email, subject, text, html });
@@ -175,7 +175,7 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
         const branding = await getEmailBranding();
         const { subject, text, html } = buildEmail('confirmation', {
           date: data.date, time: data.time,
-          teacherName: teacher.name, teacherRoom: teacher.room,
+          teacherName: teacher.name,
           label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
         }, branding);
         await sendMail({ to: data.email, subject, text, html });

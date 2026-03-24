@@ -1,5 +1,4 @@
 import express from 'express';
-import feedbackRoutes from './feedbackRoutes.js';
 import bookingRoutes from './bookingRoutes.js';
 import userRoutes from './userRoutes.js';
 import teacherRoutes from './teacherRoutes.js';
@@ -10,7 +9,6 @@ import dataSubjectRoutes from './dataSubject.js';
 
 const router = express.Router();
 
-router.use(feedbackRoutes);
 router.use(bookingRoutes);
 router.use(userRoutes);
 router.use(teacherRoutes);

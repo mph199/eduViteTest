@@ -39,9 +39,10 @@ export function NotificationBell() {
       return;
     }
     try {
-      const [requests, bookings] = await Promise.all([
+      const [requests, bookings, calToken] = await Promise.all([
         api.teacher.getRequests(),
         api.teacher.getBookings(),
+        api.teacher.getCalendarToken().catch(() => null),
       ]);
       const openCount = (requests || []).length;
       const confirmedCount = (bookings || []).filter(
@@ -70,6 +71,30 @@ export function NotificationBell() {
           dot: 'green',
           count: confirmedCount,
         });
+      }
+
+      if (calToken && calToken.exists) {
+        const expiresAt = calToken.expiresAt ? new Date(calToken.expiresAt) : null;
+        if (calToken.isExpired) {
+          items.push({
+            id: 'calendar-expired',
+            type: 'info',
+            text: 'Kalenderabo abgelaufen. Bitte erneuern.',
+            path: '/teacher/bookings',
+            dot: 'red',
+          });
+        } else if (expiresAt) {
+          const daysLeft = Math.floor((expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+          if (daysLeft <= 30) {
+            items.push({
+              id: 'calendar-expiring',
+              type: 'info',
+              text: `Kalenderabo läuft in ${daysLeft} ${daysLeft === 1 ? 'Tag' : 'Tagen'} ab`,
+              path: '/teacher/bookings',
+              dot: 'red',
+            });
+          }
+        }
       }
 
       if (items.length === 0) {

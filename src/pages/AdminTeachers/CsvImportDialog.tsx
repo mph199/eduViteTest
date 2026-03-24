@@ -106,7 +106,7 @@ export function CsvImportDialog({ csvImport, onClose, onImportAnother }: Props) 
       <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--brand-surface-2, #f0f0f0)', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
         <strong>CSV-Format:</strong> Semikolon- oder kommagetrennt, mit Kopfzeile.<br />
         Pflicht-Spalten: <code>Nachname</code>, <code>Email</code><br />
-        Optional: <code>Vorname</code>, <code>Anrede</code>, <code>Raum</code>, <code>Fach</code>
+        Optional: <code>Vorname</code>, <code>Anrede</code>, <code>Fach</code>
       </div>
     </div>
   );

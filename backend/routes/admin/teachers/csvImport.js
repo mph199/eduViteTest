@@ -72,7 +72,6 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
       const firstName = colMap.first_name ? (row[colMap.first_name] || '').trim() : '';
       const rawEmail  = (row[colMap.email] || '').trim();
       const rawSalut  = colMap.salutation ? (row[colMap.salutation] || '').trim() : '';
-      const rawRoom   = colMap.room ? (row[colMap.room] || '').trim() : '';
       const rawSubj   = colMap.subject ? (row[colMap.subject] || '').trim() : '';
       const rawFrom   = colMap.available_from ? (row[colMap.available_from] || '').trim() : '';
       const rawUntil  = colMap.available_until ? (row[colMap.available_until] || '').trim() : '';
@@ -94,8 +93,8 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
       const availUntil = rawUntil || '19:00';
 
       const { rows: tRows } = await query(
-        'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until, room) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-        [firstName, lastName, parsedEmail.email, salutation, rawSubj || 'Sprechstunde', availFrom, availUntil, rawRoom || null]
+        'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [firstName, lastName, parsedEmail.email, salutation, rawSubj || 'Sprechstunde', availFrom, availUntil]
       );
       const teacher = tRows[0];
       existingEmails.add(parsedEmail.email);

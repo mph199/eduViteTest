@@ -165,7 +165,6 @@ router.post('/email-branding/preview', requireSuperadmin, async (req, res) => {
       date: new Date().toISOString().split('T')[0],
       time: '14:00 - 14:15',
       teacherName: 'Max Mustermann',
-      teacherRoom: 'A 204',
       label: 'Dies ist eine Vorschau-Email mit Ihrem aktuellen Branding.',
     }, branding);
     const result = await sendMail({ to: to.trim(), subject: `[VORSCHAU] ${subject}`, text, html });

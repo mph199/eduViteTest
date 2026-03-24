@@ -176,16 +176,14 @@ const VTIMEZONE_BERLIN = [
  *
  * @param {Array} slots - DB-Rows mit id, date, time, status, student_name, parent_name, class_name, visitor_type, company_name, representative_name, trainee_name
  * @param {string} teacherName - Anzeigename der Lehrkraft
- * @param {string} teacherRoom - Raum der Lehrkraft
  * @param {string} eventName - Name des Events (z.B. "BKSB Eltern- und Ausbildersprechtag")
  * @param {string} uidDomain - Stabile Domain für UIDs (aus Config, nie aus Request)
  * @returns {string} Vollständiger ICS-String
  */
-export function generateTeacherICS(slots, teacherName, teacherRoom, eventName, uidDomain) {
+export function generateTeacherICS(slots, teacherName, eventName, uidDomain) {
   const timestamp = getCurrentTimestamp();
   const safeDomain = uidDomain || 'calendar.schule.de';
   const safeEventName = eventName || 'Eltern- und Ausbildersprechtag';
-  const location = teacherRoom ? `Raum ${teacherRoom}` : '';
 
   const events = [];
 
@@ -215,7 +213,6 @@ export function generateTeacherICS(slots, teacherName, teacherRoom, eventName, u
         `DTEND;TZID=Europe/Berlin:${dtEnd}`,
         `SUMMARY:${escapeICalText(`${safeEventName} – ${visitor.summary}`)}`,
         `DESCRIPTION:${escapeICalText(visitor.description)}`,
-        ...(location ? [`LOCATION:${escapeICalText(location)}`] : []),
         'STATUS:CONFIRMED',
         'SEQUENCE:0',
         'END:VEVENT',

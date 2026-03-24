@@ -6,8 +6,6 @@ import api from '../../../../services/api';
 import type { TeacherInfo, TeacherOutletContext } from '../../../../types';
 import '../../../../pages/AdminDashboard.css';
 
-export type { TeacherInfo, TeacherOutletContext };
-
 export function TeacherLayout() {
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
   useActiveView('teacher');

@@ -257,7 +257,7 @@ export function AdminSlots() {
                     </div>
                     {slots.filter(s => s.booked).length > 0 && (
                       <button
-                        onClick={() => exportTeacherSlotsToICal(slots, teacherDisplayName(selectedTeacher), selectedTeacher.room)}
+                        onClick={() => exportTeacherSlotsToICal(slots, teacherDisplayName(selectedTeacher))}
                         className="btn-primary"
                       >
                         Termine exportieren

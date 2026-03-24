@@ -7,7 +7,6 @@ import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminTeachers } from './pages/AdminTeachers';
 import { AdminEvents } from './pages/AdminEvents';
-import { AdminFeedback } from './pages/AdminFeedback';
 import { Impressum } from './pages/Impressum';
 import { Datenschutz } from './pages/Datenschutz';
 import { VerifyEmail } from './pages/VerifyEmail';
@@ -117,14 +116,6 @@ function App() {
               <Route
                 path="/admin/users"
                 element={<Navigate to="/admin/teachers" replace />}
-              />
-              <Route
-                path="/admin/feedback"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-                    <AdminFeedback />
-                  </ProtectedRoute>
-                }
               />
               {/* Admin-Routen aus Modulen */}
               {activeModules.flatMap((mod) =>

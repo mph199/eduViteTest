@@ -32,7 +32,7 @@ router.get('/:token/elternsprechtag.ics', async (req, res) => {
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     const { rows: teacherRows } = await query(
-      `SELECT id, first_name, last_name, name, room, calendar_token_created_at
+      `SELECT id, first_name, last_name, name, calendar_token_created_at
        FROM teachers
        WHERE calendar_token_hash = $1`,
       [tokenHash]
@@ -94,7 +94,6 @@ router.get('/:token/elternsprechtag.ics', async (req, res) => {
     const ics = generateTeacherICS(
       slots,
       teacher.name || `${teacher.first_name} ${teacher.last_name}`.trim(),
-      teacher.room,
       eventName,
       CALENDAR_UID_DOMAIN
     );

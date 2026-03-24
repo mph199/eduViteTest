@@ -21,11 +21,15 @@
   padding: 8px 10px;
   flex: 1 1 220px;
   min-width: 0;
+  min-height: 44px;
+  font-size: 1rem;
 }
 
 .admin-filter-select {
   padding: 8px 10px;
   flex: 0 1 200px;
+  min-height: 44px;
+  font-size: 1rem;
 }
 
 /* ── Generic modal overlay (used by RevokeModuleDialog etc.) ── */

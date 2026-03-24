@@ -39,9 +39,9 @@ function asDb(db) {
  * @param {object} db - query function or client (must have .query())
  * @param {number} userId - the users.id
  * @param {object} blData - BL form data (room, phone, specializations, schedule, etc.)
- * @param {{ firstName: string, lastName: string, email: string, salutation: string, teacherRoom?: string }} teacher - teacher identity fields
+ * @param {{ firstName: string, lastName: string, email: string, salutation: string }} teacher - teacher identity fields
  */
-export async function upsertBlCounselor(rawDb, userId, blData, { firstName, lastName, email, salutation, teacherRoom }) {
+export async function upsertBlCounselor(rawDb, userId, blData, { firstName, lastName, email, salutation }) {
   const db = asDb(rawDb);
   if (blData === null || blData === false) {
     await db.query('UPDATE bl_counselors SET active = false WHERE user_id = $1', [userId]);
@@ -51,7 +51,7 @@ export async function upsertBlCounselor(rawDb, userId, blData, { firstName, last
 
   const blFields = [
     firstName, lastName, email, salutation,
-    (blData.room || teacherRoom || '').trim() || null,
+    (blData.room || '').trim() || null,
     (blData.phone || '').trim() || null,
     blData.specializations || null,
     blData.available_from || '08:00',

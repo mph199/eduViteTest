@@ -112,7 +112,6 @@ export function GlobalTopHeader() {
         view: 'admin',
         items: [
           { path: '/admin/teachers', label: 'Benutzer & Rechte' },
-          { path: '/admin/feedback', label: 'Feedback' },
         ],
       });
     }
@@ -126,7 +125,6 @@ export function GlobalTopHeader() {
           { path: '/teacher', label: 'Übersicht' },
           { path: '/teacher/requests', label: 'Anfragen' },
           { path: '/teacher/bookings', label: 'Buchungen' },
-          { path: '/teacher/feedback', label: 'Feedback' },
         ],
       });
     }
@@ -278,13 +276,6 @@ export function GlobalTopHeader() {
           {showAreaMenu ? (
             <>
               <NotificationBell />
-              <div className="globalTopHeader__user" aria-label="Angemeldeter Benutzer">
-                Angemeldet als{userLabel ? (
-                  <>
-                    : <strong>{userLabel}</strong>
-                  </>
-                ) : null}
-              </div>
             </>
           ) : !onLogin ? (
             isAuthenticated ? (
