@@ -8,6 +8,7 @@ import { reserveBooking, verifyBookingToken } from '../services/slotsService.js'
 import { mapSlotRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
 import { resolveActiveEvent, findActiveEventId } from '../../../utils/resolveActiveEvent.js';
+import { getVerificationTtlMs } from '../utils/tokenUtils.js';
 import logger from '../../../config/logger.js';
 import { validate } from '../../../middleware/validate.js';
 import { bookingSchema, bookingRequestSchema } from '../../../schemas/booking.js';
@@ -41,9 +42,7 @@ async function verifyBookingRequestToken(token) {
     return { requestRow: reqRow, verifiedAt: reqRow.verified_at };
   }
 
-  const ttlHoursRaw = process.env.VERIFICATION_TOKEN_TTL_HOURS;
-  const ttlHours = Number.parseInt(ttlHoursRaw || '72', 10);
-  const ttlMs = (Number.isFinite(ttlHours) ? ttlHours : 72) * 60 * 60 * 1000;
+  const ttlMs = getVerificationTtlMs();
 
   if (reqRow.verification_sent_at) {
     const sentAt = new Date(reqRow.verification_sent_at);

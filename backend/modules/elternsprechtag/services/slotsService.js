@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import { mapBookingRowWithTeacher } from '../../../utils/mappers.js';
+import { getVerificationTtlMs } from '../utils/tokenUtils.js';
 
 export async function reserveBooking({
   slotId,
@@ -119,9 +120,7 @@ export async function verifyBookingToken(token) {
     throw err;
   }
 
-  const ttlHoursRaw = process.env.VERIFICATION_TOKEN_TTL_HOURS;
-  const ttlHours = Number.parseInt(ttlHoursRaw || '72', 10);
-  const ttlMs = (Number.isFinite(ttlHours) ? ttlHours : 72) * 60 * 60 * 1000;
+  const ttlMs = getVerificationTtlMs();
 
   // Idempotent verify: if already verified, return existing timestamp.
   if (slot.verified_at) {

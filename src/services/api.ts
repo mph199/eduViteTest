@@ -177,7 +177,6 @@ const api = {
     async cancelBooking(bookingId: number, cancellationMessage: string) {
       return requestJSON(`/admin/bookings/${bookingId}`, {
         method: 'DELETE',
-
         body: JSON.stringify({ cancellationMessage }),
       });
     },
@@ -188,14 +187,12 @@ const api = {
     async createTeacher(payload: any) {
       return requestJSON('/admin/teachers', {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
     async updateTeacher(id: number, payload: any) {
       return requestJSON(`/admin/teachers/${id}`, {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
@@ -214,14 +211,12 @@ const api = {
     async createSlot(payload: any) {
       return requestJSON('/admin/slots', {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
     async updateSlot(id: number, payload: any) {
       return requestJSON(`/admin/slots/${id}`, {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
@@ -243,14 +238,12 @@ const api = {
     async createEvent(payload: any) {
       return requestJSON('/admin/events', {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
     async updateEvent(id: number, patch: any) {
       return requestJSON(`/admin/events/${id}`, {
         method: 'PUT',
-
         body: JSON.stringify(patch),
       });
     },
@@ -263,7 +256,6 @@ const api = {
     async generateEventSlots(eventId: number, payload: any) {
       return requestJSON(`/admin/events/${eventId}/generate-slots`, {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
@@ -287,7 +279,6 @@ const api = {
     async updateUserRole(id: number, role: string) {
       const res = await requestJSON(`/admin/users/${id}`, {
         method: 'PATCH',
-
         body: JSON.stringify({ role }),
       });
       return (res && (res as any).user) || null;
@@ -329,7 +320,6 @@ const api = {
       const payload = { room };
       const res = await requestJSON('/teacher/room', {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
       return (res && (res as any).teacher) || null;
@@ -337,7 +327,6 @@ const api = {
     async cancelBooking(bookingId: number, cancellationMessage: string) {
       return requestJSON(`/teacher/bookings/${bookingId}`, {
         method: 'DELETE',
-
         body: JSON.stringify({ cancellationMessage }),
       });
     },
@@ -354,7 +343,6 @@ const api = {
       const safeId = encodeURIComponent(String(requestId));
       return requestJSON(`/teacher/requests/${safeId}/accept`, {
         method: 'PUT',
-
         body: JSON.stringify(payload || {}),
       });
     },
@@ -363,14 +351,12 @@ const api = {
       const safeId = encodeURIComponent(String(requestId));
       return requestJSON(`/teacher/requests/${safeId}/decline`, {
         method: 'PUT',
-
         body: JSON.stringify({}),
       });
     },
     async changePassword(currentPassword: string, newPassword: string) {
       return requestJSON('/teacher/password', {
         method: 'PUT',
-
         body: JSON.stringify({ currentPassword, newPassword }),
       });
     },
@@ -378,7 +364,6 @@ const api = {
     async submitFeedback(message: string) {
       return requestJSON('/teacher/feedback', {
         method: 'POST',
-
         body: JSON.stringify({ message }),
       });
     },
@@ -408,7 +393,6 @@ const api = {
     async updateSchedule(schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON('/bl/counselor/schedule', {
         method: 'PUT',
-
         body: JSON.stringify({ schedule }),
       });
     },
@@ -423,20 +407,17 @@ const api = {
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
       return requestJSON('/bl/counselor/generate-slots', {
         method: 'POST',
-
         body: JSON.stringify({ counselor_id: counselorId, date_from: dateFrom, date_until: dateUntil }),
       });
     },
     async confirmAppointment(id: number) {
       return requestJSON(`/bl/counselor/appointments/${encodeURIComponent(id)}/confirm`, {
         method: 'PUT',
-
       });
     },
     async cancelAppointment(id: number) {
       return requestJSON(`/bl/counselor/appointments/${encodeURIComponent(id)}/cancel`, {
         method: 'PUT',
-
       });
     },
     // Admin-only
@@ -449,14 +430,12 @@ const api = {
     async createTopic(payload: { name: string; description?: string; sort_order?: number }) {
       return requestJSON('/bl/admin/topics', {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
     async updateTopic(id: number, payload: { name: string; description?: string; sort_order?: number; active?: boolean }) {
       return requestJSON(`/bl/admin/topics/${encodeURIComponent(id)}`, {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
@@ -472,21 +451,18 @@ const api = {
     async createCounselor(payload: any) {
       return requestJSON('/ssw/admin/counselors', {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
     async updateCounselor(id: number, payload: any) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(id)}`, {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
     async deleteCounselor(id: number) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-
       });
     },
     async getAdminCategories() {
@@ -495,25 +471,19 @@ const api = {
     async createCategory(payload: { name: string; description?: string; icon?: string; sort_order?: number }) {
       return requestJSON('/ssw/admin/categories', {
         method: 'POST',
-
         body: JSON.stringify(payload),
       });
     },
     async updateCategory(id: number, payload: { name: string; description?: string; icon?: string; sort_order?: number; active?: boolean }) {
       return requestJSON(`/ssw/admin/categories/${encodeURIComponent(id)}`, {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
-    },
-    async getAdminStats() {
-      return requestJSON('/ssw/admin/stats');
     },
     ...counselorAdminApi('ssw'),
     async updateAdminCounselorSchedule(counselorId: number, schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/schedule`, {
         method: 'PUT',
-
         body: JSON.stringify({ schedule }),
       });
     },
@@ -530,20 +500,17 @@ const api = {
     async generateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/generate-slots`, {
         method: 'POST',
-
         body: JSON.stringify({ date_from: dateFrom, date_until: dateUntil }),
       });
     },
     async confirmAppointment(id: number) {
       return requestJSON(`/ssw/counselor/appointments/${encodeURIComponent(id)}/confirm`, {
         method: 'PUT',
-
       });
     },
     async cancelAppointment(id: number) {
       return requestJSON(`/ssw/counselor/appointments/${encodeURIComponent(id)}/cancel`, {
         method: 'PUT',
-
       });
     },
   },
@@ -561,14 +528,12 @@ const api = {
     }) {
       return requestJSON('/superadmin/email-branding', {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
     async sendPreviewEmail(to: string) {
       return requestJSON('/superadmin/email-branding/preview', {
         method: 'POST',
-
         body: JSON.stringify({ to }),
       });
     },
@@ -583,7 +548,6 @@ const api = {
     async updateSiteBranding(payload: Record<string, unknown>) {
       return requestJSON('/superadmin/site-branding', {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
@@ -597,7 +561,6 @@ const api = {
     async updateTextBranding(payload: Record<string, unknown>) {
       return requestJSON('/superadmin/text-branding', {
         method: 'PUT',
-
         body: JSON.stringify(payload),
       });
     },
@@ -620,7 +583,6 @@ const api = {
     async setModuleEnabled(moduleId: string, enabled: boolean) {
       return requestJSON(`/superadmin/modules/${encodeURIComponent(moduleId)}`, {
         method: 'PUT',
-
         body: JSON.stringify({ enabled }),
       });
     },

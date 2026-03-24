@@ -4,13 +4,13 @@
  * Verwaltung von Berater/innen und Kategorien.
  */
 
-import { requireSSW } from '../../../middleware/auth.js';
+import { requireAdmin } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { createCounselorAdminRoutes, createCounselorUser } from '../../../shared/counselorAdminRoutes.js';
 
 export default createCounselorAdminRoutes({
   tablePrefix: 'ssw',
-  authMiddleware: requireSSW,
+  authMiddleware: requireAdmin,
   counselorLabel: 'Berater/in',
   topicTable: 'ssw_categories',
   topicResponseKey: 'categories',
