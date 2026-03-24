@@ -36,7 +36,7 @@ async function collectPersonData(email) {
 
   // 1. Teachers
   const teachers = await query(
-    `SELECT id, name, email, subject, room, created_at
+    `SELECT id, name, email, subject, created_at
      FROM teachers WHERE LOWER(email) = LOWER($1)`,
     [email]
   );
@@ -290,7 +290,7 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
       slots: ['parent_name', 'student_name', 'company_name', 'trainee_name', 'representative_name', 'email', 'class_name'],
       ssw_appointments: ['student_name', 'student_class', 'email', 'phone'],
       bl_appointments: ['student_name', 'student_class', 'email', 'phone'],
-      teachers: ['name', 'email', 'subject', 'room'],
+      teachers: ['name', 'email', 'subject'],
     };
 
     const results = [];
