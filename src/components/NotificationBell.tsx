@@ -73,7 +73,7 @@ export function NotificationBell() {
         });
       }
 
-      if (calToken && calToken.hasToken) {
+      if (calToken && calToken.exists) {
         const expiresAt = calToken.expiresAt ? new Date(calToken.expiresAt) : null;
         if (calToken.isExpired) {
           items.push({
