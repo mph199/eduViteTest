@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
+import { CalendarSubscription } from '../../components/CalendarSubscription';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
 
 
@@ -201,6 +202,8 @@ export function TeacherBookings() {
           <p className="stat-label">Gebuchte Gespräche</p>
         </div>
       </div>
+
+      <CalendarSubscription />
 
       <section className="stat-card teacher-table-section" style={{ padding: '1.1rem 1.1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: '1rem' }}>
