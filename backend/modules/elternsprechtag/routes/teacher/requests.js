@@ -168,8 +168,11 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       }
     }
 
-    // If multiple slots were assigned, send a combined confirmation email
+    // Send confirmation email: combined if multiple slots, single otherwise
     if (allSlots.length > 1) {
+      await sendMultiSlotConfirmation(allSlots, assignment.updatedReq, teacherId, rawTeacherMessage);
+    } else if (skipEmail) {
+      // Extra-Slots failed but first slot email was skipped — send single confirmation now
       await sendMultiSlotConfirmation(allSlots, assignment.updatedReq, teacherId, rawTeacherMessage);
     }
 

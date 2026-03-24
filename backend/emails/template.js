@@ -132,8 +132,8 @@ function renderPreheader(text) {
   return `<div style="display:none;font-size:1px;color:#f7f6f3;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${esc(text)} &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>`;
 }
 
-// Max logo file size for base64 embedding (~80KB file ≈ ~107KB base64).
-// Larger logos are skipped to avoid Gmail clipping (102KB total HTML limit).
+// Max logo file size for base64 embedding (~150KB file ≈ ~200KB base64).
+// Larger logos are skipped to keep email size manageable.
 const MAX_LOGO_BYTES = 200_000;
 
 function renderLogoBlock(branding, tokens) {
