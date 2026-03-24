@@ -200,7 +200,7 @@ Jeder Feed beginnt mit einem vollständigen VCALENDAR-Header:
 ```
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//EduVite//Elternsprechtag//DE
+PRODID:-//BKSB//Eltern- und Ausbildersprechtag//DE
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:Elternsprechtag – [Lehrkraftname]
