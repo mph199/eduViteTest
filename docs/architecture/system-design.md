@@ -147,13 +147,12 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 |-------|---------|
 | `users` | User accounts (username, role, password hash, email, token_version, force_password_change, failed_login_attempts, locked_until, last_failed_login, updated_at) |
 | `user_module_access` | Module access per user (user_id, module_key) |
-| `teachers` | Teacher profiles (name, subject, room, email) |
+| `teachers` | Teacher profiles (name, subject, email, calendar_token_hash, calendar_token_created_at) |
 | `slots` | Time slots for parent-teacher conferences |
 | `bookings` | Direct bookings (legacy) |
 | `booking_requests` | Request-based booking flow (primary) |
 | `events` | Parent-teacher conference events (draft/published/closed) |
 | `settings` | Global app settings |
-| `feedback` | User feedback messages |
 | `site_branding` | School branding (colors, name, logo) |
 | `module_config` | Per-module enable/disable state (module_id, enabled, updated_at) |
 
@@ -216,7 +215,7 @@ PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-r
 
 ### Row-Level Security (RLS)
 
-RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktiviert (Migration 040) sowie auf `feedback`, `events`, `booking_requests` (Migrationen 016/017). Da die Applikation einen einzelnen Pool-User nutzt, dient RLS als Defense-in-Depth. Permissive `app_full_access`-Policies erlauben vollen Zugriff fuer den Pool-User. Bei Wechsel zu Multi-Tenancy werden diese durch tenant_id-basierte Policies ersetzt.
+RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktiviert (Migration 040) sowie auf `events`, `booking_requests` (Migrationen 016/017). Da die Applikation einen einzelnen Pool-User nutzt, dient RLS als Defense-in-Depth. Permissive `app_full_access`-Policies erlauben vollen Zugriff fuer den Pool-User. Bei Wechsel zu Multi-Tenancy werden diese durch tenant_id-basierte Policies ersetzt.
 
 ## Frontend Architecture
 
@@ -227,7 +226,7 @@ RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktivier
 | Public | `/`, `/login`, `/impressum`, `/datenschutz`, `/verify` | None |
 | Module public | `/{module.basePath}` per module | None |
 | Teacher | `/teacher/*` (layout + sub-routes from modules) | `requireAuth` |
-| Admin | `/admin`, `/admin/teachers`, `/admin/events`, `/admin/feedback`, `/admin/users` (→ redirect to `/admin/teachers`) | `requireAdmin` |
+| Admin | `/admin`, `/admin/teachers`, `/admin/events`, `/admin/users` (→ redirect to `/admin/teachers`) | `requireAdmin` |
 | Module admin | `{mod.adminRoutes[].path}` per module | `requireModuleAccess` |
 | Superadmin | `/superadmin` (Tabs: Module, Branding, Hintergruende, E-Mail, Texte, Datenschutz) | `requireSuperadmin` |
 
@@ -236,7 +235,7 @@ RLS ist auf `users`, `ssw_appointments`, `bl_appointments`, `audit_log` aktivier
 Hamburger slide-out menu (`GlobalTopHeader.tsx` + `Sidebar.tsx`):
 - Groups built from module registry's `sidebarNav` property
 - Role-filtered via `SidebarNavItem.roles`
-- Core admin items (Benutzer & Rechte, Feedback) hardcoded
+- Core admin items (Benutzer & Rechte) hardcoded
 - Teacher items hardcoded when user has `teacherId`
 
 #### Header right-side login indicator (public pages only)
@@ -267,8 +266,8 @@ No global store. Component-local state + context:
 
 Namespaces in `api.ts`:
 - `api.auth.*` – login, verify, logout, getProviders (OAuth)
-- `api.admin.*` – teachers, bookings, events, slots, settings, feedback, users
-- `api.teacher.*` – bookings, slots, requests, password, feedback
+- `api.admin.*` – teachers, bookings, events, slots, settings, users
+- `api.teacher.*` – bookings, slots, requests, password, calendarToken
 - `api.bl.*` – beratungslehrer module endpoints
 - `api.ssw.*` – schulsozialarbeit module endpoints
 - `api.events.*`, `api.bookings.*` – public endpoints
@@ -280,7 +279,7 @@ All calls use `credentials: 'include'`. 401 responses dispatch `auth:logout` eve
 
 ### Types (`src/types/index.ts`)
 
-Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Settings`, `FeedbackItem`, `UserAccount`.
+Core interfaces: `Teacher`, `TimeSlot`, `BookingFormData`, `BookingRequest`, `Settings`, `UserAccount`, `CalendarTokenStatus`, `CalendarTokenCreated`.
 
 Auth types:
 - `ActiveView` – union `'admin' | 'teacher'` for dual-role users
@@ -434,7 +433,6 @@ backend/
       bookingRoutes.js  # Booking list, cancellation with email
       userRoutes.js     # User management, module access
       settingsRoutes.js # Global settings
-      feedbackRoutes.js # Feedback CRUD
       dataSubject.js    # DSAR-Endpunkte Art. 15-21 (requireSuperadmin; Suche, Export, Loeschung, Berichtigung, Einschraenkung)
     superadmin.js       # Superadmin endpoints (branding, backgrounds, email, text, module config)
     consent.js          # DSGVO Art. 7 Abs. 3 – Einwilligungswiderruf (POST /api/consent/withdraw)
@@ -458,6 +456,7 @@ backend/
           requests.js   # Teacher request handling
           misc.js       # Teacher miscellaneous endpoints
           password.js   # Teacher password management
+          calendarToken.js  # Calendar token management (create, rotate, delete)
     schulsozialarbeit/  # SSW module (thin wrappers around shared factories)
       routes/public.js, counselor.js, admin.js
       services/appointmentService.js  # Wrapper around shared counselorService
