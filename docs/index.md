@@ -1,6 +1,6 @@
 # Dokumentation
 
-> Stand: 2026-03-22
+> Stand: 2026-03-24
 
 ## Architektur
 
@@ -44,6 +44,8 @@
 - [DSGVO Consent-Checkbox](planning/dsgvo-consent-checkbox.md) -- Datenverarbeitungs-Einwilligung fuer Buchungsmodule
 - [P0 Sprint-Plan](planning/p0-sprint-plan.md) -- 4 Sprints fuer Go-Live-Blocker (DSGVO P0)
 - [DSAR-Endpunkte](api/dsar-endpoints.md) -- API-Referenz Betroffenenrechte Art. 15-21 + Audit-Log
+
+- [Kalender-Abo (ICS)](planning/calendar-subscription.md) -- Token-geschützte ICS-Feed-URL für Lehrkräfte, Sicherheitskonzept, DSGVO
 
 ### Flow-Modul Planung
 

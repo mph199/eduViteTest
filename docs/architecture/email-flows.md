@@ -1,5 +1,7 @@
 # Email flows (Verification / Confirmation / Cancellation)
 
+> Stand: 2026-03-24
+
 This document is intended as a quick orientation for future maintainers (including chat-based coding agents) to understand **when** and **why** emails are sent, which DB fields are involved, and which endpoints implement the flow.
 
 ## Concepts
@@ -35,6 +37,17 @@ Backend email is enabled if SMTP is configured (see `backend/config/email.js`). 
 - `VERIFICATION_TOKEN_TTL_HOURS` (default: `72`)
 
 If SMTP is not configured, `sendMail(...)` is skipped (best-effort).
+
+### Logo-Einbettung in Emails
+
+Das Backend bettet das Schul-Logo als Base64-Data-URI in den Email-HTML-Code ein
+(`backend/emails/template.js`, `renderLogoBlock()`).
+
+- Maximale Dateigroesse: **200 KB** (`MAX_LOGO_BYTES = 200_000`)
+- Logos ueber diesem Limit werden **nicht** eingebettet; stattdessen erscheint der Schulname als Textblock.
+- Bei ueberschrittenem Limit, fehlendem Logo oder Path-Traversal-Versuch schreibt das Backend einen
+  `logger.warn`-Eintrag (kein Fehler, kein Email-Abbruch).
+- Gmail clippt Emails ab ~102 KB HTML-Gesamtgroesse — Empfehlung: Logos ≤ 100 KB hochladen.
 
 ### Dev/testing without a real email account (Ethereal)
 
@@ -103,6 +116,25 @@ Trigger B (catch-up):
 Implementation:
 - In `backend/index.js` verify handler:
   - after `verifyBookingToken`, if slot is already `status === 'confirmed'` and `confirmation_sent_at` is empty, send confirmation and set `confirmation_sent_at`
+
+### 3b) Multi-Slot-Bestaetigungsemail (zusammengefasst)
+
+Trigger:
+- Lehrkraft nimmt eine Terminanfrage an, der mehrere Zeitslots zugewiesen werden
+  (**PUT** `/api/teacher/requests/:id/accept` mit mehreren Zeitangaben).
+
+Implementation:
+- In `backend/modules/elternsprechtag/routes/teacher/requests.js`:
+  - Wenn `allSlots.length > 1`, wird `sendMultiSlotConfirmation()` aufgerufen (aus `lib/slotAssignment.js`).
+  - Die Einzel-Email wird per `skipEmail: true` unterdrueckt — es wird **eine einzige** Email mit Template `confirmation-multi` gesendet.
+  - Fallback: Wenn Extra-Slots fehlschlagen und nur ein Slot uebrig bleibt, wird trotzdem die zusammengefasste Email gesendet.
+- In `backend/emails/template.js`: `buildMultiConfirmationEmail()` ruft `mergeConsecutiveSlots()` auf.
+  - Aufeinanderfolgende Zeitslots werden zu einem Zeitraum zusammengefasst:
+    `["16:00 - 16:10", "16:10 - 16:20"]` → `"16:00 - 16:20"`.
+  - Nicht aufeinanderfolgende Slots erscheinen als separate Eintraege (kommagetrennt).
+- `confirmation_sent_at` wird fuer alle beteiligten Slots und den `booking_requests`-Eintrag gesetzt.
+
+Hinweis: Wenn nur ein Slot zugewiesen wird (Einzelbuchung), bleibt der regulaere `confirmation`-Flow (Abschnitt 3 oben) aktiv.
 
 ### 4) Cancellation email
 
