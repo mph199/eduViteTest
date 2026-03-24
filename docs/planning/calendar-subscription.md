@@ -42,7 +42,7 @@ Jede Lehrkraft erhält eine persönliche, Token-geschützte URL, über die ihre 
 -- 056_calendar_tokens.sql
 
 ALTER TABLE teachers
-  ADD COLUMN IF NOT EXISTS calendar_token_hash VARCHAR(64),
+  ADD COLUMN IF NOT EXISTS calendar_token_hash CHAR(64),
   ADD COLUMN IF NOT EXISTS calendar_token_created_at TIMESTAMPTZ;
 
 -- Partieller Unique-Index: schneller Lookup + Uniqueness in einem
@@ -76,29 +76,41 @@ const lookupHash = crypto.createHash('sha256').update(req.params.token).digest('
 
 | Method | Path | Verhalten | Response |
 |---|---|---|---|
-| GET | `/api/teacher/calendar-token` | Status abfragen | `{ exists, createdAt, expiresAt }` |
-| POST | `/api/teacher/calendar-token` | Erstellt Token. **409 wenn bereits vorhanden.** | `{ token, createdAt, expiresAt }` |
+| GET | `/api/teacher/calendar-token` | Status abfragen | `{ exists, createdAt, expiresAt, isExpired }` |
+| POST | `/api/teacher/calendar-token` | Erstellt Token. **409 nur wenn aktives (nicht abgelaufenes) Token existiert.** | `{ token, createdAt, expiresAt }` |
 | POST | `/api/teacher/calendar-token/rotate` | Rotiert: altes ungültig, neues erzeugt | `{ token, createdAt, expiresAt }` |
 | DELETE | `/api/teacher/calendar-token` | Widerruft Token | `{ success: true }` |
 
 **Regeln:**
-- POST `/calendar-token` erstellt nur, wenn kein Token existiert → sonst 409 Conflict
+- POST `/calendar-token` erstellt nur, wenn kein **aktives** Token existiert → sonst 409 Conflict
+- Ein abgelaufenes Token gilt API-seitig als **nicht aktiv** — POST create ist dann erlaubt (löscht das alte, erstellt neues)
 - POST `/calendar-token/rotate` ersetzt immer → altes Token sofort ungültig
 - Beide POST-Endpunkte geben den Roh-Token **einmalig** zurück
 - GET gibt den Token **nie** zurück (XSS-Schutz)
+- GET liefert `isExpired: boolean` explizit mit — Frontend muss das nicht selbst ableiten
 - `expiresAt` = `createdAt + 12 Monate` (berechnet, nicht gespeichert)
+
+**Verhalten bei abgelaufenem Token:**
+- GET: `{ exists: false, expired: true, createdAt, expiresAt, isExpired: true }` — logisch „nicht aktiv"
+- POST create: erlaubt (kein 409), da abgelaufenes Token funktional nicht existiert
+- Feed: 404 (identisch zu widerrufenem/unbekanntem Token)
 
 ### Automatischer Ablauf
 
 Token läuft **12 Monate** nach Erstellung ab. Durchgesetzt in der Feed-Route:
 
 ```js
-// In calendar.js: Token-Ablauf prüfen
-const maxAge = 365 * 24 * 60 * 60 * 1000; // 12 Monate
-if (Date.now() - new Date(teacher.calendar_token_created_at).getTime() > maxAge) {
+// In calendar.js: Token-Ablauf prüfen (echte Monatsarithmetik, nicht 365 Tage)
+const createdAt = new Date(teacher.calendar_token_created_at);
+const expiresAt = new Date(createdAt);
+expiresAt.setMonth(expiresAt.getMonth() + 12);
+
+if (new Date() > expiresAt) {
   return res.status(404).end();
 }
 ```
+
+**Wichtig:** Ablauf wird mit echter Monatsarithmetik berechnet (`+12 months`), nicht pauschal mit 365 Tagen. SQL-seitig analog: `created_at + INTERVAL '12 months'`.
 
 Die UI zeigt `expiresAt` an und fordert bei abgelaufenem Token zur Neuerstellung auf.
 
@@ -124,8 +136,8 @@ X-Robots-Tag: noindex
 ### Geschützt (JWT Cookie, requireTeacher)
 
 ```
-GET    /api/teacher/calendar-token          → { exists, createdAt, expiresAt }
-POST   /api/teacher/calendar-token          → { token, createdAt, expiresAt } | 409
+GET    /api/teacher/calendar-token          → { exists, createdAt, expiresAt, isExpired }
+POST   /api/teacher/calendar-token          → { token, createdAt, expiresAt } | 409 (nur bei aktivem Token)
 POST   /api/teacher/calendar-token/rotate   → { token, createdAt, expiresAt }
 DELETE /api/teacher/calendar-token           → { success: true }
 ```
@@ -165,17 +177,42 @@ const calendarFeedLimiter = rateLimit({
 
 **Begründung:** Kalender-Clients pollen regelmäßig (Outlook: ~30 Min, Google: ~12h, Apple: ~15 Min). Der booking-Limiter ist für menschliche Interaktion ausgelegt und würde legitime Kalender-Clients mit 429 bestrafen.
 
+**Einschränkung V1:** IP-basiertes Limiting kann bei großen NAT-/Provider-IP-Räumen legitime Requests blockieren und schützt nicht perfekt vor Token-Missbrauch.
+
+**V2-Option:** Zusätzlich tokenbasiertes oder kombiniertes (IP + Token) Limiting.
+
 ## ICS-Generator (Server-seitig)
 
 Port von `src/utils/icalExport.ts` — nur reine Generierungsfunktionen:
 
-- `generateTeacherICS(slots, teacherName, teacherRoom, eventName, domain)` → `string`
+- `generateTeacherICS(slots, teacherName, teacherRoom, eventName, uidDomain)` → `string`
 - `escapeICalText(text)` — Sonderzeichen escapen
 - `foldICalLine(line)` — RFC-5545 Line-Folding (75 Byte, `Buffer.byteLength`)
 - `formatICalDateLocal(dateStr, timeStr)` — Lokale Zeitformatierung
 - `getCurrentTimestamp()` — UTC-Timestamp für DTSTAMP
 
 **Kein** `alert()`, `downloadICalFile()`, `TextEncoder` oder DOM-Code.
+
+### VCALENDAR-Metadaten (Pflicht)
+
+Jeder Feed beginnt mit einem vollständigen VCALENDAR-Header:
+
+```
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//EduVite//Elternsprechtag//DE
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Elternsprechtag – [Lehrkraftname]
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VTIMEZONE
+...
+END:VTIMEZONE
+```
+
+- `VERSION` und `PRODID` sind RFC-5545-Pflichtfelder
+- `X-WR-CALNAME` zeigt dem Kalender-Client den Feed-Namen
+- `X-WR-TIMEZONE` als Hint für Clients, die VTIMEZONE ignorieren
 
 ### ICS-Pflichtfelder pro Event (RFC 5545)
 
@@ -196,12 +233,15 @@ END:VEVENT
 **Pflicht.** Jeder Slot bekommt eine deterministische UID:
 
 ```
-elternsprechtag-slot-{slot.id}@{domain}
+elternsprechtag-slot-{slot.id}@{CALENDAR_UID_DOMAIN}
 ```
 
 - Wird **nicht** pro Feed-Generierung neu erzeugt
 - Kalender-Clients erkennen darüber Updates und Löschungen
-- `domain` wird aus `req.get('host')` oder Config abgeleitet
+- `CALENDAR_UID_DOMAIN` kommt **ausschließlich aus Backend-Config** (Env-Variable oder Config-Datei)
+- **Niemals** aus `req.get('host')` ableiten — Host-Header variiert je nach Reverse Proxy, Staging/Prod, Portnummern
+- Wenn sich die UID-Domain ändert, interpretieren Kalender-Clients alle Termine als neue Events → Duplikate
+- Default: `calendar.schule.de` (oder projektspezifisch konfiguriert)
 
 ### Zeitzonen
 
@@ -212,15 +252,25 @@ elternsprechtag-slot-{slot.id}@{domain}
 
 ### Slot-Dauer / DTEND
 
-Slots haben das Format `"16:00-16:15"` in `slots.time` (VARCHAR). Start- und Endzeit werden daraus geparst:
+Slots haben das Format `"16:00-16:15"` in `slots.time` (VARCHAR). Start- und Endzeit werden daraus **robust** geparst:
 
 ```js
-const [startTime, endTime] = slot.time.split('-');
-// DTSTART aus slot.date + startTime
-// DTEND aus slot.date + endTime
+function parseSlotTime(timeStr) {
+  if (!timeStr || !timeStr.includes('-')) return null;
+  const parts = timeStr.split('-').map(p => p.trim());
+  if (parts.length !== 2) return null;
+  const timeRegex = /^\d{1,2}:\d{2}$/;
+  if (!timeRegex.test(parts[0]) || !timeRegex.test(parts[1])) return null;
+  return { start: parts[0], end: parts[1] };
+}
 ```
 
-Fallback bei fehlendem `-`: Slot-Dauer aus Event-Settings (`slot_duration_minutes`, Default: 15 Min).
+**Robustheitsregeln:**
+- `.trim()` auf alle Teile — fängt Formate wie `"16:00 - 16:15"` ab
+- Regex-Validierung der Zeitteile
+- Ungültige oder nicht parsbare Slots werden **geloggt und übersprungen** — nicht ins ICS aufgenommen
+- Ein einzelner defekter Slot darf **niemals** den gesamten Feed sprengen
+- Fallback bei fehlendem `-`: Slot-Dauer aus Event-Settings (`slot_duration_minutes`, Default: 15 Min)
 
 ### Datensparsamkeit im Event-Titel
 
@@ -228,12 +278,21 @@ Fallback bei fehlendem `-`: Slot-Dauer aus Event-Settings (`slot_duration_minute
 **Sondern:** `Elternsprechtag – K. Mustermann (7a)`
 
 Nur abgekürzter Vorname des Schülers + Nachname + Klasse im SUMMARY.
-Elternname nur in DESCRIPTION (weniger exponiert):
+
+**DESCRIPTION — bewusste Produktentscheidung:**
 
 ```
 SUMMARY:Elternsprechtag – K. Mustermann (7a)
 DESCRIPTION:Elternteil: Max Mustermann\nKlasse: 7a\nRaum: A12
 ```
+
+DESCRIPTION enthält den vollen Elternnamen, Klasse und Raum. Das sind personenbezogene Daten. Diese Entscheidung ist **bewusst getroffen**, weil Lehrkräfte diese Informationen im Kalender für die Durchführung des Gesprächs brauchen (Wer kommt? Welche Klasse? Wo?). Der Elternname ist nötig, damit die Lehrkraft den Termin zuordnen kann — ohne ihn wäre der Kalendereintrag unbrauchbar.
+
+Die DSGVO-Absicherung erfolgt über:
+- Token-Schutz (nur berechtigte Lehrkraft sieht eigene Termine)
+- SUMMARY minimiert (kein Elternname im Titel)
+- Automatischer Ablauf nach 12 Monaten
+- Widerruf jederzeit möglich
 
 ### Stornierte Termine
 
@@ -242,6 +301,31 @@ DESCRIPTION:Elternteil: Max Mustermann\nKlasse: 7a\nRaum: A12
 **Bekanntes Risiko:** Manche Kalender-Clients entfernen verschwundene Events nicht sofort. Dokumentiert als V2-Option:
 
 > V2-Option: Stornierte Slots mit `STATUS:CANCELLED` und erhöhtem `SEQUENCE` ausliefern statt sie wegzulassen. Erfordert zusätzliche Spalte `calendar_sequence` auf `slots`.
+
+## Fehlerverhalten des Feed-Endpunkts
+
+| Situation | HTTP-Status | Body |
+|---|---|---|
+| Ungültiger / unbekannter Token | 404 | leer |
+| Widerrufener Token | 404 | leer |
+| Abgelaufener Token | 404 | leer |
+| Gültiger Token, keine Termine vorhanden | **200** | Gültiges, leeres ICS (nur VCALENDAR-Header ohne VEVENTs) |
+| Interner Fehler beim Generieren | 500 | leer |
+
+**Wichtig:** Kein 404 nur weil aktuell keine Termine da sind. Ein leeres, aber valides ICS ist das korrekte Verhalten.
+
+## Logging (Minimum)
+
+Ohne großes Audit-System, aber für Fehlersuche und Betrieb:
+
+| Event | Geloggt | Nicht geloggt |
+|---|---|---|
+| Feed-Zugriff | Teacher-ID, Timestamp, IP (gehashed/anonymisiert) | **Niemals** Roh-Token |
+| Token-Erstellung | Teacher-ID, Timestamp | Roh-Token |
+| Token-Rotation | Teacher-ID, Timestamp | Roh-Token |
+| Token-Löschung | Teacher-ID, Timestamp | — |
+| Slot-Parsing-Fehler | Slot-ID, fehlerhafter `time`-Wert, Teacher-ID | — |
+| ICS-Generierungsfehler | Teacher-ID, Fehlermeldung | Slot-Details mit PII |
 
 ## Slot-Query
 
@@ -311,7 +395,7 @@ app.use('/api', publicRouter);
 ### Zustand 4: Token abgelaufen
 
 - "Kalender-Abo abgelaufen seit [Datum]"
-- Button "Neues Abo erstellen" (→ rotate)
+- Button "Neues Abo erstellen" (→ POST create, da abgelaufener Token API-seitig als nicht aktiv gilt)
 
 **Erneuerungs-Warnung (Confirm-Dialog):**
 > "Die alte URL wird ungültig. Alle bestehenden Kalender-Abos müssen neu eingerichtet werden. Fortfahren?"
@@ -355,6 +439,7 @@ Vorerst Elternsprechtag-spezifisch. Generische Abstraktion erst bei tatsächlich
 - Zugriffshistorie (`last_accessed_at`)
 - Mehrere parallele Tokens (eigene Tabelle)
 - Konfigurierbare Ablaufdauer pro Token
+- Tokenbasiertes / kombiniertes Rate Limiting (IP + Token)
 
 ## Review-Befunde (alle eingearbeitet)
 
@@ -390,3 +475,19 @@ Vorerst Elternsprechtag-spezifisch. Generische Abstraktion erst bei tatsächlich
 | 21 | Niedrig | Stornos verschwinden einfach | Dokumentiert als V2-Option (STATUS:CANCELLED) |
 | 22 | Niedrig | Kein ETag/Last-Modified | Dokumentiert als V2-Option |
 | 23 | Niedrig | Keine Audit/Rotationshistorie | Dokumentiert: eigene Tabelle bei Bedarf |
+
+### Fachliches Review (Runde 3)
+
+| # | Schweregrad | Befund | Lösung |
+|---|---|---|---|
+| 24 | Hoch | UID-Domain aus `req.get('host')` ist instabil | Behoben: nur aus stabiler Backend-Config (`CALENDAR_UID_DOMAIN`), nie aus Request |
+| 25 | Hoch | Abgelaufene Tokens API-seitig noch als „existent" behandelt, POST create gibt 409 | Behoben: abgelaufene Tokens gelten als nicht aktiv, create ist dann erlaubt |
+| 26 | Mittel | `VARCHAR(64)` für feste SHA-256-Hashlänge | Behoben: `CHAR(64)` |
+| 27 | Mittel | 365 Tage statt echter 12-Monats-Berechnung | Behoben: echte Monatsarithmetik (`setMonth +12` / `INTERVAL '12 months'`) |
+| 28 | Mittel | `time.split('-')` ohne Trim/Validierung | Behoben: robustes Parsing mit Trim, Regex, Logging defekter Slots |
+| 29 | Mittel | DESCRIPTION enthält PII ohne explizite Produktentscheidung | Behoben: als bewusste, begründete Entscheidung dokumentiert |
+| 30 | Mittel | `isExpired` nicht im GET-Response | Behoben: Backend liefert `isExpired` explizit mit |
+| 31 | Mittel | VCALENDAR-Metadaten (PRODID, VERSION etc.) nicht spezifiziert | Behoben: vollständiger VCALENDAR-Header dokumentiert |
+| 32 | Mittel | Rate Limiter nur IP-basiert, Einschränkung nicht dokumentiert | Behoben: V1-Einschränkung + V2-Option dokumentiert |
+| 33 | Mittel | Fehlerverhalten des Feed-Endpunkts nicht definiert | Behoben: explizite Status-Tabelle, leeres ICS bei 0 Terminen |
+| 34 | Niedrig | Kein Logging-Minimum definiert | Behoben: Logging-Tabelle mit Events und Datenschutzgrenzen |
