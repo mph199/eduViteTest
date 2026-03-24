@@ -49,13 +49,13 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
 
   const handleGenerateSlots = async () => {
     if (!calCounselorId || !slotGenFrom || !slotGenUntil) {
-      showFlash('Bitte Berater/in und Zeitraum waehlen.');
+      showFlash('Bitte Berater/in und Zeitraum wählen.');
       return;
     }
     setGenerating(true);
     try {
       const data = await api.ssw.generateSlots(calCounselorId, slotGenFrom, slotGenUntil);
-      showFlash(`${data.created || 0} Termine erstellt (${data.skipped || 0} uebersprungen).`);
+      showFlash(`${data.created || 0} Termine erstellt (${data.skipped || 0} übersprungen).`);
       setSlotGenFrom('');
       setSlotGenUntil('');
       loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
@@ -70,16 +70,16 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
   const handleDeleteSelectedAppointments = async () => {
     if (calSelectedIds.size === 0) return;
     const count = calSelectedIds.size;
-    if (!confirm(`${count} Termin(e) wirklich loeschen?`)) return;
+    if (!confirm(`${count} Termin(e) wirklich löschen?`)) return;
     setCalDeleting(true);
     try {
       const data = await api.ssw.deleteAppointments(Array.from(calSelectedIds));
-      showFlash(`${data.deleted || 0} Termin(e) geloescht.`);
+      showFlash(`${data.deleted || 0} Termin(e) gelöscht.`);
       setCalSelectedIds(new Set());
       if (calCounselorId) loadCalendarAppointments(calCounselorId, calMonth.year, calMonth.month);
       loadData();
     } catch (err) {
-      showFlash(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Löschen');
     } finally {
       setCalDeleting(false);
     }
@@ -105,12 +105,12 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
                 setCalSelectedIds(new Set());
               }}
             >
-              <option value="">– Bitte waehlen –</option>
+              <option value="">– Bitte wählen –</option>
               {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label>Slots freischalten fuer Zeitraum</label>
+            <label>Slots freischalten für Zeitraum</label>
             <div className="date-range-row">
               <input type="date" min={today} value={slotGenFrom} onChange={e => setSlotGenFrom(e.target.value)} />
               <span>bis</span>

@@ -40,7 +40,7 @@ export function MitgliederTab({ paketId, id, mitglieder, paketMitglieder, istKoo
         mutationFn: ({ userId, rolle }: { userId: number; rolle: string }) =>
             api.flow.updateMitgliedRolle(paketId, userId, rolle),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['flow', 'mitglieder', id] }),
-        onError: () => onError('Rolle konnte nicht geaendert werden'),
+        onError: () => onError('Rolle konnte nicht geändert werden'),
     });
 
     const removeMutation = useMutation({

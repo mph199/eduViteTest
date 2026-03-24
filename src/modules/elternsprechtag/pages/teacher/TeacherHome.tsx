@@ -136,7 +136,7 @@ export function TeacherHome() {
             <div className="teacher-home__flow-banner-text">
               <h2 className="teacher-home__flow-banner-title">Flow</h2>
               <p className="teacher-home__flow-banner-desc">
-                Kollaborationsformat fuer Bildungsgaenge: Arbeitspakete planen, Aufgaben verteilen und Fortschritte verfolgen.
+                Kollaborationsformat für Bildungsgänge: Arbeitspakete planen, Aufgaben verteilen und Fortschritte verfolgen.
               </p>
             </div>
             <button

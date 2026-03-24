@@ -160,7 +160,7 @@ export function CalendarPanel({
                         disabled={deleting}
                         onClick={onDeleteSelected}
                       >
-                        {deleting ? 'Loesche...' : `${selectedIds.size} loeschen`}
+                        {deleting ? 'Lösche...' : `${selectedIds.size} löschen`}
                       </button>
                     )}
                   </div>
@@ -173,7 +173,7 @@ export function CalendarPanel({
                         <th></th>
                         <th>Uhrzeit</th>
                         <th>Status</th>
-                        <th>Schueler/in</th>
+                        <th>Schüler/in</th>
                         <th>{detailColumnLabel}</th>
                       </tr>
                     </thead>

@@ -40,7 +40,7 @@ const DEFAULTS = {
   school_name: 'BKSB',
   logo_url: '',
   primary_color: '#2d5016',
-  footer_text: 'Mit freundlichen Gruessen\n\nIhr BKSB-Team',
+  footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team',
 };
 
 // ── Escaping ─────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ function renderStatusBadge(type, tokens) {
   const isConfirm = type === 'confirmed';
   const bg = isConfirm ? tokens.confirm_light : tokens.cancel_light;
   const color = isConfirm ? tokens.confirm : tokens.cancel;
-  const label = isConfirm ? 'Bestaetigt' : 'Storniert';
+  const label = isConfirm ? 'Bestätigt' : 'Storniert';
 
   return `<tr><td align="center" style="padding:20px 36px 0;" class="email-padding"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:${bg};border-radius:100px;padding:6px 16px 6px 12px;font-family:'DM Sans',Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:${color};line-height:20px;mso-line-height-rule:exactly;"><!--[if mso]>&nbsp;<![endif]--><span style="display:inline-block;width:8px;height:8px;background-color:${color};border-radius:50%;vertical-align:middle;margin-right:8px;"></span>${esc(label)}</td></tr></table></td></tr>`;
 }
@@ -341,36 +341,36 @@ function buildVerifySlotEmail(data, branding) {
   const { date, time, teacherName, teacherRoom, verifyUrl } = data;
   const b = { ...DEFAULTS, ...branding };
   const tokens = buildColorTokens(b.primary_color);
-  const subject = `${b.school_name} Elternsprechtag – E-Mail-Adresse bestaetigen (Terminreservierung)`;
+  const subject = `${b.school_name} Elternsprechtag – E-Mail-Adresse bestätigen (Terminreservierung)`;
 
   const text = `Guten Tag,
 
-bitte bestaetigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung abzuschliessen.
+bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung abzuschließen.
 
 Termin: ${date} ${time}
 Lehrkraft: ${safeText(teacherName)}
 Raum: ${safeText(teacherRoom)}
 
-Bestaetigungslink: ${verifyUrl}
+Bestätigungslink: ${verifyUrl}
 
-Hinweis: Erst nach erfolgreicher Bestaetigung kann die Lehrkraft Ihren Termin verbindlich bestaetigen.
+Hinweis: Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.
 
-Falls Sie diese Buchung nicht vorgenommen haben, koennen Sie diese E-Mail ignorieren.`;
+Falls Sie diese Buchung nicht vorgenommen haben, können Sie diese E-Mail ignorieren.`;
 
   const body = [
-    bodyHeadline('E-Mail-Adresse bestaetigen', tokens),
-    bodyParagraph('Guten Tag,<br/>bitte bestaetigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung abzuschliessen.', tokens),
+    bodyHeadline('E-Mail-Adresse bestätigen', tokens),
+    bodyParagraph('Guten Tag,<br/>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminreservierung abzuschließen.', tokens),
     renderBookingDetailsCard([
       { label: 'Termin', value: `${date} ${time}` },
       { label: 'Lehrkraft', value: safeText(teacherName) },
       { label: 'Raum', value: safeText(teacherRoom) },
     ], 'Termindetails', tokens.primary_light, tokens),
-    renderCtaButton('E-Mail-Adresse jetzt bestaetigen', verifyUrl, tokens.primary, tokens),
-    bodyMutedText('<strong>Hinweis:</strong> Erst nach erfolgreicher Bestaetigung kann die Lehrkraft Ihren Termin verbindlich bestaetigen.', tokens),
-    bodyMutedText('Falls Sie diese Buchung nicht vorgenommen haben, koennen Sie diese E-Mail ignorieren.', tokens),
+    renderCtaButton('E-Mail-Adresse jetzt bestätigen', verifyUrl, tokens.primary, tokens),
+    bodyMutedText('<strong>Hinweis:</strong> Erst nach erfolgreicher Bestätigung kann die Lehrkraft Ihren Termin verbindlich bestätigen.', tokens),
+    bodyMutedText('Falls Sie diese Buchung nicht vorgenommen haben, können Sie diese E-Mail ignorieren.', tokens),
   ].join('');
 
-  const html = wrapEmailHtml({ body, branding, preheader: 'Bitte bestaetigen Sie Ihre E-Mail-Adresse fuer Ihren Termin.' });
+  const html = wrapEmailHtml({ body, branding, preheader: 'Bitte bestätigen Sie Ihre E-Mail-Adresse für Ihren Termin.' });
   return { subject, text, html };
 }
 
@@ -378,45 +378,45 @@ function buildVerifyRequestEmail(data, branding) {
   const { date, requestedTime, teacherName, teacherRoom, verifyUrl } = data;
   const b = { ...DEFAULTS, ...branding };
   const tokens = buildColorTokens(b.primary_color);
-  const subject = `${b.school_name} Elternsprechtag – E-Mail-Adresse bestaetigen (Terminanfrage)`;
+  const subject = `${b.school_name} Elternsprechtag – E-Mail-Adresse bestätigen (Terminanfrage)`;
 
   const text = `Guten Tag,
 
-bitte bestaetigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage abzuschliessen.
+bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage abzuschließen.
 
-Gewuenschter Zeitraum: ${date} ${requestedTime}
+Gewünschter Zeitraum: ${date} ${requestedTime}
 Lehrkraft: ${safeText(teacherName)}
 Raum: ${safeText(teacherRoom)}
 
-Bestaetigungslink: ${verifyUrl}
+Bestätigungslink: ${verifyUrl}
 
-Hinweis: Die Lehrkraft vergibt die Termine. Nach Bestaetigung Ihrer E-Mail-Adresse kann die Lehrkraft die Anfrage annehmen.
+Hinweis: Die Lehrkraft vergibt die Termine. Nach Bestätigung Ihrer E-Mail-Adresse kann die Lehrkraft Ihre Anfrage annehmen.
 
-Falls Sie diese Anfrage nicht gestellt haben, koennen Sie diese E-Mail ignorieren.`;
+Falls Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.`;
 
   const body = [
-    bodyHeadline('E-Mail-Adresse bestaetigen', tokens),
-    bodyParagraph('Guten Tag,<br/>bitte bestaetigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage abzuschliessen.', tokens),
+    bodyHeadline('E-Mail-Adresse bestätigen', tokens),
+    bodyParagraph('Guten Tag,<br/>bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Terminanfrage abzuschließen.', tokens),
     renderBookingDetailsCard([
       { label: 'Zeitraum', value: `${date} ${requestedTime}` },
       { label: 'Lehrkraft', value: safeText(teacherName) },
       { label: 'Raum', value: safeText(teacherRoom) },
     ], 'Termindetails', tokens.primary_light, tokens),
-    renderCtaButton('E-Mail-Adresse jetzt bestaetigen', verifyUrl, tokens.primary, tokens),
-    bodyMutedText('<strong>Hinweis:</strong> Die Lehrkraft vergibt die Termine. Nach Bestaetigung Ihrer E-Mail-Adresse kann die Lehrkraft die Anfrage annehmen.', tokens),
-    bodyMutedText('Falls Sie diese Anfrage nicht gestellt haben, koennen Sie diese E-Mail ignorieren.', tokens),
+    renderCtaButton('E-Mail-Adresse jetzt bestätigen', verifyUrl, tokens.primary, tokens),
+    bodyMutedText('<strong>Hinweis:</strong> Die Lehrkraft vergibt die Termine. Nach Bestätigung Ihrer E-Mail-Adresse kann die Lehrkraft Ihre Anfrage annehmen.', tokens),
+    bodyMutedText('Falls Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.', tokens),
   ].join('');
 
-  const html = wrapEmailHtml({ body, branding, preheader: 'Bitte bestaetigen Sie Ihre E-Mail-Adresse fuer Ihre Terminanfrage.' });
+  const html = wrapEmailHtml({ body, branding, preheader: 'Bitte bestätigen Sie Ihre E-Mail-Adresse für Ihre Terminanfrage.' });
   return { subject, text, html };
 }
 
 function buildConfirmationEmail(data, branding) {
   const { date, time, teacherName, teacherRoom, teacherMessage, label } = data;
-  const msgLabel = label || 'Ihre Terminanfrage wurde durch die Lehrkraft angenommen.';
+  const msgLabel = label || 'Ihre Terminanfrage wurde von der Lehrkraft angenommen.';
   const b = { ...DEFAULTS, ...branding };
   const tokens = buildColorTokens(b.primary_color);
-  const subject = `${b.school_name} Elternsprechtag – Termin bestaetigt am ${date} (${time})`;
+  const subject = `${b.school_name} Elternsprechtag – Termin bestätigt am ${date} (${time})`;
 
   const teacherMsgPlain = teacherMessage ? `\n\nNachricht der Lehrkraft:\n${teacherMessage}` : '';
   const text = `Guten Tag,
@@ -438,7 +438,7 @@ ${teacherMsgPlain}`;
     : '';
 
   const body = [
-    bodyHeadline('Termin bestaetigt', tokens),
+    bodyHeadline('Termin bestätigt', tokens),
     bodyParagraph(`Guten Tag,<br/>${esc(msgLabel)}`, tokens),
     renderBookingDetailsCard([
       { label: 'Termin', value: `${date} ${time}` },
@@ -446,10 +446,10 @@ ${teacherMsgPlain}`;
       { label: 'Raum', value: safeText(teacherRoom) },
     ], 'Buchungsdetails', tokens.primary_light, tokens),
     teacherMsgBlock,
-    bodyMutedText('Falls Sie diesen Termin stornieren moechten, wenden Sie sich bitte an die Lehrkraft oder nutzen Sie das Buchungssystem.', tokens),
+    bodyMutedText('Falls Sie diesen Termin stornieren möchten, wenden Sie sich bitte an die Lehrkraft oder nutzen Sie das Buchungssystem.', tokens),
   ].join('');
 
-  const html = wrapEmailHtml({ body, branding, preheader: `Ihr Termin am ${date} wurde bestaetigt.`, statusBadge: 'confirmed' });
+  const html = wrapEmailHtml({ body, branding, preheader: `Ihr Termin am ${date} wurde bestätigt.`, statusBadge: 'confirmed' });
   return { subject, text, html };
 }
 
@@ -458,15 +458,15 @@ function buildMultiConfirmationEmail(data, branding) {
   const timesFormatted = slots.map((s) => s.time).join(', ');
   const b = { ...DEFAULTS, ...branding };
   const tokens = buildColorTokens(b.primary_color);
-  const subject = `${b.school_name} Elternsprechtag – ${slots.length} Termine bestaetigt am ${date} (${timesFormatted})`;
+  const subject = `${b.school_name} Elternsprechtag – ${slots.length} Termine bestätigt am ${date} (${timesFormatted})`;
 
   const teacherMsgPlain = teacherMessage ? `\n\nNachricht der Lehrkraft:\n${teacherMessage}` : '';
   const timesListPlain = slots.map((s, i) => `  ${i + 1}. ${s.time}`).join('\n');
   const text = `Guten Tag,
 
-Ihre Terminanfrage wurde durch die Lehrkraft angenommen.
+Ihre Terminanfrage wurde von der Lehrkraft angenommen.
 
-Es wurden ${slots.length} Termine fuer Sie vergeben:
+Es wurden ${slots.length} Termine für Sie vergeben:
 ${timesListPlain}
 
 Datum: ${date}
@@ -492,14 +492,14 @@ ${teacherMsgPlain}`;
   cardRows.push({ label: 'Raum', value: safeText(teacherRoom) });
 
   const body = [
-    bodyHeadline(`${slots.length} Termine bestaetigt`, tokens),
-    bodyParagraph('Guten Tag,<br/>Ihre Terminanfrage wurde durch die Lehrkraft angenommen.', tokens),
+    bodyHeadline(`${slots.length} Termine bestätigt`, tokens),
+    bodyParagraph('Guten Tag,<br/>Ihre Terminanfrage wurde von der Lehrkraft angenommen.', tokens),
     renderBookingDetailsCard(cardRows, 'Buchungsdetails', tokens.primary_light, tokens),
     teacherMsgBlock,
-    bodyMutedText('Falls Sie einen Termin stornieren moechten, wenden Sie sich bitte an die Lehrkraft oder nutzen Sie das Buchungssystem.', tokens),
+    bodyMutedText('Falls Sie einen Termin stornieren möchten, wenden Sie sich bitte per E-Mail an die Lehrkraft.', tokens),
   ].join('');
 
-  const html = wrapEmailHtml({ body, branding, preheader: `${slots.length} Termine am ${date} wurden bestaetigt.`, statusBadge: 'confirmed' });
+  const html = wrapEmailHtml({ body, branding, preheader: `${slots.length} Termine am ${date} wurden bestätigt.`, statusBadge: 'confirmed' });
   return { subject, text, html };
 }
 
@@ -510,20 +510,20 @@ function buildCancellationEmail(data, branding) {
   const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
   const subject = `${b.school_name} Elternsprechtag – Termin storniert am ${date} (${time})`;
 
-  const msgLine = cancellationMessage ? `\nBegruendung:\n${cancellationMessage}\n` : '';
+  const msgLine = cancellationMessage ? `\nBegründung:\n${cancellationMessage}\n` : '';
   const text = `Guten Tag,
 
-wir muessen Ihnen leider mitteilen, dass Ihr Termin storniert wurde.
+wir müssen Ihnen leider mitteilen, dass Ihr Termin storniert wurde.
 ${msgLine}
 Termin: ${date} ${time}
 Lehrkraft: ${safeText(teacherName)}
 Raum: ${safeText(teacherRoom)}
 
-Wenn Sie einen neuen Termin vereinbaren moechten, koennen Sie dies jederzeit ueber das Buchungssystem tun.`;
+Wenn Sie einen neuen Termin vereinbaren möchten, können Sie dies jederzeit über das Buchungssystem tun.`;
 
   const reasonBlock = cancellationMessage
     ? renderHintBox(
-        `<strong style="color:${tokens.ink};">Begruendung:</strong><br/>${esc(cancellationMessage).replace(/\n/g, '<br/>')}`,
+        `<strong style="color:${tokens.ink};">Begründung:</strong><br/>${esc(cancellationMessage).replace(/\n/g, '<br/>')}`,
         tokens.cancel,
         tokens.cancel_light,
         tokens,
@@ -532,7 +532,7 @@ Wenn Sie einen neuen Termin vereinbaren moechten, koennen Sie dies jederzeit ueb
 
   const body = [
     bodyHeadline('Termin storniert', tokens),
-    bodyParagraph('Guten Tag,<br/>wir muessen Ihnen leider mitteilen, dass Ihr Termin storniert wurde.', tokens),
+    bodyParagraph('Guten Tag,<br/>wir müssen Ihnen leider mitteilen, dass Ihr Termin storniert wurde.', tokens),
     renderBookingDetailsCard([
       { label: 'Termin', value: `${date} ${time}` },
       { label: 'Lehrkraft', value: safeText(teacherName) },

@@ -58,7 +58,7 @@ export function AufgabenTab({ paketId, id, aufgaben, mitglieder, kannSchreiben, 
     const deleteMutation = useMutation({
         mutationFn: (aufgabeId: number) => api.flow.deleteAufgabe(aufgabeId),
         onSuccess: invalidateAll,
-        onError: () => onError('Aufgabe konnte nicht geloescht werden'),
+        onError: () => onError('Aufgabe konnte nicht gelöscht werden'),
     });
 
     return (
@@ -137,8 +137,8 @@ export function AufgabenTab({ paketId, id, aufgaben, mitglieder, kannSchreiben, 
                                 <DeadlineAnzeige deadline={aufgabe.deadline} erledigt={aufgabe.status === 'erledigt'} />
                                 {istKoordination && (
                                     <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--flow-red)', fontSize: 12 }}
-                                        onClick={() => { if (confirm('Aufgabe loeschen?')) deleteMutation.mutate(aufgabe.id); }}>
-                                        Loeschen
+                                        onClick={() => { if (confirm('Aufgabe löschen?')) deleteMutation.mutate(aufgabe.id); }}>
+                                        Löschen
                                     </button>
                                 )}
                             </div>

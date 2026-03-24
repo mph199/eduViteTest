@@ -50,6 +50,7 @@ Before committing, spawn the `pruefer` agent. Fix every finding rated "Kritisch"
 | 10 | Auth middleware on every non-public route. Public routes get rate limiting. | Security baseline |
 | 11 | Migrations use `IF NOT EXISTS`, `TIMESTAMPTZ`. Check next number in `backend/migrations/`. | Safe migrations |
 | 12 | Commit format: `feat(scope):`, `fix(scope):`, `ui(scope):`, `docs(scope):` | Conventional commits |
+| 13 | Deutsche Texte immer mit echten Umlauten (ä, ö, ü, Ä, Ö, Ü, ß). Keine Ersatzschreibungen (ae, oe, ue, ss). Ausnahme: technische Identifier (DB-Spalten, API-Parameter, URL-Slugs). | Lesbarkeit & Korrektheit |
 
 ## Tech Stack (reference only)
 

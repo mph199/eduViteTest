@@ -95,7 +95,7 @@ export function ArbeitspaketPage() {
             queryClient.invalidateQueries({ queryKey: ['flow'] });
             navigate(-1);
         },
-        onError: () => setError('Arbeitspaket konnte nicht geloescht werden'),
+        onError: () => setError('Arbeitspaket konnte nicht gelöscht werden'),
     });
 
     const abschliessenMutation = useMutation({
@@ -194,8 +194,8 @@ export function ArbeitspaketPage() {
 
                 {istKoordination && paket.status === 'entwurf' && (
                     <button className="flow-btn flow-btn--danger flow-btn--sm"
-                        onClick={() => { if (confirm('Arbeitspaket endgueltig loeschen?')) deletePaketMutation.mutate(); }}>
-                        Loeschen
+                        onClick={() => { if (confirm('Arbeitspaket endgültig löschen?')) deletePaketMutation.mutate(); }}>
+                        Löschen
                     </button>
                 )}
             </div>

@@ -37,7 +37,7 @@ export function CounselorAnfragenTab({ config, showFlash }: Props) {
   const handleConfirm = async (id: number) => {
     try {
       await config.confirmAppointment(id);
-      showFlash('Termin bestaetigt.');
+      showFlash('Termin bestätigt.');
       loadRequests();
     } catch (err) {
       showFlash(err instanceof Error ? err.message : 'Fehler');
@@ -75,7 +75,7 @@ export function CounselorAnfragenTab({ config, showFlash }: Props) {
                 <th>Datum</th>
                 <th>Uhrzeit</th>
                 <th>Status</th>
-                <th>Schueler/in</th>
+                <th>Schüler/in</th>
                 <th>Klasse</th>
                 <th>{config.topicColumnLabel}</th>
                 <th>Aktionen</th>
@@ -102,7 +102,7 @@ export function CounselorAnfragenTab({ config, showFlash }: Props) {
                         {a.status === 'requested' && (
                           <button className="btn-primary btn--sm"
                             onClick={() => handleConfirm(a.id)}>
-                            Bestaetigen
+                            Bestätigen
                           </button>
                         )}
                         {(a.status === 'requested' || a.status === 'confirmed') && (

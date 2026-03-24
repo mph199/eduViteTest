@@ -45,7 +45,7 @@ export function TeacherPassword() {
     <>
       {user?.forcePasswordChange && !notice && (
         <div className="admin-error" style={{ marginBottom: 16 }}>
-          Ihr Passwort muss vor der ersten Nutzung geaendert werden.
+          Ihr Passwort muss vor der ersten Nutzung geändert werden.
         </div>
       )}
       {(error || notice) && (

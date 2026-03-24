@@ -10,7 +10,7 @@ import './LoginPage.css';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   provider_not_found: 'Anmeldedienst nicht gefunden.',
-  oauth_state_mismatch: 'Sicherheitspruefung fehlgeschlagen. Bitte erneut versuchen.',
+  oauth_state_mismatch: 'Sicherheitsprüfung fehlgeschlagen. Bitte erneut versuchen.',
   oauth_denied: 'Anmeldung beim Anbieter abgelehnt.',
   oauth_no_account: 'Kein Konto gefunden. Bitte wenden Sie sich an die Administration.',
   oauth_domain_blocked: 'Ihre E-Mail-Domain ist nicht freigeschaltet.',
@@ -47,7 +47,7 @@ export function LoginPage() {
 
     try {
       const u = await login(username, password);
-      // Alle Rollen landen nach Login in der Lehrkraefte-Uebersicht
+      // Alle Rollen landen nach Login in der Lehrkräfte-Übersicht
       if (u) {
         navigate('/teacher', { replace: true });
       } else {

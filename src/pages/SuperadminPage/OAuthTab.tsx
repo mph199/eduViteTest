@@ -111,7 +111,7 @@ export function OAuthTab() {
     try {
       await api.superadmin.deleteOAuthProvider(deleteTarget.id);
       setDeleteTarget(null);
-      flash('Provider geloescht');
+      flash('Provider gelöscht');
       await loadProviders();
     } catch (e: unknown) {
       flash(`Fehler: ${e instanceof Error ? e.message : 'Unbekannt'}`);
@@ -123,7 +123,7 @@ export function OAuthTab() {
   return (
     <>
       <div className="superadmin__hint">
-        Verwalten Sie OAuth/OIDC-Provider fuer Single Sign-On. Aktive Provider werden als
+        Verwalten Sie OAuth/OIDC-Provider für Single Sign-On. Aktive Provider werden als
         Anmeldebutton auf der Login-Seite angezeigt.
       </div>
 
@@ -173,7 +173,7 @@ export function OAuthTab() {
                 onClick={() => setDeleteTarget(p)}
                 disabled={saving}
               >
-                Loeschen
+                Löschen
               </button>
             </div>
           </div>
@@ -213,7 +213,7 @@ export function OAuthTab() {
 
             <div className="superadmin__field">
               <label className="superadmin__label">
-                Provider-Key *{mode === 'edit' ? ' (nicht aenderbar)' : ''}
+                Provider-Key *{mode === 'edit' ? ' (nicht änderbar)' : ''}
               </label>
               <input
                 className="superadmin__input"
@@ -237,14 +237,14 @@ export function OAuthTab() {
 
             <div className="superadmin__field">
               <label className="superadmin__label">
-                Client-Secret *{mode === 'edit' ? ' (leer lassen = unveraendert)' : ''}
+                Client-Secret *{mode === 'edit' ? ' (leer lassen = unverändert)' : ''}
               </label>
               <input
                 className="superadmin__input"
                 type="password"
                 value={form.clientSecret}
                 onChange={(e) => setField('clientSecret', e.target.value)}
-                placeholder={mode === 'edit' ? 'Nur eingeben wenn aendern' : 'OAuth Client Secret'}
+                placeholder={mode === 'edit' ? 'Nur eingeben wenn ändern' : 'OAuth Client Secret'}
               />
             </div>
 
@@ -351,11 +351,11 @@ export function OAuthTab() {
         <div className="superadmin__confirm-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="superadmin__confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <h3 className="superadmin__confirm-title">
-              Provider loeschen: {deleteTarget.display_name}
+              Provider löschen: {deleteTarget.display_name}
             </h3>
             <p className="superadmin__confirm-hint">
               Der Provider <strong>{deleteTarget.display_name}</strong> ({deleteTarget.provider_key}) wird
-              unwiderruflich geloescht. Bestehende Benutzerverknuepfungen gehen verloren.
+              unwiderruflich gelöscht. Bestehende Benutzerverknüpfungen gehen verloren.
             </p>
             <div className="superadmin__confirm-actions">
               <button
@@ -369,7 +369,7 @@ export function OAuthTab() {
                 onClick={handleDelete}
                 disabled={saving}
               >
-                {saving ? 'Loeschen...' : 'Endgueltig loeschen'}
+                {saving ? '��schen...' : 'Endgültig löschen'}
               </button>
             </div>
           </div>

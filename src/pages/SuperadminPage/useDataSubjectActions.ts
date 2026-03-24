@@ -67,7 +67,7 @@ export function useDataSubjectActions() {
   // ── Delete ──────────────────────────────────────────────
   const handleDelete = useCallback(async () => {
     if (!email.trim()) return;
-    if (!window.confirm(`Alle personenbezogenen Daten fuer ${email.trim()} unwiderruflich anonymisieren?`)) return;
+    if (!window.confirm(`Alle personenbezogenen Daten für ${email.trim()} unwiderruflich anonymisieren?`)) return;
     setActionLoading(true);
     setActionMsg('');
     try {

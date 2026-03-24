@@ -14,11 +14,11 @@ export const CONSENT_VERSIONS: Record<string, string> = {
 
 const MODULE_TEXTS: Record<string, string> = {
   elternsprechtag:
-    'Name, Klasse und E-Mail-Adresse werden zur Terminvergabe verarbeitet und nach Abschluss des Sprechtags geloescht.',
+    'Name, Klasse und E-Mail-Adresse werden zur Terminvergabe verarbeitet und nach Abschluss des Sprechtags gelöscht.',
   schulsozialarbeit:
-    'Name, Klasse und Kontaktdaten werden vertraulich verarbeitet und nur der Beratungsperson zugaenglich gemacht.',
+    'Name, Klasse und Kontaktdaten werden vertraulich verarbeitet und nur der Beratungsperson zugänglich gemacht.',
   beratungslehrer:
-    'Name, Klasse und Kontaktdaten werden vertraulich verarbeitet und nur der Beratungslehrkraft zugaenglich gemacht.',
+    'Name, Klasse und Kontaktdaten werden vertraulich verarbeitet und nur der Beratungslehrkraft zugänglich gemacht.',
 };
 
 export function ConsentCheckbox({ checked, onChange, moduleId }: ConsentCheckboxProps) {

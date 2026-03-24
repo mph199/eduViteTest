@@ -7,18 +7,18 @@ interface AktivitaetenTabProps {
 const AKTIVITAET_LABELS: Record<string, string> = {
     aufgabe_erstellt: 'hat eine Aufgabe erstellt',
     aufgabe_erledigt: 'hat eine Aufgabe als erledigt markiert',
-    aufgabe_status_geaendert: 'hat den Aufgabenstatus geaendert',
-    aufgabe_geloescht: 'hat eine Aufgabe geloescht',
+    aufgabe_status_geaendert: 'hat den Aufgabenstatus geändert',
+    aufgabe_geloescht: 'hat eine Aufgabe gelöscht',
     tagung_erstellt: 'hat eine Tagung erstellt',
     tagung_dokumentiert: 'hat eine Tagung dokumentiert',
     datei_hochgeladen: 'hat eine Datei hinzugefuegt',
     arbeitspaket_erstellt: 'hat das Arbeitspaket erstellt',
-    arbeitspaket_status_geaendert: 'hat den Status geaendert',
+    arbeitspaket_status_geaendert: 'hat den Status geändert',
     arbeitspaket_abgeschlossen: 'hat das Arbeitspaket abgeschlossen',
     arbeitspaket_wiederaufgenommen: 'hat das Arbeitspaket wiederaufgenommen',
     mitglied_hinzugefuegt: 'hat ein Mitglied hinzugefuegt',
     mitglied_entfernt: 'hat ein Mitglied entfernt',
-    rolle_geaendert: 'hat eine Rolle geaendert',
+    rolle_geaendert: 'hat eine Rolle geändert',
 };
 
 function formatAktivitaet(typ: string): string {

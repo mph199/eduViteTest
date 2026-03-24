@@ -265,7 +265,7 @@ export function AdminDashboard() {
                           <>
                             <span className="admin-cell-main">{activeEventStats.totalSlots} gesamt</span>
                             <span className="admin-cell-meta">
-                              {activeEventStats.availableSlots} frei / {activeEventStats.reservedSlots} reserviert / {activeEventStats.confirmedSlots} bestaetigt
+                              {activeEventStats.availableSlots} frei / {activeEventStats.reservedSlots} reserviert / {activeEventStats.confirmedSlots} bestätigt
                             </span>
                           </>
                         ) : activeEventStatsError ? (
@@ -281,7 +281,7 @@ export function AdminDashboard() {
             </div>
           ) : (
             <div className="text-secondary">
-              Kein aktives Event gefunden (nicht veroeffentlicht oder ausserhalb des Buchungsfensters).
+              Kein aktives Event gefunden (nicht veröffentlicht oder außerhalb des Buchungsfensters).
             </div>
           )}
         </div>

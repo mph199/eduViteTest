@@ -235,7 +235,7 @@ export function TagungDetailPage() {
                                                     <div style={{ flex: 1 }}>
                                                         <label style={labelStyle}>Zustaendig *</label>
                                                         <select value={aufgabeZustaendig} onChange={(e) => setAufgabeZustaendig(e.target.value)} style={fieldStyle}>
-                                                            <option value="">-- Auswaehlen --</option>
+                                                            <option value="">-- Auswählen --</option>
                                                             {Array.isArray(tagung.teilnehmende) && tagung.teilnehmende.map((t) => (
                                                                 <option key={t.userId} value={t.userId}>{t.vorname} {t.nachname}</option>
                                                             ))}

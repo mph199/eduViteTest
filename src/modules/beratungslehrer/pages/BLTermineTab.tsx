@@ -48,7 +48,7 @@ export function BLTermineTab({ profile, showFlash }: Props) {
 
   const handleGenerateSlots = async () => {
     if (!slotGenFrom || !slotGenUntil) {
-      showFlash('Bitte Zeitraum waehlen.');
+      showFlash('Bitte Zeitraum wählen.');
       return;
     }
     setGenerating(true);
@@ -75,7 +75,7 @@ export function BLTermineTab({ profile, showFlash }: Props) {
       setCalSelectedIds(new Set());
       loadCalendarAppointments(calMonth.year, calMonth.month);
     } catch (err) {
-      showFlash(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      showFlash(err instanceof Error ? err.message : 'Fehler beim Löschen');
     } finally {
       setCalDeleting(false);
     }

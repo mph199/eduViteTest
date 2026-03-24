@@ -112,10 +112,10 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Berater/in wirklich loeschen?')) return;
+    if (!confirm('Berater/in wirklich löschen?')) return;
     try {
       await api.ssw.deleteCounselor(id);
-      showFlash('Berater/in geloescht.');
+      showFlash('Berater/in gelöscht.');
       loadData();
     } catch (err) {
       showFlash(err instanceof Error ? err.message : 'Fehler');
@@ -228,9 +228,9 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                   checked={form.requires_confirmation}
                   onChange={e => setForm({ ...form, requires_confirmation: e.target.checked })}
                 />
-                Manuelle Bestaetigung erforderlich
+                Manuelle Bestätigung erforderlich
               </label>
-              <span className="cb-form__hint">Wenn deaktiviert, werden Buchungen direkt bestaetigt.</span>
+              <span className="cb-form__hint">Wenn deaktiviert, werden Buchungen direkt bestätigt.</span>
             </div>
             {!editingId && (
               <>
@@ -281,7 +281,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                 <td data-label="Aktionen">
                   <div className="action-btns">
                     <button className="btn-secondary" onClick={() => handleEdit(c)}>Bearbeiten</button>
-                    <button className="btn-secondary btn--danger" onClick={() => handleDelete(c.id)}>Loeschen</button>
+                    <button className="btn-secondary btn--danger" onClick={() => handleDelete(c.id)}>Löschen</button>
                   </div>
                 </td>
               </tr>
