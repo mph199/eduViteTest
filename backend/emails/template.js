@@ -2,6 +2,7 @@ import { query } from '../config/db.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from '../config/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -131,9 +132,9 @@ function renderPreheader(text) {
   return `<div style="display:none;font-size:1px;color:#f7f6f3;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${esc(text)} &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>`;
 }
 
-// Max logo file size for base64 embedding (~80KB file ≈ ~107KB base64).
-// Larger logos are skipped to avoid Gmail clipping (102KB total HTML limit).
-const MAX_LOGO_BYTES = 80_000;
+// Max logo file size for base64 embedding (~150KB file ≈ ~200KB base64).
+// Larger logos are skipped to keep email size manageable.
+const MAX_LOGO_BYTES = 200_000;
 
 function renderLogoBlock(branding, tokens) {
   const b = { ...DEFAULTS, ...branding };
@@ -144,18 +145,23 @@ function renderLogoBlock(branding, tokens) {
       const filename = b.logo_url.includes('/') ? b.logo_url.split('/').pop() : b.logo_url;
       const filePath = path.join(UPLOADS_DIR, filename);
       if (!path.resolve(filePath).startsWith(path.resolve(UPLOADS_DIR))) {
-        throw new Error('Invalid logo path');
-      }
-      if (fs.existsSync(filePath)) {
+        logger.warn({ logoUrl: b.logo_url }, 'Ungültiger Logo-Pfad (Path-Traversal-Versuch)');
+      } else if (!fs.existsSync(filePath)) {
+        logger.warn({ filePath }, 'Logo-Datei nicht gefunden');
+      } else {
         const buf = fs.readFileSync(filePath);
-        if (buf.length <= MAX_LOGO_BYTES) {
+        if (buf.length > MAX_LOGO_BYTES) {
+          logger.warn({ bytes: buf.length, max: MAX_LOGO_BYTES }, 'Logo zu groß für E-Mail-Einbettung');
+        } else {
           const ext = path.extname(filename).toLowerCase().replace('.', '');
           const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[ext] || 'image/png';
           const dataUri = `data:${mime};base64,${buf.toString('base64')}`;
           logoContent = `<img src="${esc(dataUri)}" alt="${esc(b.school_name)}" width="auto" height="48" style="display:block;height:48px;width:auto;max-width:220px;border:0;outline:none;text-decoration:none;" />`;
         }
       }
-    } catch { /* ignore – render text fallback */ }
+    } catch (err) {
+      logger.warn({ err }, 'Fehler beim Laden des Logos für E-Mail');
+    }
   }
 
   // Fallback: show school name as styled text header (no platform branding)
@@ -453,23 +459,48 @@ ${teacherMsgPlain}`;
   return { subject, text, html };
 }
 
+/**
+ * Merge consecutive time slots into combined ranges.
+ * E.g. ["16:00 - 16:10", "16:10 - 16:20"] → "16:00 - 16:20"
+ * Non-consecutive slots are kept as separate entries.
+ */
+function mergeConsecutiveSlots(slots) {
+  if (!slots?.length) return [];
+  const parsed = slots.map((s) => {
+    const m = String(s.time || '').match(/^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/);
+    return m ? { start: m[1], end: m[2] } : null;
+  }).filter(Boolean);
+  if (!parsed.length) return slots.map((s) => s.time);
+
+  // Sort by start time
+  parsed.sort((a, b) => a.start.localeCompare(b.start));
+
+  const merged = [{ ...parsed[0] }];
+  for (let i = 1; i < parsed.length; i++) {
+    const last = merged[merged.length - 1];
+    if (parsed[i].start === last.end) {
+      last.end = parsed[i].end;
+    } else {
+      merged.push({ ...parsed[i] });
+    }
+  }
+  return merged.map((r) => `${r.start} - ${r.end}`);
+}
+
 function buildMultiConfirmationEmail(data, branding) {
   const { date, slots, teacherName, teacherRoom, teacherMessage } = data;
-  const timesFormatted = slots.map((s) => s.time).join(', ');
+  const mergedTimes = mergeConsecutiveSlots(slots);
+  const timeDisplay = mergedTimes.join(', ');
   const b = { ...DEFAULTS, ...branding };
   const tokens = buildColorTokens(b.primary_color);
-  const subject = `${b.school_name} Elternsprechtag – ${slots.length} Termine bestätigt am ${date} (${timesFormatted})`;
+  const subject = `${b.school_name} Elternsprechtag – Termin bestätigt am ${date} (${timeDisplay})`;
 
   const teacherMsgPlain = teacherMessage ? `\n\nNachricht der Lehrkraft:\n${teacherMessage}` : '';
-  const timesListPlain = slots.map((s, i) => `  ${i + 1}. ${s.time}`).join('\n');
   const text = `Guten Tag,
 
 Ihre Terminanfrage wurde von der Lehrkraft angenommen.
 
-Es wurden ${slots.length} Termine für Sie vergeben:
-${timesListPlain}
-
-Datum: ${date}
+Termin: ${date} ${timeDisplay}
 Lehrkraft: ${safeText(teacherName)}
 Raum: ${safeText(teacherRoom)}
 ${teacherMsgPlain}`;
@@ -483,23 +514,22 @@ ${teacherMsgPlain}`;
       )
     : '';
 
-  // Build card rows: one row per time slot + teacher + room
-  const cardRows = slots.map((s, i) => ({
-    label: `Termin ${i + 1}`,
-    value: `${date} ${s.time}`,
+  const cardRows = mergedTimes.map((time) => ({
+    label: 'Termin',
+    value: `${date} ${time}`,
   }));
   cardRows.push({ label: 'Lehrkraft', value: safeText(teacherName) });
   cardRows.push({ label: 'Raum', value: safeText(teacherRoom) });
 
   const body = [
-    bodyHeadline(`${slots.length} Termine bestätigt`, tokens),
+    bodyHeadline('Termin bestätigt', tokens),
     bodyParagraph('Guten Tag,<br/>Ihre Terminanfrage wurde von der Lehrkraft angenommen.', tokens),
     renderBookingDetailsCard(cardRows, 'Buchungsdetails', tokens.primary_light, tokens),
     teacherMsgBlock,
-    bodyMutedText('Falls Sie einen Termin stornieren möchten, wenden Sie sich bitte per E-Mail an die Lehrkraft.', tokens),
+    bodyMutedText('Falls Sie diesen Termin stornieren möchten, wenden Sie sich bitte an die Lehrkraft oder nutzen Sie das Buchungssystem.', tokens),
   ].join('');
 
-  const html = wrapEmailHtml({ body, branding, preheader: `${slots.length} Termine am ${date} wurden bestätigt.`, statusBadge: 'confirmed' });
+  const html = wrapEmailHtml({ body, branding, preheader: `Ihr Termin am ${date} wurde bestätigt.`, statusBadge: 'confirmed' });
   return { subject, text, html };
 }
 

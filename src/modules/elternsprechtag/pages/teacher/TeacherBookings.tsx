@@ -1,19 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
-import { exportBookingsToICal } from '../../../../utils/icalExport';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
 import { CalendarSubscription } from '../../components/CalendarSubscription';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
-import type { TeacherOutletContext } from './TeacherLayout';
+
 
 type SortKey = 'when' | 'visitor';
 type SortDir = 'asc' | 'desc';
 
 export function TeacherBookings() {
-  const { teacher } = useOutletContext<TeacherOutletContext>();
-
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -133,22 +129,6 @@ export function TeacherBookings() {
     }
   };
 
-  const exportICal = () => {
-    setError('');
-    setNotice('');
-
-    if (!filteredAndSorted.length) {
-      setNotice('Keine Buchungen zum Exportieren.');
-      return;
-    }
-
-    exportBookingsToICal(
-      filteredAndSorted.map((b) => ({ ...b, teacherName: teacher?.name || 'Lehrkraft' })),
-      undefined,
-      { defaultRoom: teacher?.room }
-    );
-  };
-
   if (loading) {
     return (
       <div className="admin-loading">
@@ -175,8 +155,6 @@ export function TeacherBookings() {
           </button>
         </div>
       )}
-
-      <CalendarSubscription />
 
       <div className="admin-stats" style={{ gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div className="stat-card" style={{ flex: '1 1 360px', minWidth: 240, padding: '1.1rem 1.1rem' }}>
@@ -211,6 +189,8 @@ export function TeacherBookings() {
         </div>
       </div>
 
+      <CalendarSubscription />
+
       <section className="stat-card teacher-table-section" style={{ padding: '1.1rem 1.1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0 }}>Buchungen einsehen</h3>
@@ -224,12 +204,6 @@ export function TeacherBookings() {
               Aktualisieren
             </button>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button onClick={exportICal} className="btn-primary" disabled={bookings.length === 0}>
-            Alle Termine als Kalenderdatei exportieren
-          </button>
         </div>
 
         {filteredAndSorted.length === 0 ? (

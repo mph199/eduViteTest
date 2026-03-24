@@ -113,17 +113,11 @@ export function CalendarSubscription() {
 
       {/* Zustand 1: Kein Token */}
       {state.kind === 'none' && (
-        <>
-          <p className="calendar-sub__hint calendar-sub__hint--dsgvo">
-            Die Abo-URL enthält personenbezogene Daten (abgekürzte Namen, Klassen).
-            Binden Sie die URL nur in Ihren privaten Kalender ein und teilen Sie sie nicht mit Dritten.
-          </p>
-          <div className="calendar-sub__actions">
-            <button className="btn-primary" onClick={handleCreate}>
-              Kalender-Abo erstellen
-            </button>
-          </div>
-        </>
+        <div className="calendar-sub__actions">
+          <button className="btn-primary" onClick={handleCreate}>
+            Kalender-Abo erstellen
+          </button>
+        </div>
       )}
 
       {/* Zustand 2: Gerade erstellt / rotiert — URL einmalig sichtbar */}
@@ -165,9 +159,6 @@ export function CalendarSubscription() {
             Kalender-Abo aktiv seit {formatDate(state.createdAt)}.
             Läuft ab am {formatDate(state.expiresAt)}.
           </p>
-          <p className="calendar-sub__hint">
-            URL aus Sicherheitsgründen nicht erneut anzeigbar.
-          </p>
           <div className="calendar-sub__actions">
             <button className="btn-secondary" onClick={handleRotate}>
               Neu erzeugen
@@ -184,10 +175,6 @@ export function CalendarSubscription() {
         <>
           <p className="calendar-sub__status calendar-sub__status--expired">
             Kalender-Abo abgelaufen seit {formatDate(state.expiresAt)}.
-          </p>
-          <p className="calendar-sub__hint calendar-sub__hint--dsgvo">
-            Die Abo-URL enthält personenbezogene Daten (abgekürzte Namen, Klassen).
-            Binden Sie die URL nur in Ihren privaten Kalender ein und teilen Sie sie nicht mit Dritten.
           </p>
           <div className="calendar-sub__actions">
             <button className="btn-primary" onClick={handleCreate}>

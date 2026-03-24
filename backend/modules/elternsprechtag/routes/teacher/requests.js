@@ -125,7 +125,8 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
 
     // Assign first slot using assignRequestToSlot (updates booking_requests status)
     const firstTime = rawTimes[0] || null;
-    const assignment = await assignRequestToSlot(current, teacherId, firstTime, rawTeacherMessage || '');
+    const skipEmail = rawTimes.length > 1;
+    const assignment = await assignRequestToSlot(current, teacherId, firstTime, rawTeacherMessage || '', { skipEmail });
     if (!assignment.ok) {
       if (assignment.code === 'INVALID_TIME_SELECTION') {
         return res.status(400).json({ error: 'Ungültige Zeit-Auswahl', assignableTimes: assignment.candidateTimes || [] });
@@ -167,8 +168,11 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       }
     }
 
-    // If multiple slots were assigned, send a combined confirmation email
+    // Send confirmation email: combined if multiple slots, single otherwise
     if (allSlots.length > 1) {
+      await sendMultiSlotConfirmation(allSlots, assignment.updatedReq, teacherId, rawTeacherMessage);
+    } else if (skipEmail) {
+      // Extra-Slots failed but first slot email was skipped — send single confirmation now
       await sendMultiSlotConfirmation(allSlots, assignment.updatedReq, teacherId, rawTeacherMessage);
     }
 
