@@ -13,6 +13,7 @@ import { query } from '../../../config/db.js';
 import logger from '../../../config/logger.js';
 import { generateTeacherICS } from '../utils/icalGenerator.js';
 import { getExpiresAt } from '../utils/tokenUtils.js';
+import { writeAuditLog } from '../../../middleware/audit-log.js';
 
 const router = express.Router();
 
@@ -49,7 +50,13 @@ router.get('/:token/elternsprechtag.ics', async (req, res) => {
       return res.status(404).end();
     }
 
+    // DSGVO Audit-Log: PII-Lesezugriff über Token-basierten Feed (fire-and-forget)
+    writeAuditLog(null, 'READ', 'slots', teacher.id, { source: 'calendar-feed', slotQuery: true }, req.ip);
+
     // Bestätigte Slots laden (confirmed oder Legacy-Slots ohne Status)
+    // HINWEIS: restricted-Flag (Art. 18 DSGVO) liegt auf booking_requests, nicht auf slots.
+    // Slots haben keine direkte FK zu booking_requests. Für V2 prüfen, ob ein JOIN
+    // auf booking_requests nötig ist, falls restricted-Einschränkungen auf Slot-Ebene relevant werden.
     const { rows: slots } = await query(
       `SELECT
          s.id,
