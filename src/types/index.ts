@@ -46,6 +46,20 @@ export interface BookingFormData {
   consent_version?: string;
 }
 
+export interface CalendarTokenStatus {
+  exists: boolean;
+  expired?: boolean;
+  createdAt?: string | null;
+  expiresAt?: string | null;
+  isExpired?: boolean;
+}
+
+export interface CalendarTokenCreated {
+  token: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface ConsentReceipt {
   id: number;
   module: string;
