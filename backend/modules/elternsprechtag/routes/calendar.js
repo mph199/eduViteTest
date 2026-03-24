@@ -12,19 +12,11 @@ import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import logger from '../../../config/logger.js';
 import { generateTeacherICS } from '../utils/icalGenerator.js';
+import { getExpiresAt } from '../utils/tokenUtils.js';
 
 const router = express.Router();
 
 const CALENDAR_UID_DOMAIN = process.env.CALENDAR_UID_DOMAIN || 'calendar.schule.de';
-
-/**
- * Berechnet expiresAt via echter Monatsarithmetik (nicht 365 Tage).
- */
-function getExpiresAt(createdAt) {
-  const d = new Date(createdAt);
-  d.setMonth(d.getMonth() + 12);
-  return d;
-}
 
 /**
  * GET /api/calendar/:token/elternsprechtag.ics

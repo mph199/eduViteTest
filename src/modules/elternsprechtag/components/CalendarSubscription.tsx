@@ -106,7 +106,7 @@ export function CalendarSubscription() {
       <h3 className="calendar-sub__title">Kalender-Abo</h3>
 
       {error && (
-        <div className="admin-error" style={{ marginBottom: 8 }}>
+        <div className="admin-error calendar-sub__error">
           {error}
         </div>
       )}
@@ -147,8 +147,7 @@ export function CalendarSubscription() {
           <div className="calendar-sub__actions">
             <a
               href={buildWebcalUrl(state.token)}
-              className="btn-secondary"
-              style={{ textDecoration: 'none' }}
+              className="btn-secondary calendar-sub__webcal-link"
             >
               In Kalender-App öffnen
             </a>

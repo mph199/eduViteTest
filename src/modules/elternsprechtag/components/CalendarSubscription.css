@@ -65,6 +65,14 @@
   margin-top: 0.75rem;
 }
 
+.calendar-sub__error {
+  margin-bottom: 0.5rem;
+}
+
+.calendar-sub__webcal-link {
+  text-decoration: none;
+}
+
 .calendar-sub__copied {
   font-size: 0.85rem;
   color: var(--brand-success, #2e7d32);

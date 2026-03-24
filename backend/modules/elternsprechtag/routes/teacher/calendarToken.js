@@ -13,17 +13,9 @@ import { requireAuth } from '../../../../middleware/auth.js';
 import { query } from '../../../../config/db.js';
 import logger from '../../../../config/logger.js';
 import { requireTeacher } from './lib/middleware.js';
+import { getExpiresAt } from '../../utils/tokenUtils.js';
 
 const router = express.Router();
-
-/**
- * Berechnet expiresAt via echter Monatsarithmetik.
- */
-function getExpiresAt(createdAt) {
-  const d = new Date(createdAt);
-  d.setMonth(d.getMonth() + 12);
-  return d;
-}
 
 /**
  * Erzeugt ein neues Token und speichert den Hash.
