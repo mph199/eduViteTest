@@ -165,7 +165,9 @@ export async function listAdminBookings() {
     `SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
      FROM slots s
      LEFT JOIN teachers t ON s.teacher_id = t.id
+     LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
      WHERE s.booked = true
+       AND (br.restricted IS NOT TRUE OR br.id IS NULL)
      ORDER BY s.date, s.time`
   );
   // Re-shape rows so mapBookingRowWithTeacher can read slot.teacher.subject

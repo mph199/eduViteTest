@@ -103,7 +103,7 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       slotsCreated,
       slotsEventId: targetEventId,
       slotsEventDate: eventDate,
-      user: { username, tempPassword }
+      user: { username, passwordSet: true }
     });
   } catch (error) {
     await client.query('ROLLBACK');

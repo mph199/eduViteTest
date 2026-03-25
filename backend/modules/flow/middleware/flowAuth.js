@@ -212,7 +212,7 @@ export function requireFlowAufgabeErstellen(req, res, next) {
     if (rolle === 'koordination') return next();
 
     if (rolle === 'mitwirkende') {
-        if (!tagungId && zustaendig !== req.user.id) {
+        if (!tagungId && parseInt(zustaendig, 10) !== req.user.id) {
             return res.status(403).json({
                 error: 'Mitwirkende duerfen ausserhalb von Tagungen nur sich selbst Aufgaben zuweisen'
             });

@@ -58,7 +58,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
   }
 
   const cancellationMessage = typeof req.body?.cancellationMessage === 'string'
-    ? req.body.cancellationMessage.trim()
+    ? req.body.cancellationMessage.trim().slice(0, 1000)
     : '';
   if (!cancellationMessage) {
     return res.status(400).json({ error: 'cancellationMessage is required' });
