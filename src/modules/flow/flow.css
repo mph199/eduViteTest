@@ -18,7 +18,8 @@
 
     /* Brand – fallback to brand-secondary */
     --flow-brand: var(--brand-secondary, #3b6de0);
-    --flow-brand-rgb: var(--brand-primary-rgb, 59, 109, 224);
+    /* flow-spezifisch: brand-secondary-Farbwert als RGB */
+    --flow-brand-rgb: 59, 109, 224;
     --flow-brand-light: #edf2fc;
 
     /* Semantic – flow-specific, no brand equivalent */
