@@ -85,12 +85,12 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(var(--color-white-rgb, 255, 255, 255), 0.06);
 }
 
 .flow-sidebar__header {
     padding: 24px 20px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(var(--color-white-rgb, 255, 255, 255), 0.06);
 }
 
 .flow-sidebar__title {
@@ -162,7 +162,7 @@
     font-family: var(--flow-font-mono);
     font-size: 10px;
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--color-white-rgb, 255, 255, 255), 0.1);
     color: var(--flow-sidebar-text);
     padding: 1px 6px;
     border-radius: 8px;
@@ -170,7 +170,7 @@
 
 .flow-sidebar__footer {
     padding: 12px 20px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(var(--color-white-rgb, 255, 255, 255), 0.06);
     font-size: 11px;
     color: var(--flow-sidebar-text);
 }
