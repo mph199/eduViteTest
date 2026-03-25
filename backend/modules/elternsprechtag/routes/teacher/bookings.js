@@ -5,6 +5,7 @@ import { isEmailConfigured, sendMail } from '../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../emails/template.js';
 import { mapSlotRow, mapBookingRowWithTeacher } from '../../../../utils/mappers.js';
 import { getTeacherById } from '../../services/teachersService.js';
+import { writeAuditLog } from '../../../../middleware/audit-log.js';
 import logger from '../../../../config/logger.js';
 import { requireTeacher } from './lib/middleware.js';
 
@@ -25,7 +26,9 @@ router.get('/bookings', requireAuth, requireTeacher, async (req, res) => {
       `SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
        FROM slots s
        LEFT JOIN teachers t ON s.teacher_id = t.id
+       LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
        WHERE s.teacher_id = $1 AND s.booked = true
+         AND (br.restricted IS NOT TRUE OR br.id IS NULL)
        ORDER BY s.date, s.time`,
       [teacherId]
     );
@@ -36,6 +39,7 @@ router.get('/bookings', requireAuth, requireTeacher, async (req, res) => {
       return mapBookingRowWithTeacher(slot);
     });
 
+    writeAuditLog(req.user?.id, 'READ', 'slots', null, { teacherId, count: bookings.length, source: 'teacher-bookings' }, req.ip);
     res.json({ bookings });
   } catch (error) {
     logger.error({ err: error }, 'Error fetching teacher bookings');
@@ -68,7 +72,11 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
     }
 
     const { rows: currentRows } = await query(
-      'SELECT * FROM slots WHERE id = $1 AND teacher_id = $2 AND booked = true',
+      `SELECT s.*
+       FROM slots s
+       LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
+       WHERE s.id = $1 AND s.teacher_id = $2 AND s.booked = true
+         AND (br.restricted IS NOT TRUE OR br.id IS NULL)`,
       [slotId, teacherId]
     );
     const current = currentRows[0] || null;
@@ -88,6 +96,7 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
          confirmation_sent_at = NULL,
          updated_at = $1
        WHERE id = $2 AND teacher_id = $3 AND booked = true
+         AND id NOT IN (SELECT assigned_slot_id FROM booking_requests WHERE assigned_slot_id = $2 AND restricted = TRUE)
        RETURNING *`,
       [new Date().toISOString(), slotId, teacherId]
     );
@@ -138,7 +147,11 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
     }
 
     const { rows: acceptRows } = await query(
-      'SELECT * FROM slots WHERE id = $1 AND teacher_id = $2 AND booked = true',
+      `SELECT s.*
+       FROM slots s
+       LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
+       WHERE s.id = $1 AND s.teacher_id = $2 AND s.booked = true
+         AND (br.restricted IS NOT TRUE OR br.id IS NULL)`,
       [slotId, teacherId]
     );
     const current = acceptRows[0] || null;
@@ -160,6 +173,7 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
     const { rows: confirmRows } = await query(
       `UPDATE slots SET status = 'confirmed', updated_at = $1
        WHERE id = $2 AND teacher_id = $3 AND booked = true
+         AND id NOT IN (SELECT assigned_slot_id FROM booking_requests WHERE assigned_slot_id = $2 AND restricted = TRUE)
        RETURNING *`,
       [new Date().toISOString(), slotId, teacherId]
     );

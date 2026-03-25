@@ -322,11 +322,34 @@ export function createCounselorAdminRoutes(config) {
       const numericIds = ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
       if (numericIds.length === 0) return res.status(400).json({ error: 'Keine gueltigen IDs' });
 
-      const placeholders = numericIds.map((_, i) => `$${i + 1}`).join(', ');
-      const { rowCount } = await query(
-        `DELETE FROM ${appointmentsTable} WHERE id IN (${placeholders})`,
-        numericIds
-      );
+      // Ownership-Check + restricted-Filter: atomar im DELETE
+      const isAdmin = req.user?.role === 'admin' || req.user?.role === 'superadmin';
+      let rowCount;
+      if (!isAdmin) {
+        const { rows: counselorRows } = await query(
+          `SELECT id FROM ${counselorsTable} WHERE user_id = $1 AND active = true`,
+          [req.user.id]
+        );
+        if (counselorRows.length === 0) {
+          return res.status(403).json({ error: 'Kein aktiver Beratungs-Account für diesen Benutzer' });
+        }
+        const ownCounselorId = counselorRows[0].id;
+        // Atomar: Ownership + restricted-Filter direkt im DELETE
+        const delPlaceholders = numericIds.map((_, i) => `$${i + 2}`).join(', ');
+        const result = await query(
+          `DELETE FROM ${appointmentsTable} WHERE id IN (${delPlaceholders}) AND counselor_id = $1 AND restricted IS NOT TRUE`,
+          [ownCounselorId, ...numericIds]
+        );
+        rowCount = result.rowCount;
+      } else {
+        // Admins: restricted-Termine werden nicht gelöscht
+        const placeholders = numericIds.map((_, i) => `$${i + 1}`).join(', ');
+        const result = await query(
+          `DELETE FROM ${appointmentsTable} WHERE id IN (${placeholders}) AND restricted IS NOT TRUE`,
+          numericIds
+        );
+        rowCount = result.rowCount;
+      }
       writeAuditLog(req.user?.id, 'DELETE', appointmentsTable, null, { ids: numericIds, count: rowCount }, req.ip);
       res.json({ success: true, deleted: rowCount });
     } catch (err) {

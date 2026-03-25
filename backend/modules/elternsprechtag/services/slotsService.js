@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import { mapBookingRowWithTeacher } from '../../../utils/mappers.js';
 import { getVerificationTtlMs } from '../utils/tokenUtils.js';
+import { assertSafeIdentifier } from '../../../shared/sqlGuards.js';
 
 export async function reserveBooking({
   slotId,
@@ -77,6 +78,7 @@ export async function reserveBooking({
 
   // Build dynamic SET clause from updateData
   const keys = Object.keys(updateData);
+  keys.forEach((k) => assertSafeIdentifier(k, `slotsService updateData key: ${k}`));
   const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);
   const values = keys.map((k) => updateData[k]);
   const offset = values.length;
