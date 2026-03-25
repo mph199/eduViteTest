@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import { mapBookingRowWithTeacher } from '../../../utils/mappers.js';
 import { getVerificationTtlMs } from '../utils/tokenUtils.js';
+import { assertSafeIdentifier } from '../../../shared/sqlGuards.js';
 
 export async function reserveBooking({
   slotId,
@@ -77,6 +78,7 @@ export async function reserveBooking({
 
   // Build dynamic SET clause from updateData
   const keys = Object.keys(updateData);
+  keys.forEach((k) => assertSafeIdentifier(k, `slotsService updateData key: ${k}`));
   const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);
   const values = keys.map((k) => updateData[k]);
   const offset = values.length;
@@ -130,7 +132,7 @@ export async function verifyBookingToken(token) {
         'UPDATE slots SET verification_token_hash = NULL, updated_at = $1 WHERE id = $2',
         [new Date().toISOString(), slot.id]
       );
-    } catch {}
+    } catch { /* non-critical token cleanup – failure is acceptable */ }
     return { slotRow: slot, verifiedAt: slot.verified_at };
   }
 
@@ -163,7 +165,9 @@ export async function listAdminBookings() {
     `SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
      FROM slots s
      LEFT JOIN teachers t ON s.teacher_id = t.id
+     LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
      WHERE s.booked = true
+       AND (br.restricted IS NOT TRUE OR br.id IS NULL)
      ORDER BY s.date, s.time`
   );
   // Re-shape rows so mapBookingRowWithTeacher can read slot.teacher.subject

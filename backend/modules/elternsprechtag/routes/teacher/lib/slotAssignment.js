@@ -2,6 +2,7 @@ import { query, getClient } from '../../../../../config/db.js';
 import { isEmailConfigured, sendMail } from '../../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../../emails/template.js';
 import { getTeacherById } from '../../../services/teachersService.js';
+import { assertSafeIdentifier } from '../../../../../shared/sqlGuards.js';
 import logger from '../../../../../config/logger.js';
 
 // ── Time parsing helpers ────────────────────────────────────────────────
@@ -166,7 +167,7 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
 
   if (!orderedTimes.length) {
     const { rows: anyFreeSlots } = await query(
-      `SELECT * FROM slots
+      `SELECT time FROM slots
        WHERE teacher_id = $1 AND date = $2 AND booked = false
        ORDER BY time ASC LIMIT 50`,
       [teacherId, current.date]
@@ -180,7 +181,7 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   }
 
   const { rows: slotRows } = await query(
-    `SELECT * FROM slots
+    `SELECT id, time, event_id FROM slots
      WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = ANY($3)
      LIMIT 50`,
     [teacherId, current.date, orderedTimes]
@@ -208,6 +209,7 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   const slotUpdate = buildSlotUpdateFromRequest(current, slot, now);
 
   const slotUpdateKeys = Object.keys(slotUpdate);
+  slotUpdateKeys.forEach((k) => assertSafeIdentifier(k, `slotAssignment slotUpdate key: ${k}`));
   const slotSetClauses = slotUpdateKeys.map((k, i) => `${k} = $${i + 1}`);
   const slotValues = slotUpdateKeys.map((k) => slotUpdate[k]);
   const slotOffset = slotValues.length;
@@ -265,7 +267,7 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
   }
 
   const { rows: slotRows } = await query(
-    `SELECT * FROM slots
+    `SELECT id, time, event_id FROM slots
      WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = $3
      LIMIT 10`,
     [teacherId, requestRow.date, normalizedTime]
@@ -280,6 +282,7 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
   const slotUpdate = buildSlotUpdateFromRequest(requestRow, slot, now);
 
   const extraKeys = Object.keys(slotUpdate);
+  extraKeys.forEach((k) => assertSafeIdentifier(k, `slotAssignment extraSlot key: ${k}`));
   const extraSet = extraKeys.map((k, i) => `${k} = $${i + 1}`);
   const extraVals = extraKeys.map((k) => slotUpdate[k]);
   const extraOff = extraVals.length;
