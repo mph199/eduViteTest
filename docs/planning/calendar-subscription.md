@@ -339,8 +339,7 @@ SELECT
   s.parent_name,
   s.class_name,
   t.first_name  AS teacher_first_name,
-  t.last_name   AS teacher_last_name,
-  t.room
+  t.last_name   AS teacher_last_name
 FROM slots s
 JOIN teachers t ON t.id = s.teacher_id
 WHERE t.calendar_token_hash = $1

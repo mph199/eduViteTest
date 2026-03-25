@@ -88,7 +88,7 @@ export function FlowSidebar() {
 
                 {Array.isArray(bildungsgaenge) && bildungsgaenge.length > 0 && (
                     <>
-                        <div className="flow-sidebar__section-label">Bildungsgaenge</div>
+                        <div className="flow-sidebar__section-label">Bildungsgänge</div>
                         {bildungsgaenge.map((bg: { id: number; name: string }) => (
                             <button
                                 key={bg.id}

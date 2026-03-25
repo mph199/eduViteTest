@@ -131,12 +131,6 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
                 <span className="sidebarProfile__infoLabel">Benutzername</span>
                 <span className="sidebarProfile__infoValue">{user.username}</span>
               </div>
-              {user.fullName && (
-                <div className="sidebarProfile__infoRow sidebarProfile__infoRow--border">
-                  <span className="sidebarProfile__infoLabel">Name</span>
-                  <span className="sidebarProfile__infoValue">{user.fullName}</span>
-                </div>
-              )}
             </div>
 
             {/* ── Actions ── */}

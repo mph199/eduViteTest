@@ -152,7 +152,7 @@ export function TagungDetailPage() {
                                 <button className="flow-btn flow-btn--primary flow-btn--sm"
                                     onClick={() => addAgendaMutation.mutate()}
                                     disabled={!agendaTitel.trim() || addAgendaMutation.isPending}>
-                                    Hinzufuegen
+                                    Hinzufügen
                                 </button>
                             </div>
                         </div>
@@ -233,7 +233,7 @@ export function TagungDetailPage() {
                                                             placeholder="Aufgabentitel" style={fieldStyle} autoFocus />
                                                     </div>
                                                     <div style={{ flex: 1 }}>
-                                                        <label style={labelStyle}>Zustaendig *</label>
+                                                        <label style={labelStyle}>Zuständig *</label>
                                                         <select value={aufgabeZustaendig} onChange={(e) => setAufgabeZustaendig(e.target.value)} style={fieldStyle}>
                                                             <option value="">-- Auswählen --</option>
                                                             {Array.isArray(tagung.teilnehmende) && tagung.teilnehmende.map((t) => (

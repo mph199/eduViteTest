@@ -153,11 +153,9 @@
 
 **Empfehlung:** Automatische Rotation nach 24 Monaten implementieren.
 
-#### Tabelle: `feedback`
+#### Tabelle: `feedback` – Entfernt (Migration 057)
 
-| Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
-|--------|----------|---------------|--------|-----------|--------------|
-| message | Anonymer Freitext | Pseudonym / potentiell direkt | Nein | Ja (DELETE) | Manuell |
+> **Hinweis:** Die Tabelle `feedback` wurde mit Migration 057 entfernt.
 
 ### 1.6 Flow-Modul (Bildungsgang-Kollaboration)
 
@@ -304,7 +302,7 @@
 | Beratungstermine (BL) | 365 Tage nach Termin (konfigurierbar via `RETENTION_BL_APPOINTMENTS_DAYS`) | Dokumentationspflicht Schule | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
 | Stornierte Termine (SSW/BL) | 30 Tage nach Stornierung (konfigurierbar via `RETENTION_CANCELLED_DAYS`) | Kein Zweck mehr | Anonymisierung (PII auf NULL) | **Implementiert** (retention-cleanup.js) |
 | Benutzerkonten | Bis Deaktivierung/Austritt | Arbeitsvertrag | DELETE mit CASCADE | Manuell moeglich |
-| Feedback | 12 Monate | Berechtigtes Interesse | DELETE | Manuell moeglich |
+| Feedback | — | — | — | Entfernt (Migration 057) |
 | Consent-Receipts | Unbegrenzt | Art. 7 Abs. 1 DSGVO | NICHT loeschen | Korrekt |
 | Audit-Log | 730 Tage (~24 Monate, konfigurierbar via `RETENTION_AUDIT_LOG_DAYS`) | Berechtigtes Interesse | DELETE via retention-cleanup.js | **Implementiert** |
 | Verification-Tokens | Sofort nach Verify | Technisch | Wird auf NULL gesetzt | **Implementiert** |
@@ -323,7 +321,7 @@
 | `users` | Ja | DELETE CASCADE | Implementiert |
 | `ssw_counselors` | Ja | DELETE CASCADE | Implementiert |
 | `bl_counselors` | Ja | DELETE CASCADE | Implementiert |
-| `feedback` | Ja | DELETE-Endpunkt | Implementiert |
+| `feedback` | — | — | Entfernt (Migration 057) |
 | `consent_receipts` | **NEIN (gewollt)** | Append-only, Nachweispflicht | Korrekt |
 | `audit_log` | **JA** | DELETE via retention-cleanup.js (730 Tage Default) | **Implementiert** |
 

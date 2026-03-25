@@ -14,8 +14,6 @@ export function TeacherBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<string>('');
-  const [query, setQuery] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'parent' | 'company'>('all');
   const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
 
   const loadBookings = async () => {
@@ -35,35 +33,11 @@ export function TeacherBookings() {
     loadBookings();
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return bookings.filter((b) => {
-      if (typeFilter !== 'all' && b.visitorType !== typeFilter) return false;
-      if (!q) return true;
-      const hay = [
-        visitorLabel(b),
-        b.representativeName,
-        b.studentName,
-        b.traineeName,
-        b.className,
-        b.email,
-        b.time,
-        b.date,
-        b.message,
-        b.status,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [bookings, query, typeFilter]);
-
-  const filteredAndSorted = useMemo(() => {
-    if (!sort.key) return filtered;
+  const sorted = useMemo(() => {
+    if (!sort.key) return bookings;
 
     const dir = sort.dir === 'asc' ? 1 : -1;
-    const copy = [...filtered];
+    const copy = [...bookings];
     copy.sort((a, b) => {
       if (sort.key === 'visitor') {
         const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
@@ -81,7 +55,7 @@ export function TeacherBookings() {
       return (a.id - b.id) * dir;
     });
     return copy;
-  }, [filtered, sort.dir, sort.key]);
+  }, [bookings, sort.dir, sort.key]);
 
   const cycleSort = (key: SortKey) => {
     setSort((prev) => {
@@ -156,68 +130,31 @@ export function TeacherBookings() {
         </div>
       )}
 
-      <div className="admin-stats" style={{ gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div className="stat-card" style={{ flex: '1 1 360px', minWidth: 240, padding: '1.1rem 1.1rem' }}>
-          <h3>Filter</h3>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder="Suche (Name, Klasse, E-Mail)"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              style={{ padding: '8px 10px', flex: '1 1 200px' }}
-            />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as 'all' | 'parent' | 'company')}
-              style={{ padding: '8px 10px', flex: '0 1 200px' }}
-            >
-              <option value="all">Alle</option>
-              <option value="parent">Erziehungsberechtigte</option>
-              <option value="company">Ausbildungsbetrieb</option>
-            </select>
-            {(query || typeFilter !== 'all') && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => { setQuery(''); setTypeFilter('all'); }}
-              >
-                Filter zurücksetzen
-              </button>
-            )}
-            <button type="button" className="btn-secondary" onClick={loadBookings}>
-              Aktualisieren
-            </button>
-          </div>
-          {filtered.length !== bookings.length && (
-            <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: 'var(--brand-text-secondary, #666)' }}>
-              {filtered.length} von {bookings.length} Buchungen angezeigt
-            </p>
-          )}
-        </div>
-
-        <div className="stat-card" style={{ flex: '1 1 220px', minWidth: 0, padding: '1.1rem 1.1rem' }}>
-          <h3>Meine Termine</h3>
-          <p className="stat-number">{bookings.length}</p>
-          <p className="stat-label">Gebuchte Gespräche</p>
-        </div>
-      </div>
-
       <CalendarSubscription />
 
       <section className="stat-card teacher-table-section" style={{ padding: '1.1rem 1.1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <h3 style={{ margin: 0 }}>Buchungen einsehen</h3>
-          {sort.key && (
-            <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearSort}>
-              Sortierung zurücksetzen
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <h3 style={{ margin: 0 }}>Buchungen einsehen</h3>
+            <span style={{ fontSize: '0.9rem', color: 'var(--brand-text-secondary, #666)' }}>
+              {bookings.length} gebuchte {bookings.length === 1 ? 'Termin' : 'Termine'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {sort.key && (
+              <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearSort}>
+                Sortierung zurücksetzen
+              </button>
+            )}
+            <button type="button" className="btn-secondary btn-secondary--sm" onClick={loadBookings}>
+              Aktualisieren
             </button>
-          )}
+          </div>
         </div>
 
-        {filteredAndSorted.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="no-bookings">
-            <p>{(query || typeFilter !== 'all') ? 'Keine Buchungen für den aktuellen Filter gefunden.' : 'Noch keine Buchungen vorhanden.'}</p>
+            <p>Noch keine Buchungen vorhanden.</p>
           </div>
         ) : (
           <div className="bookings-table-container teacher-bookings-table-container teacher-my-bookings-table-container">
@@ -272,7 +209,7 @@ export function TeacherBookings() {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSorted.map((booking) => (
+                {sorted.map((booking) => (
                   <tr key={booking.id}>
                     <td data-label="Termin" className="teacher-when-cell">
                       <div className="teacher-when-main">

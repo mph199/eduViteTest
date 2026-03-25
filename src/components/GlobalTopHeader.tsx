@@ -162,7 +162,6 @@ export function GlobalTopHeader() {
       if (pathname.includes('/teacher/requests')) return 'Lehrkraft · Anfragen verwalten';
       if (pathname.includes('/teacher/bookings')) return 'Lehrkraft · Meine Buchungen';
       if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort ändern';
-      if (pathname.includes('/teacher/feedback')) return 'Lehrkraft · Feedback senden';
       if (pathname.startsWith('/teacher/flow')) return 'Flow';
       return 'Lehrkraft';
     }

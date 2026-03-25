@@ -92,7 +92,7 @@ die Module, die sie brauchen:
 
 | Modul | Funktion | Status |
 |-------|----------|--------|
-| **Elternsprechtag** | Zeitslot-Buchung, Lehrkraft-Zuordnung, Raum-/Fachlogik, Feedback | Produktionsreif |
+| **Elternsprechtag** | Zeitslot-Buchung, Lehrkraft-Zuordnung, Fachlogik | Produktionsreif |
 | **Schulsozialarbeit (SSW)** | Beratungstermine, Anliegen-Kategorien, Schueler-Bezug | Produktionsreif |
 | **Beratungslehrer (BL)** | Beratungstermine, Terminverwaltung, Notizen | Produktionsreif |
 
@@ -243,7 +243,7 @@ Kein Wettbewerber bietet ein vergleichbar umfassendes Self-Service-Administratio
 | Rolle | Funktionen |
 |-------|-----------|
 | **Superadmin** | Systemweite Einstellungen, Datenschutz-Tab, DSAR-Verwaltung, alle Module |
-| **Admin** | Lehrkraft-Verwaltung (CRUD + CSV-Import), Event-Management, Feedback-Einsicht |
+| **Admin** | Lehrkraft-Verwaltung (CRUD + CSV-Import), Event-Management |
 | **Teacher** | Eigene Termine/Slots verwalten, Passwort aendern |
 | **SSW** | Schulsozialarbeit-Termine und -Faelle verwalten |
 | **Beratungslehrer** | Beratungstermine verwalten |

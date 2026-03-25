@@ -11,12 +11,12 @@ const AKTIVITAET_LABELS: Record<string, string> = {
     aufgabe_geloescht: 'hat eine Aufgabe gelöscht',
     tagung_erstellt: 'hat eine Tagung erstellt',
     tagung_dokumentiert: 'hat eine Tagung dokumentiert',
-    datei_hochgeladen: 'hat eine Datei hinzugefuegt',
+    datei_hochgeladen: 'hat eine Datei hinzugefügt',
     arbeitspaket_erstellt: 'hat das Arbeitspaket erstellt',
     arbeitspaket_status_geaendert: 'hat den Status geändert',
     arbeitspaket_abgeschlossen: 'hat das Arbeitspaket abgeschlossen',
     arbeitspaket_wiederaufgenommen: 'hat das Arbeitspaket wiederaufgenommen',
-    mitglied_hinzugefuegt: 'hat ein Mitglied hinzugefuegt',
+    mitglied_hinzugefuegt: 'hat ein Mitglied hinzugefügt',
     mitglied_entfernt: 'hat ein Mitglied entfernt',
     rolle_geaendert: 'hat eine Rolle geändert',
 };
@@ -29,7 +29,7 @@ export function AktivitaetenTab({ aktivitaeten }: AktivitaetenTabProps) {
     return (
         <div className="flow-panel">
             <div className="flow-panel__header">
-                <span className="flow-panel__title">Aktivitaeten</span>
+                <span className="flow-panel__title">Aktivitäten</span>
             </div>
             <div className="flow-panel__body--flush">
                 {Array.isArray(aktivitaeten) && aktivitaeten.length > 0 ? (
@@ -47,7 +47,7 @@ export function AktivitaetenTab({ aktivitaeten }: AktivitaetenTabProps) {
                         </div>
                     ))
                 ) : (
-                    <div className="flow-empty"><div className="flow-empty__text">Noch keine Aktivitaeten</div></div>
+                    <div className="flow-empty"><div className="flow-empty__text">Noch keine Aktivitäten</div></div>
                 )}
             </div>
         </div>

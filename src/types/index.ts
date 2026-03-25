@@ -59,17 +59,6 @@ export interface CalendarTokenCreated {
   expiresAt: string;
 }
 
-export interface ConsentReceipt {
-  id: number;
-  module: string;
-  appointment_id: number;
-  consent_version: string;
-  consent_purpose: string;
-  ip_address?: string;
-  user_agent?: string;
-  consented_at: string;
-}
-
 export interface BrandingData {
   responsible_name?: string;
   responsible_address?: string;

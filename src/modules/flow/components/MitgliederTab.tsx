@@ -85,7 +85,7 @@ export function MitgliederTab({ paketId, id, mitglieder, paketMitglieder, istKoo
                         <button className="flow-btn flow-btn--primary flow-btn--sm"
                             onClick={() => addMutation.mutate()}
                             disabled={!neuesMitgliedId || addMutation.isPending}>
-                            Hinzufuegen
+                            Hinzufügen
                         </button>
                     </div>
                 </div>

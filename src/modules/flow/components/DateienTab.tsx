@@ -72,7 +72,7 @@ export function DateienTab({ paketId, id, dateien, kannSchreiben, istKoordinatio
                             <button className="flow-btn flow-btn--primary flow-btn--sm"
                                 onClick={() => addMutation.mutate()}
                                 disabled={!name.trim() || addMutation.isPending}>
-                                Hinzufuegen
+                                Hinzufügen
                             </button>
                         </div>
                     </div>

@@ -102,7 +102,7 @@ Korrigiert Felder ueber alle Tabellen hinweg in einer Transaktion.
 | `slots` | `parent_name`, `student_name`, `company_name`, `trainee_name`, `representative_name`, `email`, `class_name` |
 | `ssw_appointments` | `student_name`, `student_class`, `email`, `phone` |
 | `bl_appointments` | `student_name`, `student_class`, `email`, `phone` |
-| `teachers` | `name`, `email`, `subject`, `room` |
+| `teachers` | `name`, `email`, `subject` |
 
 **Request-Body:**
 ```json

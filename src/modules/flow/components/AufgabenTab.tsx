@@ -83,7 +83,7 @@ export function AufgabenTab({ paketId, id, aufgaben, mitglieder, kannSchreiben, 
                         </div>
                         <div style={{ display: 'flex', gap: 10 }}>
                             <div style={{ flex: 1 }}>
-                                <label style={labelStyle}>Zustaendig</label>
+                                <label style={labelStyle}>Zuständig</label>
                                 <select value={zustaendig ?? ''} onChange={(e) => setZustaendig(e.target.value ? Number(e.target.value) : null)}
                                     style={fieldStyle}>
                                     <option value="">-- Nicht zugewiesen --</option>

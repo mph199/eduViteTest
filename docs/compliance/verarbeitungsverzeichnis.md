@@ -92,19 +92,9 @@
 | **Loeschfrist** | Keine Loeschung (append-only, Nachweispflicht) |
 | **TOM** | Append-only (kein UPDATE/DELETE), parametrisierte Queries |
 
-### 2.6 Feedback
+### 2.6 Feedback – Eingestellt (Migration 057)
 
-| Feld | Beschreibung |
-|------|-------------|
-| **Zweck** | Anonyme Rueckmeldungen zur Anwendung |
-| **Rechtsgrundlage** | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse) |
-| **Betroffene Personen** | Anonyme Nutzer (potentiell personenbezogen bei Freitext) |
-| **Datenkategorien** | Nachricht (Freitext) |
-| **Tabellen** | `feedback` |
-| **Empfaenger** | Schuladministration |
-| **Drittlandtransfer** | Nein |
-| **Loeschfrist** | Manuell durch Administration |
-| **TOM** | Keine Verknuepfung zu Benutzerkonten |
+> **Hinweis:** Die Feedback-Funktion wurde mit Migration 057 entfernt. Die Tabelle `feedback` existiert nicht mehr. Dieser Abschnitt bleibt aus Dokumentationsgruenden erhalten.
 
 ---
 

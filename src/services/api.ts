@@ -135,10 +135,6 @@ const api = {
       body: JSON.stringify({ teacherId, requestedTime, ...formData }),
     });
   },
-  async health() {
-    return requestJSON('/health');
-  },
-
   // Auth endpoints
   auth: {
     async login(username: string, password: string) {
