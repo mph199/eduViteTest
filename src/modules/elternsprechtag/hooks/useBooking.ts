@@ -1,41 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { TimeSlot, BookingFormData } from '../../../types';
 import api from '../../../services/api';
+import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows';
 
 type CreateBookingRequestResponse = {
   success?: boolean;
   message?: string;
 };
-
-function buildHalfHourWindows(startMinutes: number, endMinutes: number) {
-  const windows: string[] = [];
-  const pad2 = (n: number) => String(n).padStart(2, '0');
-  const fmt = (mins: number) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
-  for (let m = startMinutes; m + 30 <= endMinutes; m += 30) {
-    windows.push(`${fmt(m)} - ${fmt(m + 30)}`);
-  }
-  return windows;
-}
-
-function getTimeWindowsForTeacher(availableFrom?: string, availableUntil?: string) {
-  const fromStr = availableFrom || '16:00';
-  const untilStr = availableUntil || '19:00';
-  const parseTime = (t: string) => {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + (m || 0);
-  };
-  return buildHalfHourWindows(parseTime(fromStr), parseTime(untilStr));
-}
-
-function formatDateDE(iso: string | null | undefined) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = String(d.getFullYear());
-  return `${dd}.${mm}.${yyyy}`;
-}
 
 export const useBooking = (
   selectedTeacherId: number | null,

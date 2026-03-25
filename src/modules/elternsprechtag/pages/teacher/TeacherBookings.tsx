@@ -4,6 +4,7 @@ import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
 import { CalendarSubscription } from '../../components/CalendarSubscription';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
+import './TeacherBookings.css';
 
 
 type SortKey = 'when' | 'visitor';
@@ -115,14 +116,13 @@ export function TeacherBookings() {
   return (
     <>
       {(error || notice) && (
-        <div className={error ? 'admin-error' : 'admin-success'} style={{ marginBottom: 16 }}>
+        <div className={`${error ? 'admin-error' : 'admin-success'} teacher-bookings-notice`}>
           {error || notice}
           <button
             onClick={() => {
               setError('');
               setNotice('');
             }}
-            style={{ marginLeft: 12 }}
             className="back-button"
           >
             Schließen
@@ -132,15 +132,15 @@ export function TeacherBookings() {
 
       <CalendarSubscription />
 
-      <section className="stat-card teacher-table-section" style={{ padding: '1.1rem 1.1rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <h3 style={{ margin: 0 }}>Buchungen einsehen</h3>
-            <span style={{ fontSize: '0.9rem', color: 'var(--brand-text-secondary, #666)' }}>
+      <section className="stat-card teacher-table-section teacher-bookings-section">
+        <div className="teacher-bookings-toolbar">
+          <div className="teacher-bookings-title">
+            <h3>Buchungen einsehen</h3>
+            <span className="teacher-bookings-count">
               {bookings.length} gebuchte {bookings.length === 1 ? 'Termin' : 'Termine'}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="teacher-bookings-actions">
             {sort.key && (
               <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearSort}>
                 Sortierung zurücksetzen

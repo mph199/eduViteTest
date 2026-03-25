@@ -1,0 +1,45 @@
+/* TeacherBookings inline-style replacements */
+
+.teacher-bookings-notice {
+  margin-bottom: 1rem;
+}
+
+.teacher-bookings-notice .back-button {
+  margin-left: 0.75rem;
+}
+
+.teacher-bookings-section {
+  padding: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.teacher-bookings-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.teacher-bookings-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.teacher-bookings-title h3 {
+  margin: 0;
+}
+
+.teacher-bookings-count {
+  font-size: 0.9rem;
+  color: var(--brand-text-secondary, var(--color-gray-500));
+}
+
+.teacher-bookings-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
