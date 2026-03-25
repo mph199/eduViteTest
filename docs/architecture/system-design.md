@@ -362,6 +362,14 @@ Wiederverwendbare Komponenten, Konstanten und Hilfsfunktionen fuer Admin-Seiten:
 | `src/utils/formatters.ts` | Date/time formatting helpers |
 | `src/utils/icalExport.ts` | iCal (.ics) export generation |
 | `src/utils/teacherDisplayName.ts` | Teacher display name formatting |
+| `src/utils/timeWindows.ts` | `buildHalfHourWindows()`, `formatDateDE()` – Zeitfenster-Generierung und Datums-Formatierung fuer Lehrkraft-Buchungsansicht (extrahiert aus `useBooking.ts`, BL-5) |
+
+### Modul-spezifische CSS-Dateien (ausgewaehlte)
+
+| Datei | Modul | Beschreibung |
+|-------|-------|-------------|
+| `src/modules/elternsprechtag/pages/teacher/TeacherBookings.css` | elternsprechtag | CSS-Klassen fuer die Lehrkraft-Buchungsansicht. Ersetzt 8 Inline-Styles aus `TeacherBookings.tsx` (BL-7). Nutzt `var(--brand-*)` Design-Tokens. |
+| `src/modules/elternsprechtag/components/BookingApp.css` | elternsprechtag | Oeffentliche Buchungsseiten-Stile |
 
 ### Hooks (`src/hooks/`)
 
