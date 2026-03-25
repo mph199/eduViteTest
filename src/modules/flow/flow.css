@@ -1,52 +1,52 @@
 /* ══ Flow Design Tokens ═════════════════════════════════════════════ */
 
 :root {
-    /* Surfaces */
-    --flow-bg: #f7f8fa;
-    --flow-surface: #ffffff;
-    --flow-surface-hover: #f9fafb;
-    --flow-bg-hover: #f0f2f6;
+    /* Surfaces – fallback to brand/gray tokens */
+    --flow-bg: var(--color-gray-50, #f7f8fa);
+    --flow-surface: var(--color-white, #ffffff);
+    --flow-surface-hover: var(--color-gray-50, #f9fafb);
+    --flow-bg-hover: var(--color-gray-100, #f0f2f6);
 
-    /* Text */
-    --flow-text: var(--brand-ink);
-    --flow-text-secondary: #4a5568;
-    --flow-text-muted: #94a0b4;
+    /* Text – fallback to brand/gray tokens */
+    --flow-text: var(--brand-ink, #0B2545);
+    --flow-text-secondary: var(--color-gray-600, #4a5568);
+    --flow-text-muted: var(--color-gray-400, #94a0b4);
 
-    /* Borders */
-    --flow-border: #e5e7ec;
-    --flow-border-strong: #d1d5de;
+    /* Borders – fallback to gray tokens */
+    --flow-border: var(--color-gray-200, #e5e7ec);
+    --flow-border-strong: var(--color-gray-300, #d1d5de);
 
-    /* Brand */
-    --flow-brand: #3b6de0;
-    --flow-brand-rgb: 59, 109, 224;
+    /* Brand – fallback to brand-secondary */
+    --flow-brand: var(--brand-secondary, #3b6de0);
+    --flow-brand-rgb: var(--brand-primary-rgb, 59, 109, 224);
     --flow-brand-light: #edf2fc;
 
-    /* Semantic */
-    --flow-green: #2f855a;
+    /* Semantic – flow-specific, no brand equivalent */
+    --flow-green: var(--color-success, #2f855a);
     --flow-green-rgb: 47, 133, 90;
     --flow-green-light: #f0faf4;
     --flow-green-muted: #5a8a6e;
-    --flow-amber: #b7791f;
+    --flow-amber: var(--color-warning, #b7791f);
     --flow-amber-rgb: 183, 121, 31;
     --flow-amber-light: #fefcf3;
-    --flow-red: #c53030;
+    --flow-red: var(--color-error, #c53030);
     --flow-red-rgb: 197, 48, 48;
     --flow-red-light: #fdf2f2;
 
     /* Overlay */
-    --flow-overlay-bg: rgba(0, 0, 0, 0.4);
-    --flow-shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --flow-overlay-bg: rgba(var(--color-black-rgb, 0, 0, 0), 0.4);
+    --flow-shadow-modal: 0 8px 32px rgba(var(--color-black-rgb, 0, 0, 0), 0.2);
 
     /* Ist/Soll */
     --flow-ist-label: #9b6b6b;
     --flow-soll-label: #5a8a6e;
 
-    /* Sidebar */
-    --flow-sidebar-bg: #1a1f36;
-    --flow-sidebar-hover: #252b45;
+    /* Sidebar – fallback to slate tokens */
+    --flow-sidebar-bg: var(--color-slate-900, #1a1f36);
+    --flow-sidebar-hover: var(--color-slate-800, #252b45);
     --flow-sidebar-active: var(--flow-brand);
-    --flow-sidebar-text: #94a0b4;
-    --flow-sidebar-text-active: #ffffff;
+    --flow-sidebar-text: var(--color-slate-400, #94a0b4);
+    --flow-sidebar-text-active: var(--color-white, #ffffff);
     --flow-sidebar-width: 260px;
 
     /* Radii */
@@ -54,17 +54,17 @@
     --flow-radius-sm: 4px;
 
     /* Shadows */
-    --flow-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
-    --flow-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --flow-shadow-sm: 0 1px 2px rgba(var(--color-black-rgb, 0, 0, 0), 0.03);
+    --flow-shadow-md: 0 2px 8px rgba(var(--color-black-rgb, 0, 0, 0), 0.05);
 
     /* Font */
     --flow-font-mono: 'JetBrains Mono', monospace;
 
     /* Brand variants */
-    --flow-brand-dark: #2f5ec8;
+    --flow-brand-dark: var(--brand-primary, #2f5ec8);
 
     /* Module accent (Registry) */
-    --module-accent-flow: #3b6de0;
+    --module-accent-flow: var(--brand-secondary, #3b6de0);
 }
 
 /* ══ Layout ═════════════════════════════════════════════════════════ */

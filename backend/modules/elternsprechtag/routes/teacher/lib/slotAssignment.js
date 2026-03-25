@@ -166,7 +166,7 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
 
   if (!orderedTimes.length) {
     const { rows: anyFreeSlots } = await query(
-      `SELECT * FROM slots
+      `SELECT time FROM slots
        WHERE teacher_id = $1 AND date = $2 AND booked = false
        ORDER BY time ASC LIMIT 50`,
       [teacherId, current.date]
@@ -180,7 +180,7 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   }
 
   const { rows: slotRows } = await query(
-    `SELECT * FROM slots
+    `SELECT id, time, event_id FROM slots
      WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = ANY($3)
      LIMIT 50`,
     [teacherId, current.date, orderedTimes]
@@ -265,7 +265,7 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
   }
 
   const { rows: slotRows } = await query(
-    `SELECT * FROM slots
+    `SELECT id, time, event_id FROM slots
      WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = $3
      LIMIT 10`,
     [teacherId, requestRow.date, normalizedTime]

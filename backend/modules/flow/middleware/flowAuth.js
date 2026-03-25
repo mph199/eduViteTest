@@ -95,6 +95,7 @@ export async function requireFlowAbteilungsleitung(req, res, next) {
 
         next();
     } catch (err) {
+        logger.error({ err }, 'flowAuth requireFlowAbteilungsleitung error');
         return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
     }
 }
@@ -132,6 +133,7 @@ export async function requireFlowPaketAnlage(req, res, next) {
 
         return res.status(403).json({ error: 'Keine Berechtigung zur Paketanlage' });
     } catch (err) {
+        logger.error({ err }, 'flowAuth requireFlowPaketAnlage error');
         return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
     }
 }
@@ -173,6 +175,7 @@ function requireFlowEntityZugang(entityTable, entityLabel, storeResult) {
                 req.flowPaketRolle = rolle;
                 next();
             } catch (err) {
+                logger.error({ err }, `flowAuth requireFlowEntityZugang(${entityTable}) error`);
                 return res.status(500).json({ error: 'Fehler bei der Berechtigungspruefung' });
             }
         };

@@ -158,7 +158,7 @@ router.get('/teachers/:id/bl', requireAdmin, async (req, res) => {
 
     const counselor = blRows[0];
     const { rows: scheduleRows } = await query(
-      'SELECT * FROM bl_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      'SELECT id, counselor_id, weekday, start_time, end_time, active FROM bl_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
       [counselor.id]
     );
     return res.json({ counselor, schedule: scheduleRows });

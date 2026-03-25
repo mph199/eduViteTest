@@ -132,7 +132,7 @@ export async function verifyBookingToken(token) {
         'UPDATE slots SET verification_token_hash = NULL, updated_at = $1 WHERE id = $2',
         [new Date().toISOString(), slot.id]
       );
-    } catch {}
+    } catch { /* non-critical token cleanup – failure is acceptable */ }
     return { slotRow: slot, verifiedAt: slot.verified_at };
   }
 

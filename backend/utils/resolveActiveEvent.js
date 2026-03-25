@@ -51,7 +51,9 @@ export async function resolveActiveEvent() {
       if (rows[0]?.event_date) {
         eventDate = formatDateDE(rows[0].event_date);
       }
-    } catch {}
+    } catch (err) {
+      logger.warn({ err }, 'resolveActiveEvent: settings fallback query failed');
+    }
   }
 
   // 4. Today fallback
