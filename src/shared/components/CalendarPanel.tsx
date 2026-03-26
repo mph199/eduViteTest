@@ -193,7 +193,7 @@ export function CalendarPanel({
                           </td>
                           <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
                           <td data-label="Status">{statusLabel(a.status)}</td>
-                          <td data-label="Name">{a.student_name || '--'}</td>
+                          <td data-label="Name">{[a.first_name, a.last_name].filter(Boolean).join(' ') || '--'}</td>
                           <td data-label={detailColumnLabel}>{getDetailValue(a) || '--'}</td>
                         </tr>
                       ))}

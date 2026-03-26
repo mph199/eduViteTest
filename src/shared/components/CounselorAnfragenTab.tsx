@@ -4,8 +4,6 @@ import { normalizeDate } from '../utils/appointmentDate';
 import { statusLabel } from '../utils/statusLabel';
 
 interface CounselorAnfragenConfig {
-  topicColumnLabel: string;
-  topicField: 'category_name' | 'topic_name';
   getAppointments: (params: { status: string }) => Promise<{ appointments?: Appointment[] }>;
   confirmAppointment: (id: number) => Promise<unknown>;
   cancelAppointment: (id: number) => Promise<unknown>;
@@ -75,16 +73,15 @@ export function CounselorAnfragenTab({ config, showFlash }: Props) {
                 <th>Datum</th>
                 <th>Uhrzeit</th>
                 <th>Status</th>
-                <th>Schüler/in</th>
+                <th>Name</th>
                 <th>Klasse</th>
-                <th>{config.topicColumnLabel}</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
             <tbody>
               {requests.map(a => {
                 const dateStr = normalizeDate(a.date);
-                const topicValue = config.topicField === 'category_name' ? a.category_name : a.topic_name;
+                const displayName = [a.first_name, a.last_name].filter(Boolean).join(' ') || '--';
                 return (
                   <tr key={a.id}>
                     <td data-label="Datum">{new Date(dateStr + 'T00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
@@ -94,9 +91,8 @@ export function CounselorAnfragenTab({ config, showFlash }: Props) {
                         {statusLabel(a.status)}
                       </span>
                     </td>
-                    <td data-label="Name">{a.student_name || '--'}</td>
+                    <td data-label="Name">{displayName}</td>
                     <td data-label="Klasse">{a.student_class || '--'}</td>
-                    <td data-label={config.topicColumnLabel}>{topicValue || '--'}</td>
                     <td data-label="Aktionen">
                       <div className="action-btns action-btns--sm">
                         {a.status === 'requested' && (

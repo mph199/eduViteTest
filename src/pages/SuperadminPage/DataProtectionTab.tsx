@@ -96,7 +96,7 @@ export function DataProtectionTab() {
               <p className="sa-field__hint" style={{ marginBottom: '0.75rem' }}>
                 Felder eingeben, die korrigiert werden sollen. Leere Felder werden ignoriert.
               </p>
-              {['parent_name', 'student_name', 'email', 'class_name', 'phone', 'student_class'].map(field => (
+              {['parent_name', 'first_name', 'last_name', 'email', 'class_name', 'phone', 'student_class'].map(field => (
                 <div className="sa-field" key={field} style={{ marginBottom: '0.5rem' }}>
                   <label className="sa-field__label">{field}</label>
                   <input
