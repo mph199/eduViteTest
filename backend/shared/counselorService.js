@@ -7,9 +7,6 @@
  * @param {object} config
  * @param {string} config.tablePrefix          – e.g. 'ssw' or 'bl'
  * @param {string} config.counselorLabel       – e.g. 'Berater/in' or 'Beratungslehrer'
- * @param {string} [config.topicTable]         – e.g. 'ssw_categories' or 'bl_topics' (optional, entfällt nach Umbau)
- * @param {string} [config.topicForeignKey]    – e.g. 'category_id' or 'topic_id' (optional, entfällt nach Umbau)
- * @param {string[]} [config.topicSelectCols]  – columns for public topic listing
  */
 
 import { query } from '../config/db.js';
@@ -205,20 +202,10 @@ export function createCounselorService(config) {
   const {
     tablePrefix,
     counselorLabel,
-    topicTable,
-    topicForeignKey,
-    topicSelectCols = ['id', 'name', 'description'],
   } = config;
 
   // Validate all identifiers used in SQL interpolation
   assertSafeIdentifier(tablePrefix, 'tablePrefix');
-  if (topicTable) assertSafeIdentifier(topicTable, 'topicTable');
-  if (topicForeignKey) assertSafeIdentifier(topicForeignKey, 'topicForeignKey');
-  if (topicTable) {
-    for (const col of topicSelectCols) {
-      assertSafeIdentifier(col, 'topicSelectCols');
-    }
-  }
 
   const counselorsTable = `${tablePrefix}_counselors`;
   const appointmentsTable = `${tablePrefix}_appointments`;
@@ -241,15 +228,6 @@ export function createCounselorService(config) {
         throw err;
       }
       return rows[0];
-    },
-
-    async listTopics() {
-      if (!topicTable) return [];
-      const cols = topicSelectCols.join(', ');
-      const { rows } = await query(
-        `SELECT ${cols} FROM ${topicTable} WHERE active = TRUE ORDER BY sort_order, id`
-      );
-      return rows;
     },
 
     async getAvailableAppointments(counselorId, date) {

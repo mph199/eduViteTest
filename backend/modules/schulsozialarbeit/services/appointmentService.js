@@ -14,7 +14,6 @@ const service = createCounselorService({
 export const {
   listCounselors,
   getCounselorById,
-  listTopics,
   getAvailableAppointments,
   bookAppointment,
   generateTimeSlots,

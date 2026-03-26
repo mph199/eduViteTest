@@ -176,16 +176,6 @@ export interface CounselorAppointment {
   student_email?: string;
 }
 
-/** @deprecated Wird nach BL/SSW-Umbau entfernt (Phase 7/8) */
-export interface CounselorTopic {
-  id: number;
-  name: string;
-  description?: string;
-  icon?: string;
-  sort_order?: number;
-  active?: boolean;
-}
-
 export interface AppointmentSlot {
   id: number;
   date: string;
