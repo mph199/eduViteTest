@@ -37,8 +37,6 @@ async function resolveCounselor(req) {
 
 const router = createCounselorRoutes({
   tables: SSW_TABLES,
-  topicJoin: '',
-  topicSelect: '',
   logPrefix: 'SSW',
   resolveCounselor,
 });

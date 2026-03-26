@@ -25,7 +25,7 @@ UPDATE bl_appointments
       last_name  = CASE
         WHEN position(' ' IN student_name) > 0
         THEN substring(student_name FROM position(' ' IN student_name) + 1)
-        ELSE ''
+        ELSE NULL
       END
   WHERE student_name IS NOT NULL AND first_name IS NULL;
 
@@ -41,7 +41,7 @@ UPDATE ssw_appointments
       last_name  = CASE
         WHEN position(' ' IN student_name) > 0
         THEN substring(student_name FROM position(' ' IN student_name) + 1)
-        ELSE ''
+        ELSE NULL
       END
   WHERE student_name IS NOT NULL AND first_name IS NULL;
 

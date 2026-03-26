@@ -15,13 +15,11 @@ import logger from '../config/logger.js';
 /**
  * @param {object} config
  * @param {object} config.tables  – { counselorsTable, appointmentsTable, scheduleTable, counselorLabel }
- * @param {string} config.topicJoin  – SQL JOIN fragment, e.g. "LEFT JOIN ssw_categories c ON c.id = a.category_id"
- * @param {string} config.topicSelect – extra SELECT columns, e.g. "c.name AS category_name, c.icon AS category_icon"
  * @param {string} config.logPrefix – e.g. "SSW" or "BL"
  * @param {function} config.resolveCounselor – async (req) => counselor | null; throws {statusCode, message} on deny
  */
 export function createCounselorRoutes(config) {
-  const { tables, topicJoin, topicSelect, logPrefix, resolveCounselor } = config;
+  const { tables, logPrefix, resolveCounselor } = config;
   const router = express.Router();
 
   // Middleware: resolve counselor for every route
@@ -72,9 +70,8 @@ export function createCounselorRoutes(config) {
       }
 
       const { rows } = await query(
-        `SELECT a.*${topicSelect ? ', ' + topicSelect : ''}
+        `SELECT a.*
          FROM ${tables.appointmentsTable} a
-         ${topicJoin || ''}
          WHERE a.counselor_id = $1 ${filters}
          ORDER BY a.date, a.time`,
         params

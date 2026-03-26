@@ -49,8 +49,6 @@ async function resolveCounselor(req) {
 // Shared routes (appointments, generate-slots, confirm, cancel)
 const sharedRouter = createCounselorRoutes({
   tables: BL_TABLES,
-  topicJoin: '',
-  topicSelect: '',
   logPrefix: 'BL',
   resolveCounselor,
 });

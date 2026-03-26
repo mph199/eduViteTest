@@ -46,14 +46,15 @@ async function cleanupBookingRequests() {
 async function cleanupSswAppointments() {
   const { rows } = await query(
     `UPDATE ssw_appointments
-     SET student_name = NULL,
+     SET first_name = NULL,
+         last_name = NULL,
          student_class = NULL,
          email = NULL,
          phone = NULL,
          updated_at = NOW()
      WHERE status = 'cancelled'
        AND updated_at < NOW() - MAKE_INTERVAL(days => $1)
-       AND (student_name IS NOT NULL OR email IS NOT NULL)
+       AND (first_name IS NOT NULL OR last_name IS NOT NULL OR email IS NOT NULL)
      RETURNING id`,
     [retention.cancelledDays]
   );
@@ -66,14 +67,15 @@ async function cleanupSswAppointments() {
 async function cleanupBlAppointments() {
   const { rows } = await query(
     `UPDATE bl_appointments
-     SET student_name = NULL,
+     SET first_name = NULL,
+         last_name = NULL,
          student_class = NULL,
          email = NULL,
          phone = NULL,
          updated_at = NOW()
      WHERE status = 'cancelled'
        AND updated_at < NOW() - MAKE_INTERVAL(days => $1)
-       AND (student_name IS NOT NULL OR email IS NOT NULL)
+       AND (first_name IS NOT NULL OR last_name IS NOT NULL OR email IS NOT NULL)
      RETURNING id`,
     [retention.cancelledDays]
   );
@@ -86,13 +88,14 @@ async function cleanupBlAppointments() {
 async function cleanupExpiredSswAppointments() {
   const { rows } = await query(
     `UPDATE ssw_appointments
-     SET student_name = NULL,
+     SET first_name = NULL,
+         last_name = NULL,
          student_class = NULL,
          email = NULL,
          phone = NULL,
          updated_at = NOW()
      WHERE date::date < CURRENT_DATE - MAKE_INTERVAL(days => $1)
-       AND (student_name IS NOT NULL OR email IS NOT NULL)
+       AND (first_name IS NOT NULL OR last_name IS NOT NULL OR email IS NOT NULL)
      RETURNING id`,
     [retention.sswAppointmentsDays]
   );
@@ -102,13 +105,14 @@ async function cleanupExpiredSswAppointments() {
 async function cleanupExpiredBlAppointments() {
   const { rows } = await query(
     `UPDATE bl_appointments
-     SET student_name = NULL,
+     SET first_name = NULL,
+         last_name = NULL,
          student_class = NULL,
          email = NULL,
          phone = NULL,
          updated_at = NOW()
      WHERE date::date < CURRENT_DATE - MAKE_INTERVAL(days => $1)
-       AND (student_name IS NOT NULL OR email IS NOT NULL)
+       AND (first_name IS NOT NULL OR last_name IS NOT NULL OR email IS NOT NULL)
      RETURNING id`,
     [retention.blAppointmentsDays]
   );

@@ -72,7 +72,7 @@ async function collectPersonData(email) {
 
   // 5. SSW Appointments
   const sswAppointments = await query(
-    `SELECT id, counselor_id, student_name, student_class, email, phone,
+    `SELECT id, counselor_id, first_name, last_name, student_class, email, phone,
             date, time, duration_minutes, status, restricted, created_at, updated_at
      FROM ssw_appointments WHERE LOWER(email) = LOWER($1)`,
     [email]
@@ -81,7 +81,7 @@ async function collectPersonData(email) {
 
   // 6. BL Appointments
   const blAppointments = await query(
-    `SELECT id, counselor_id, student_name, student_class, email, phone,
+    `SELECT id, counselor_id, first_name, last_name, student_class, email, phone,
             date, time, duration_minutes, status, restricted, created_at, updated_at
      FROM bl_appointments WHERE LOWER(email) = LOWER($1)`,
     [email]
@@ -222,7 +222,7 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
       // 3. Anonymize SSW appointments
       const sswResult = await client.query(
         `UPDATE ssw_appointments
-         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
+         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
              restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
          RETURNING id`,
@@ -235,7 +235,7 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
       // 4. Anonymize BL appointments
       const blResult = await client.query(
         `UPDATE bl_appointments
-         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
+         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
              restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
          RETURNING id`,
@@ -288,8 +288,8 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
     const allowedFields = {
       booking_requests: ['parent_name', 'student_name', 'company_name', 'trainee_name', 'representative_name', 'email', 'class_name'],
       slots: ['parent_name', 'student_name', 'company_name', 'trainee_name', 'representative_name', 'email', 'class_name'],
-      ssw_appointments: ['student_name', 'student_class', 'email', 'phone'],
-      bl_appointments: ['student_name', 'student_class', 'email', 'phone'],
+      ssw_appointments: ['first_name', 'last_name', 'student_class', 'email', 'phone'],
+      bl_appointments: ['first_name', 'last_name', 'student_class', 'email', 'phone'],
       teachers: ['name', 'email', 'subject'],
     };
 
