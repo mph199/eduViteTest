@@ -44,7 +44,7 @@ router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async 
     } else if (moduleName === 'schulsozialarbeit') {
       const { rowCount } = await query(
         `UPDATE ssw_appointments
-         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
+         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
              restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = $1 AND email IS NOT NULL`,
         [normalizedEmail]
@@ -53,7 +53,7 @@ router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async 
     } else if (moduleName === 'beratungslehrer') {
       const { rowCount } = await query(
         `UPDATE bl_appointments
-         SET student_name = NULL, student_class = NULL, email = NULL, phone = NULL,
+         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
              restricted = TRUE, updated_at = NOW()
          WHERE LOWER(email) = $1 AND email IS NOT NULL`,
         [normalizedEmail]

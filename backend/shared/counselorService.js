@@ -7,9 +7,6 @@
  * @param {object} config
  * @param {string} config.tablePrefix          – e.g. 'ssw' or 'bl'
  * @param {string} config.counselorLabel       – e.g. 'Berater/in' or 'Beratungslehrer'
- * @param {string} config.topicTable           – e.g. 'ssw_categories' or 'bl_topics'
- * @param {string} config.topicForeignKey      – e.g. 'category_id' or 'topic_id'
- * @param {string[]} [config.topicSelectCols]  – columns for public topic listing
  */
 
 import { query } from '../config/db.js';
@@ -205,18 +202,10 @@ export function createCounselorService(config) {
   const {
     tablePrefix,
     counselorLabel,
-    topicTable,
-    topicForeignKey,
-    topicSelectCols = ['id', 'name', 'description'],
   } = config;
 
   // Validate all identifiers used in SQL interpolation
   assertSafeIdentifier(tablePrefix, 'tablePrefix');
-  assertSafeIdentifier(topicTable, 'topicTable');
-  assertSafeIdentifier(topicForeignKey, 'topicForeignKey');
-  for (const col of topicSelectCols) {
-    assertSafeIdentifier(col, 'topicSelectCols');
-  }
 
   const counselorsTable = `${tablePrefix}_counselors`;
   const appointmentsTable = `${tablePrefix}_appointments`;
@@ -241,14 +230,6 @@ export function createCounselorService(config) {
       return rows[0];
     },
 
-    async listTopics() {
-      const cols = topicSelectCols.join(', ');
-      const { rows } = await query(
-        `SELECT ${cols} FROM ${topicTable} WHERE active = TRUE ORDER BY sort_order, id`
-      );
-      return rows;
-    },
-
     async getAvailableAppointments(counselorId, date) {
       const { rows } = await query(
         `SELECT id, date, time, duration_minutes
@@ -261,8 +242,7 @@ export function createCounselorService(config) {
     },
 
     async bookAppointment(appointmentId, bookingData, requiresConfirmation = true) {
-      const { student_name, student_class, email, phone, is_urgent } = bookingData;
-      const topicValue = bookingData[topicForeignKey] || null;
+      const { first_name, last_name, student_class, email, phone } = bookingData;
 
       const targetStatus = requiresConfirmation ? 'requested' : 'confirmed';
       const confirmedClause = requiresConfirmation ? '' : ', confirmed_at = NOW()';
@@ -270,13 +250,12 @@ export function createCounselorService(config) {
       const { rows } = await query(
         `UPDATE ${appointmentsTable}
          SET status = $1,
-             student_name = $2, student_class = $3, email = $4, phone = $5,
-             ${topicForeignKey} = $6, is_urgent = $7,
+             first_name = $2, last_name = $3, student_class = $4, email = $5, phone = $6,
              booked_at = NOW(), updated_at = NOW()${confirmedClause}
-         WHERE id = $8 AND status = 'available'
+         WHERE id = $7 AND status = 'available'
          RETURNING *`,
-        [targetStatus, student_name, student_class || null, email || null, phone || null,
-         topicValue, is_urgent || false, appointmentId]
+        [targetStatus, first_name, last_name, student_class || null, email || null, phone || null,
+         appointmentId]
       );
 
       if (!rows.length) {

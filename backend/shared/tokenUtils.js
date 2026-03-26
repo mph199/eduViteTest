@@ -1,5 +1,8 @@
 /**
  * Shared Token-Utilities für Kalender-Abo und Verifikation.
+ *
+ * Extrahiert aus elternsprechtag/utils/tokenUtils.js — wird von
+ * allen Modulen mit Kalender-Abo-Funktion genutzt.
  */
 
 /**

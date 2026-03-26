@@ -2,8 +2,9 @@
 
 ## Ziel
 
-1. **Datenschutz-Minimierung**: Nur Vorname + Nachname bei der Buchung. Keine Themen, keine Beratungsanlässe, keine Freitexte, keine internen Notizen.
-2. **Kalender-Abo (ICS-Feed)** aus dem Elternsprechtag-Modul auch für BL und SSW bereitstellen.
+1. **Datenschutz-Minimierung**: Nur Vorname + Nachname (getrennte Felder) bei der Buchung. Keine Themen, keine Beratungsanlässe, keine Freitexte, keine internen Notizen. Feldumbenennungen (`consent_version` → `privacy_notice_version`) zur Vermeidung falscher Rechtsgrundlagen-Implikationen.
+2. **Kalender-Abo (ICS-Feed)** aus dem Elternsprechtag-Modul auch für BL und SSW bereitstellen — mit datenschutzkonformem ICS-Inhalt (keine Personendaten im Termintitel).
+3. **Speicherbegrenzung**: Löschkonzept für abgelaufene Termine und Token-Metadaten.
 
 ---
 
@@ -11,10 +12,10 @@
 
 ### DB-Tabellen mit sensiblen Spalten
 
-| Tabelle | Zu entfernende Spalten | Datenschutz-Risiko |
-|---------|----------------------|-------------------|
-| `bl_appointments` | `topic_id` (FK → bl_topics), `concern` (Freitext), `is_anonymous`, `is_urgent`, `notes` (interne Notizen) | Rückschluss auf Beratungsgrund, hochsensible Freitexte |
-| `ssw_appointments` | `category_id` (FK → ssw_categories), `concern` (Freitext), `is_urgent`, `notes` (interne Notizen) | Rückschluss auf Beratungsgrund, hochsensible Freitexte |
+| Tabelle | Noch zu entfernen | Bereits entfernt | Datenschutz-Risiko |
+|---------|-------------------|------------------|-------------------|
+| `bl_appointments` | `topic_id` (FK → bl_topics), `is_urgent` | `concern`, `notes` (Migration 035), `is_anonymous` (Migration 027) | Rückschluss auf Beratungsgrund |
+| `ssw_appointments` | `category_id` (FK → ssw_categories), `is_urgent` | `concern`, `notes` (Migration 035) | Rückschluss auf Beratungsgrund |
 
 ### Überflüssige Referenz-Tabellen
 
@@ -41,44 +42,73 @@ Das `CounselorBookingApp.tsx` sendet: `student_name`, `student_class`, `email`, 
 
 | Feld | Status | Begründung |
 |------|--------|------------|
-| `student_name` | **Bleibt** | Identifikation des Termins (Vorname + Nachname) |
-| `consent_version` | **Bleibt** | Einwilligungsnachweis |
-| `student_class` | **Bleibt** (optional) | Organisatorisch nötig für Counselor |
-| `email` | **Bleibt** (optional) | Bestätigungsmail-Funktionalität |
+| `first_name` + `last_name` | **Neu** (ersetzt `student_name`) | Aufteilen in zwei Felder: ermöglicht saubere Validierung, Kürzelbildung (ICS), Auskunfts-/Löschanfragen und verhindert Freitext-Müll |
+| `privacy_notice_version` | **Umbenennung** (war `consent_version`) | Dokumentiert, dass Datenschutzhinweise angezeigt wurden. Umbenennung, weil Schulen als öffentliche Stellen sich i.d.R. nicht auf Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) stützen sollten, sondern auf öffentliche/gesetzliche Aufgabe. "consent" suggeriert fälschlich eine Einwilligungsarchitektur. Nur bei geprüfter echter Einwilligungslösung den alten Namen behalten |
+| `student_class` | **Bleibt** (optional) | Organisatorisch nötig für Counselor. Umsetzung als Dropdown/standardisierte Auswahl statt Freitext (verhindert Tippfehler, erleichtert Auswertung). Nur für die buchende Fachkraft sichtbar, nicht in öffentlichen Ansichten |
+| `email` | **Bleibt** (Opt-in) | Kein Pflichtfeld. Nur für Bestätigung/Absage. Kein Versand ohne ausdrückliche Eingabe durch Buchende. Keine sensiblen Inhalte in Mailbetreff oder Mailtext (nur Datum, Uhrzeit, Counselor-Name). Keine Speicherung über Terminzweck hinaus |
 | `topic_id` / `category_id` | **Entfernt** | Datenschutz — Rückschluss auf Beratungsgrund |
 | `is_urgent` | **Entfernt** | Stigmatisierungspotenzial |
-| `concern` | **Entfernt** | Sensible Freitextdaten |
-| `notes` | **Entfernt** | Hochsensible interne Notizen |
-| `is_anonymous` | **Entfernt** | Impliziert sensiblen Kontext |
+| `concern` | **Bereits entfernt** (Migration 035) | Sensible Freitextdaten |
+| `notes` | **Bereits entfernt** (Migration 035) | Hochsensible interne Notizen |
+| `is_anonymous` | **Bereits entfernt** (Migration 027) | Impliziert sensiblen Kontext |
 
 ### Verbleibendes Daten-Minimum
 
-`student_name`, `student_class`, `email`, `date`, `time`, `counselor_id`, `status`, `consent_version` — pure Terminverwaltung.
+`first_name`, `last_name`, `student_class`, `email`, `date`, `time`, `counselor_id`, `status`, `privacy_notice_version` — pure Terminverwaltung.
 
 ---
 
 ## 3. Migrationen
 
-### 059_bl_ssw_drop_topics_categories.sql
+### 059_bl_ssw_drop_topics_and_rename_fields.sql
 
 ```sql
--- Datenschutz-Minimierung: topic/category/concern/notes/is_urgent/is_anonymous entfernen
+-- Datenschutz-Minimierung: topic/category/is_urgent entfernen
+-- HINWEIS: concern, notes (Migration 035) und is_anonymous (Migration 027) wurden bereits entfernt.
 BEGIN;
 
--- BL: Sensible Spalten entfernen
+-- BL: Verbleibende sensible Spalten entfernen
 ALTER TABLE bl_appointments
   DROP COLUMN IF EXISTS topic_id,
-  DROP COLUMN IF EXISTS concern,
-  DROP COLUMN IF EXISTS is_anonymous,
-  DROP COLUMN IF EXISTS is_urgent,
-  DROP COLUMN IF EXISTS notes;
+  DROP COLUMN IF EXISTS is_urgent;
 
--- SSW: Sensible Spalten entfernen
+-- SSW: Verbleibende sensible Spalten entfernen
 ALTER TABLE ssw_appointments
   DROP COLUMN IF EXISTS category_id,
-  DROP COLUMN IF EXISTS concern,
-  DROP COLUMN IF EXISTS is_urgent,
-  DROP COLUMN IF EXISTS notes;
+  DROP COLUMN IF EXISTS is_urgent;
+
+-- student_name aufteilen in first_name + last_name (BL)
+ALTER TABLE bl_appointments
+  ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+UPDATE bl_appointments
+  SET first_name = split_part(student_name, ' ', 1),
+      last_name  = CASE
+        WHEN position(' ' IN student_name) > 0
+        THEN substring(student_name FROM position(' ' IN student_name) + 1)
+        ELSE ''
+      END
+  WHERE student_name IS NOT NULL AND first_name IS NULL;
+ALTER TABLE bl_appointments DROP COLUMN IF EXISTS student_name;
+
+-- student_name aufteilen in first_name + last_name (SSW)
+ALTER TABLE ssw_appointments
+  ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+UPDATE ssw_appointments
+  SET first_name = split_part(student_name, ' ', 1),
+      last_name  = CASE
+        WHEN position(' ' IN student_name) > 0
+        THEN substring(student_name FROM position(' ' IN student_name) + 1)
+        ELSE ''
+      END
+  WHERE student_name IS NOT NULL AND first_name IS NULL;
+ALTER TABLE ssw_appointments DROP COLUMN IF EXISTS student_name;
+
+-- HINWEIS: consent_version existiert NICHT als Spalte auf bl_appointments/ssw_appointments,
+-- sondern in der separaten consent_receipts-Tabelle (Migration 036).
+-- Umbenennung dort separat behandeln (consent_receipts.consent_version ist ein
+-- technischer Identifier, kein UI-Label — kann vorerst bleiben).
 
 -- Referenz-Tabellen deaktivieren (nicht droppen wegen bl_requests FK)
 UPDATE bl_topics SET active = FALSE;
@@ -128,7 +158,7 @@ COMMIT;
 
 | # | Datei | Aktion | Beschreibung |
 |---|-------|--------|-------------|
-| 4 | `backend/schemas/counselor.js` | modify | `topic_id`, `category_id`, `is_urgent` aus Zod-Schema entfernen |
+| 4 | `backend/schemas/counselor.js` | modify | `is_urgent` aus Zod-Schema entfernen (topic_id/category_id werden nicht per Zod validiert, sondern direkt in `counselorPublicRoutes.js`); `student_name` → `first_name` + `last_name`; `consent_version` → `privacy_notice_version` |
 | 5 | `backend/shared/counselorService.js` | modify | `bookAppointment` — topic/category-Parameter entfernen |
 | 6 | `backend/shared/counselorPublicRoutes.js` | modify | topic-Endpunkt + topicForeignKey aus Booking entfernen |
 | 7 | `backend/shared/counselorAdminRoutes.js` | modify | Topic/Category CRUD-Routen + Appointments-JOIN entfernen |
@@ -161,13 +191,79 @@ COMMIT;
 
 ---
 
+## 4a. ICS-Feed: Sicherheits- und Datenschutzanforderungen
+
+### Token-Sicherheit
+
+| Anforderung | Beschreibung | Status (Elternsprechtag-Referenz) |
+|-------------|-------------|-----------------------------------|
+| Token-Entropie | Mindestens 128 Bit Zufall, besser 192+. Aktuell: 64 Hex-Zeichen (256 Bit raw input) | Vorhanden |
+| Hash-only in DB | Nur SHA-256-Hash speichern, nie Klartext-Token | Vorhanden (`calendar_token_hash CHAR(64)`) |
+| Generisches 404 | Bei ungültigem oder abgelaufenem Token immer dasselbe 404 — keine unterscheidbaren Fehler ("expired" vs. "not found") | Vorhanden |
+| Sofortige Invalidierung | Rotate/Delete muss Token sofort ungültig machen | Geplant (Rotate/Delete-Endpunkte) |
+
+### HTTP-Response-Header (Pflicht für alle ICS-Routen)
+
+```
+Cache-Control: no-store, private
+Pragma: no-cache
+X-Robots-Tag: noindex, nofollow
+```
+
+Keine Weiterleitungen. Bereits im Elternsprechtag-Code vorhanden (`calendar.js:106-108`), aber `private` und `nofollow` fehlen dort noch — bei der Shared-Extraktion ergänzen.
+
+### Rate Limiting und Missbrauchsschutz
+
+- IP-basiertes Rate Limiting (existierender `calendarFeedLimiter` als Vorlage)
+- Optional: `last_accessed_at`-Spalte auf Counselor-Tabellen für Monitoring
+- Optional: Auto-Expire nach langer Inaktivität (z.B. 6 Monate ohne Abruf)
+
+### ICS-Inhalt: Datenschutz-Vorgaben
+
+**Grundregel:** Der ICS-Feed landet bei externen Kalenderdiensten (Google, Apple, Microsoft) und auf privaten Geräten. Das sind potenziell weitere Datenempfänger/Transferkanäle. Deshalb: nur das absolute Minimum exportieren.
+
+**SUMMARY (Termintitel):**
+
+Standardmäßig **neutraler Titel ohne Personendaten**:
+- Priorität 1: `Beratungstermin` (kein Name, keine Klasse)
+- Priorität 2: `Beratungstermin — V. Nachname` (nur wenn Counselor dies explizit aktiviert)
+- Kein voller Schülername als Standard
+
+**DESCRIPTION:** Leer oder minimal. Nicht exportieren:
+- Schülername (voller Name)
+- Klasse
+- E-Mail
+- Status
+- Notizen
+- Moduldetails (ob BL oder SSW — verrät Beratungskontext)
+
+**UID-Domain:** Konfigurierbar via `CALENDAR_UID_DOMAIN` (wie Elternsprechtag).
+
+### Routing-Architektur
+
+**Problem:** Der Prefix `/api/calendar` ist aktuell exklusiv in `elternsprechtag/index.js` mit eigenem Rate-Limiter registriert. Mehrfaches Mounten desselben Prefixes durch verschiedene Module führt zu Konflikten.
+
+**Lösung:** Shared Calendar-Router in `backend/shared/calendarFeedRouter.js`:
+- Alle Module registrieren ihre ICS-Routen über eine zentrale Factory
+- Ein gemeinsamer Rate-Limiter für `/api/calendar`
+- Oder: Modul-spezifische Prefixes (`/api/bl/calendar/:token/...`, `/api/ssw/calendar/:token/...`)
+
+### UI-Hinweise für Kalender-Abo
+
+Die `CounselorCalendarSubscription`-Komponente muss folgende Hinweise anzeigen:
+- "Kalender-Abo nur in dienstlichen Kalendern verwenden"
+- "Externe Kalenderdienste (Google, Apple, Microsoft) sind eigene Datenempfänger mit eigenen Datenschutzfolgen"
+- "Alte URL wird bei Rotation sofort ungültig — Abo im Kalender-Client erneuern"
+
+---
+
 ## 5. Frontend-Änderungen
 
 ### Phase 5: Types + API (2 Dateien)
 
 | # | Datei | Aktion | Beschreibung |
 |---|-------|--------|-------------|
-| 24 | `src/types/index.ts` | modify | `category_name`, `topic_name`, `concern`, `notes`, `is_urgent`, `is_anonymous` aus `CounselorAppointment` entfernen; `CounselorBookingConfig` vereinfachen; `CounselorCalendarTokenStatus` + `CounselorCalendarTokenCreated` ergänzen |
+| 24 | `src/types/index.ts` | modify | `category_name`, `topic_name` aus `CounselorAppointment` entfernen (`concern`, `notes`, `is_urgent`, `is_anonymous` fehlen bereits im Interface); `student_name` → `first_name` + `last_name`; `consent_version` → `privacy_notice_version`; `CounselorBookingConfig` vereinfachen; `CounselorCalendarTokenStatus` + `CounselorCalendarTokenCreated` ergänzen |
 | 25 | `src/services/api.ts` | modify | Topic/Category-API-Methoden entfernen; `bl.getCalendarToken()`, `bl.createCalendarToken()`, `bl.rotateCalendarToken()`, `bl.deleteCalendarToken()` ergänzen (analog für SSW) |
 
 ### Phase 6: Shared Komponenten (4 Dateien)
@@ -195,7 +291,7 @@ COMMIT;
 |---|-------|--------|-------------|
 | 35 | `src/modules/schulsozialarbeit/components/SSWBookingApp.tsx` | modify | category-Config-Felder entfernen |
 | 36 | `src/modules/schulsozialarbeit/pages/SSWAnfragenTab.tsx` | modify | `topicColumnLabel`/`topicField` aus SSW_CONFIG entfernen |
-| 37 | `src/modules/schulsozialarbeit/pages/SSWTermineTab.tsx` | modify | `detailColumn` entfernen |
+| 37 | `src/modules/schulsozialarbeit/pages/SSWTermineTab.tsx` | modify | `detailColumnLabel` + `detailColumnValue` Props entfernen |
 | 38 | `src/modules/schulsozialarbeit/pages/SSWAdmin.tsx` | modify | Categories-Tab, categories-State, `getAdminCategories()`-Call entfernen |
 | 39 | `src/modules/schulsozialarbeit/pages/SSWCategoriesTab.tsx` | **LÖSCHEN** | Categories-Tab wird entfernt |
 
@@ -220,8 +316,8 @@ COMMIT;
 
 | Method | Path | Request vorher | Request nachher |
 |--------|------|---------------|-----------------|
-| POST | `/api/bl/appointments/:id/book` | `{ student_name, student_class, email, topic_id, is_urgent, consent_version }` | `{ student_name, student_class?, email?, consent_version }` |
-| POST | `/api/ssw/appointments/:id/book` | `{ student_name, student_class, email, category_id, is_urgent, consent_version }` | `{ student_name, student_class?, email?, consent_version }` |
+| POST | `/api/bl/appointments/:id/book` | `{ student_name, student_class, email, topic_id, is_urgent, consent_version }` | `{ first_name, last_name, student_class?, email?, privacy_notice_version }` |
+| POST | `/api/ssw/appointments/:id/book` | `{ student_name, student_class, email, category_id, is_urgent, consent_version }` | `{ first_name, last_name, student_class?, email?, privacy_notice_version }` |
 
 ### Neue Kalender-Token-Endpunkte (je 5 pro Modul = 10 total)
 
@@ -247,6 +343,8 @@ Phase 1: Shared Infrastruktur
   1. shared/tokenUtils.js (create)
   2. elternsprechtag/utils/tokenUtils.js → re-export
   3. shared/icalGenerator.js (create)
+  4. shared/calendarFeedRouter.js (create) — Shared Router für alle ICS-Feeds
+  5. elternsprechtag/index.js → auf Shared Router umstellen
 
 Phase 2: Migrationen
   4. 059_bl_ssw_drop_topics_categories.sql
@@ -289,34 +387,98 @@ Phase 7: Build + Review + Push
 | Laufende gebuchte Termine verlieren topic-Zuordnung | Akzeptabel | Gewolltes Verhalten — Datenschutz-Minimierung |
 | Bestehende API-Consumer (z.B. externe Skripte) brechen | Niedrig | Keine bekannten externen Consumer |
 | Shared Factory hat viele topic-Parameter | Mittel | Parameter optional machen, nicht Factory auflösen |
+| `/api/calendar`-Routing-Konflikt zwischen Modulen | Hoch | Vor Phase 4 klären: Shared Router oder Modul-Prefixes (siehe Abschnitt 4a) |
+| ICS-Feed leakt Personendaten an externe Kalenderdienste | Hoch | Neutraler Titel als Standard, keine PII in DESCRIPTION (siehe Abschnitt 4a) |
+| Kalender-Token-URL in Access-Logs/Browser-History | Mittel | URL-Parameter in Reverse-Proxy-Logs maskieren; Cache-Control: no-store, private |
+| `student_name`-Aufspaltung: Datenmigration bei mehrteiligen Namen | Mittel | Split-Logik in Migration (erster Teil → first_name, Rest → last_name); manuelle Prüfung bei Sonderfällen |
+| Backups enthalten bereits gelöschte sensible Spalten | Niedrig | Organisatorisch: Backup-Rotation dokumentieren, Restore-Runbook anpassen |
 
 ---
 
 ## 9. Datenschutz-Gewinn
 
-| Entfernt | Art | Begründung |
-|----------|-----|------------|
-| `concern` (Freitext) | Freitext | Sensible Informationen über Beratungsanlass |
-| `topic_id` / `category_id` | Referenz | Rückschluss auf Beratungsgrund |
-| `notes` (interne Notizen) | Freitext | Potenziell hochsensibles Material |
-| `is_anonymous` | Boolean | Impliziert sensiblen Kontext |
-| `is_urgent` | Boolean | Stigmatisierungspotenzial |
-| Topic/Category CRUD | Feature | Kein Verwaltungsbedarf mehr |
-| Topic-Dropdown im Formular | UI | Keine Auswahl mehr nötig |
+| Entfernt | Art | Begründung | Status |
+|----------|-----|------------|--------|
+| `concern` (Freitext) | Freitext | Sensible Informationen über Beratungsanlass | Bereits entfernt (Migration 035) |
+| `notes` (interne Notizen) | Freitext | Potenziell hochsensibles Material | Bereits entfernt (Migration 035) |
+| `is_anonymous` | Boolean | Impliziert sensiblen Kontext | Bereits entfernt (Migration 027) |
+| `topic_id` / `category_id` | Referenz | Rückschluss auf Beratungsgrund | Dieses Projekt |
+| `is_urgent` | Boolean | Stigmatisierungspotenzial | Dieses Projekt |
+| `student_name` → `first_name` + `last_name` | Strukturverbesserung | Saubere Validierung, Kürzelbildung, Auskunftsanfragen | Dieses Projekt |
+| `consent_version` → `privacy_notice_version` | Umbenennung | Korrekte Rechtsgrundlagen-Terminologie | Dieses Projekt |
+| Topic/Category CRUD | Feature | Kein Verwaltungsbedarf mehr | Dieses Projekt |
+| Topic-Dropdown im Formular | UI | Keine Auswahl mehr nötig | Dieses Projekt |
+| ICS-Personendaten minimiert | ICS-Feed | Neutraler Titel statt Schülername im Kalender | Dieses Projekt |
 
-**Verbleibendes Minimum:** `student_name`, `student_class`, `email`, `date`, `time`, `counselor_id`, `status`, `consent_version`
-
----
-
-## 10. Offene Entscheidungen
-
-| # | Frage | Empfehlung |
-|---|-------|------------|
-| 1 | `bl_requests`-Tabelle (anonyme Anfragen mit `topic_id`, `message`, `contact_info`) — mitlöschen? | Eigenes Feature, separate Entscheidung. Vorerst behalten. |
-| 2 | `bl_topics` / `ssw_categories` droppen oder nur deaktivieren? | Deaktivieren (active=FALSE). DROP in späterer Migration. |
-| 3 | ICS-Inhalt: Voller Name oder Kürzel? | Kürzel (V. Nachname) für Datenschutz |
-| 4 | Wer erzeugt Kalender-Tokens? Nur Counselor oder auch Admin? | Nur eigener Counselor (wie bei Elternsprechtag) |
+**Verbleibendes Minimum:** `first_name`, `last_name`, `student_class`, `email`, `date`, `time`, `counselor_id`, `status`, `privacy_notice_version`
 
 ---
 
-**Umfang:** ~41 Dateien, 2 Migrationen, 6 neue Dateien, 2 gelöschte Dateien, 8 entfallende API-Endpunkte, 10 neue API-Endpunkte.
+## 10. Löschkonzept (Speicherbegrenzung)
+
+Datenminimierung umfasst nicht nur die Erhebung, sondern auch die **Speicherdauer** (Art. 5 Abs. 1 lit. e DSGVO). Ohne Löschregeln wachsen die Tabellen unbegrenzt.
+
+### Aufbewahrungsfristen
+
+| Datenart | Frist | Löschregel |
+|----------|-------|------------|
+| Abgesagte / nicht angenommene Buchungen | **14 Tage** nach Absage | Automatische Bereinigung (Cronjob oder DB-Trigger) |
+| Erledigte Termine | **Schuljahresende** oder 90 Tage nach Termin (was zuerst eintritt) | Automatische Bereinigung |
+| Kalender-Token-Metadaten | **Sofort** nach Widerruf/Rotation | DELETE setzt Hash + Timestamp auf NULL |
+| Abgelaufene Kalender-Tokens | **30 Tage** nach Ablauf | Automatische Bereinigung der Hash-/Timestamp-Spalten |
+| Audit-Log-Einträge mit PII | **12 Monate** | Gemäß bestehendem Audit-Log-Konzept |
+
+### Umsetzung
+
+- Neue Migration oder Erweiterung von `backend/jobs/` (falls vorhanden) mit Cleanup-Job
+- Alternativ: PostgreSQL-basierter Cronjob (`pg_cron`) oder Application-Level Scheduler
+- Löschung als **Hard Delete**, nicht Soft Delete (Datenschutz > Wiederherstellbarkeit)
+
+---
+
+## 11. Log-Hygiene
+
+Auch bei bereinigter DB können sensible Daten in Logs landen. Prüfpunkte:
+
+| Log-Typ | Risiko | Maßnahme |
+|---------|--------|----------|
+| Request-Logs (Express/Morgan) | `student_name`, `email` in POST-Body | Body-Logging für Buchungsrouten deaktivieren oder PII maskieren |
+| Error-Logs (Logger) | Stack Traces können Request-Daten enthalten | Structured Logging mit PII-Filterung |
+| Audit-Logs | Explizit für PII-Zugriffe gedacht | Aufbewahrungsfrist einhalten (s. Abschnitt 10) |
+| Mail-Logs (Nodemailer) | Empfänger-E-Mail, ggf. Inhalt | Transport-Logging auf Minimum beschränken |
+| Kalender-Token in URLs | Token erscheint in Access-Logs | Reverse-Proxy-Konfiguration: URL-Parameter maskieren oder Access-Log für `/api/calendar` deaktivieren |
+
+### Regel
+
+Kein `student_name`/`first_name`/`last_name`, keine `email`, kein Klartext-Token in persistierten Logs. Wo nötig, nur gehashte oder gekürzte Werte loggen.
+
+---
+
+## 12. Backup-Betrachtung
+
+`DROP COLUMN` entfernt Daten aus der Live-DB, aber **nicht automatisch aus Backups**.
+
+| Punkt | Status | Empfehlung |
+|-------|--------|------------|
+| Backup-Aufbewahrungsdauer | Klären | Dokumentieren, wie lange Backups aufbewahrt werden. Sensible Spalten existieren in Backups, die vor Migration 035/059 erstellt wurden |
+| Zugriff auf Backups | Klären | Nur Ops/Admin-Zugriff, kein Entwicklerzugriff auf Produktions-Backups |
+| Restore-Prozess | Bewusstsein | Ein Restore älterer Backups macht bereits gelöschte sensible Spalten wieder sichtbar. Restore-Runbook muss das berücksichtigen |
+| Empfehlung | — | Kein Blocker für dieses Projekt, aber organisatorisch sicherstellen, dass Backups nach definierter Frist rotiert werden |
+
+---
+
+## 13. Offene Entscheidungen
+
+| # | Frage | Empfehlung | Follow-up |
+|---|-------|------------|-----------|
+| 1 | `bl_requests`-Tabelle (anonyme Anfragen mit `topic_id`, `message`, `contact_info`) — mitlöschen? | Vorerst behalten, separate Entscheidung. **Aber:** `message` und `contact_info` sind potenziell heikler als die künftige Slotbuchung — nicht liegen lassen | Ticket erstellen: "bl_requests Datenschutz-Review" |
+| 2 | `bl_topics` / `ssw_categories` droppen oder nur deaktivieren? | Deaktivieren (active=FALSE) in dieser Runde | Ticket erstellen: "bl_topics/ssw_categories vollständig entfernen" für nächste Runde |
+| 3 | ICS-Inhalt: Voller Name oder Kürzel? | **Neutraler Titel ohne Personendaten** als Standard ("Beratungstermin"). Kürzel (V. Nachname) nur als Opt-in durch Counselor. Kein voller Schülername. Siehe Abschnitt 4a für Details | Entschieden |
+| 4 | Wer erzeugt Kalender-Tokens? Nur Counselor oder auch Admin? | Nur eigener Counselor (wie bei Elternsprechtag). Admin-Erzeugung erhöht Zugriffswege unnötig und kollidiert mit Privacy-by-Default | Entschieden |
+| 5 | Routing-Architektur für `/api/calendar` — Shared Router oder Modul-Prefixes? | **Shared Calendar-Router** (`backend/shared/calendarFeedRouter.js`). Begründung: Weitere Module werden künftig hinzukommen. Elternsprechtag-Modul wird umgestellt, alle ICS-Routen zentral registriert | Entschieden |
+| 6 | `student_class` als Dropdown oder Freitext? | **Freitext** bleibt. Kein Dropdown nötig | Entschieden |
+| 7 | `student_name`-Aufspaltung: nur BL/SSW oder systemweit? | **Nur BL/SSW** in dieser Runde. Elternsprechtag-Modul (slots.student_name) bleibt unverändert | Entschieden |
+
+---
+
+**Umfang:** ~43 Dateien, 2 Migrationen (erweitert um Feld-Umbenennungen), 6 neue Dateien, 2 gelöschte Dateien, 8 entfallende API-Endpunkte, 10 neue API-Endpunkte.

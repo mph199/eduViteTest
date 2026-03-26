@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Counselor, ScheduleEntry, CounselorTopic as Category } from '../../../types';
+import type { Counselor, ScheduleEntry } from '../../../types';
 import { useActiveView } from '../../../hooks/useActiveView';
 import { useBgStyle } from '../../../hooks/useBgStyle';
 import { useFlash } from '../../../hooks/useFlash';
@@ -9,10 +9,9 @@ import { loadSchedulesMap } from '../../../shared/utils/schedule';
 import { SSWCounselorsTab } from './SSWCounselorsTab';
 import { SSWTermineTab } from './SSWTermineTab';
 import { SSWAnfragenTab } from './SSWAnfragenTab';
-import { SSWCategoriesTab } from './SSWCategoriesTab';
 import '../../../pages/AdminDashboard.css';
 
-type Tab = 'counselors' | 'categories' | 'termine' | 'anfragen';
+type Tab = 'counselors' | 'termine' | 'anfragen';
 
 export function SSWAdmin() {
   useActiveView('admin');
@@ -21,7 +20,6 @@ export function SSWAdmin() {
 
   const [tab, setTab] = useState<Tab>('counselors');
   const [counselors, setCounselors] = useState<Counselor[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
@@ -30,13 +28,9 @@ export function SSWAdmin() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [cData, catData] = await Promise.all([
-        api.ssw.getAdminCounselors(),
-        api.ssw.getAdminCategories(),
-      ]);
-      setCounselors(Array.isArray(cData?.counselors) ? cData.counselors : []);
-      setCategories(Array.isArray(catData?.categories) ? catData.categories : []);
+      const cData = await api.ssw.getAdminCounselors();
       const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
+      setCounselors(cList);
       setSchedulesMap(await loadSchedulesMap(cList, api.ssw.getAdminCounselorSchedule));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden');
@@ -72,7 +66,7 @@ export function SSWAdmin() {
       {error && <div className="admin-error">{error}</div>}
 
       <div className="module-tabs">
-        {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['anfragen', 'Anfragen'], ['categories', 'Themen']] as [Tab, string][]).map(([key, label]) => (
+        {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['anfragen', 'Anfragen']] as [Tab, string][]).map(([key, label]) => (
           <button
             key={key}
             className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -100,13 +94,6 @@ export function SSWAdmin() {
         />
       )}
       {tab === 'anfragen' && <SSWAnfragenTab showFlash={showFlash} />}
-      {tab === 'categories' && (
-        <SSWCategoriesTab
-          categories={categories}
-          showFlash={showFlash}
-          loadData={loadData}
-        />
-      )}
     </AdminPageWrapper>
   );
 }

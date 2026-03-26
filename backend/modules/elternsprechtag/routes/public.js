@@ -8,7 +8,7 @@ import { reserveBooking, verifyBookingToken } from '../services/slotsService.js'
 import { mapSlotRow } from '../../../utils/mappers.js';
 import { getTimeWindowsForTeacher, formatDateDE } from '../../../utils/timeWindows.js';
 import { resolveActiveEvent, findActiveEventId } from '../../../utils/resolveActiveEvent.js';
-import { getVerificationTtlMs } from '../utils/tokenUtils.js';
+import { getVerificationTtlMs } from '../../../shared/tokenUtils.js';
 import logger from '../../../config/logger.js';
 import { validate } from '../../../middleware/validate.js';
 import { bookingSchema, bookingRequestSchema } from '../../../schemas/booking.js';

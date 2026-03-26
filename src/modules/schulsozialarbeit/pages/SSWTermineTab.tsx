@@ -139,8 +139,6 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
           onDeleteSelected={handleDeleteSelectedAppointments}
           statusLabel={statusLabel}
           today={today}
-          detailColumnLabel="Kategorie"
-          detailColumnValue={a => a.category_name}
         />
       )}
     </>

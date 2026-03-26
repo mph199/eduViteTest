@@ -8,13 +8,9 @@ const config: CounselorBookingConfig = {
   counselorLabel: 'Beratungslehrkraft',
   confidentialNotice:
     'Alle Beratungsgespräche sind vertraulich. Deine Angaben werden nur an die gewählte Beratungslehrkraft weitergegeben.',
-  topicLabel: 'Thema',
-  topicFieldKey: 'topic_id',
   successCounselorLabel: 'Beratungslehrkraft',
   successMessage: 'Die Beratungslehrkraft wird sich bei dir melden, um den Termin zu bestätigen.',
   apiPathPrefix: '/bl',
-  topicEndpoint: '/topics',
-  topicResponseKey: 'topics',
   moduleId: 'beratungslehrer',
 };
 

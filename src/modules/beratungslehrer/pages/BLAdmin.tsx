@@ -3,7 +3,7 @@ import { useAuth } from '../../../contexts/useAuth';
 import { useActiveView } from '../../../hooks/useActiveView';
 import { useBgStyle } from '../../../hooks/useBgStyle';
 import { useFlash } from '../../../hooks/useFlash';
-import type { Counselor, ScheduleEntry, CounselorTopic as Topic } from '../../../types';
+import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
 import { buildDefaultSchedule, mergeScheduleEntries, loadSchedulesMap } from '../../../shared/utils/schedule';
@@ -11,10 +11,9 @@ import { BLSprechzeitenTab } from './BLSprechzeitenTab';
 import { BLTermineTab } from './BLTermineTab';
 import { BLAnfragenTab } from './BLAnfragenTab';
 import { BLCounselorsTab } from './BLCounselorsTab';
-import { BLTopicsTab } from './BLTopicsTab';
 import '../../../pages/AdminDashboard.css';
 
-type Tab = 'sprechzeiten' | 'termine' | 'anfragen' | 'counselors' | 'topics';
+type Tab = 'sprechzeiten' | 'termine' | 'anfragen' | 'counselors';
 
 const defaultSchedule: ScheduleEntry[] = buildDefaultSchedule([1, 2, 3, 4, 5]);
 
@@ -37,7 +36,6 @@ export function BLAdmin() {
   // Admin tabs state
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [adminSchedulesMap, setAdminSchedulesMap] = useState<Record<number, ScheduleEntry[]>>({});
-  const [topics, setTopics] = useState<Topic[]>([]);
 
   // ── Load own profile ──────────────────────────────────────────────
   const loadProfile = useCallback(async () => {
@@ -62,13 +60,9 @@ export function BLAdmin() {
   // ── Load admin data ────────────────────────────────────────────────
   const loadAdminData = useCallback(async () => {
     try {
-      const [cData, tData] = await Promise.all([
-        api.bl.getAdminCounselors(),
-        api.bl.getAdminTopics(),
-      ]);
+      const cData = await api.bl.getAdminCounselors();
       const cList: Counselor[] = Array.isArray(cData?.counselors) ? cData.counselors : [];
       setCounselors(cList);
-      setTopics(Array.isArray(tData?.topics) ? tData.topics : []);
       setAdminSchedulesMap(await loadSchedulesMap(cList, api.bl.getAdminCounselorSchedule));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden');
@@ -97,7 +91,6 @@ export function BLAdmin() {
   ] : [];
   const adminTabs: [Tab, string][] = isAdmin ? [
     ['counselors', 'Alle Berater'],
-    ['topics', 'Themen'],
   ] : [];
   const allTabs = [...adminTabs, ...blTabs];
 
@@ -144,9 +137,6 @@ export function BLAdmin() {
       )}
       {tab === 'counselors' && isAdmin && (
         <BLCounselorsTab counselors={counselors} schedulesMap={adminSchedulesMap} />
-      )}
-      {tab === 'topics' && isAdmin && (
-        <BLTopicsTab topics={topics} showFlash={showFlash} loadAdminData={loadAdminData} />
       )}
     </AdminPageWrapper>
   );

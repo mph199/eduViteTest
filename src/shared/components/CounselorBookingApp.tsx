@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Counselor, AppointmentSlot, CounselorBookingConfig, CounselorTopic } from '../../types';
+import type { Counselor, AppointmentSlot, CounselorBookingConfig } from '../../types';
 import { ConsentCheckbox, CONSENT_VERSIONS } from '../../components/ConsentCheckbox';
 import { requestJSON } from '../../services/api';
 import './CounselorBookingApp.css';
@@ -12,7 +12,6 @@ type Step = 'counselor' | 'datetime' | 'form' | 'success';
 
 export function CounselorBookingApp({ config }: { config: CounselorBookingConfig }) {
   const [counselors, setCounselors] = useState<Counselor[]>([]);
-  const [topics, setTopics] = useState<CounselorTopic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -27,29 +26,24 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
   const INITIAL_SLOT_COUNT = 5;
 
   const [formData, setFormData] = useState({
-    student_name: '',
+    first_name: '',
+    last_name: '',
     student_class: '',
     email: '',
-    topic_id: '',
-    is_urgent: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [consented, setConsented] = useState(false);
   const [bookingResult, setBookingResult] = useState<{ status: string } | null>(null);
 
-  // Load counselors and topics
+  // Load counselors
   useEffect(() => {
-    Promise.all([
-      requestJSON(`${config.apiPathPrefix}/counselors`),
-      requestJSON(`${config.apiPathPrefix}${config.topicEndpoint}`),
-    ])
-      .then(([cData, tData]) => {
+    requestJSON(`${config.apiPathPrefix}/counselors`)
+      .then((cData) => {
         setCounselors(Array.isArray(cData?.counselors) ? cData.counselors : []);
-        setTopics(Array.isArray(tData?.[config.topicResponseKey]) ? tData[config.topicResponseKey] : []);
       })
       .catch(() => setError('Fehler beim Laden der Daten'))
       .finally(() => setLoading(false));
-  }, [config.apiPathPrefix, config.topicEndpoint, config.topicResponseKey]);
+  }, [config.apiPathPrefix]);
 
   // Load available slots
   const loadSlots = useCallback(async (counselorId: number, date: string) => {
@@ -92,8 +86,8 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     e.preventDefault();
     if (!consented) return;
     if (!selectedSlot) return;
-    if (!formData.student_name.trim()) {
-      setError('Bitte gib deinen Namen ein.');
+    if (!formData.first_name.trim() || !formData.last_name.trim()) {
+      setError('Bitte gib Vor- und Nachnamen ein.');
       return;
     }
 
@@ -103,7 +97,6 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          [config.topicFieldKey]: formData.topic_id ? parseInt(formData.topic_id) : null,
           consent_version: CONSENT_VERSIONS[config.moduleId],
         }),
       });
@@ -122,7 +115,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
     setSelectedDate('');
     setAvailableSlots([]);
     setSelectedSlot(null);
-    setFormData({ student_name: '', student_class: '', email: '', topic_id: '', is_urgent: false });
+    setFormData({ first_name: '', last_name: '', student_class: '', email: '' });
     setConsented(false);
     setBookingResult(null);
   };
@@ -273,13 +266,25 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
 
           <form className="cb-form" onSubmit={handleSubmit}>
             <div className="cb-form__group">
-              <label htmlFor="cb-name">Name *</label>
+              <label htmlFor="cb-firstname">Vorname *</label>
               <input
-                id="cb-name"
+                id="cb-firstname"
                 type="text"
-                value={formData.student_name}
-                onChange={e => setFormData({ ...formData, student_name: e.target.value })}
-                placeholder="Dein vollständiger Name"
+                value={formData.first_name}
+                onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                placeholder="Dein Vorname"
+                required
+              />
+            </div>
+
+            <div className="cb-form__group">
+              <label htmlFor="cb-lastname">Nachname *</label>
+              <input
+                id="cb-lastname"
+                type="text"
+                value={formData.last_name}
+                onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                placeholder="Dein Nachname"
                 required
               />
             </div>
@@ -306,29 +311,6 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
               />
               <span className="cb-form__hint">Falls du eine Bestätigung erhalten möchtest</span>
             </div>
-
-            <div className="cb-form__group">
-              <label htmlFor="cb-topic">{config.topicLabel}</label>
-              <select
-                id="cb-topic"
-                value={formData.topic_id}
-                onChange={e => setFormData({ ...formData, topic_id: e.target.value })}
-              >
-                <option value="">-- Bitte wählen --</option>
-                {topics.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <label className="cb-form__urgent">
-              <input
-                type="checkbox"
-                checked={formData.is_urgent}
-                onChange={e => setFormData({ ...formData, is_urgent: e.target.checked })}
-              />
-              Dringend -- Ich brauche möglichst schnell Hilfe
-            </label>
 
             <ConsentCheckbox
               checked={consented}

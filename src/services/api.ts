@@ -390,24 +390,22 @@ const api = {
         method: 'PUT',
       });
     },
+    // Calendar token
+    async getCalendarToken() {
+      return requestJSON('/bl/counselor/calendar-token');
+    },
+    async createCalendarToken() {
+      return requestJSON('/bl/counselor/calendar-token', { method: 'POST' });
+    },
+    async rotateCalendarToken() {
+      return requestJSON('/bl/counselor/calendar-token/rotate', { method: 'POST' });
+    },
+    async deleteCalendarToken() {
+      return requestJSON('/bl/counselor/calendar-token', { method: 'DELETE' });
+    },
     // Admin-only
     async getAdminCounselors() {
       return requestJSON('/bl/admin/counselors');
-    },
-    async getAdminTopics() {
-      return requestJSON('/bl/admin/topics');
-    },
-    async createTopic(payload: { name: string; description?: string; sort_order?: number }) {
-      return requestJSON('/bl/admin/topics', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-    },
-    async updateTopic(id: number, payload: { name: string; description?: string; sort_order?: number; active?: boolean }) {
-      return requestJSON(`/bl/admin/topics/${encodeURIComponent(id)}`, {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      });
     },
     ...counselorAdminApi('bl'),
   },
@@ -435,20 +433,18 @@ const api = {
         method: 'DELETE',
       });
     },
-    async getAdminCategories() {
-      return requestJSON('/ssw/admin/categories');
+    // Calendar token
+    async getCalendarToken() {
+      return requestJSON('/ssw/counselor/calendar-token');
     },
-    async createCategory(payload: { name: string; description?: string; icon?: string; sort_order?: number }) {
-      return requestJSON('/ssw/admin/categories', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+    async createCalendarToken() {
+      return requestJSON('/ssw/counselor/calendar-token', { method: 'POST' });
     },
-    async updateCategory(id: number, payload: { name: string; description?: string; icon?: string; sort_order?: number; active?: boolean }) {
-      return requestJSON(`/ssw/admin/categories/${encodeURIComponent(id)}`, {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      });
+    async rotateCalendarToken() {
+      return requestJSON('/ssw/counselor/calendar-token/rotate', { method: 'POST' });
+    },
+    async deleteCalendarToken() {
+      return requestJSON('/ssw/counselor/calendar-token', { method: 'DELETE' });
     },
     ...counselorAdminApi('ssw'),
     async updateAdminCounselorSchedule(counselorId: number, schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
