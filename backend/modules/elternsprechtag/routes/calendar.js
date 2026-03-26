@@ -103,9 +103,9 @@ router.get('/:token/elternsprechtag.ics', async (req, res) => {
     res.set({
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'inline; filename="elternsprechtag.ics"',
-      'Cache-Control': 'no-store, max-age=0',
+      'Cache-Control': 'no-store, private',
       'Pragma': 'no-cache',
-      'X-Robots-Tag': 'noindex',
+      'X-Robots-Tag': 'noindex, nofollow',
     });
     return res.status(200).send(ics);
   } catch (err) {

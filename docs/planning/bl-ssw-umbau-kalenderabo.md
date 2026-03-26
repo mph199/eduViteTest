@@ -344,6 +344,8 @@ Phase 1: Shared Infrastruktur
   1. shared/tokenUtils.js (create)
   2. elternsprechtag/utils/tokenUtils.js → re-export
   3. shared/icalGenerator.js (create)
+  4. shared/calendarFeedRouter.js (create) — Shared Router für alle ICS-Feeds
+  5. elternsprechtag/index.js → auf Shared Router umstellen
 
 Phase 2: Migrationen
   4. 059_bl_ssw_drop_topics_categories.sql
@@ -474,8 +476,9 @@ Kein `student_name`/`first_name`/`last_name`, keine `email`, kein Klartext-Token
 | 2 | `bl_topics` / `ssw_categories` droppen oder nur deaktivieren? | Deaktivieren (active=FALSE) in dieser Runde | Ticket erstellen: "bl_topics/ssw_categories vollständig entfernen" für nächste Runde |
 | 3 | ICS-Inhalt: Voller Name oder Kürzel? | **Neutraler Titel ohne Personendaten** als Standard ("Beratungstermin"). Kürzel (V. Nachname) nur als Opt-in durch Counselor. Kein voller Schülername. Siehe Abschnitt 4a für Details | Entschieden |
 | 4 | Wer erzeugt Kalender-Tokens? Nur Counselor oder auch Admin? | Nur eigener Counselor (wie bei Elternsprechtag). Admin-Erzeugung erhöht Zugriffswege unnötig und kollidiert mit Privacy-by-Default | Entschieden |
-| 5 | Routing-Architektur für `/api/calendar` — Shared Router oder Modul-Prefixes? | Klären vor Implementierung (siehe Abschnitt 4a "Routing-Architektur") | Vor Phase 4 entscheiden |
-| 6 | `student_class` als Dropdown oder Freitext? | Dropdown mit standardisierten Klassen (aus bestehender Klassenliste oder Konfiguration). Freitext nur als Fallback | Vor Phase 6 klären |
+| 5 | Routing-Architektur für `/api/calendar` — Shared Router oder Modul-Prefixes? | **Shared Calendar-Router** (`backend/shared/calendarFeedRouter.js`). Begründung: Weitere Module werden künftig hinzukommen. Elternsprechtag-Modul wird umgestellt, alle ICS-Routen zentral registriert | Entschieden |
+| 6 | `student_class` als Dropdown oder Freitext? | **Freitext** bleibt. Kein Dropdown nötig | Entschieden |
+| 7 | `student_name`-Aufspaltung: nur BL/SSW oder systemweit? | **Nur BL/SSW** in dieser Runde. Elternsprechtag-Modul (slots.student_name) bleibt unverändert | Entschieden |
 
 ---
 
