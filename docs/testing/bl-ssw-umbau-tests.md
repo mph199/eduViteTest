@@ -12,7 +12,7 @@
 
 ---
 
-## Testabdeckung (Phase 1)
+## Testabdeckung
 
 ### P0: Pure Functions (kein DB-Mock nötig)
 
@@ -37,7 +37,8 @@
 | Test-Dateien | 6 |
 | Tests gesamt | 48 |
 | Alle bestanden | Ja |
-| Laufzeit | < 1s |
+| Laufzeit | ~1s |
+| Frontend-Build | Erfolgreich |
 
 ---
 
@@ -63,23 +64,72 @@ Die folgenden Tests stellen sicher, dass keine personenbezogenen Daten in extern
 
 ---
 
-## Noch nicht abgedeckt (Backlog)
+## Code-Hygiene (Hygieniker-Ergebnis)
 
-### P1 (empfohlen)
+### Behoben
 
-| Bereich | Tests (geschätzt) | Priorität |
-|---------|------------------|-----------|
-| `counselorService.js` (generateTimeSlots, bookAppointment) | ~8 | P1 |
-| `counselorPublicRoutes.js` (Buchungsendpunkt) | ~6 | P1 |
-| `counselorAdminRoutes.js` (CRUD, Ownership-Check) | ~9 | P1 |
-| `calendarFeedRouter.js` (ICS-Auslieferung, Token-Validierung) | ~9 | P1 |
+| # | Schweregrad | Befund | Status |
+|---|-------------|--------|--------|
+| 1 | Hoch | `TopicCategoryTab.tsx` — tote Datei, kein Import | Gelöscht |
+| 2 | Hoch | `CounselorTopic` Interface — nur von toter Datei genutzt | Entfernt |
+| 3 | Mittel | `listTopics` Export in BL/SSW appointmentService — nie aufgerufen | Entfernt |
+| 4 | Mittel | `topicTable`/`topicForeignKey`/`listTopics` Dead Path in counselorService | Entfernt |
 
-### P0 (ausstehend, DSGVO-kritisch)
+### Offen (Backlog)
 
-| Bereich | Tests (geschätzt) | Priorität |
-|---------|------------------|-----------|
-| `dataSubject.js` (Art. 15/16/17 DSGVO) | ~12 | P0 |
-| `consent.js` (Art. 7 Widerruf) | ~6 | P0 |
+| # | Schweregrad | Befund | Empfehlung |
+|---|-------------|--------|------------|
+| 5 | Mittel | Elternsprechtag `calendarToken.js` ~90% Duplikat mit Shared Factory | Nächster Sprint: auf `createCalendarTokenRoutes()` umstellen |
+| 6 | Niedrig | `.cb-form__urgent` CSS-Klasse semantisch falsch wiederverwendet | Umbenennen in `.cb-form__checkbox-label` |
+| 7 | Niedrig | `tokenUtils.js` Re-Export-Shim | Interne Imports auf `shared/` umstellen, Shim löschen |
+
+### Verschlankung
+
+- ~160 Zeilen toter Code entfernt
+- Keine aufgeblähten Dateien identifiziert
+- Keine kritischen Duplikate (ausser Elternsprechtag calendarToken.js → Backlog)
+
+---
+
+## Review-Ergebnisse (Prüfer-Agent)
+
+### Befunde und Fixes
+
+| # | Schweregrad | Befund | Status |
+|---|-------------|--------|--------|
+| 1-5 | Kritisch | `student_name` in DSGVO-Routen (dataSubject.js, consent.js, retention-cleanup.js) | Behoben → `first_name`/`last_name` |
+| 7 | Hoch | `topicJoin`/`topicSelect` SQL-Interpolation ohne Validierung | Behoben → komplett entfernt |
+| 8 | Mittel | Migration 059: `ELSE ''` statt `ELSE NULL` | Behoben → `ELSE NULL` |
+
+---
+
+## Test-Backlog (nächste Sprints)
+
+### P0 (DSGVO-kritisch, empfohlen als nächstes)
+
+| Bereich | Tests (geschätzt) | Beschreibung |
+|---------|------------------|-------------|
+| `dataSubject.js` | ~12 | Art. 15/16/17 DSGVO: Auskunft, Berichtigung, Löschung, Transaktionsintegrität |
+| `consent.js` | ~6 | Art. 7 Widerruf: Anonymisierung, keine Info-Leaks, Rate-Limiting |
+
+### P1 (Service & Routes)
+
+| Bereich | Tests (geschätzt) | Beschreibung |
+|---------|------------------|-------------|
+| `counselorService.js` | ~8 | generateTimeSlots, bookAppointment, Konflikterkennung |
+| `counselorPublicRoutes.js` | ~6 | Buchungsendpunkt, Consent-Receipt |
+| `counselorAdminRoutes.js` | ~9 | CRUD, Ownership-Check, restricted-Filter |
+| `calendarFeedRouter.js` | ~9 | ICS-Auslieferung, Token-Validierung, HTTP-Header |
+
+### P2 (Auth & Helpers)
+
+| Bereich | Tests (geschätzt) | Beschreibung |
+|---------|------------------|-------------|
+| `counselorRoutes.js` | ~6 | Counselor-Auth, Confirm/Cancel |
+| `upsertWeeklySchedule` | ~5 | Wochenplan-Upsert |
+| Migrationen 059+060 | ~4 | Idempotenz |
+
+**Gesamt-Backlog: ~65 Tests**
 
 ---
 
