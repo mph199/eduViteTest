@@ -16,9 +16,9 @@ export interface CalendarPanelProps {
   onDeleteSelected: () => void;
   statusLabel: (s: string) => string;
   today: string;
-  /** Column label for the detail table (default: "Thema"). */
+  /** Column label for an optional detail column. If omitted, no detail column is shown. */
   detailColumnLabel?: string;
-  /** Accessor for detail column value (default: a.topic_name). */
+  /** Accessor for detail column value. Required if detailColumnLabel is set. */
   detailColumnValue?: (a: Appointment) => string | undefined;
 }
 
@@ -35,11 +35,11 @@ export function CalendarPanel({
   onDeleteSelected,
   statusLabel,
   today,
-  detailColumnLabel = 'Thema',
+  detailColumnLabel,
   detailColumnValue,
 }: CalendarPanelProps) {
   const { year, month } = calMonth;
-  const getDetailValue = detailColumnValue ?? ((a: Appointment) => a.topic_name);
+  const showDetailColumn = !!detailColumnLabel && !!detailColumnValue;
 
   return (
     <>
@@ -173,8 +173,8 @@ export function CalendarPanel({
                         <th></th>
                         <th>Uhrzeit</th>
                         <th>Status</th>
-                        <th>Schüler/in</th>
-                        <th>{detailColumnLabel}</th>
+                        <th>Name</th>
+                        {showDetailColumn && <th>{detailColumnLabel}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -194,7 +194,7 @@ export function CalendarPanel({
                           <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
                           <td data-label="Status">{statusLabel(a.status)}</td>
                           <td data-label="Name">{[a.first_name, a.last_name].filter(Boolean).join(' ') || '--'}</td>
-                          <td data-label={detailColumnLabel}>{getDetailValue(a) || '--'}</td>
+                          {showDetailColumn && <td data-label={detailColumnLabel}>{detailColumnValue!(a) || '--'}</td>}
                         </tr>
                       ))}
                     </tbody>
