@@ -1,11 +1,13 @@
 /**
  * Schulsozialarbeit – Berater-Routen (authentifiziert)
  *
- * Thin wrapper around the shared counselor route factory.
+ * Shared counselor routes + calendar token management.
  */
 
+import express from 'express';
 import { query } from '../../../config/db.js';
 import { createCounselorRoutes } from '../../../shared/counselorRoutes.js';
+import { createCalendarTokenRoutes } from '../../../shared/calendarTokenRoutes.js';
 
 const SSW_TABLES = {
   counselorsTable: 'ssw_counselors',
@@ -35,10 +37,23 @@ async function resolveCounselor(req) {
   return rows[0];
 }
 
-const router = createCounselorRoutes({
+const sharedRouter = createCounselorRoutes({
   tables: SSW_TABLES,
   logPrefix: 'SSW',
   resolveCounselor,
 });
+
+const calendarTokenRouter = createCalendarTokenRoutes({
+  table: 'ssw_counselors',
+  logPrefix: 'SSW',
+  resolveCounselorId: async (req) => {
+    const counselor = await resolveCounselor(req);
+    return counselor?.id || null;
+  },
+});
+
+const router = express.Router();
+router.use('/', calendarTokenRouter);
+router.use('/', sharedRouter);
 
 export default router;

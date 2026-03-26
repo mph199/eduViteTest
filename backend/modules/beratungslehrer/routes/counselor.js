@@ -10,6 +10,7 @@ import { requireAuth, hasModuleAccess } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { upsertWeeklySchedule } from '../../../shared/counselorService.js';
 import { createCounselorRoutes } from '../../../shared/counselorRoutes.js';
+import { createCalendarTokenRoutes } from '../../../shared/calendarTokenRoutes.js';
 import logger from '../../../config/logger.js';
 
 const BL_TABLES = {
@@ -113,6 +114,17 @@ router.put('/schedule', requireAuth, requireBLCounselor, async (req, res) => {
     res.status(500).json({ error: 'Fehler beim Speichern des Wochenplans' });
   }
 });
+
+// Calendar token management
+const calendarTokenRouter = createCalendarTokenRoutes({
+  table: 'bl_counselors',
+  logPrefix: 'BL',
+  resolveCounselorId: async (req) => {
+    const counselor = await resolveCounselor(req);
+    return counselor?.id || null;
+  },
+});
+router.use('/', calendarTokenRouter);
 
 // Mount shared routes
 router.use('/', sharedRouter);
