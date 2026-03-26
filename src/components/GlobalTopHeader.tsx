@@ -262,8 +262,18 @@ export function GlobalTopHeader() {
           ) : null}
 
           <div className="globalTopHeader__brand" aria-label={`${branding.school_name} Buchungssystem`}>
-            <div className="globalTopHeader__brandTop" style={branding.header_font_color ? { color: branding.header_font_color } : undefined}>{branding.school_name}</div>
-            <div className="globalTopHeader__brandBottom">Buchungssystem</div>
+            {branding.logo_url && (
+              <img
+                src={branding.logo_url.startsWith('/') ? branding.logo_url : `/uploads/logos/${branding.logo_url.split('/').pop()}`}
+                alt=""
+                className="globalTopHeader__logo"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
+            <div>
+              <div className="globalTopHeader__brandTop" style={branding.header_font_color ? { color: branding.header_font_color } : undefined}>{branding.school_name}</div>
+              <div className="globalTopHeader__brandBottom">Buchungssystem</div>
+            </div>
           </div>
 
           {showModuleTitle && activeModule ? <div className="globalTopHeader__moduleTitle">{activeModule.title}</div> : null}

@@ -41,7 +41,7 @@
 
 .cb-step--active {
   background: var(--brand-primary, #123C73);
-  color: var(--color-white);
+  color: var(--brand-button-text, #ffffff);
 }
 
 .cb-step--done {
@@ -171,7 +171,7 @@
 .cb-slot--selected {
   border-color: var(--brand-primary, #123C73);
   background: var(--brand-primary, #123C73);
-  color: var(--color-white);
+  color: var(--brand-button-text, #ffffff);
 }
 
 /* Booking form */

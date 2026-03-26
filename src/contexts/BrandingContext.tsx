@@ -52,6 +52,17 @@ function hexToRgb(hex: string): string {
   return `${r}, ${g}, ${b}`;
 }
 
+/** Compute relative luminance (WCAG 2.1) from hex color */
+function hexLuminance(hex: string): number {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return 0;
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
 function applyToRoot(b: SiteBranding) {
   const root = document.documentElement;
   root.style.setProperty('--brand-primary', b.primary_color);
@@ -70,6 +81,10 @@ function applyToRoot(b: SiteBranding) {
 
   // Login colors derive from ink
   root.style.setProperty('--brand-login', b.ink_color);
+
+  // Button text contrast: auto-switch based on primary color luminance
+  const lum = hexLuminance(b.primary_color);
+  root.style.setProperty('--brand-button-text', lum > 0.35 ? '#1a1a1a' : '#ffffff');
 }
 
 interface BrandingContextValue {
