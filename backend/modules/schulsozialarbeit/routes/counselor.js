@@ -37,8 +37,8 @@ async function resolveCounselor(req) {
 
 const router = createCounselorRoutes({
   tables: SSW_TABLES,
-  topicJoin: 'LEFT JOIN ssw_categories c ON c.id = a.category_id',
-  topicSelect: 'c.name AS category_name, c.icon AS category_icon',
+  topicJoin: '',
+  topicSelect: '',
   logPrefix: 'SSW',
   resolveCounselor,
 });

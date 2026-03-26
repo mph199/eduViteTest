@@ -1,7 +1,7 @@
 /**
  * Beratungslehrer – Admin-Routen
  *
- * Verwaltung von Beratungslehrern und Themen.
+ * Verwaltung von Beratungslehrern.
  */
 
 import { requireAdmin } from '../../../middleware/auth.js';
@@ -12,25 +12,6 @@ export default createCounselorAdminRoutes({
   tablePrefix: 'bl',
   authMiddleware: requireAdmin,
   counselorLabel: 'Beratungslehrer',
-  topicTable: 'bl_topics',
-  topicResponseKey: 'topics',
-  topicSingularKey: 'topic',
-  topicForeignKey: 'topic_id',
-  topicJoinAlias: 'topic_name',
-  topicInsertCols: ['name', 'description', 'sort_order'],
-  topicUpdateCols: ['name', 'description', 'sort_order', 'active'],
-  buildTopicInsertParams: (body) => [
-    body.name.trim(),
-    body.description || null,
-    body.sort_order || 0,
-  ],
-  buildTopicUpdateParams: (body, id) => [
-    body.name.trim(),
-    body.description || null,
-    body.sort_order || 0,
-    body.active !== false,
-    id,
-  ],
 
   async onCounselorCreated(counselor, req) {
     return createCounselorUser(counselor, req, {

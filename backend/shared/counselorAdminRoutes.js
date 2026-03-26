@@ -8,15 +8,6 @@
  * @param {string}   config.tablePrefix         – 'ssw' or 'bl'
  * @param {Function} config.authMiddleware       – e.g. requireSSW or requireBeratungslehrer
  * @param {string}   config.counselorLabel       – 'Berater/in' or 'Beratungslehrer'
- * @param {string}   config.topicTable           – 'ssw_categories' or 'bl_topics'
- * @param {string}   config.topicResponseKey     – 'categories' or 'topics'
- * @param {string}   config.topicSingularKey     – 'category' or 'topic'
- * @param {string}   config.topicForeignKey      – 'category_id' or 'topic_id'
- * @param {string}   config.topicJoinAlias        – 'category_name' or 'topic_name'
- * @param {string[]} config.topicInsertCols      – columns for INSERT
- * @param {string[]} config.topicUpdateCols      – columns for UPDATE SET
- * @param {Function} config.buildTopicInsertParams  – (body) => [values]
- * @param {Function} config.buildTopicUpdateParams  – (body, id) => [values]
  * @param {Function} config.onCounselorCreated   – async (counselor, req) => { user info }
  * @param {Function} config.onCounselorDeleted   – async (counselorRow) => void
  */
@@ -37,26 +28,12 @@ export function createCounselorAdminRoutes(config) {
     tablePrefix,
     authMiddleware,
     counselorLabel,
-    topicTable,
-    topicResponseKey,
-    topicSingularKey,
-    topicForeignKey,
-    topicJoinAlias,
-    topicInsertCols,
-    topicUpdateCols,
-    buildTopicInsertParams,
-    buildTopicUpdateParams,
     onCounselorCreated,
     onCounselorDeleted,
   } = config;
 
   // Validate all identifiers used in SQL interpolation
   assertSafeIdentifier(tablePrefix, 'tablePrefix');
-  assertSafeIdentifier(topicTable, 'topicTable');
-  assertSafeIdentifier(topicForeignKey, 'topicForeignKey');
-  assertSafeIdentifier(topicJoinAlias, 'topicJoinAlias');
-  for (const col of topicInsertCols) assertSafeIdentifier(col, 'topicInsertCols');
-  for (const col of topicUpdateCols) assertSafeIdentifier(col, 'topicUpdateCols');
 
   const counselorsTable = `${tablePrefix}_counselors`;
   const appointmentsTable = `${tablePrefix}_appointments`;
@@ -207,59 +184,6 @@ export function createCounselorAdminRoutes(config) {
     }
   });
 
-  // ── Topics/Categories CRUD ───────────────────────────────────────
-
-  router.get(`/${topicResponseKey}`, authMiddleware, async (_req, res) => {
-    try {
-      const { rows } = await query(`SELECT * FROM ${topicTable} ORDER BY sort_order, id`);
-      res.json({ [topicResponseKey]: rows });
-    } catch (err) {
-      logger.error({ err }, `${tablePrefix}: Fehler beim Laden der ${topicResponseKey}`);
-      res.status(500).json({ error: `Fehler beim Laden der ${topicResponseKey}` });
-    }
-  });
-
-  router.post(`/${topicResponseKey}`, authMiddleware, async (req, res) => {
-    try {
-      const body = req.body || {};
-      if (!body.name?.trim()) return res.status(400).json({ error: 'Name ist erforderlich' });
-
-      const cols = topicInsertCols.join(', ');
-      const placeholders = topicInsertCols.map((_, i) => `$${i + 1}`).join(', ');
-      const params = buildTopicInsertParams(body);
-
-      const { rows } = await query(
-        `INSERT INTO ${topicTable} (${cols}) VALUES (${placeholders}) RETURNING *`,
-        params
-      );
-      res.json({ success: true, [topicSingularKey]: rows[0] });
-    } catch (err) {
-      logger.error({ err }, `${tablePrefix}: Fehler beim Anlegen`);
-      res.status(500).json({ error: 'Fehler beim Anlegen' });
-    }
-  });
-
-  router.put(`/${topicResponseKey}/:id`, authMiddleware, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const body = req.body || {};
-      if (!body.name?.trim()) return res.status(400).json({ error: 'Name ist erforderlich' });
-
-      const setClauses = topicUpdateCols.map((col, i) => `${col} = $${i + 1}`).join(', ');
-      const params = buildTopicUpdateParams(body, id);
-
-      const { rows } = await query(
-        `UPDATE ${topicTable} SET ${setClauses} WHERE id = $${topicUpdateCols.length + 1} RETURNING *`,
-        params
-      );
-      if (!rows.length) return res.status(404).json({ error: `${topicSingularKey} nicht gefunden` });
-      res.json({ success: true, [topicSingularKey]: rows[0] });
-    } catch (err) {
-      logger.error({ err }, `${tablePrefix}: Fehler beim Speichern`);
-      res.status(500).json({ error: 'Fehler beim Speichern' });
-    }
-  });
-
   // ── Stats ────────────────────────────────────────────────────────
 
   router.get('/stats', authMiddleware, async (_req, res) => {
@@ -295,9 +219,8 @@ export function createCounselorAdminRoutes(config) {
       }
 
       const { rows } = await query(
-        `SELECT a.*, t.name AS ${topicJoinAlias}
+        `SELECT a.*
          FROM ${appointmentsTable} a
-         LEFT JOIN ${topicTable} t ON t.id = a.${topicForeignKey}
          WHERE a.counselor_id = $1 AND a.date >= $2 AND a.date <= $3 AND a.restricted IS NOT TRUE
          ORDER BY a.date, a.time`,
         [counselorId, dateFrom, dateUntil]

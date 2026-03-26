@@ -137,7 +137,8 @@ export function createCounselorRoutes(config) {
       const { rows } = await query(
         `UPDATE ${tables.appointmentsTable}
          SET status = 'cancelled',
-             student_name = NULL,
+             first_name = NULL,
+             last_name = NULL,
              student_class = NULL,
              email = NULL,
              phone = NULL,

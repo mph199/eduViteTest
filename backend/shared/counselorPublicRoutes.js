@@ -3,15 +3,11 @@
  *
  * Creates an Express router with standard public endpoints:
  * - GET /counselors
- * - GET /categories or /topics (configurable)
  * - GET /appointments/:counselorId?date=YYYY-MM-DD
  * - POST /appointments/:id/book
  *
  * @param {object} service         – Service created by createCounselorService()
  * @param {object} config
- * @param {string} config.topicForeignKey   – 'category_id' or 'topic_id'
- * @param {string} config.topicEndpoint     – '/categories' or '/topics'
- * @param {string} config.topicResponseKey  – 'categories' or 'topics'
  * @param {string} config.counselorLabel    – for error messages
  * @param {object} [config.bookingLimiter]  – optional stricter rate limiter for POST /book
  */
@@ -36,9 +32,6 @@ const defaultBookingLimiter = createRateLimiter({
 export function createCounselorPublicRoutes(service, config) {
   const {
     tablePrefix,
-    topicForeignKey,
-    topicEndpoint,
-    topicResponseKey,
     counselorLabel = 'Berater/in',
     moduleName = 'unknown',
     bookingLimiter = defaultBookingLimiter,
@@ -56,17 +49,6 @@ export function createCounselorPublicRoutes(service, config) {
     } catch (err) {
       logger.error({ err }, `Public: Fehler beim Laden der ${counselorLabel}`);
       res.status(500).json({ error: `Fehler beim Laden der ${counselorLabel}` });
-    }
-  });
-
-  // GET /categories or /topics
-  router.get(topicEndpoint, async (_req, res) => {
-    try {
-      const items = await service.listTopics();
-      res.json({ [topicResponseKey]: items });
-    } catch (err) {
-      logger.error({ err }, `Public: Fehler beim Laden der ${topicResponseKey}`);
-      res.status(500).json({ error: `Fehler beim Laden der ${topicResponseKey}` });
     }
   });
 
@@ -97,15 +79,14 @@ export function createCounselorPublicRoutes(service, config) {
       if (isNaN(appointmentId)) return res.status(400).json({ error: 'Ungueltige Termin-ID' });
 
       const body = req.body;
-      const { student_name, student_class, email, phone, is_urgent, consent_version } = body;
+      const { first_name, last_name, student_class, email, phone, consent_version } = body;
 
       const bookingData = {
-        student_name,
+        first_name,
+        last_name,
         student_class,
         email,
         phone,
-        [topicForeignKey]: body[topicForeignKey] ? parseInt(body[topicForeignKey], 10) : null,
-        is_urgent,
       };
 
       // Determine if this counselor requires manual confirmation
