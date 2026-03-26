@@ -84,7 +84,7 @@ function applyToRoot(b: SiteBranding) {
 
   // Button text contrast: auto-switch based on primary color luminance
   const lum = hexLuminance(b.primary_color);
-  root.style.setProperty('--brand-button-text', lum > 0.35 ? '#1a1a1a' : '#ffffff');
+  root.style.setProperty('--brand-button-text', Number.isFinite(lum) && lum > 0.35 ? '#1a1a1a' : '#ffffff');
 }
 
 interface BrandingContextValue {

@@ -7,6 +7,7 @@ import { ViewSwitcher } from './ViewSwitcher';
 import { CollapsibleNavGroup } from './CollapsibleNavGroup';
 import { useAuth } from '../contexts/useAuth';
 import { useBranding } from '../contexts/BrandingContext';
+import api from '../services/api';
 import { modules } from '../modules/registry';
 import type { SidebarNavItem } from '../modules/registry';
 import { useModuleConfig } from '../contexts/ModuleConfigContext';
@@ -264,7 +265,7 @@ export function GlobalTopHeader() {
           <div className="globalTopHeader__brand" aria-label={`${branding.school_name} Buchungssystem`}>
             {branding.logo_url && (
               <img
-                src={branding.logo_url.startsWith('/') ? branding.logo_url : `/uploads/logos/${branding.logo_url.split('/').pop()}`}
+                src={api.superadmin.resolveLogoUrl(branding.logo_url)}
                 alt=""
                 className="globalTopHeader__logo"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

@@ -144,7 +144,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                 )}
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   className="superadmin__input"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
@@ -156,12 +156,12 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                       e.target.value = '';
                       return;
                     }
-                    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
-                    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
+                    const allowedExts = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+                    const allowedMimes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
                     const dotIdx = file.name.lastIndexOf('.');
                     const ext = dotIdx >= 0 ? file.name.slice(dotIdx).toLowerCase() : '';
                     if (!ext || !allowedExts.includes(ext) || !allowedMimes.includes(file.type)) {
-                      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstütztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, SVG, WebP, GIF.`);
+                      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstütztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, WebP, GIF.`);
                       setTimeout(() => setSiteMsg(''), 6000);
                       e.target.value = '';
                       return;
