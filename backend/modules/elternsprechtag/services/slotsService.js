@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import { mapBookingRowWithTeacher } from '../../../utils/mappers.js';
-import { getVerificationTtlMs } from '../utils/tokenUtils.js';
+import { getVerificationTtlMs } from '../../../shared/tokenUtils.js';
 import { assertSafeIdentifier } from '../../../shared/sqlGuards.js';
 
 export async function reserveBooking({

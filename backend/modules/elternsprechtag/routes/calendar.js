@@ -12,7 +12,7 @@ import crypto from 'crypto';
 import { query } from '../../../config/db.js';
 import logger from '../../../config/logger.js';
 import { generateTeacherICS } from '../utils/icalGenerator.js';
-import { getExpiresAt } from '../utils/tokenUtils.js';
+import { getExpiresAt } from '../../../shared/tokenUtils.js';
 import { writeAuditLog } from '../../../middleware/audit-log.js';
 
 const router = express.Router();
