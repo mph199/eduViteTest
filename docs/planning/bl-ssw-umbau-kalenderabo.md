@@ -105,11 +105,10 @@ UPDATE ssw_appointments
   WHERE student_name IS NOT NULL AND first_name IS NULL;
 ALTER TABLE ssw_appointments DROP COLUMN IF EXISTS student_name;
 
--- consent_version → privacy_notice_version umbenennen (BL + SSW)
-ALTER TABLE bl_appointments
-  RENAME COLUMN consent_version TO privacy_notice_version;
-ALTER TABLE ssw_appointments
-  RENAME COLUMN consent_version TO privacy_notice_version;
+-- HINWEIS: consent_version existiert NICHT als Spalte auf bl_appointments/ssw_appointments,
+-- sondern in der separaten consent_receipts-Tabelle (Migration 036).
+-- Umbenennung dort separat behandeln (consent_receipts.consent_version ist ein
+-- technischer Identifier, kein UI-Label — kann vorerst bleiben).
 
 -- Referenz-Tabellen deaktivieren (nicht droppen wegen bl_requests FK)
 UPDATE bl_topics SET active = FALSE;
