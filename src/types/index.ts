@@ -170,14 +170,13 @@ export interface CounselorAppointment {
   time: string;
   duration_minutes: number;
   status: string;
-  student_name?: string;
+  first_name?: string;
+  last_name?: string;
   student_class?: string;
   student_email?: string;
-  category_name?: string;
-  category_icon?: string;
-  topic_name?: string;
 }
 
+/** @deprecated Wird nach BL/SSW-Umbau entfernt (Phase 7/8) */
 export interface CounselorTopic {
   id: number;
   name: string;
@@ -199,14 +198,23 @@ export interface CounselorBookingConfig {
   subtitle: string;
   counselorLabel: string;
   confidentialNotice: string;
-  topicLabel: string;
-  topicFieldKey: string;
   successCounselorLabel: string;
   successMessage: string;
   apiPathPrefix: string;
-  topicEndpoint: string;
-  topicResponseKey: string;
   moduleId: 'schulsozialarbeit' | 'beratungslehrer';
+}
+
+export interface CounselorCalendarTokenStatus {
+  exists: boolean;
+  createdAt?: string;
+  expiresAt?: string;
+  isExpired?: boolean;
+}
+
+export interface CounselorCalendarTokenCreated {
+  token: string;
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface EmailBranding {
