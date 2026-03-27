@@ -5,6 +5,8 @@
  * Body mit Besuchername + Termindauer, Footer mit Stornieren-Button.
  */
 
+import { Clock } from 'lucide-react';
+
 interface BookingCardProps {
   date: string;
   time: string;
@@ -61,10 +63,7 @@ export function BookingCard({
   return (
     <article className={`booking-card ${isConfirmed ? 'booking-card--confirmed' : ''} ${isPending ? 'booking-card--pending' : ''}`}>
       <div className="booking-card__header">
-        <svg className="booking-card__clock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
+        <Clock className="booking-card__clock" size={16} aria-hidden="true" />
         <span className="booking-card__datetime">
           {formatDate(date)} | {formatTime(time)} Uhr
         </span>
