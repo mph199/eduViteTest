@@ -13,6 +13,24 @@
   transform: translateY(-1px);
 }
 
+/* ── Akzentfarben pro Modul ─────────────────────────────── */
+
+.booking-card--petrol .booking-card__header {
+  background: #1a7a6d;
+}
+
+.booking-card--coral .booking-card__header {
+  background: #d4615a;
+}
+
+.booking-card--gold .booking-card__header {
+  background: #b8860b;
+}
+
+.booking-card--default .booking-card__header {
+  background: var(--brand-primary, #123C73);
+}
+
 /* ── Header: farbig, Datum + Uhrzeit + Uhr-Icon ────────── */
 
 .booking-card__header {
@@ -21,17 +39,9 @@
   gap: 0.5rem;
   padding: 0.65rem 1rem;
   background: var(--brand-primary, #123C73);
-  color: var(--brand-button-text, #fff);
+  color: #fff;
   font-size: 0.82rem;
   font-weight: 600;
-}
-
-.booking-card--confirmed .booking-card__header {
-  background: var(--brand-primary, #123C73);
-}
-
-.booking-card--pending .booking-card__header {
-  background: var(--brand-primary-dark, #0B2545);
 }
 
 .booking-card__clock {

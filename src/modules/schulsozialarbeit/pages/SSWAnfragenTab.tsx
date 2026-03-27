@@ -5,6 +5,7 @@ const SSW_CONFIG = {
   getAppointments: (params: { status: string }) => api.ssw.getAppointments(params),
   confirmAppointment: (id: number) => api.ssw.confirmAppointment(id),
   cancelAppointment: (id: number) => api.ssw.cancelAppointment(id),
+  accent: 'gold' as const,
 };
 
 interface Props {

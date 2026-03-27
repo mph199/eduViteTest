@@ -5,6 +5,7 @@ const BL_CONFIG = {
   getAppointments: (params: { status: string }) => api.bl.getAppointments(params),
   confirmAppointment: (id: number) => api.bl.confirmAppointment(id),
   cancelAppointment: (id: number) => api.bl.cancelAppointment(id),
+  accent: 'coral' as const,
 };
 
 interface Props {

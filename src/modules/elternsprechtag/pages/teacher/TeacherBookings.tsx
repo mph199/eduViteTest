@@ -178,6 +178,7 @@ export function TeacherBookings() {
                 visitorLabel={booking.visitorType === 'company' ? 'Ausbildungsbetrieb' : 'Erziehungsberechtigte/r'}
                 studentInfo={`${booking.visitorType === 'parent' ? booking.studentName : booking.traineeName} | Klasse: ${booking.className || '--'}`}
                 status={booking.status || 'confirmed'}
+                accent="petrol"
                 onConfirm={booking.status === 'reserved' && booking.verifiedAt ? () => handleAcceptBooking(booking.id) : undefined}
                 onCancel={() => handleCancelBooking(booking)}
               />
