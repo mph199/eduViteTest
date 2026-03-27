@@ -57,7 +57,8 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
 
   // Check role-based access
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    if (role === 'ssw') {
+    // SSW-Berater (jetzt role=teacher + module) auf SSW-Bereich umleiten
+    if (role === 'teacher' && modules.includes('schulsozialarbeit')) {
       return <Navigate to="/admin/ssw" replace />;
     }
     if (role === 'teacher') {

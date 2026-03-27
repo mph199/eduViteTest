@@ -192,8 +192,13 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
         logSecurityEvent('OAUTH_LOGIN_SUCCESS', { userId: user.id, provider: provider.provider_key }, req.ip);
         logger.info({ userId: user.id, provider: provider.provider_key }, 'OAuth-Login erfolgreich');
 
-        const roleRedirects = { admin: '/admin', superadmin: '/admin', ssw: '/ssw' };
-        res.redirect(roleRedirects[user.role] || '/teacher');
+        const roleRedirects = { admin: '/admin', superadmin: '/admin' };
+        let redirect = roleRedirects[user.role] || '/teacher';
+        // SSW-Berater (jetzt role=teacher + module) auf SSW-Bereich umleiten
+        if (user.role === 'teacher' && Array.isArray(user.modules) && user.modules.includes('schulsozialarbeit')) {
+          redirect = '/admin/ssw';
+        }
+        res.redirect(redirect);
     } catch (err) {
         logger.error({ err, provider: req.params.providerKey }, 'OAuth Callback fehlgeschlagen');
 

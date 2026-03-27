@@ -28,6 +28,8 @@ export interface SidebarNavItem {
   label: string;
   /** Only show for these roles. If omitted, visible to all with access. */
   roles?: string[];
+  /** Also show for users with these module accesses (OR with roles). */
+  allowedModules?: string[];
 }
 
 /** Sidebar navigation group contributed by a module */

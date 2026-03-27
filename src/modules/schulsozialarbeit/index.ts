@@ -37,7 +37,7 @@ const schulsozialarbeitModule: ModuleDefinition = {
   sidebarNav: {
     label: 'Schulsozialarbeit',
     items: [
-      { path: '/admin/ssw', label: 'Beratungstermine verwalten', roles: ['ssw', 'admin', 'superadmin'] },
+      { path: '/admin/ssw', label: 'Beratungstermine verwalten', roles: ['admin', 'superadmin'], allowedModules: ['schulsozialarbeit'] },
     ],
   },
 };

@@ -253,7 +253,7 @@ export function AdminTeachers() {
       return;
     }
 
-    const roleLabels: Record<string, string> = { admin: 'Admin', teacher: 'Lehrkraft', ssw: 'Schulsozialarbeit', superadmin: 'Superadmin' };
+    const roleLabels: Record<string, string> = { admin: 'Admin', teacher: 'Lehrkraft', superadmin: 'Superadmin' };
     if (!confirm(`Rolle von „${target.username}" zu „${roleLabels[nextRole] || nextRole}" ändern?`)) return;
 
     setRoleSaving((prev) => ({ ...prev, [target.id]: true }));
