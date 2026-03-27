@@ -8,6 +8,7 @@ import { CollapsibleNavGroup } from './CollapsibleNavGroup';
 import { useAuth } from '../contexts/useAuth';
 import { useBranding } from '../contexts/BrandingContext';
 import api from '../services/api';
+import { getAvatarInitial, getAvatarColor } from '../utils/avatarColor';
 import { modules } from '../modules/registry';
 import type { SidebarNavItem } from '../modules/registry';
 import { useModuleConfig } from '../contexts/ModuleConfigContext';
@@ -289,11 +290,14 @@ export function GlobalTopHeader() {
             </>
           ) : !onLogin ? (
             isAuthenticated ? (
-              <Link className="globalTopHeader__loginStatus" to="/teacher" aria-label={`Angemeldet${userLabel ? ` als ${userLabel}` : ''} – Zum internen Bereich`}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M20 21a8 8 0 1 0-16 0" />
-                </svg>
+              <Link className="globalTopHeader__loginStatus" to="/teacher" aria-label={`Angemeldet${userLabel ? ` als ${userLabel}` : ''} -- Zum internen Bereich`}>
+                <span
+                  className="globalTopHeader__avatar"
+                  style={{ background: getAvatarColor(user?.username || '') }}
+                  aria-hidden="true"
+                >
+                  {getAvatarInitial(user?.fullName, user?.username)}
+                </span>
               </Link>
             ) : (
               <Link className="globalTopHeader__login" to="/login">

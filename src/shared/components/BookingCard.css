@@ -1,0 +1,160 @@
+/* BookingCard — Einheitliche Buchungskarte */
+
+.booking-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.booking-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ── Header: farbig, Datum + Uhrzeit + Uhr-Icon ────────── */
+
+.booking-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: var(--brand-primary, #123C73);
+  color: var(--brand-button-text, #fff);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.booking-card--confirmed .booking-card__header {
+  background: var(--brand-primary, #123C73);
+}
+
+.booking-card--pending .booking-card__header {
+  background: var(--brand-primary-dark, #0B2545);
+}
+
+.booking-card__clock {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.booking-card__datetime {
+  flex: 1;
+}
+
+.booking-card__status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.booking-card__status--confirmed {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.booking-card__status--requested,
+.booking-card__status--reserved {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.booking-card__status--cancelled {
+  background: rgba(255, 80, 80, 0.3);
+}
+
+/* ── Body: Besuchername + Dauer ─────────────────────────── */
+
+.booking-card__body {
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.booking-card__visitor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.booking-card__visitor-label {
+  font-size: 0.72rem;
+  color: var(--color-gray-500, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.booking-card__visitor-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--brand-ink, #0B2545);
+}
+
+.booking-card__student {
+  font-size: 0.82rem;
+  color: var(--color-gray-600, #475569);
+}
+
+.booking-card__duration {
+  font-size: 0.78rem;
+  color: var(--color-gray-500, #64748b);
+}
+
+/* ── Footer: Aktionen ───────────────────────────────────── */
+
+.booking-card__footer {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--color-gray-100, #f1f5f9);
+}
+
+.booking-card__btn {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.booking-card__btn--cancel {
+  background: transparent;
+  color: var(--color-error, #991b1b);
+  border-color: var(--color-error, #991b1b);
+}
+
+.booking-card__btn--cancel:hover {
+  background: rgba(153, 27, 27, 0.08);
+}
+
+.booking-card__btn--confirm {
+  background: var(--brand-primary, #123C73);
+  color: var(--brand-button-text, #fff);
+  border-color: var(--brand-primary, #123C73);
+}
+
+.booking-card__btn--confirm:hover {
+  opacity: 0.9;
+}
+
+/* ── Grid-Layout für Kartenlisten ───────────────────────── */
+
+.booking-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .booking-card-grid {
+    grid-template-columns: 1fr;
+  }
+}

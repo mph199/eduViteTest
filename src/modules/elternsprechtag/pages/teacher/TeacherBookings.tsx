@@ -3,7 +3,9 @@ import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
 import { CalendarSubscription } from '../../components/CalendarSubscription';
+import { BookingCard } from '../../../../shared/components/BookingCard';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
+import '../../../../shared/components/BookingCard.css';
 import './TeacherBookings.css';
 
 
@@ -16,6 +18,7 @@ export function TeacherBookings() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<string>('');
   const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const loadBookings = async () => {
     try {
@@ -141,7 +144,14 @@ export function TeacherBookings() {
             </span>
           </div>
           <div className="teacher-bookings-actions">
-            {sort.key && (
+            <button
+              type="button"
+              className={`btn-secondary btn-secondary--sm${viewMode === 'cards' ? ' btn-secondary--active' : ''}`}
+              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+            >
+              {viewMode === 'cards' ? 'Tabellenansicht' : 'Kartenansicht'}
+            </button>
+            {sort.key && viewMode === 'table' && (
               <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearSort}>
                 Sortierung zurücksetzen
               </button>
@@ -155,6 +165,23 @@ export function TeacherBookings() {
         {sorted.length === 0 ? (
           <div className="no-bookings">
             <p>Noch keine Buchungen vorhanden.</p>
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div className="booking-card-grid">
+            {sorted.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                date={booking.date}
+                time={booking.time}
+                durationMinutes={15}
+                visitorName={visitorLabel(booking) || '--'}
+                visitorLabel={booking.visitorType === 'company' ? 'Ausbildungsbetrieb' : 'Erziehungsberechtigte/r'}
+                studentInfo={`${booking.visitorType === 'parent' ? booking.studentName : booking.traineeName} | Klasse: ${booking.className || '--'}`}
+                status={booking.status || 'confirmed'}
+                onConfirm={booking.status === 'reserved' && booking.verifiedAt ? () => handleAcceptBooking(booking.id) : undefined}
+                onCancel={() => handleCancelBooking(booking)}
+              />
+            ))}
           </div>
         ) : (
           <div className="bookings-table-container teacher-bookings-table-container teacher-my-bookings-table-container">
@@ -295,6 +322,7 @@ export function TeacherBookings() {
           </div>
         )}
       </section>
+
     </>
   );
 }

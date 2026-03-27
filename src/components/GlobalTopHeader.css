@@ -239,25 +239,33 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(var(--brand-primary-rgb), 0.12);
-  border: 1.5px solid rgba(var(--brand-primary-rgb), 0.25);
-  color: rgba(var(--brand-primary-rgb), 1);
   text-decoration: none;
-  transition: background 160ms ease, border-color 160ms ease;
+  transition: transform 160ms ease;
 }
 
 .globalTopHeader__loginStatus:hover {
-  background: rgba(var(--brand-primary-rgb), 0.20);
-  border-color: rgba(var(--brand-primary-rgb), 0.40);
+  transform: scale(1.08);
+}
+
+.globalTopHeader__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
 }
 
 .globalTopHeader__loginStatus:focus-visible {
   outline: 3px solid rgba(var(--brand-primary-rgb), 0.35);
   outline-offset: 2px;
+  border-radius: 50%;
 }
 
 .globalTopHeader__menu {
