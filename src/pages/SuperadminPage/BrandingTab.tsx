@@ -36,6 +36,39 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
             value={site.header_font_color || '#065f46'}
             onChange={(v) => setSiteField('header_font_color', v)}
           />
+          <div className="superadmin__field superadmin__field--wide">
+            <span className="superadmin__label">Schullogo (wird im Header und in E-Mails angezeigt)</span>
+            <p className="superadmin__hint">Empfohlen: max. 200 x 60 px, PNG oder WebP mit Transparenz. Max. 2 MB.</p>
+            {site.logo_url && (
+              <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <img
+                  src={api.superadmin.resolveLogoUrl(site.logo_url)}
+                  alt="Aktuelles Logo"
+                  style={{ maxHeight: 60, maxWidth: 200, borderRadius: 6, background: 'var(--color-white)', padding: 4, border: '1px solid var(--color-gray-200)' }}
+                />
+                <button type="button" className="btn-secondary btn--sm" onClick={() => setSiteField('logo_url', '')}>
+                  Entfernen
+                </button>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) { setSiteMsg('Logo darf max. 2 MB gross sein.'); return; }
+                try {
+                  const result = await api.superadmin.uploadLogo(file);
+                  if (result?.logo_url) {
+                    setSiteField('logo_url', result.logo_url);
+                    setSiteMsg('Logo hochgeladen');
+                  }
+                } catch { setSiteMsg('Fehler beim Hochladen des Logos'); }
+                e.target.value = '';
+              }}
+            />
+          </div>
         </div>
       </section>
 
@@ -43,13 +76,13 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
       <section className="superadmin__section">
         <h2 className="superadmin__section-title">Farbschema</h2>
         <div className="superadmin__grid">
-          <ColorField label="Primärfarbe" value={site.primary_color} onChange={(v) => setSiteField('primary_color', v)} />
-          <ColorField label="Primär dunkel" value={site.primary_dark} onChange={(v) => setSiteField('primary_dark', v)} />
-          <ColorField label="Primär dunkler" value={site.primary_darker} onChange={(v) => setSiteField('primary_darker', v)} />
-          <ColorField label="Sekundärfarbe" value={site.secondary_color} onChange={(v) => setSiteField('secondary_color', v)} />
-          <ColorField label="Akzentfarbe (Ink)" value={site.ink_color} onChange={(v) => setSiteField('ink_color', v)} />
-          <ColorField label="Hintergrund hell" value={site.surface_1} onChange={(v) => setSiteField('surface_1', v)} />
-          <ColorField label="Hintergrund mittel" value={site.surface_2} onChange={(v) => setSiteField('surface_2', v)} />
+          <ColorField label="Buttons & Hervorhebungen" value={site.primary_color} onChange={(v) => setSiteField('primary_color', v)} />
+          <ColorField label="Überschriften & Navigation" value={site.primary_dark} onChange={(v) => setSiteField('primary_dark', v)} />
+          <ColorField label="Navigation aktiv / Hover" value={site.primary_darker} onChange={(v) => setSiteField('primary_darker', v)} />
+          <ColorField label="Akzentfarbe (Links, Slots)" value={site.secondary_color} onChange={(v) => setSiteField('secondary_color', v)} />
+          <ColorField label="Textfarbe & Ränder" value={site.ink_color} onChange={(v) => setSiteField('ink_color', v)} />
+          <ColorField label="Seitenhintergrund" value={site.surface_1} onChange={(v) => setSiteField('surface_1', v)} />
+          <ColorField label="Abschnittshintergrund" value={site.surface_2} onChange={(v) => setSiteField('surface_2', v)} />
         </div>
       </section>
 
@@ -111,7 +144,7 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                 )}
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   className="superadmin__input"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
@@ -123,12 +156,12 @@ export function BrandingTab({ site, setSiteField, setSite, siteMsg, setSiteMsg, 
                       e.target.value = '';
                       return;
                     }
-                    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.gif'];
-                    const allowedMimes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
+                    const allowedExts = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+                    const allowedMimes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
                     const dotIdx = file.name.lastIndexOf('.');
                     const ext = dotIdx >= 0 ? file.name.slice(dotIdx).toLowerCase() : '';
                     if (!ext || !allowedExts.includes(ext) || !allowedMimes.includes(file.type)) {
-                      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstütztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, SVG, WebP, GIF.`);
+                      setSiteMsg(`Fehler: "${file.name}" hat ein nicht unterstütztes Format (${ext || 'keine Endung'}, Typ: ${file.type || 'unbekannt'}). Erlaubt: PNG, JPG, WebP, GIF.`);
                       setTimeout(() => setSiteMsg(''), 6000);
                       e.target.value = '';
                       return;

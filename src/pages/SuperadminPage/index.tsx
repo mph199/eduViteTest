@@ -195,7 +195,7 @@ export function SuperadminPage() {
             E-Mail
           </button>
           <button type="button" className={`superadmin__tab ${activeTab === 'texts' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('texts')}>
-            Sprechtagsmodul
+            Buchungsseiten-Texte
           </button>
           <button type="button" className={`superadmin__tab ${activeTab === 'datenschutz' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('datenschutz')}>
             Datenschutz

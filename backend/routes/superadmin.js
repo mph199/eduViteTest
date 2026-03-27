@@ -126,7 +126,7 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
       [
         String(school_name).trim().slice(0, 255),
         sanitizeUploadUrl(String(logo_url || '').trim()),
-        String(primary_color || '#2d5016').trim().slice(0, 9),
+        (/^#[0-9a-fA-F]{3,8}$/.test(String(primary_color || '').trim()) ? String(primary_color).trim().slice(0, 9) : '#2d5016'),
         String(footer_text || '').trim(),
       ]
     );
@@ -145,7 +145,15 @@ router.post('/logo', requireSuperadmin, handleUpload(logoUpload, 'logo', '/uploa
       [req.uploadUrl]
     );
   } catch (e) {
-    logger.error({ err: e }, 'Error saving logo URL');
+    logger.error({ err: e }, 'Error saving logo URL to email_branding');
+  }
+  try {
+    await query(
+      `UPDATE site_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
+      [req.uploadUrl]
+    );
+  } catch (e) {
+    logger.error({ err: e }, 'Error saving logo URL to site_branding');
   }
   return res.json({ success: true, logo_url: req.uploadUrl });
 });
