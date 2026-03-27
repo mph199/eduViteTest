@@ -170,12 +170,6 @@ export async function requireSuperadmin(req, res, next) {
 }
 
 /**
- * @deprecated Verwende requireModuleAccess('schulsozialarbeit') stattdessen.
- * Bleibt temporär als Alias erhalten bis alle Imports umgestellt sind.
- */
-export const requireSSW = requireModuleAccess('schulsozialarbeit');
-
-/**
  * Factory: Create middleware that requires access to a specific module.
  * Admin/Superadmin always have access to all modules.
  */
@@ -234,6 +228,7 @@ export function requireModuleAdmin(moduleKey) {
       }
     } catch (err) {
       logger.error({ err, userId: decoded.id, moduleKey }, 'Module admin access check failed');
+      return res.status(503).json({ error: 'Service Unavailable', message: 'Berechtigungsprüfung vorübergehend nicht möglich' });
     }
 
     logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: `admin:${moduleKey}`, path: req.path }, req.ip);
