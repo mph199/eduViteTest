@@ -6,7 +6,7 @@ import { useFlash } from '../../hooks/useFlash';
 import api from '../../services/api';
 import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
 import { useModuleConfig } from '../../contexts/ModuleConfigContext';
-import type { Teacher as ApiTeacher, UserAccount, BlFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from '../../types';
+import type { Teacher as ApiTeacher, UserAccount, BlFormData, SswFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from '../../types';
 import { WEEKDAY_LABELS } from '../../shared/constants/weekdays';
 import { TeacherForm } from './TeacherForm';
 import { CsvImportDialog } from './CsvImportDialog';
@@ -21,6 +21,16 @@ const defaultBlForm = (): BlFormData => ({
   schedule: WEEKDAY_LABELS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
 });
 
+const defaultSswForm = (): SswFormData => ({
+  enabled: false,
+  phone: '',
+  room: '',
+  specializations: '',
+  slot_duration_minutes: 30,
+  requires_confirmation: true,
+  schedule: WEEKDAY_LABELS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
+});
+
 const defaultFormData = (): TeacherFormData => ({
   first_name: '', last_name: '', email: '', salutation: 'Herr',
   available_from: '16:00', available_until: '19:00', username: '', password: '',
@@ -29,6 +39,7 @@ const defaultFormData = (): TeacherFormData => ({
 export function AdminTeachers() {
   const { isModuleEnabled } = useModuleConfig();
   const blModuleActive = isModuleEnabled('beratungslehrer');
+  const sswModuleActive = isModuleEnabled('schulsozialarbeit');
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +54,7 @@ export function AdminTeachers() {
   const [flash, showFlash] = useFlash(6500);
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
+  const [sswForm, setSswForm] = useState<SswFormData>(defaultSswForm());
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   useActiveView('admin');
@@ -128,6 +140,26 @@ export function AdminTeachers() {
         }
       }
 
+      if (sswModuleActive) {
+        if (sswForm.enabled) {
+          teacherData.schulsozialarbeit = {
+            room: sswForm.room,
+            phone: sswForm.phone,
+            specializations: sswForm.specializations,
+            slot_duration_minutes: sswForm.slot_duration_minutes,
+            requires_confirmation: sswForm.requires_confirmation,
+            available_from: sswForm.schedule.find(s => s.active)?.start_time || '08:00',
+            available_until: sswForm.schedule.find(s => s.active)?.end_time || '14:00',
+            schedule: sswForm.schedule,
+          };
+        } else if (editingTeacher) {
+          const hasSswData = !!(editingTeacher as ApiTeacher & { ssw_counselor_id?: number }).ssw_counselor_id;
+          if (hasSswData) {
+            teacherData.schulsozialarbeit = null;
+          }
+        }
+      }
+
       if (editingTeacher) {
         await api.admin.updateTeacher(editingTeacher.id, teacherData);
       } else {
@@ -142,6 +174,7 @@ export function AdminTeachers() {
       setEditingTeacher(null);
       setFormData(defaultFormData());
       setBlForm(defaultBlForm());
+      setSswForm(defaultSswForm());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
@@ -376,8 +409,11 @@ export function AdminTeachers() {
             setFormData={setFormData}
             blForm={blForm}
             setBlForm={setBlForm}
+            sswForm={sswForm}
+            setSswForm={setSswForm}
             editingTeacher={editingTeacher}
             blModuleActive={blModuleActive}
+            sswModuleActive={sswModuleActive}
             createdCreds={createdCreds}
             onSubmit={handleSubmit}
             onCancel={handleCancel}

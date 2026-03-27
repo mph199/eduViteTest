@@ -6,7 +6,7 @@ import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation
 import { resolveActiveEvent } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
 import { validatePassword } from '../../../shared/validatePassword.js';
-import { insertTeacherSlots, upsertBlCounselor } from './helpers.js';
+import { insertTeacherSlots, upsertBlCounselor, upsertSswCounselor } from './helpers.js';
 
 const router = express.Router();
 
@@ -82,6 +82,14 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     const blData = req.body.beratungslehrer;
     if (blData && userId) {
       await upsertBlCounselor(client, userId, blData, {
+        firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
+      });
+    }
+
+    // Optional: SSW-Berater-Profil anlegen
+    const sswData = req.body.schulsozialarbeit;
+    if (sswData && userId) {
+      await upsertSswCounselor(client, userId, sswData, {
         firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
       });
     }
@@ -235,6 +243,22 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       }
     }
 
+    // Optional: SSW-Berater-Profil anlegen/aktualisieren/deaktivieren
+    const sswData = req.body.schulsozialarbeit;
+    if (sswData !== undefined) {
+      try {
+        const { rows: userRows } = await query('SELECT id FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
+        const userId = userRows[0]?.id;
+        if (userId) {
+          await upsertSswCounselor(query, userId, sswData, {
+            firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
+          });
+        }
+      } catch (sswErr) {
+        logger.warn({ err: sswErr }, 'SSW counselor update failed');
+      }
+    }
+
     res.json({ success: true, teacher: rows[0] });
   } catch (error) {
     logger.error({ err: error }, 'Error updating teacher');
@@ -278,6 +302,8 @@ router.delete('/teachers/:id', requireAdmin, async (req, res) => {
     if (userId) {
       await client.query('DELETE FROM bl_counselors WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'beratungslehrer']);
+      await client.query('DELETE FROM ssw_counselors WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'schulsozialarbeit']);
     }
 
     await client.query('DELETE FROM users WHERE teacher_id = $1', [teacherId]);
