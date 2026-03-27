@@ -191,16 +191,6 @@ export function requireModuleAccess(moduleKey) {
 export const requireBeratungslehrer = requireModuleAccess('beratungslehrer');
 
 /**
- * Check if a user has admin access for a specific module.
- * Full admins and superadmins always have access.
- * Module-admins have access via user_admin_access table.
- */
-export function hasAdminAccess(user, moduleKey) {
-  if (user.role === 'admin' || user.role === 'superadmin') return true;
-  return Array.isArray(user.adminModules) && user.adminModules.includes(moduleKey);
-}
-
-/**
  * Factory: Create middleware that requires admin access for a specific module.
  * Checks user_admin_access table OR role=admin/superadmin.
  */

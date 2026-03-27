@@ -285,6 +285,15 @@ const api = {
       if (!response.ok) throw new Error(data?.error || `Fehler ${response.status}`);
       return data;
     },
+    async getUserAdminAccess(id: number) {
+      return requestJSON(`/admin/users/${id}/admin-access`);
+    },
+    async updateUserAdminAccess(id: number, adminModules: string[]) {
+      return requestJSON(`/admin/users/${id}/admin-access`, {
+        method: 'PUT',
+        body: JSON.stringify({ adminModules }),
+      });
+    },
   },
 
   // Teacher endpoints
