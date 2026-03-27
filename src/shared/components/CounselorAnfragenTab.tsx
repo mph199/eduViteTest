@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CounselorAppointment as Appointment } from '../../types';
-import { normalizeDate } from '../utils/appointmentDate';
-import { statusLabel } from '../utils/statusLabel';
+import { BookingCard, type BookingCardAccent } from './BookingCard';
+import './BookingCard.css';
 
 interface CounselorAnfragenConfig {
   getAppointments: (params: { status: string }) => Promise<{ appointments?: Appointment[] }>;
   confirmAppointment: (id: number) => Promise<unknown>;
   cancelAppointment: (id: number) => Promise<unknown>;
+  accent?: BookingCardAccent;
 }
 
 interface Props {
@@ -66,54 +67,24 @@ export function CounselorAnfragenTab({ config, showFlash }: Props) {
           <p>Keine offenen Anfragen vorhanden.</p>
         </div>
       ) : (
-        <div className="admin-resp-table-container">
-          <table className="admin-resp-table">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th>Uhrzeit</th>
-                <th>Status</th>
-                <th>Name</th>
-                <th>Klasse</th>
-                <th>Aktionen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map(a => {
-                const dateStr = normalizeDate(a.date);
-                const displayName = [a.first_name, a.last_name].filter(Boolean).join(' ') || '--';
-                return (
-                  <tr key={a.id}>
-                    <td data-label="Datum">{new Date(dateStr + 'T00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                    <td data-label="Uhrzeit" className="cell-bold">{a.time?.toString().slice(0, 5)}</td>
-                    <td data-label="Status">
-                      <span className={`status-pill ${a.status === 'requested' ? 'status-pill--requested' : 'status-pill--confirmed'}`}>
-                        {statusLabel(a.status)}
-                      </span>
-                    </td>
-                    <td data-label="Name">{displayName}</td>
-                    <td data-label="Klasse">{a.student_class || '--'}</td>
-                    <td data-label="Aktionen">
-                      <div className="action-btns action-btns--sm">
-                        {a.status === 'requested' && (
-                          <button className="btn-primary btn--sm"
-                            onClick={() => handleConfirm(a.id)}>
-                            Bestätigen
-                          </button>
-                        )}
-                        {(a.status === 'requested' || a.status === 'confirmed') && (
-                          <button className="btn-secondary btn--sm btn--danger"
-                            onClick={() => handleCancel(a.id)}>
-                            Absagen
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="booking-card-grid">
+          {requests.map(a => {
+            const displayName = [a.first_name, a.last_name].filter(Boolean).join(' ') || '--';
+            return (
+              <BookingCard
+                key={a.id}
+                date={a.date}
+                time={a.time}
+                durationMinutes={a.duration_minutes || 30}
+                visitorName={displayName}
+                studentInfo={a.student_class ? `Klasse: ${a.student_class}` : undefined}
+                status={a.status}
+                accent={config.accent || 'default'}
+                onConfirm={a.status === 'requested' ? () => handleConfirm(a.id) : undefined}
+                onCancel={(a.status === 'requested' || a.status === 'confirmed') ? () => handleCancel(a.id) : undefined}
+              />
+            );
+          })}
         </div>
       )}
     </>

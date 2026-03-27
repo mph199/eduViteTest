@@ -3,9 +3,16 @@
  *
  * Design: Abgerundete Karte mit farbigem Header (Datum + Uhrzeit + Uhr-Icon),
  * Body mit Besuchername + Termindauer, Footer mit Stornieren-Button.
+ *
+ * Akzentfarben pro Modul:
+ *   elternsprechtag  → Petrol
+ *   beratungslehrer  → Korall
+ *   schulsozialarbeit → Gold
  */
 
 import { Clock } from 'lucide-react';
+
+export type BookingCardAccent = 'petrol' | 'coral' | 'gold' | 'default';
 
 interface BookingCardProps {
   date: string;
@@ -15,19 +22,38 @@ interface BookingCardProps {
   visitorLabel?: string;
   studentInfo?: string;
   status: string;
+  accent?: BookingCardAccent;
   onCancel?: () => void;
   onConfirm?: () => void;
   cancelLabel?: string;
   confirmLabel?: string;
 }
 
+/**
+ * Robustes Datum-Parsing: akzeptiert ISO (2026-03-15), ISO mit Zeitzone
+ * (2026-03-15T00:00:00.000Z), DD.MM.YYYY, oder Postgres-Date-Strings.
+ */
 function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
+  if (!dateStr) return '--';
+
+  // Nur den Datumsteil extrahieren (vor T oder Leerzeichen)
+  const cleaned = dateStr.split('T')[0].split(' ')[0].trim();
+
+  let d: Date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+    // ISO: YYYY-MM-DD
+    const [y, m, day] = cleaned.split('-').map(Number);
+    d = new Date(y, m - 1, day);
+  } else if (/^\d{2}\.\d{2}\.\d{4}$/.test(cleaned)) {
+    // DE: DD.MM.YYYY
+    const [day, m, y] = cleaned.split('.').map(Number);
+    d = new Date(y, m - 1, day);
+  } else {
     return dateStr;
   }
+
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function formatTime(timeStr: string): string {
@@ -52,6 +78,7 @@ export function BookingCard({
   visitorLabel,
   studentInfo,
   status,
+  accent = 'default',
   onCancel,
   onConfirm,
   cancelLabel = 'Stornieren',
@@ -61,7 +88,7 @@ export function BookingCard({
   const isPending = status === 'requested' || status === 'reserved';
 
   return (
-    <article className={`booking-card ${isConfirmed ? 'booking-card--confirmed' : ''} ${isPending ? 'booking-card--pending' : ''}`}>
+    <article className={`booking-card booking-card--${accent} ${isConfirmed ? 'booking-card--confirmed' : ''} ${isPending ? 'booking-card--pending' : ''}`}>
       <div className="booking-card__header">
         <Clock className="booking-card__clock" size={16} aria-hidden="true" />
         <span className="booking-card__datetime">
