@@ -7,11 +7,9 @@ import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
 import { loadSchedulesMap } from '../../../shared/utils/schedule';
 import { SSWCounselorsTab } from './SSWCounselorsTab';
-import { SSWTermineTab } from './SSWTermineTab';
-import { SSWAnfragenTab } from './SSWAnfragenTab';
 import '../../../pages/AdminDashboard.css';
 
-type Tab = 'counselors' | 'termine' | 'anfragen';
+type Tab = 'counselors';
 
 export function SSWAdmin() {
   useActiveView('admin');
@@ -66,7 +64,7 @@ export function SSWAdmin() {
       {error && <div className="admin-error">{error}</div>}
 
       <div className="module-tabs">
-        {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['anfragen', 'Anfragen']] as [Tab, string][]).map(([key, label]) => (
+        {([['counselors', 'Berater/innen']] as [Tab, string][]).map(([key, label]) => (
           <button
             key={key}
             className={tab === key ? 'btn-primary' : 'btn-secondary'}
@@ -86,14 +84,6 @@ export function SSWAdmin() {
           setCreatedCreds={setCreatedCreds}
         />
       )}
-      {tab === 'termine' && (
-        <SSWTermineTab
-          counselors={counselors}
-          showFlash={showFlash}
-          loadData={loadData}
-        />
-      )}
-      {tab === 'anfragen' && <SSWAnfragenTab showFlash={showFlash} />}
     </AdminPageWrapper>
   );
 }

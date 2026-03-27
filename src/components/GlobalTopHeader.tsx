@@ -122,6 +122,7 @@ export function GlobalTopHeader() {
     if (hasTeacherId) {
       groups.push({
         label: 'Lehrkraft',
+        accentRgb: '26, 127, 122', // Petrol (Elternsprechtag)
         view: 'teacher',
         items: [
           { path: '/teacher', label: 'Übersicht' },
