@@ -7,18 +7,13 @@ import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
 import { loadSchedulesMap } from '../../../shared/utils/schedule';
 import { SSWCounselorsTab } from './SSWCounselorsTab';
-import { SSWTermineTab } from './SSWTermineTab';
-import { SSWAnfragenTab } from './SSWAnfragenTab';
 import '../../../pages/AdminDashboard.css';
-
-type Tab = 'counselors' | 'termine' | 'anfragen';
 
 export function SSWAdmin() {
   useActiveView('admin');
   const adminBgStyle = useBgStyle('admin', '--page-bg');
   const [flash, showFlash] = useFlash();
 
-  const [tab, setTab] = useState<Tab>('counselors');
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,7 +41,7 @@ export function SSWAdmin() {
   return (
     <AdminPageWrapper style={adminBgStyle}>
       <div className="admin-section-header">
-        <h2>Schulsozialarbeit</h2>
+        <h2>Schulsozialarbeit — Berater/innen</h2>
       </div>
 
       {flash && <div className="admin-success">{flash}</div>}
@@ -65,35 +60,13 @@ export function SSWAdmin() {
       )}
       {error && <div className="admin-error">{error}</div>}
 
-      <div className="module-tabs">
-        {([['counselors', 'Berater/innen'], ['termine', 'Terminverwaltung'], ['anfragen', 'Anfragen']] as [Tab, string][]).map(([key, label]) => (
-          <button
-            key={key}
-            className={tab === key ? 'btn-primary' : 'btn-secondary'}
-            onClick={() => setTab(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'counselors' && (
-        <SSWCounselorsTab
-          counselors={counselors}
-          schedulesMap={schedulesMap}
-          showFlash={showFlash}
-          loadData={loadData}
-          setCreatedCreds={setCreatedCreds}
-        />
-      )}
-      {tab === 'termine' && (
-        <SSWTermineTab
-          counselors={counselors}
-          showFlash={showFlash}
-          loadData={loadData}
-        />
-      )}
-      {tab === 'anfragen' && <SSWAnfragenTab showFlash={showFlash} />}
+      <SSWCounselorsTab
+        counselors={counselors}
+        schedulesMap={schedulesMap}
+        showFlash={showFlash}
+        loadData={loadData}
+        setCreatedCreds={setCreatedCreds}
+      />
     </AdminPageWrapper>
   );
 }

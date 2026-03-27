@@ -170,22 +170,8 @@ export async function requireSuperadmin(req, res, next) {
 }
 
 /**
- * Middleware: Requires SSW access (role ssw, admin, or superadmin)
- */
-export async function requireSSW(req, res, next) {
-  const decoded = await authenticate(req, res);
-  if (!decoded) return;
-  if (enforcePasswordChange(decoded, req, res)) return;
-  if (decoded.role !== 'admin' && decoded.role !== 'superadmin' && decoded.role !== 'ssw') {
-    logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: 'ssw', path: req.path }, req.ip);
-    return res.status(403).json({ error: 'Forbidden', message: 'SSW access required' });
-  }
-  req.user = decoded;
-  return next();
-}
-
-/**
  * Factory: Create middleware that requires access to a specific module.
+ * Admin/Superadmin always have access to all modules.
  */
 export function requireModuleAccess(moduleKey) {
   return async (req, res, next) => {
@@ -203,6 +189,42 @@ export function requireModuleAccess(moduleKey) {
 
 /** Alias für requireModuleAccess('beratungslehrer') */
 export const requireBeratungslehrer = requireModuleAccess('beratungslehrer');
+
+/**
+ * Factory: Create middleware that requires admin access for a specific module.
+ * Checks user_admin_access table OR role=admin/superadmin.
+ */
+export function requireModuleAdmin(moduleKey) {
+  return async (req, res, next) => {
+    const decoded = await authenticate(req, res);
+    if (!decoded) return;
+    if (enforcePasswordChange(decoded, req, res)) return;
+
+    // Full admins / superadmins always pass
+    if (decoded.role === 'admin' || decoded.role === 'superadmin') {
+      req.user = decoded;
+      return next();
+    }
+
+    // Check user_admin_access for module-specific admin rights
+    try {
+      const { rows } = await query(
+        'SELECT 1 FROM user_admin_access WHERE user_id = $1 AND module_key = $2',
+        [decoded.id, moduleKey]
+      );
+      if (rows.length > 0) {
+        req.user = decoded;
+        return next();
+      }
+    } catch (err) {
+      logger.error({ err, userId: decoded.id, moduleKey }, 'Module admin access check failed');
+      return res.status(503).json({ error: 'Service Unavailable', message: 'Berechtigungsprüfung vorübergehend nicht möglich' });
+    }
+
+    logSecurityEvent('ACCESS_DENIED', { username: decoded.username, role: decoded.role, required: `admin:${moduleKey}`, path: req.path }, req.ip);
+    return res.status(403).json({ error: 'Forbidden', message: `Admin-Zugang für ${moduleKey} erforderlich` });
+  };
+}
 
 /**
  * Verify login credentials

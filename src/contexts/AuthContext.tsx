@@ -21,23 +21,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  const isAdminLike = (role: string) => role === 'admin' || role === 'superadmin' || role === 'ssw';
+  const isAdminLike = (u: User | { role: string; modules?: string[]; adminModules?: string[] }) =>
+    u.role === 'admin' || u.role === 'superadmin' ||
+    (Array.isArray(u.adminModules) && u.adminModules.length > 0) ||
+    (Array.isArray(u.modules) && (u.modules.includes('schulsozialarbeit') || u.modules.includes('beratungslehrer')));
 
   const computeInitialView = useCallback((u: User): ActiveView => {
-    if (u.role === 'teacher') {
+    if (u.role === 'teacher' && !isAdminLike(u)) {
       return 'teacher';
     }
-    if (isAdminLike(u.role) && u.teacherId) {
+    if (isAdminLike(u) && u.teacherId) {
       return readStoredView() ?? 'admin';
     }
-    return 'admin';
+    if (isAdminLike(u)) return 'admin';
+    return 'teacher';
   }, [readStoredView]);
 
   const setActiveView = (next: ActiveView) => {
     if (user) {
-      const canTeacher = Boolean(user.teacherId) && (user.role === 'teacher' || isAdminLike(user.role));
+      const canTeacher = Boolean(user.teacherId) || user.role === 'teacher';
       if (next === 'teacher' && !canTeacher) return;
-      if (next === 'admin' && !isAdminLike(user.role)) return;
+      if (next === 'admin' && !isAdminLike(user)) return;
     }
 
     setActiveViewState(next);

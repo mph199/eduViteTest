@@ -6,7 +6,7 @@
  *
  * @param {object} config
  * @param {string}   config.tablePrefix         – 'ssw' or 'bl'
- * @param {Function} config.authMiddleware       – e.g. requireSSW or requireBeratungslehrer
+ * @param {Function} config.authMiddleware       – e.g. requireModuleAdmin('schulsozialarbeit')
  * @param {string}   config.counselorLabel       – 'Berater/in' or 'Beratungslehrer'
  * @param {Function} config.onCounselorCreated   – async (counselor, req) => { user info }
  * @param {Function} config.onCounselorDeleted   – async (counselorRow) => void

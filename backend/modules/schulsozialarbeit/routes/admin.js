@@ -4,25 +4,28 @@
  * Verwaltung von Berater/innen.
  */
 
-import { requireAdmin } from '../../../middleware/auth.js';
+import { requireModuleAdmin } from '../../../middleware/auth.js';
 import { query } from '../../../config/db.js';
 import { createCounselorAdminRoutes, createCounselorUser } from '../../../shared/counselorAdminRoutes.js';
 
 export default createCounselorAdminRoutes({
   tablePrefix: 'ssw',
-  authMiddleware: requireAdmin,
+  authMiddleware: requireModuleAdmin('schulsozialarbeit'),
   counselorLabel: 'Berater/in',
 
   async onCounselorCreated(counselor, req) {
     return createCounselorUser(counselor, req, {
       tablePrefix: 'ssw',
-      userRole: 'ssw',
-      moduleKey: null, // SSW uses role-based auth, no module_access entry needed
+      userRole: 'teacher',
+      moduleKey: 'schulsozialarbeit',
     });
   },
 
   async onCounselorDeleted(counselorRow) {
-    // SSW deletes the linked user entirely
-    await query('DELETE FROM users WHERE id = $1', [counselorRow.user_id]);
+    // SSW removes module access but keeps the user account (may be used by other modules)
+    await query(
+      'DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2',
+      [counselorRow.user_id, 'schulsozialarbeit']
+    );
   },
 });

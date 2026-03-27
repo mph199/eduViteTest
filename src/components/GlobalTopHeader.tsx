@@ -91,8 +91,9 @@ export function GlobalTopHeader() {
       if (!hasModuleAccess(mod.requiredModule)) continue;
 
       const visibleItems = mod.sidebarNav.items.filter((item: SidebarNavItem) => {
-        if (!item.roles) return true;
-        return user?.role ? item.roles.includes(user.role) : false;
+        const roleMatch = !item.roles || (user?.role ? item.roles.includes(user.role) : false);
+        const moduleMatch = item.allowedModules?.some(m => user?.modules?.includes(m) || user?.adminModules?.includes(m));
+        return roleMatch || moduleMatch;
       });
 
       if (visibleItems.length > 0) {
@@ -122,6 +123,7 @@ export function GlobalTopHeader() {
     if (hasTeacherId) {
       groups.push({
         label: 'Lehrkraft',
+        accentRgb: '26, 127, 122', // Petrol (Elternsprechtag)
         view: 'teacher',
         items: [
           { path: '/teacher', label: 'Übersicht' },

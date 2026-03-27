@@ -104,8 +104,9 @@ export interface Settings {
 export interface UserAccount {
   id: number;
   username: string;
-  role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
+  role: 'admin' | 'teacher' | 'superadmin';
   modules?: string[];
+  adminModules?: string[];
   teacher_id?: number | null;
   created_at?: string;
   updated_at?: string;
@@ -221,8 +222,9 @@ export type ActiveView = 'admin' | 'teacher';
 export interface User {
   username: string;
   fullName?: string;
-  role: 'admin' | 'teacher' | 'superadmin' | 'ssw';
+  role: 'admin' | 'teacher' | 'superadmin';
   modules?: string[];
+  adminModules?: string[];
   teacherId?: number;
   forcePasswordChange?: boolean;
 }

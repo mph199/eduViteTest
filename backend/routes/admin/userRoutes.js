@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAdmin } from '../../middleware/auth.js';
+import { requireAdmin, requireSuperadmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import logger from '../../config/logger.js';
@@ -37,8 +37,8 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
   const { role } = req.body || {};
   const roleStr = String(role || '').trim();
   // superadmin is reserved for the env-based system account (Start) only
-  if (!['admin', 'teacher', 'ssw'].includes(roleStr)) {
-    return res.status(400).json({ error: 'role must be "admin", "teacher" or "ssw"' });
+  if (!['admin', 'teacher'].includes(roleStr)) {
+    return res.status(400).json({ error: 'role must be "admin" or "teacher"' });
   }
 
   try {
@@ -167,6 +167,8 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
         [userId, moduleKey]
       );
     }
+    // Token-Version inkrementieren damit aktive Sessions die neuen Module laden
+    await client.query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
     await client.query('COMMIT');
 
     return res.json({ success: true, modules });
@@ -176,6 +178,68 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
     return res.status(500).json({ error: 'Failed to update user modules' });
   } finally {
     client.release();
+  }
+});
+
+// ── Admin-Module-Rechte (user_admin_access) ─────────────────────
+
+const VALID_ADMIN_MODULE_KEYS = ['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer', 'flow'];
+
+/**
+ * GET /api/admin/users/:id/admin-access
+ * Liest die Admin-Modulrechte eines Users.
+ */
+router.get('/:id/admin-access', requireAdmin, async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+  try {
+    const { rows } = await query(
+      'SELECT module_key FROM user_admin_access WHERE user_id = $1',
+      [userId]
+    );
+    return res.json({ adminModules: rows.map(r => r.module_key) });
+  } catch (error) {
+    logger.error({ err: error }, 'Error loading admin access');
+    return res.status(500).json({ error: 'Failed to load admin access' });
+  }
+});
+
+/**
+ * PUT /api/admin/users/:id/admin-access
+ * Setzt die Admin-Modulrechte eines Users. Nur Superadmin.
+ */
+router.put('/:id/admin-access', requireSuperadmin, async (req, res) => {
+
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+  const { adminModules } = req.body || {};
+  if (!Array.isArray(adminModules)) {
+    return res.status(400).json({ error: 'adminModules must be an array' });
+  }
+
+  const invalid = adminModules.filter(k => !VALID_ADMIN_MODULE_KEYS.includes(k));
+  if (invalid.length > 0) {
+    return res.status(400).json({ error: 'Invalid admin module keys: ' + invalid.join(', ') });
+  }
+
+  try {
+    await query('DELETE FROM user_admin_access WHERE user_id = $1', [userId]);
+    for (const moduleKey of adminModules) {
+      await query(
+        'INSERT INTO user_admin_access (user_id, module_key, granted_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+        [userId, moduleKey, req.user.id || null]
+      );
+    }
+
+    // Token-Version inkrementieren damit aktive Sessions die neuen Rechte laden
+    await query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
+
+    return res.json({ success: true, adminModules });
+  } catch (error) {
+    logger.error({ err: error }, 'Error updating admin access');
+    return res.status(500).json({ error: 'Failed to update admin access' });
   }
 });
 

@@ -163,7 +163,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
     }
 
     // Nur bekannte Rollen erlauben
-    const validRoles = ['admin', 'teacher', 'superadmin', 'ssw'];
+    const validRoles = ['admin', 'teacher', 'superadmin'];
     if (!validRoles.includes(dbUser.role)) {
       return res.status(403).json({ error: 'Forbidden', message: 'Unbekannte Rolle' });
     }
@@ -259,6 +259,7 @@ router.get('/verify', async (req, res) => {
 
   // Check token_version and load live data for DB-users
   let liveModules = decoded.modules || [];
+  let liveAdminModules = [];
   if (decoded.id) {
     try {
       const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
@@ -277,6 +278,13 @@ router.get('/verify', async (req, res) => {
         [decoded.id]
       );
       liveModules = moduleRows.map(r => r.module_key);
+
+      // Admin-Modulrechte live aus DB laden
+      const { rows: adminRows } = await query(
+        'SELECT module_key FROM user_admin_access WHERE user_id = $1',
+        [decoded.id]
+      );
+      liveAdminModules = adminRows.map(r => r.module_key);
     } catch (verifyErr) {
       // fail open for availability – but log for debugging
       logger.warn({ err: verifyErr }, 'Token version check failed, proceeding without');
@@ -290,6 +298,7 @@ router.get('/verify', async (req, res) => {
       role: decoded.role,
       teacherId: decoded.teacherId,
       modules: liveModules,
+      adminModules: liveAdminModules,
       forcePasswordChange: decoded._fpc ?? !!decoded.fpc,
     }
   });

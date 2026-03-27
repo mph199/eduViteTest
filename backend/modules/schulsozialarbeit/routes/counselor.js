@@ -6,6 +6,7 @@
 
 import express from 'express';
 import { query } from '../../../config/db.js';
+import { hasModuleAccess } from '../../../middleware/auth.js';
 import { createCounselorRoutes } from '../../../shared/counselorRoutes.js';
 import { createCalendarTokenRoutes } from '../../../shared/calendarTokenRoutes.js';
 
@@ -17,8 +18,8 @@ const SSW_TABLES = {
 };
 
 async function resolveCounselor(req) {
-  // Admin/Superadmin/SSW can access any counselor by ID
-  if (req.user.role === 'admin' || req.user.role === 'superadmin' || req.user.role === 'ssw') {
+  // Admin/Superadmin or users with SSW module access can access any counselor by ID
+  if (req.user.role === 'admin' || req.user.role === 'superadmin' || hasModuleAccess(req.user, 'schulsozialarbeit')) {
     const counselorId = parseInt(req.query.counselor_id || req.body?.counselor_id, 10) || null;
     if (counselorId) {
       const { rows } = await query('SELECT * FROM ssw_counselors WHERE id = $1', [counselorId]);

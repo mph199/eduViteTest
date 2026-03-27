@@ -13,7 +13,6 @@ interface SidebarProfileProps {
 
 const ROLE_LABELS: Record<string, string> = {
   teacher: 'Lehrkraft',
-  ssw: 'Schulsozialarbeit',
   admin: 'Administrator',
   superadmin: 'Superadmin',
 };
