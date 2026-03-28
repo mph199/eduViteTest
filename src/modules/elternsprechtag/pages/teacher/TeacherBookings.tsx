@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MoreVertical, MessageSquare } from 'lucide-react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
@@ -77,6 +78,87 @@ function buildDateGroups(bookings: TimeSlot[]): DateGroup[] {
 
 // ── Hauptkomponente ────────────────────────────────────────────────
 
+// ── Inline TableRow with three-dot menu ────────────────────────────
+
+function TableRow({ booking, onConfirm, onCancel }: {
+  booking: TimeSlot;
+  onConfirm: (id: number) => void;
+  onCancel: (b: TimeSlot) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const isPending = booking.status === 'reserved';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  return (
+    <tr>
+      <td data-label="Uhrzeit" className="teacher-when-cell">
+        <span className="teacher-when-time">{booking.time?.toString().slice(0, 5)}</span>
+        <span className={`teacher-status-pill teacher-status-pill--${booking.status || 'confirmed'}`}>
+          {statusLabel(booking.status || 'confirmed')}
+        </span>
+      </td>
+      <td data-label="Besuchende" className="teacher-visitor-cell">
+        <div className="teacher-visitor-name" title={visitorLabel(booking)}>
+          {visitorLabel(booking) || '--'}
+        </div>
+        {booking.email && (
+          <div className="teacher-visitor-meta teacher-visitor-meta--email" title={booking.email}>
+            <a href={`mailto:${booking.email}`}>{booking.email}</a>
+          </div>
+        )}
+      </td>
+      <td data-label="Schüler*in/Azubi" className="teacher-student-cell">
+        <div className="teacher-student-name">
+          {booking.visitorType === 'parent' ? booking.studentName : booking.traineeName}
+        </div>
+        <div className="teacher-student-meta">Klasse: {booking.className || '--'}</div>
+      </td>
+      <td style={{ textAlign: 'center' }}>
+        {booking.message ? (
+          <span title={booking.message || ''}>
+            <MessageSquare size={14} className="teacher-message-icon" aria-label="Nachricht vorhanden" />
+          </span>
+        ) : null}
+      </td>
+      <td>
+        <div className="booking-card__menu" ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className="booking-card__menu-trigger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Aktionen"
+          >
+            <MoreVertical size={18} />
+          </button>
+          {menuOpen && (
+            <div className="booking-card__menu-dropdown">
+              {isPending && booking.verifiedAt && (
+                <button type="button" className="booking-card__menu-item" onClick={() => { onConfirm(booking.id); setMenuOpen(false); }}>
+                  Bestätigen
+                </button>
+              )}
+              <button type="button" className="booking-card__menu-item booking-card__menu-item--danger" onClick={() => { onCancel(booking); setMenuOpen(false); }}>
+                Stornieren
+              </button>
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ── Main ───────────────────────────────────────────────────────────
+
 export function TeacherBookings() {
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,14 +214,6 @@ export function TeacherBookings() {
     sort.key ? sorted : bookings
   ), [bookings, sorted, sort.key]);
 
-  const cycleSort = (key: SortKey) => {
-    setSort((prev) => {
-      if (prev.key !== key) return { key, dir: 'asc' };
-      if (prev.dir === 'asc') return { key, dir: 'desc' };
-      return { key: null, dir: 'asc' };
-    });
-  };
-
   const clearSort = () => {
     setSort({ key: null, dir: 'asc' });
   };
@@ -194,7 +268,6 @@ export function TeacherBookings() {
       time={booking.time}
       durationMinutes={15}
       visitorName={visitorLabel(booking) || '--'}
-      visitorLabel={booking.visitorType === 'company' ? 'Ausbildungsbetrieb' : 'Erziehungsberechtigte/r'}
       studentInfo={`${booking.visitorType === 'parent' ? booking.studentName : booking.traineeName} | Klasse: ${booking.className || '--'}`}
       status={booking.status || 'confirmed'}
       accent="petrol"
@@ -274,141 +347,43 @@ export function TeacherBookings() {
             ))}
           </div>
         ) : (
-          <div className="bookings-table-container teacher-bookings-table-container teacher-my-bookings-table-container">
-            <table className="bookings-table teacher-bookings-table teacher-my-bookings-table">
-              <thead>
-                <tr>
-                  <th
-                    aria-sort={sort.key === 'when' ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                  >
-                    <button
-                      type="button"
-                      className="teacher-sort-button"
-                      onClick={() => cycleSort('when')}
-                      aria-label="Nach Termin sortieren"
-                    >
-                      Termin
-                      {sort.key === 'when' ? (
-                        <span className="teacher-sort-indicator" aria-hidden="true">
-                          {sort.dir === 'asc' ? '▲' : '▼'}
-                        </span>
-                      ) : (
-                        <span className="teacher-sort-indicator teacher-sort-indicator--idle" aria-hidden="true">
-                          ↕
-                        </span>
-                      )}
-                    </button>
-                  </th>
-                  <th
-                    aria-sort={sort.key === 'visitor' ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                  >
-                    <button
-                      type="button"
-                      className="teacher-sort-button"
-                      onClick={() => cycleSort('visitor')}
-                      aria-label="Nach Besuchenden sortieren"
-                    >
-                      Besuchende
-                      {sort.key === 'visitor' ? (
-                        <span className="teacher-sort-indicator" aria-hidden="true">
-                          {sort.dir === 'asc' ? '▲' : '▼'}
-                        </span>
-                      ) : (
-                        <span className="teacher-sort-indicator teacher-sort-indicator--idle" aria-hidden="true">
-                          ↕
-                        </span>
-                      )}
-                    </button>
-                  </th>
-                  <th>Schüler*in/Azubi</th>
-                  <th>Nachricht</th>
-                  <th className="teacher-actions-header">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((booking) => (
-                  <tr key={booking.id}>
-                    <td data-label="Termin" className="teacher-when-cell">
-                      <div className="teacher-when-main">
-                        <span className="teacher-when-date">{booking.date}</span>
-                        <span className="teacher-when-time">{booking.time}</span>
-                      </div>
-                      <div className="teacher-when-sub">
-                        <span
-                          className={
-                            booking.status === 'confirmed'
-                              ? 'teacher-status-pill teacher-status-pill--confirmed'
-                              : 'teacher-status-pill teacher-status-pill--reserved'
-                          }
-                        >
-                          {booking.status ? statusLabel(booking.status) : '—'}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td data-label="Besuchende" className="teacher-visitor-cell">
-                      <div className="teacher-visitor-name" title={visitorLabel(booking)}>
-                        {visitorLabel(booking) || '—'}
-                      </div>
-                      {booking.visitorType === 'company' && booking.representativeName && (
-                        <div className="teacher-visitor-meta" title={booking.representativeName}>
-                          Vertreter*in: {booking.representativeName}
-                        </div>
-                      )}
-                      {booking.email && (
-                        <div className="teacher-visitor-meta teacher-visitor-meta--email" title={booking.email}>
-                          <a href={`mailto:${booking.email}`} aria-label={`E-Mail an ${visitorLabel(booking) || 'Besuchende'} senden`}>
-                            {booking.email}
-                          </a>
-                        </div>
-                      )}
-                    </td>
-
-                    <td data-label="Schüler*in/Azubi" className="teacher-student-cell">
-                      <div className="teacher-student-name" title={booking.visitorType === 'parent' ? booking.studentName : booking.traineeName}>
-                        {booking.visitorType === 'parent' ? booking.studentName : booking.traineeName}
-                      </div>
-                      <div className="teacher-student-meta" title={booking.className}>
-                        Klasse: {booking.className || '—'}
-                      </div>
-                    </td>
-
-                    <td className="message-cell" data-label="Nachricht">
-                      <span
-                        className="teacher-message-value teacher-cell-truncate"
-                        title={booking.message || ''}
-                      >
-                        {booking.message || '—'}
-                      </span>
-                    </td>
-
-                    <td data-label="Aktionen" className="teacher-actions-cell">
-                      <div className="action-buttons">
-                        {booking.status === 'reserved' && (
-                          <div className="tooltip-container">
-                            <button
-                              onClick={() => handleAcceptBooking(booking.id)}
-                              className="btn-primary"
-                              disabled={!booking.verifiedAt}
-                            >
-                              <span aria-hidden="true">✓</span> Bestätigen
-                            </button>
-                            {!booking.verifiedAt && (
-                              <span className="tooltip">
-                                Erst möglich, wenn die E-Mail-Adresse bestätigt wurde
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <button onClick={() => handleCancelBooking(booking)} className="cancel-button">
-                          <span aria-hidden="true">✕</span> Stornieren
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="date-groups">
+            {dateGroups.map((group) => (
+              <div key={group.dateKey} className={`date-group${group.isPast ? ' date-group--past' : ''}`}>
+                <div className="date-group__header">
+                  <h4 className="date-group__label">
+                    {group.label}
+                    {group.isToday && <span className="date-group__badge date-group__badge--today">Heute</span>}
+                  </h4>
+                  <span className="date-group__count">
+                    {group.bookings.length} {group.bookings.length === 1 ? 'Termin' : 'Termine'}
+                  </span>
+                </div>
+                <div className="bookings-table-container teacher-bookings-table-container">
+                  <table className="bookings-table teacher-bookings-table">
+                    <thead>
+                      <tr>
+                        <th>Uhrzeit</th>
+                        <th>Besuchende</th>
+                        <th>Schüler*in/Azubi</th>
+                        <th style={{ width: 40, textAlign: 'center' }} title="Nachricht"><MessageSquare size={14} aria-label="Nachricht" /></th>
+                        <th style={{ width: 40 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.bookings.map((booking) => (
+                        <TableRow
+                          key={booking.id}
+                          booking={booking}
+                          onConfirm={handleAcceptBooking}
+                          onCancel={handleCancelBooking}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>

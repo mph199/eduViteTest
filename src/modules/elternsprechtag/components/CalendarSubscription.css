@@ -59,6 +59,23 @@
   opacity: 0.88;
 }
 
+.cal-banner__link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand-primary, #123C73);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.3);
+  padding: 0;
+  transition: color 160ms;
+}
+
+.cal-banner__link:hover {
+  color: var(--brand-primary-dark, #0B2545);
+}
+
 .cal-banner__btn--sm {
   padding: 0.3rem 0.6rem;
   font-size: 0.78rem;

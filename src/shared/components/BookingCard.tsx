@@ -1,8 +1,8 @@
 /**
  * BookingCard — Einheitliche Buchungskarte für Lehrkräfte und Admins.
  *
- * Design: Uhrzeit als linke Spalte, Name + Infos rechts,
- * Status-Pill, Drei-Punkte-Menü für Aktionen.
+ * Design: Farbiger Header (Uhrzeit + Status), Body mit Name + Infos,
+ * Drei-Punkte-Menü für Aktionen.
  *
  * Akzentfarben pro Modul:
  *   elternsprechtag  → Petrol
@@ -60,7 +60,6 @@ export function BookingCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -70,27 +69,30 @@ export function BookingCard({
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
+  const hasActions = onCancel || onConfirm;
+
   return (
     <article className={`booking-card booking-card--${accent}`}>
-      <div className="booking-card__layout">
-        {/* Left: Time column */}
-        <div className={`booking-card__time-col booking-card__time-col--${accent}`}>
-          <Clock size={14} aria-hidden="true" className="booking-card__clock" />
-          <span className="booking-card__time">{formatTime(time)}</span>
-          <span className="booking-card__duration">{durationMinutes} min</span>
-        </div>
+      {/* Header: Uhrzeit + Dauer + Status (kein Datum — kommt aus der Gruppenüberschrift) */}
+      <div className="booking-card__header">
+        <Clock className="booking-card__clock" size={16} aria-hidden="true" />
+        <span className="booking-card__datetime">
+          {formatTime(time)} Uhr · {durationMinutes} min
+        </span>
+        <span className={`booking-card__status booking-card__status--${status}`}>
+          {statusLabel(status)}
+        </span>
+      </div>
 
-        {/* Center: Info */}
-        <div className="booking-card__info">
+      {/* Body: Name + Info */}
+      <div className="booking-card__body">
+        <div className="booking-card__body-main">
           <span className="booking-card__visitor-name">{visitorName || '--'}</span>
           {studentInfo && <span className="booking-card__student">{studentInfo}</span>}
-          <span className={`booking-card__status booking-card__status--${status}`}>
-            {statusLabel(status)}
-          </span>
         </div>
 
-        {/* Right: Menu */}
-        {(onCancel || onConfirm) && (
+        {/* Drei-Punkte-Menü */}
+        {hasActions && (
           <div className="booking-card__menu" ref={menuRef}>
             <button
               type="button"

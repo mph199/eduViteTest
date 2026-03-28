@@ -78,7 +78,7 @@ export function CalendarSetupBanner({ sub }: Props) {
         <div className="cal-banner__actions">
           <button
             type="button"
-            className="cal-banner__btn"
+            className="cal-banner__link"
             onClick={isExpired ? sub.handleCreate : () => { setShowSetup(true); sub.handleCreate(); }}
           >
             {actionLabel}
