@@ -41,7 +41,7 @@ export function SuperadminSidebar({ activeTab, onTabChange }: Props) {
         aria-label="Konfigurationsmenü öffnen"
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        <span>Konfiguration</span>
+        <span>{NAV_ITEMS.find(n => n.id === activeTab)?.label || 'Konfiguration'}</span>
       </button>
 
       <nav className={`sa-sidebar${mobileOpen ? ' sa-sidebar--open' : ''}`} aria-label="Konfiguration">

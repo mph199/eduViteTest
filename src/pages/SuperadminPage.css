@@ -501,7 +501,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.5rem 0.85rem;
+    padding: 0.6rem 1rem;
+    min-height: 44px;
     margin-bottom: 1rem;
     border: 1px solid var(--sa-border);
     border-radius: 6px;
@@ -523,15 +524,48 @@
   .superadmin__content {
     padding: 1rem;
   }
+
+  /* Touch-targets: Toggle-Switch */
+  .superadmin__toggle {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 4px;
+  }
+
+  /* DSGVO buttons bigger on touch */
+  .sa-btn--small {
+    min-height: 36px;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* ── 768px: iOS zoom prevention ──────────────────────── */
+
+@media (max-width: 768px) {
+  .superadmin__input,
+  .superadmin__textarea,
+  .superadmin__color-input,
+  .sa-field__input {
+    font-size: 1rem;
+  }
 }
 
 @media (max-width: 640px) {
-  .superadmin__grid {
+  .superadmin__grid,
+  .superadmin__bg-grid {
     grid-template-columns: 1fr;
   }
 
   .superadmin__content {
     padding: 0.75rem;
+  }
+
+  .superadmin__preview-steps,
+  .superadmin__preview-buttons {
+    flex-wrap: wrap;
   }
 }
 
@@ -674,22 +708,33 @@
   margin-top: 0.25rem;
 }
 
-/* ── Toggle (legacy superadmin__toggle) ───────────────── */
+/* ── Toggle (legacy superadmin__toggle — label + hidden checkbox) ── */
 
 .superadmin__toggle {
   width: 36px;
   height: 20px;
   border-radius: 10px;
   background: var(--sa-border);
-  border: none;
   cursor: pointer;
   position: relative;
   transition: background 200ms;
   flex-shrink: 0;
-  padding: 0;
+  display: inline-block;
 }
 
-.superadmin__toggle.active {
+.superadmin__toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.superadmin__toggle input[type="checkbox"]:checked ~ .superadmin__toggle-slider {
+  left: 18px;
+}
+
+.superadmin__toggle:has(input:checked) {
   background: var(--sa-success);
 }
 
@@ -703,10 +748,7 @@
   left: 2px;
   transition: left 200ms;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.superadmin__toggle.active .superadmin__toggle-slider {
-  left: 18px;
+  pointer-events: none;
 }
 
 /* ── Confirm Dialog (legacy superadmin__confirm-*) ───── */
