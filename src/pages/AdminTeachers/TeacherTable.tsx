@@ -109,8 +109,8 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                     <td>
                       <div className="admin-cell-main">
                         {teacher.salutation || ''} {teacher.name}
-                        {teacher.bl_counselor_id && <span className="admin-badge admin-badge--bl" title="Beratungslehrkraft">BL</span>}
-                        {teacher.ssw_counselor_id && <span className="admin-badge admin-badge--ssw" title="Schulsozialarbeit">SSW</span>}
+                        {teacher.bl_counselor_id && <span className="admin-badge admin-badge--bl" role="img" aria-label="Beratungslehrkraft">BL</span>}
+                        {teacher.ssw_counselor_id && <span className="admin-badge admin-badge--ssw" role="img" aria-label="Schulsozialarbeit">SSW</span>}
                       </div>
                       <div className="admin-cell-id">#{teacher.id}</div>
                     </td>

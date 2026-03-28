@@ -95,55 +95,57 @@ export function useTeacherForm(options: UseTeacherFormOptions) {
     setIsDetailView(true);
     setLoading(true);
 
-    // Load BL data
-    if (blModuleActive) {
-      try {
-        const blData = await api.admin.getTeacherBL(teacher.id);
-        if (editIdRef.current !== editId) return; // stale
-        if (blData?.counselor) {
-          const c = blData.counselor;
-          setBlForm({
-            enabled: c.active !== false, room: c.room || '',
-            phone: c.phone || '', specializations: c.specializations || '',
-            slot_duration_minutes: c.slot_duration_minutes || 30,
-            schedule: buildSchedule(blData.schedule || []),
-          });
-        }
-      } catch { /* supplementary */ }
-    }
-
-    // Load SSW data
-    if (sswModuleActive) {
-      try {
-        const sswData = await api.admin.getTeacherSSW(teacher.id);
-        if (editIdRef.current !== editId) return; // stale
-        if (sswData?.counselor) {
-          const c = sswData.counselor;
-          setSswForm({
-            enabled: c.active !== false, phone: c.phone || '', room: c.room || '',
-            specializations: c.specializations || '',
-            slot_duration_minutes: c.slot_duration_minutes || 30,
-            requires_confirmation: c.requires_confirmation !== false,
-            schedule: buildSchedule(sswData.schedule || []),
-          });
-        }
-      } catch { /* supplementary */ }
-    }
-
-    // Load admin modules
-    if (isSuperadmin) {
-      try {
-        const linkedUser = users.find(u => u.teacher_id === teacher.id);
-        if (linkedUser && editIdRef.current === editId) {
-          const data = await api.admin.getUserAdminAccess(linkedUser.id);
-          if (editIdRef.current === editId) {
-            setAdminModules(Array.isArray(data?.adminModules) ? data.adminModules : []);
+    try {
+      // Load BL data
+      if (blModuleActive) {
+        try {
+          const blData = await api.admin.getTeacherBL(teacher.id);
+          if (editIdRef.current !== editId) return;
+          if (blData?.counselor) {
+            const c = blData.counselor;
+            setBlForm({
+              enabled: c.active !== false, room: c.room || '',
+              phone: c.phone || '', specializations: c.specializations || '',
+              slot_duration_minutes: c.slot_duration_minutes || 30,
+              schedule: buildSchedule(blData.schedule || []),
+            });
           }
-        }
-      } catch { /* supplementary */ }
-    }
+        } catch { /* supplementary */ }
+      }
 
-    if (editIdRef.current === editId) setLoading(false);
+      // Load SSW data
+      if (sswModuleActive) {
+        try {
+          const sswData = await api.admin.getTeacherSSW(teacher.id);
+          if (editIdRef.current !== editId) return;
+          if (sswData?.counselor) {
+            const c = sswData.counselor;
+            setSswForm({
+              enabled: c.active !== false, phone: c.phone || '', room: c.room || '',
+              specializations: c.specializations || '',
+              slot_duration_minutes: c.slot_duration_minutes || 30,
+              requires_confirmation: c.requires_confirmation !== false,
+              schedule: buildSchedule(sswData.schedule || []),
+            });
+          }
+        } catch { /* supplementary */ }
+      }
+
+      // Load admin modules
+      if (isSuperadmin) {
+        try {
+          const linkedUser = users.find(u => u.teacher_id === teacher.id);
+          if (linkedUser && editIdRef.current === editId) {
+            const data = await api.admin.getUserAdminAccess(linkedUser.id);
+            if (editIdRef.current === editId) {
+              setAdminModules(Array.isArray(data?.adminModules) ? data.adminModules : []);
+            }
+          }
+        } catch { /* supplementary */ }
+      }
+    } finally {
+      if (editIdRef.current === editId) setLoading(false);
+    }
   }, [blModuleActive, sswModuleActive, isSuperadmin, users]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {

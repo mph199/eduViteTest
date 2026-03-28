@@ -117,8 +117,6 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
 
   return (
     <div className="teacher-form-container">
-      <h3>{editingTeacher ? 'Nutzer bearbeiten' : 'Neuen Nutzer anlegen'}</h3>
-
       {/* Tab Bar */}
       {visibleTabs.length > 1 && (
         <div className="module-tabs" style={{ marginBottom: '1rem' }}>

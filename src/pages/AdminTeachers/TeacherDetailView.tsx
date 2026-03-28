@@ -40,7 +40,7 @@ export function TeacherDetailView({
         className="btn-secondary"
         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}
       >
-        <ArrowLeft size={16} /> Zurück zur Liste
+        <ArrowLeft size={16} aria-hidden="true" /> Zurück zur Liste
       </button>
 
       <div className="admin-section-header">
