@@ -6,61 +6,34 @@ import { useFlash } from '../../hooks/useFlash';
 import api from '../../services/api';
 import { AdminPageWrapper } from '../../shared/components/AdminPageWrapper';
 import { useModuleConfig } from '../../contexts/ModuleConfigContext';
-import type { Teacher as ApiTeacher, UserAccount, BlFormData, SswFormData, CsvImportResult, TeacherFormData, TeacherLoginResponse } from '../../types';
-import { WEEKDAY_LABELS } from '../../shared/constants/weekdays';
-import { TeacherForm } from './TeacherForm';
+import type { Teacher as ApiTeacher, UserAccount, CsvImportResult } from '../../types';
+import { useTeacherForm } from './useTeacherForm';
+import { TeacherDetailView } from './TeacherDetailView';
 import { CsvImportDialog } from './CsvImportDialog';
 import { TeacherTable } from './TeacherTable';
 import '../AdminDashboard.css';
-
-const defaultBlForm = (): BlFormData => ({
-  enabled: false,
-  phone: '',
-  specializations: '',
-  slot_duration_minutes: 30,
-  schedule: WEEKDAY_LABELS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
-});
-
-const defaultSswForm = (): SswFormData => ({
-  enabled: false,
-  phone: '',
-  room: '',
-  specializations: '',
-  slot_duration_minutes: 30,
-  requires_confirmation: true,
-  schedule: WEEKDAY_LABELS.map((_, i) => ({ weekday: i + 1, start_time: '08:00', end_time: '14:00', active: false })),
-});
-
-const defaultFormData = (): TeacherFormData => ({
-  first_name: '', last_name: '', email: '', salutation: 'Herr',
-  available_from: '16:00', available_until: '19:00', username: '', password: '',
-});
 
 export function AdminTeachers() {
   const { isModuleEnabled } = useModuleConfig();
   const blModuleActive = isModuleEnabled('beratungslehrer');
   const sswModuleActive = isModuleEnabled('schulsozialarbeit');
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
+  useActiveView('admin');
+  const adminBgStyle = useBgStyle('admin', '--page-bg');
+  const [flash, showFlash] = useFlash(6500);
+
+  // ── List state ────────────────────────────────────────────────────
   const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState<ApiTeacher | null>(null);
-  const [formData, setFormData] = useState<TeacherFormData>(defaultFormData());
-  const [createdCreds, setCreatedCreds] = useState<{ username: string; tempPassword: string } | null>(null);
   const [roleSaving, setRoleSaving] = useState<Record<number, boolean>>({});
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [flash, showFlash] = useFlash(6500);
+
+  // CSV state (local to list view)
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
-  const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
-  const [sswForm, setSswForm] = useState<SswFormData>(defaultSswForm());
-  const [adminModules, setAdminModules] = useState<string[]>([]);
   const csvFileRef = useRef<HTMLInputElement | null>(null);
-  const { user } = useAuth();
-  const isSuperadmin = user?.role === 'superadmin';
-  useActiveView('admin');
-  const adminBgStyle = useBgStyle('admin', '--page-bg');
 
   const loadTeachers = async () => {
     try {
@@ -79,201 +52,71 @@ export function AdminTeachers() {
     }
   };
 
-  useEffect(() => {
-    loadTeachers();
-  }, []);
+  useEffect(() => { loadTeachers(); }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── Form hook ─────────────────────────────────────────────────────
+  const form = useTeacherForm({
+    users, isSuperadmin, blModuleActive, sswModuleActive,
+    onSuccess: loadTeachers,
+    onError: setError,
+  });
 
-    if (!formData.last_name.trim() || !formData.email.trim() || !formData.salutation) {
-      setError('Bitte Nachname, Anrede und E-Mail ausfüllen');
-      return;
+  // ── Derived ───────────────────────────────────────────────────────
+  const userByTeacherId = useMemo(() => {
+    const map = new Map<number, UserAccount>();
+    for (const u of users) {
+      if (u.teacher_id != null) map.set(u.teacher_id, u);
     }
+    return map;
+  }, [users]);
 
-    const normalizedEmail = formData.email.trim().toLowerCase();
-    const isValidEmail = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalizedEmail);
-    if (!isValidEmail) {
-      setError('Bitte eine gültige E-Mail-Adresse eingeben.');
-      return;
-    }
+  const stats = useMemo(() => ({
+    total: users.length,
+    adminCount: users.filter(u => u.role === 'admin').length,
+    teacherCount: users.filter(u => u.role === 'teacher').length,
+  }), [users]);
 
-    if (!editingTeacher) {
-      if (!formData.username.trim()) {
-        setError('Bitte einen Benutzernamen eingeben');
-        return;
-      }
-      if (!formData.password || formData.password.length < 8) {
-        setError('Bitte ein Passwort mit mindestens 8 Zeichen eingeben');
-        return;
-      }
-    }
-
-    try {
-      const teacherData: Record<string, unknown> = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: normalizedEmail,
-        salutation: formData.salutation,
-        subject: 'Sprechstunde',
-        available_from: formData.available_from,
-        available_until: formData.available_until,
-        ...(!editingTeacher && {
-          username: formData.username.trim(),
-          password: formData.password,
-        }),
-      };
-
-      if (blModuleActive) {
-        if (blForm.enabled) {
-          teacherData.beratungslehrer = {
-            phone: blForm.phone,
-            specializations: blForm.specializations,
-            slot_duration_minutes: blForm.slot_duration_minutes,
-            available_from: blForm.schedule.find(s => s.active)?.start_time || '08:00',
-            available_until: blForm.schedule.find(s => s.active)?.end_time || '14:00',
-            schedule: blForm.schedule,
-          };
-        } else if (editingTeacher) {
-          const hasBlData = !!editingTeacher.bl_counselor_id;
-          if (hasBlData) {
-            teacherData.beratungslehrer = null;
-          }
-        }
-      }
-
-      if (sswModuleActive) {
-        if (sswForm.enabled) {
-          teacherData.schulsozialarbeit = {
-            room: sswForm.room,
-            phone: sswForm.phone,
-            specializations: sswForm.specializations,
-            slot_duration_minutes: sswForm.slot_duration_minutes,
-            requires_confirmation: sswForm.requires_confirmation,
-            available_from: sswForm.schedule.find(s => s.active)?.start_time || '08:00',
-            available_until: sswForm.schedule.find(s => s.active)?.end_time || '14:00',
-            schedule: sswForm.schedule,
-          };
-        } else if (editingTeacher) {
-          const hasSswData = !!editingTeacher.ssw_counselor_id;
-          if (hasSswData) {
-            teacherData.schulsozialarbeit = null;
-          }
-        }
-      }
-
-      if (editingTeacher) {
-        await api.admin.updateTeacher(editingTeacher.id, teacherData);
-        // Save admin modules if changed (superadmin only)
-        if (isSuperadmin) {
-          try {
-            const linkedUser = users.find(u => u.teacher_id === editingTeacher.id);
-            if (linkedUser) {
-              await api.admin.updateUserAdminAccess(linkedUser.id, adminModules);
-            }
-          } catch {
-            // supplementary — don't block teacher save
-          }
-        }
-      } else {
-        const res = await api.admin.createTeacher(teacherData);
-        const typed = res as TeacherLoginResponse;
-        if (typed?.user) {
-          setCreatedCreds({ username: typed.user.username, tempPassword: typed.user.tempPassword });
-        }
-      }
-      await loadTeachers();
-      setShowForm(false);
-      setEditingTeacher(null);
-      setFormData(defaultFormData());
-      setBlForm(defaultBlForm());
-      setSswForm(defaultSswForm());
-      setAdminModules([]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
-    }
-  };
-
-  const handleEdit = async (teacher: ApiTeacher) => {
-    setEditingTeacher(teacher);
-    setFormData({
-      first_name: teacher.first_name || '',
-      last_name: teacher.last_name || teacher.name || '',
-      email: teacher.email || '',
-      salutation: (teacher.salutation || 'Herr') as 'Herr' | 'Frau' | 'Divers',
-      available_from: teacher.available_from || '16:00',
-      available_until: teacher.available_until || '19:00',
-      username: '',
-      password: '',
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return teachers;
+    return teachers.filter(t => {
+      const name = (t.name || '').toLowerCase();
+      const email = (t.email || '').toLowerCase();
+      const acct = userByTeacherId.get(t.id);
+      const username = acct ? (acct.username || '').toLowerCase() : '';
+      return name.includes(q) || email.includes(q) || username.includes(q);
     });
-    setBlForm(defaultBlForm());
-    setSswForm(defaultSswForm());
-    type ScheduleEntry = { weekday: number; start_time: string; end_time: string; active: boolean };
-    const buildSchedule = (entries: ScheduleEntry[]) =>
-      WEEKDAY_LABELS.map((_, i) => {
-        const wd = i + 1;
-        const existing = entries.find(s => s.weekday === wd);
-        return existing
-          ? { weekday: wd, start_time: existing.start_time, end_time: existing.end_time, active: existing.active }
-          : { weekday: wd, start_time: '08:00', end_time: '14:00', active: false };
-      });
+  }, [teachers, search, userByTeacherId]);
 
-    if (blModuleActive) {
-      try {
-        const blData = await api.admin.getTeacherBL(teacher.id);
-        if (blData?.counselor) {
-          const c = blData.counselor;
-          setBlForm({
-            enabled: c.active !== false,
-            phone: c.phone || '',
-            specializations: c.specializations || '',
-            slot_duration_minutes: c.slot_duration_minutes || 30,
-            schedule: buildSchedule(blData.schedule || []),
-          });
-        }
-      } catch {
-        // BL data is supplementary
-      }
-    }
-    if (sswModuleActive) {
-      try {
-        const sswData = await api.admin.getTeacherSSW(teacher.id);
-        if (sswData?.counselor) {
-          const c = sswData.counselor;
-          setSswForm({
-            enabled: c.active !== false,
-            phone: c.phone || '',
-            room: c.room || '',
-            specializations: c.specializations || '',
-            slot_duration_minutes: c.slot_duration_minutes || 30,
-            requires_confirmation: c.requires_confirmation !== false,
-            schedule: buildSchedule(sswData.schedule || []),
-          });
-        }
-      } catch {
-        // SSW data is supplementary
-      }
-    }
-    // Load admin modules for this user
-    setAdminModules([]);
-    if (isSuperadmin) {
-      try {
-        const linkedUser = users.find(u => u.teacher_id === teacher.id);
-        if (linkedUser) {
-          const data = await api.admin.getUserAdminAccess(linkedUser.id);
-          setAdminModules(Array.isArray(data?.adminModules) ? data.adminModules : []);
-        }
-      } catch {
-        // supplementary
-      }
-    }
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Möchten Sie die Lehrkraft "${name}" wirklich löschen?\n\nHinweis: Die Lehrkraft kann nur gelöscht werden, wenn keine Termine mehr existieren.`)) {
+  // ── Role update (list-only) ───────────────────────────────────────
+  const updateRole = async (target: UserAccount, nextRole: string) => {
+    const currentRole = target.role;
+    if (currentRole === nextRole) return;
+    if (user?.username && target.username === user.username && currentRole === 'admin') {
+      setError('Du kannst deine eigenen Adminrechte nicht entfernen.');
       return;
     }
+    const roleLabels: Record<string, string> = { admin: 'Admin', teacher: 'Lehrkraft', superadmin: 'Superadmin' };
+    if (!confirm(`Rolle von „${target.username}" zu „${roleLabels[nextRole] || nextRole}" ändern?`)) return;
+
+    setRoleSaving(prev => ({ ...prev, [target.id]: true }));
+    setUsers(prev => prev.map(u => u.id === target.id ? { ...u, role: nextRole as UserAccount['role'] } : u));
+    try {
+      const updated = await api.admin.updateUserRole(target.id, nextRole);
+      if (updated) setUsers(prev => prev.map(u => u.id === target.id ? (updated as UserAccount) : u));
+      else await loadTeachers();
+      showFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
+    } catch (e) {
+      setUsers(prev => prev.map(u => u.id === target.id ? { ...u, role: currentRole as UserAccount['role'] } : u));
+      setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
+    } finally {
+      setRoleSaving(prev => ({ ...prev, [target.id]: false }));
+    }
+  };
+
+  // ── Delete (list-only) ────────────────────────────────────────────
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Möchten Sie die Lehrkraft "${name}" wirklich löschen?\n\nHinweis: Die Lehrkraft kann nur gelöscht werden, wenn keine Termine mehr existieren.`)) return;
     try {
       await api.admin.deleteTeacher(id);
       await loadTeachers();
@@ -283,15 +126,7 @@ export function AdminTeachers() {
     }
   };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingTeacher(null);
-    setFormData(defaultFormData());
-    setBlForm(defaultBlForm());
-    setSswForm(defaultSswForm());
-    setAdminModules([]);
-  };
-
+  // ── CSV import ────────────────────────────────────────────────────
   const handleCsvImport = async (file: File) => {
     setCsvImport({ show: true, uploading: true, result: null });
     try {
@@ -303,188 +138,110 @@ export function AdminTeachers() {
     }
   };
 
-  const toggleExpand = (id: number) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const userByTeacherId = useMemo(() => {
-    const map = new Map<number, UserAccount>();
-    for (const u of users) {
-      if (u.teacher_id != null) map.set(u.teacher_id, u);
-    }
-    return map;
-  }, [users]);
-
-  const stats = useMemo(() => {
-    const total = users.length;
-    const adminCount = users.filter((u) => u.role === 'admin').length;
-    const teacherCount = users.filter((u) => u.role === 'teacher').length;
-    return { total, adminCount, teacherCount };
-  }, [users]);
-
-  const updateRole = async (target: UserAccount, nextRole: string) => {
-    const currentRole = target.role;
-    if (currentRole === nextRole) return;
-
-    const isSelf = !!user?.username && target.username === user.username;
-    if (isSelf && currentRole === 'admin') {
-      setError('Du kannst deine eigenen Adminrechte nicht entfernen.');
-      return;
-    }
-
-    const roleLabels: Record<string, string> = { admin: 'Admin', teacher: 'Lehrkraft', superadmin: 'Superadmin' };
-    if (!confirm(`Rolle von „${target.username}" zu „${roleLabels[nextRole] || nextRole}" ändern?`)) return;
-
-    setRoleSaving((prev) => ({ ...prev, [target.id]: true }));
-    setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: nextRole as UserAccount['role'] } : u)));
-
-    try {
-      const updated = await api.admin.updateUserRole(target.id, nextRole);
-      if (updated) {
-        setUsers((prev) => prev.map((u) => (u.id === target.id ? (updated as UserAccount) : u)));
-      } else {
-        await loadTeachers();
-      }
-      showFlash('Rollenwechsel gespeichert. Wird nach erneutem Login wirksam.');
-    } catch (e) {
-      setUsers((prev) => prev.map((u) => (u.id === target.id ? { ...u, role: currentRole as UserAccount['role'] } : u)));
-      setError(e instanceof Error ? e.message : 'Fehler beim Aktualisieren der Rolle');
-    } finally {
-      setRoleSaving((prev) => ({ ...prev, [target.id]: false }));
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="admin-loading">
-        <div className="spinner"></div>
-        <p>Lade Lehrkräfte...</p>
-      </div>
-    );
+  // ── Loading ───────────────────────────────────────────────────────
+  if (loading && !form.isDetailView) {
+    return <div className="admin-loading"><div className="spinner"></div><p>Lade Lehrkräfte...</p></div>;
   }
 
-  const filtered = teachers.filter((t) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    const name = (t.name || '').toLowerCase();
-    const email = (t.email || '').toLowerCase();
-    const acct = userByTeacherId.get(t.id);
-    const username = acct ? (acct.username || '').toLowerCase() : '';
-    return name.includes(q) || email.includes(q) || username.includes(q);
-  });
-
+  // ── Render ────────────────────────────────────────────────────────
   return (
     <AdminPageWrapper style={adminBgStyle}>
-        <div className="admin-section-header">
-          <h2>Benutzer & Rechte verwalten</h2>
-          {!showForm && !csvImport.show && (
-            <div className="admin-actions-row">
-              <button onClick={() => setShowForm(true)} className="btn-primary">
-                + Neuer Nutzer
-              </button>
-              <button onClick={() => csvFileRef.current?.click()} className="btn-secondary">
-                CSV Import
-              </button>
-              <input
-                ref={csvFileRef}
-                type="file"
-                accept=".csv,.txt"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleCsvImport(file);
-                  e.target.value = '';
-                }}
-              />
-            </div>
-          )}
-        </div>
+      {flash && <div className="admin-success">{flash}</div>}
+      {error && <div className="admin-error">{error}</div>}
 
-        <CsvImportDialog
-          csvImport={csvImport}
-          onClose={() => setCsvImport({ show: false, uploading: false, result: null })}
-          onImportAnother={() => { setCsvImport({ show: false, uploading: false, result: null }); csvFileRef.current?.click(); }}
+      {form.isDetailView ? (
+        <TeacherDetailView
+          editingTeacher={form.editingTeacher}
+          formData={form.formData}
+          setFormData={form.setFormData}
+          blForm={form.blForm}
+          setBlForm={form.setBlForm}
+          sswForm={form.sswForm}
+          setSswForm={form.setSswForm}
+          adminModules={form.adminModules}
+          setAdminModules={form.setAdminModules}
+          blModuleActive={blModuleActive}
+          sswModuleActive={sswModuleActive}
+          isSuperadmin={isSuperadmin}
+          createdCreds={form.createdCreds}
+          loading={form.loading}
+          onSubmit={form.handleSubmit}
+          onBack={form.handleCancel}
         />
-
-        {!showForm && !csvImport.show && (
-          <div className="admin-teacher-search">
-            <label htmlFor="teacherAdminSearch" className="admin-teacher-search-label">
-              Suche
-            </label>
-            <div className="admin-teacher-search-row">
-              <input
-                id="teacherAdminSearch"
-                className="admin-teacher-search-input"
-                type="text"
-                placeholder="Name, E-Mail oder Username…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && (
-                <button type="button" className="btn-secondary btn-secondary--sm" onClick={() => setSearch('')}>
-                  Löschen
-                </button>
-              )}
-            </div>
+      ) : (
+        <>
+          <div className="admin-section-header">
+            <h2>Benutzer & Rechte verwalten</h2>
+            {!csvImport.show && (
+              <div className="admin-actions-row">
+                <button onClick={form.handleNewUser} className="btn-primary">+ Neuer Nutzer</button>
+                <button onClick={() => csvFileRef.current?.click()} className="btn-secondary">CSV Import</button>
+                <input
+                  ref={csvFileRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  style={{ display: 'none' }}
+                  onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCsvImport(file); e.target.value = ''; }}
+                />
+              </div>
+            )}
           </div>
-        )}
 
-        {!showForm && users.length > 0 && (
-          <div className="admin-users-stats" style={{ marginBottom: '1rem' }}>
-            <div className="admin-users-stat">
-              <div className="admin-users-stat__label">Logins</div>
-              <div className="admin-users-stat__value">{stats.total}</div>
-            </div>
-            <div className="admin-users-stat">
-              <div className="admin-users-stat__label">Admins</div>
-              <div className="admin-users-stat__value">{stats.adminCount}</div>
-            </div>
-            <div className="admin-users-stat">
-              <div className="admin-users-stat__label">Lehrkräfte</div>
-              <div className="admin-users-stat__value">{stats.teacherCount}</div>
-            </div>
-          </div>
-        )}
-
-        {flash && <div className="admin-success">{flash}</div>}
-        {error && <div className="admin-error">{error}</div>}
-
-        {showForm && (
-          <TeacherForm
-            formData={formData}
-            setFormData={setFormData}
-            blForm={blForm}
-            setBlForm={setBlForm}
-            sswForm={sswForm}
-            setSswForm={setSswForm}
-            editingTeacher={editingTeacher}
-            blModuleActive={blModuleActive}
-            sswModuleActive={sswModuleActive}
-            adminModules={adminModules}
-            setAdminModules={setAdminModules}
-            isSuperadmin={isSuperadmin}
-            createdCreds={createdCreds}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
+          <CsvImportDialog
+            csvImport={csvImport}
+            onClose={() => setCsvImport({ show: false, uploading: false, result: null })}
+            onImportAnother={() => { setCsvImport({ show: false, uploading: false, result: null }); csvFileRef.current?.click(); }}
           />
-        )}
 
-        <TeacherTable
-          filtered={filtered}
-          userByTeacherId={userByTeacherId}
-          currentUsername={user?.username}
-          roleSaving={roleSaving}
-          expandedIds={expandedIds}
-          updateRole={updateRole}
-          toggleExpand={toggleExpand}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+          {!csvImport.show && (
+            <>
+              <div className="admin-teacher-search">
+                <label htmlFor="teacherAdminSearch" className="admin-teacher-search-label">Suche</label>
+                <div className="admin-teacher-search-row">
+                  <input
+                    id="teacherAdminSearch"
+                    className="admin-teacher-search-input"
+                    type="text"
+                    placeholder="Name, E-Mail oder Username..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  {search && (
+                    <button type="button" className="btn-secondary btn-secondary--sm" onClick={() => setSearch('')}>Löschen</button>
+                  )}
+                </div>
+              </div>
+
+              {users.length > 0 && (
+                <div className="admin-users-stats" style={{ marginBottom: '1rem' }}>
+                  <div className="admin-users-stat">
+                    <div className="admin-users-stat__label">Logins</div>
+                    <div className="admin-users-stat__value">{stats.total}</div>
+                  </div>
+                  <div className="admin-users-stat">
+                    <div className="admin-users-stat__label">Admins</div>
+                    <div className="admin-users-stat__value">{stats.adminCount}</div>
+                  </div>
+                  <div className="admin-users-stat">
+                    <div className="admin-users-stat__label">Lehrkräfte</div>
+                    <div className="admin-users-stat__value">{stats.teacherCount}</div>
+                  </div>
+                </div>
+              )}
+
+              <TeacherTable
+                filtered={filtered}
+                userByTeacherId={userByTeacherId}
+                currentUsername={user?.username}
+                roleSaving={roleSaving}
+                updateRole={updateRole}
+                onEdit={form.handleEdit}
+                onDelete={handleDelete}
+              />
+            </>
+          )}
+        </>
+      )}
     </AdminPageWrapper>
   );
 }

@@ -924,3 +924,25 @@
   }
 }
 
+/* ── Module Badges (BL / SSW) ──────────────────────────────────── */
+
+.admin-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+  color: var(--color-white, #fff);
+}
+
+.admin-badge--bl {
+  background: var(--module-accent-beratungslehrer, #d4615a);
+}
+
+.admin-badge--ssw {
+  background: var(--module-accent-schulsozialarbeit, #b8860b);
+}
+

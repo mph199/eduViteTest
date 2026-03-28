@@ -189,7 +189,7 @@ const VALID_ADMIN_MODULE_KEYS = ['elternsprechtag', 'schulsozialarbeit', 'beratu
  * GET /api/admin/users/:id/admin-access
  * Liest die Admin-Modulrechte eines Users.
  */
-router.get('/:id/admin-access', requireAdmin, async (req, res) => {
+router.get('/users/:id/admin-access', requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
 
@@ -209,7 +209,7 @@ router.get('/:id/admin-access', requireAdmin, async (req, res) => {
  * PUT /api/admin/users/:id/admin-access
  * Setzt die Admin-Modulrechte eines Users. Nur Superadmin.
  */
-router.put('/:id/admin-access', requireSuperadmin, async (req, res) => {
+router.put('/users/:id/admin-access', requireSuperadmin, async (req, res) => {
 
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });

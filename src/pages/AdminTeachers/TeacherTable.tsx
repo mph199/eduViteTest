@@ -7,9 +7,7 @@ interface Props {
   userByTeacherId: Map<number, UserAccount>;
   currentUsername: string | undefined;
   roleSaving: Record<number, boolean>;
-  expandedIds: Set<number>;
   updateRole: (target: UserAccount, nextRole: string) => void;
-  toggleExpand: (id: number) => void;
   onEdit: (teacher: ApiTeacher) => void;
   onDelete: (id: number, name: string) => void;
 }
@@ -69,7 +67,15 @@ function RoleSelect({ acct, isSelf, roleSaving, updateRole }: {
   );
 }
 
-export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleSaving, expandedIds, updateRole, toggleExpand, onEdit, onDelete }: Props) {
+export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleSaving, updateRole, onEdit, onDelete }: Props) {
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const toggleExpand = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   if (filtered.length === 0) {
     return (
       <div className="no-teachers">
@@ -101,7 +107,11 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                 return (
                   <tr key={teacher.id}>
                     <td>
-                      <div className="admin-cell-main">{teacher.salutation || ''} {teacher.name}</div>
+                      <div className="admin-cell-main">
+                        {teacher.salutation || ''} {teacher.name}
+                        {teacher.bl_counselor_id && <span className="admin-badge admin-badge--bl" role="img" aria-label="Beratungslehrkraft">BL</span>}
+                        {teacher.ssw_counselor_id && <span className="admin-badge admin-badge--ssw" role="img" aria-label="Schulsozialarbeit">SSW</span>}
+                      </div>
                       <div className="admin-cell-id">#{teacher.id}</div>
                     </td>
                     <td>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</td>
@@ -164,7 +174,11 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                   aria-expanded={isExpanded}
                 >
                   <div className="teacher-card__summary">
-                    <span className="teacher-card__name">{teacher.salutation || ''} {teacher.name}</span>
+                    <span className="teacher-card__name">
+                      {teacher.salutation || ''} {teacher.name}
+                      {teacher.bl_counselor_id && <span className="admin-badge admin-badge--bl" title="Beratungslehrkraft">BL</span>}
+                      {teacher.ssw_counselor_id && <span className="admin-badge admin-badge--ssw" title="Schulsozialarbeit">SSW</span>}
+                    </span>
                     <div className="teacher-card__tags">
                       {acct && (
                         <span className={`teacher-card__tag ${isAdmin ? 'teacher-card__tag--admin' : 'teacher-card__tag--teacher'}`}>

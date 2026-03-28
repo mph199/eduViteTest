@@ -24,7 +24,6 @@ interface Props {
   isSuperadmin: boolean;
   createdCreds: { username: string; tempPassword: string } | null;
   onSubmit: (e: React.FormEvent) => void;
-  onCancel: () => void;
 }
 
 const ADMIN_MODULE_OPTIONS = [
@@ -93,7 +92,7 @@ function ScheduleEditor({ schedule, onChange }: {
 
 // ── Main Form ────────────────────────────────────────────────────────
 
-export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm, setSswForm, editingTeacher, blModuleActive, sswModuleActive, adminModules, setAdminModules, isSuperadmin, createdCreds, onSubmit, onCancel }: Props) {
+export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm, setSswForm, editingTeacher, blModuleActive, sswModuleActive, adminModules, setAdminModules, isSuperadmin, createdCreds, onSubmit }: Props) {
   const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState<FormTab>('stammdaten');
 
@@ -118,8 +117,6 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
 
   return (
     <div className="teacher-form-container">
-      <h3>{editingTeacher ? 'Nutzer bearbeiten' : 'Neuen Nutzer anlegen'}</h3>
-
       {/* Tab Bar */}
       {visibleTabs.length > 1 && (
         <div className="module-tabs" style={{ marginBottom: '1rem' }}>
@@ -222,6 +219,12 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
             </label>
             {blForm.enabled && (
               <>
+                <div className="form-group">
+                  <label htmlFor="bl_room">Raum</label>
+                  <input id="bl_room" type="text" value={blForm.room}
+                    onChange={(e) => setBlForm({ ...blForm, room: e.target.value })}
+                    placeholder="z.B. A1.12" />
+                </div>
                 <div className="form-group">
                   <label htmlFor="bl_phone">Telefon</label>
                   <input id="bl_phone" type="text" value={blForm.phone}
@@ -330,9 +333,6 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
         <div className="form-actions" style={{ marginTop: '1.5rem' }}>
           <button type="submit" className="btn-primary">
             {editingTeacher ? 'Speichern' : 'Anlegen'}
-          </button>
-          <button type="button" onClick={onCancel} className="btn-secondary">
-            Abbrechen
           </button>
         </div>
       </form>
