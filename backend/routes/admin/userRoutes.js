@@ -188,6 +188,8 @@ const VALID_ADMIN_MODULE_KEYS = ['elternsprechtag', 'schulsozialarbeit', 'beratu
 /**
  * GET /api/admin/users/:id/admin-access
  * Liest die Admin-Modulrechte eines Users.
+ * Auth: requireAdmin (nicht requireSuperadmin) — Admins dürfen Rechte lesen,
+ * nur Superadmins dürfen sie schreiben (PUT).
  */
 router.get('/users/:id/admin-access', requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.id, 10);

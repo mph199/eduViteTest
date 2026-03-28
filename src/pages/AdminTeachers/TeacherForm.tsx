@@ -31,6 +31,7 @@ const ADMIN_MODULE_OPTIONS = [
   { key: 'elternsprechtag', label: 'Eltern- und Ausbildersprechtag' },
   { key: 'schulsozialarbeit', label: 'Schulsozialarbeit' },
   { key: 'beratungslehrer', label: 'Beratungslehrkräfte' },
+  { key: 'flow', label: 'Flow / Arbeitspakete' },
 ];
 
 type FormTab = 'stammdaten' | 'beratungslehrer' | 'schulsozialarbeit' | 'adminrechte';
