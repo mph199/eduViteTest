@@ -118,7 +118,7 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
   const visibleTabs = tabs.filter(t => t.visible);
 
   return (
-    <div className="content-section">
+    <div className="teacher-form-container">
       {/* Tab Bar */}
       {visibleTabs.length > 1 && (
         <div className="module-tabs" style={{ marginBottom: '1rem' }}>

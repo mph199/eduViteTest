@@ -295,7 +295,7 @@ export function TeacherBookings() {
 
       <CalendarSetupBanner sub={calSub} />
 
-      <section className="content-section">
+      <section className="stat-card teacher-table-section teacher-bookings-section">
         <div className="teacher-bookings-toolbar">
           <div className="teacher-bookings-title">
             <h3>Meine Buchungen</h3>
