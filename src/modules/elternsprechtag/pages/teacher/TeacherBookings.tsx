@@ -12,6 +12,68 @@ import './TeacherBookings.css';
 type SortKey = 'when' | 'visitor';
 type SortDir = 'asc' | 'desc';
 
+// ── Datumsgruppierung ──────────────────────────────────────────────
+
+interface DateGroup {
+  dateKey: string;        // ISO: YYYY-MM-DD (für Sortierung + Vergleich)
+  label: string;          // "Montag, 30. März 2026"
+  isToday: boolean;
+  isPast: boolean;
+  bookings: TimeSlot[];
+}
+
+const dateFormatter = new Intl.DateTimeFormat('de-DE', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+});
+
+/** Extrahiert den YYYY-MM-DD-Teil aus einem Datums-String (ISO oder DE-Format). */
+function extractDateKey(dateStr: string): string {
+  if (!dateStr) return '';
+  const cleaned = dateStr.split('T')[0].split(' ')[0].trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned;
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(cleaned)) {
+    const [dd, mm, yyyy] = cleaned.split('.');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return cleaned;
+}
+
+function buildDateGroups(bookings: TimeSlot[]): DateGroup[] {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const groupMap = new Map<string, TimeSlot[]>();
+
+  for (const b of bookings) {
+    const key = extractDateKey(b.date);
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(b);
+  }
+
+  const groups: DateGroup[] = [];
+  for (const [dateKey, items] of groupMap) {
+    // Innerhalb der Gruppe nach Uhrzeit sortieren
+    items.sort((a, b) => {
+      const aMin = parseStartMinutes(a.time) ?? 0;
+      const bMin = parseStartMinutes(b.time) ?? 0;
+      return aMin - bMin || a.id - b.id;
+    });
+
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const label = isNaN(dateObj.getTime()) ? dateKey : dateFormatter.format(dateObj);
+    const isPast = dateKey < todayKey;
+
+    groups.push({ dateKey, label, isToday: dateKey === todayKey, isPast, bookings: items });
+  }
+
+  // Gruppen chronologisch sortieren (nächstes Datum zuerst)
+  groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  return groups;
+}
+
+// ── Hauptkomponente ────────────────────────────────────────────────
+
 export function TeacherBookings() {
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +122,11 @@ export function TeacherBookings() {
     });
     return copy;
   }, [bookings, sort.dir, sort.key]);
+
+  // Gruppierung — nur für Kartenansicht ohne manuelle Sortierung
+  const dateGroups = useMemo(() => buildDateGroups(
+    sort.key ? sorted : bookings
+  ), [bookings, sorted, sort.key]);
 
   const cycleSort = (key: SortKey) => {
     setSort((prev) => {
@@ -116,6 +183,22 @@ export function TeacherBookings() {
     );
   }
 
+  const renderCard = (booking: TimeSlot) => (
+    <BookingCard
+      key={booking.id}
+      date={booking.date}
+      time={booking.time}
+      durationMinutes={15}
+      visitorName={visitorLabel(booking) || '--'}
+      visitorLabel={booking.visitorType === 'company' ? 'Ausbildungsbetrieb' : 'Erziehungsberechtigte/r'}
+      studentInfo={`${booking.visitorType === 'parent' ? booking.studentName : booking.traineeName} | Klasse: ${booking.className || '--'}`}
+      status={booking.status || 'confirmed'}
+      accent="petrol"
+      onConfirm={booking.status === 'reserved' && booking.verifiedAt ? () => handleAcceptBooking(booking.id) : undefined}
+      onCancel={() => handleCancelBooking(booking)}
+    />
+  );
+
   return (
     <>
       {(error || notice) && (
@@ -138,7 +221,7 @@ export function TeacherBookings() {
       <section className="stat-card teacher-table-section teacher-bookings-section">
         <div className="teacher-bookings-toolbar">
           <div className="teacher-bookings-title">
-            <h3>Buchungen einsehen</h3>
+            <h3>Meine Buchungen</h3>
             <span className="teacher-bookings-count">
               {bookings.length} gebuchte {bookings.length === 1 ? 'Termin' : 'Termine'}
             </span>
@@ -167,21 +250,22 @@ export function TeacherBookings() {
             <p>Noch keine Buchungen vorhanden.</p>
           </div>
         ) : viewMode === 'cards' ? (
-          <div className="booking-card-grid">
-            {sorted.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                date={booking.date}
-                time={booking.time}
-                durationMinutes={15}
-                visitorName={visitorLabel(booking) || '--'}
-                visitorLabel={booking.visitorType === 'company' ? 'Ausbildungsbetrieb' : 'Erziehungsberechtigte/r'}
-                studentInfo={`${booking.visitorType === 'parent' ? booking.studentName : booking.traineeName} | Klasse: ${booking.className || '--'}`}
-                status={booking.status || 'confirmed'}
-                accent="petrol"
-                onConfirm={booking.status === 'reserved' && booking.verifiedAt ? () => handleAcceptBooking(booking.id) : undefined}
-                onCancel={() => handleCancelBooking(booking)}
-              />
+          <div className="date-groups">
+            {dateGroups.map((group) => (
+              <div key={group.dateKey} className={`date-group${group.isPast ? ' date-group--past' : ''}`}>
+                <div className="date-group__header">
+                  <h4 className="date-group__label">
+                    {group.label}
+                    {group.isToday && <span className="date-group__badge date-group__badge--today">Heute</span>}
+                  </h4>
+                  <span className="date-group__count">
+                    {group.bookings.length} {group.bookings.length === 1 ? 'Termin' : 'Termine'}
+                  </span>
+                </div>
+                <div className="booking-card-grid">
+                  {group.bookings.map(renderCard)}
+                </div>
+              </div>
             ))}
           </div>
         ) : (
