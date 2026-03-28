@@ -55,8 +55,10 @@ export function AdminTeachers() {
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
   const [sswForm, setSswForm] = useState<SswFormData>(defaultSswForm());
+  const [adminModules, setAdminModules] = useState<string[]>([]);
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   useActiveView('admin');
   const adminBgStyle = useBgStyle('admin', '--page-bg');
 
@@ -85,14 +87,14 @@ export function AdminTeachers() {
     e.preventDefault();
 
     if (!formData.last_name.trim() || !formData.email.trim() || !formData.salutation) {
-      setError('Bitte Nachname, Anrede und E-Mail ausfuellen');
+      setError('Bitte Nachname, Anrede und E-Mail ausfüllen');
       return;
     }
 
     const normalizedEmail = formData.email.trim().toLowerCase();
     const isValidEmail = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalizedEmail);
     if (!isValidEmail) {
-      setError('Bitte eine gueltige E-Mail-Adresse eingeben.');
+      setError('Bitte eine gültige E-Mail-Adresse eingeben.');
       return;
     }
 
@@ -133,7 +135,7 @@ export function AdminTeachers() {
             schedule: blForm.schedule,
           };
         } else if (editingTeacher) {
-          const hasBlData = !!(editingTeacher as ApiTeacher & { bl_counselor_id?: number }).bl_counselor_id;
+          const hasBlData = !!editingTeacher.bl_counselor_id;
           if (hasBlData) {
             teacherData.beratungslehrer = null;
           }
@@ -153,7 +155,7 @@ export function AdminTeachers() {
             schedule: sswForm.schedule,
           };
         } else if (editingTeacher) {
-          const hasSswData = !!(editingTeacher as ApiTeacher & { ssw_counselor_id?: number }).ssw_counselor_id;
+          const hasSswData = !!editingTeacher.ssw_counselor_id;
           if (hasSswData) {
             teacherData.schulsozialarbeit = null;
           }
@@ -162,6 +164,17 @@ export function AdminTeachers() {
 
       if (editingTeacher) {
         await api.admin.updateTeacher(editingTeacher.id, teacherData);
+        // Save admin modules if changed (superadmin only)
+        if (isSuperadmin) {
+          try {
+            const linkedUser = users.find(u => u.teacher_id === editingTeacher.id);
+            if (linkedUser) {
+              await api.admin.updateUserAdminAccess(linkedUser.id, adminModules);
+            }
+          } catch {
+            // supplementary — don't block teacher save
+          }
+        }
       } else {
         const res = await api.admin.createTeacher(teacherData);
         const typed = res as TeacherLoginResponse;
@@ -175,6 +188,7 @@ export function AdminTeachers() {
       setFormData(defaultFormData());
       setBlForm(defaultBlForm());
       setSswForm(defaultSswForm());
+      setAdminModules([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
@@ -193,29 +207,64 @@ export function AdminTeachers() {
       password: '',
     });
     setBlForm(defaultBlForm());
+    setSswForm(defaultSswForm());
+    type ScheduleEntry = { weekday: number; start_time: string; end_time: string; active: boolean };
+    const buildSchedule = (entries: ScheduleEntry[]) =>
+      WEEKDAY_LABELS.map((_, i) => {
+        const wd = i + 1;
+        const existing = entries.find(s => s.weekday === wd);
+        return existing
+          ? { weekday: wd, start_time: existing.start_time, end_time: existing.end_time, active: existing.active }
+          : { weekday: wd, start_time: '08:00', end_time: '14:00', active: false };
+      });
+
     if (blModuleActive) {
       try {
         const blData = await api.admin.getTeacherBL(teacher.id);
         if (blData?.counselor) {
           const c = blData.counselor;
-          type ScheduleEntry = { weekday: number; start_time: string; end_time: string; active: boolean };
-          const scheduleMap = new Map<number, ScheduleEntry>((blData.schedule || []).map((s: ScheduleEntry) => [s.weekday, s]));
           setBlForm({
             enabled: c.active !== false,
             phone: c.phone || '',
             specializations: c.specializations || '',
             slot_duration_minutes: c.slot_duration_minutes || 30,
-            schedule: WEEKDAY_LABELS.map((_, i) => {
-              const wd = i + 1;
-              const existing = scheduleMap.get(wd);
-              return existing
-                ? { weekday: wd, start_time: existing.start_time, end_time: existing.end_time, active: existing.active }
-                : { weekday: wd, start_time: '08:00', end_time: '14:00', active: false };
-            }),
+            schedule: buildSchedule(blData.schedule || []),
           });
         }
       } catch {
         // BL data is supplementary
+      }
+    }
+    if (sswModuleActive) {
+      try {
+        const sswData = await api.admin.getTeacherSSW(teacher.id);
+        if (sswData?.counselor) {
+          const c = sswData.counselor;
+          setSswForm({
+            enabled: c.active !== false,
+            phone: c.phone || '',
+            room: c.room || '',
+            specializations: c.specializations || '',
+            slot_duration_minutes: c.slot_duration_minutes || 30,
+            requires_confirmation: c.requires_confirmation !== false,
+            schedule: buildSchedule(sswData.schedule || []),
+          });
+        }
+      } catch {
+        // SSW data is supplementary
+      }
+    }
+    // Load admin modules for this user
+    setAdminModules([]);
+    if (isSuperadmin) {
+      try {
+        const linkedUser = users.find(u => u.teacher_id === teacher.id);
+        if (linkedUser) {
+          const data = await api.admin.getUserAdminAccess(linkedUser.id);
+          setAdminModules(Array.isArray(data?.adminModules) ? data.adminModules : []);
+        }
+      } catch {
+        // supplementary
       }
     }
     setShowForm(true);
@@ -239,6 +288,8 @@ export function AdminTeachers() {
     setEditingTeacher(null);
     setFormData(defaultFormData());
     setBlForm(defaultBlForm());
+    setSswForm(defaultSswForm());
+    setAdminModules([]);
   };
 
   const handleCsvImport = async (file: File) => {
@@ -414,6 +465,9 @@ export function AdminTeachers() {
             editingTeacher={editingTeacher}
             blModuleActive={blModuleActive}
             sswModuleActive={sswModuleActive}
+            adminModules={adminModules}
+            setAdminModules={setAdminModules}
+            isSuperadmin={isSuperadmin}
             createdCreds={createdCreds}
             onSubmit={handleSubmit}
             onCancel={handleCancel}

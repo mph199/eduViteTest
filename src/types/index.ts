@@ -8,6 +8,8 @@ export interface Teacher {
   subject: string;
   available_from?: string;
   available_until?: string;
+  bl_counselor_id?: number;
+  ssw_counselor_id?: number;
 }
 
 export interface TimeSlot {

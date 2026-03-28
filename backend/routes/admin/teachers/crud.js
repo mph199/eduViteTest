@@ -136,10 +136,18 @@ router.get('/teachers', requireAdmin, async (_req, res) => {
              bl.phone AS bl_phone,
              bl.specializations AS bl_specializations,
              bl.slot_duration_minutes AS bl_slot_duration_minutes,
-             bl.active AS bl_active
+             bl.active AS bl_active,
+             ssw.id AS ssw_counselor_id,
+             ssw.room AS ssw_room,
+             ssw.phone AS ssw_phone,
+             ssw.specializations AS ssw_specializations,
+             ssw.slot_duration_minutes AS ssw_slot_duration_minutes,
+             ssw.requires_confirmation AS ssw_requires_confirmation,
+             ssw.active AS ssw_active
       FROM teachers t
       LEFT JOIN users u ON u.teacher_id = t.id
       LEFT JOIN bl_counselors bl ON bl.user_id = u.id AND bl.active = true
+      LEFT JOIN ssw_counselors ssw ON ssw.user_id = u.id AND ssw.active = true
       ORDER BY t.id
     `);
     return res.json({ teachers: rows || [] });
@@ -173,6 +181,33 @@ router.get('/teachers/:id/bl', requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Error fetching BL data for teacher');
     return res.status(500).json({ error: 'Failed to fetch BL data' });
+  }
+});
+
+// ── GET /api/admin/teachers/:id/ssw ────────────────────────────────────
+
+router.get('/teachers/:id/ssw', requireAdmin, async (req, res) => {
+  const teacherId = parseInt(req.params.id, 10);
+  if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
+
+  try {
+    const { rows: sswRows } = await query(
+      `SELECT ssw.* FROM ssw_counselors ssw
+       JOIN users u ON u.id = ssw.user_id
+       WHERE u.teacher_id = $1 LIMIT 1`,
+      [teacherId]
+    );
+    if (!sswRows.length) return res.json({ counselor: null, schedule: [] });
+
+    const counselor = sswRows[0];
+    const { rows: scheduleRows } = await query(
+      'SELECT id, counselor_id, weekday, start_time, end_time, active FROM ssw_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
+      [counselor.id]
+    );
+    return res.json({ counselor, schedule: scheduleRows });
+  } catch (error) {
+    logger.error({ err: error }, 'Error fetching SSW data for teacher');
+    return res.status(500).json({ error: 'Failed to fetch SSW data' });
   }
 });
 

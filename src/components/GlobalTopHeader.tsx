@@ -97,12 +97,16 @@ export function GlobalTopHeader() {
       });
 
       if (visibleItems.length > 0) {
-        // Modules with requiredModule are visible in all views (no view filter),
-        // generic admin modules are restricted to admin view
+        // Determine group view: if all visible items have the same view, use it;
+        // otherwise use the module default (admin for non-required modules)
+        const itemViews = visibleItems.map((item: SidebarNavItem) => item.view).filter((v): v is NonNullable<typeof v> => !!v);
+        const groupView = itemViews.length > 0 && itemViews.every(v => v === itemViews[0])
+          ? itemViews[0] as ActiveView
+          : (mod.requiredModule ? undefined : 'admin' as ActiveView);
         groups.push({
           label: mod.sidebarNav.label,
           accentRgb: mod.accentRgb,
-          ...(mod.requiredModule ? {} : { view: 'admin' as ActiveView }),
+          ...(groupView ? { view: groupView } : {}),
           items: visibleItems,
         });
       }
