@@ -20,6 +20,14 @@
   --sa-warning: var(--color-warning, #d97706);
   --sa-radius: 8px;
 
+  /* Legacy compat tokens (migrated from Dark Theme) */
+  --sa-text-bright: var(--sa-text);
+  --sa-text-muted: var(--sa-text-tertiary);
+  --sa-text-label: var(--sa-text-secondary);
+  --sa-text-mono: var(--color-gray-500, #64748b);
+  --sa-badge-bg: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.08);
+  --sa-error-bg: rgba(153, 27, 27, 0.06);
+
   min-height: 100vh;
   background: var(--sa-bg-secondary);
   color: var(--sa-text);
@@ -525,4 +533,418 @@
   .superadmin__content {
     padding: 0.75rem;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Missing Classes — Restored from TSX references
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Buttons ──────────────────────────────────────────── */
+
+.superadmin__btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--sa-border);
+  background: var(--sa-bg);
+  color: var(--sa-text);
+  transition: background 160ms;
+}
+
+.superadmin__btn:hover {
+  background: var(--sa-bg-tertiary);
+}
+
+.superadmin__btn--primary {
+  background: var(--sa-accent);
+  color: var(--color-white, #fff);
+  border-color: var(--sa-accent);
+}
+
+.superadmin__btn--primary:hover {
+  opacity: 0.9;
+}
+
+.superadmin__btn--secondary {
+  background: transparent;
+  border-color: var(--sa-border);
+  color: var(--sa-text-secondary);
+}
+
+.superadmin__btn--secondary:hover {
+  background: var(--sa-bg-tertiary);
+  color: var(--sa-text);
+}
+
+/* ── Hint Error ───────────────────────────────────────── */
+
+.superadmin__hint--error {
+  color: var(--sa-error);
+  font-weight: 500;
+}
+
+/* ── Module Cards ─────────────────────────────────────── */
+
+.superadmin__module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.superadmin__module-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--sa-bg);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius);
+  transition: border-color 160ms;
+}
+
+.superadmin__module-card:hover {
+  border-color: var(--sa-accent);
+}
+
+.superadmin__module-card--disabled {
+  opacity: 0.55;
+}
+
+.superadmin__module-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--sa-accent-light);
+  color: var(--sa-accent);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.superadmin__module-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.superadmin__module-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.superadmin__module-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--sa-text);
+}
+
+.superadmin__module-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.superadmin__module-status--active {
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--sa-success);
+}
+
+.superadmin__module-status--inactive {
+  background: var(--sa-bg-tertiary);
+  color: var(--sa-text-tertiary);
+}
+
+.superadmin__module-desc {
+  font-size: 0.8rem;
+  color: var(--sa-text-secondary);
+  margin: 0;
+}
+
+.superadmin__module-meta {
+  font-size: 0.72rem;
+  color: var(--sa-text-tertiary);
+  margin-top: 0.25rem;
+}
+
+/* ── Toggle (legacy superadmin__toggle) ───────────────── */
+
+.superadmin__toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--sa-border);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 200ms;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.superadmin__toggle.active {
+  background: var(--sa-success);
+}
+
+.superadmin__toggle-slider {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-white, #fff);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 200ms;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.superadmin__toggle.active .superadmin__toggle-slider {
+  left: 18px;
+}
+
+/* ── Confirm Dialog (legacy superadmin__confirm-*) ───── */
+
+.superadmin__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.superadmin__confirm-dialog {
+  background: var(--sa-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.superadmin__confirm-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sa-text);
+  margin: 0 0 0.75rem;
+}
+
+.superadmin__confirm-hint {
+  font-size: 0.85rem;
+  color: var(--sa-text-secondary);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.superadmin__confirm-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.superadmin__confirm-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.superadmin__confirm-check-label {
+  font-size: 0.82rem;
+  color: var(--sa-text-secondary);
+  cursor: pointer;
+}
+
+.superadmin__confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.superadmin__confirm-btn {
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--sa-border);
+  background: var(--sa-bg);
+  color: var(--sa-text);
+  transition: background 160ms;
+}
+
+.superadmin__confirm-btn:hover {
+  background: var(--sa-bg-tertiary);
+}
+
+.superadmin__confirm-btn--cancel {
+  background: transparent;
+}
+
+.superadmin__confirm-btn--confirm {
+  background: var(--sa-error);
+  color: var(--color-white, #fff);
+  border-color: var(--sa-error);
+}
+
+.superadmin__confirm-btn--confirm:hover {
+  opacity: 0.9;
+}
+
+.superadmin__confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Preview (BrandingTab + EmailBrandingTab) ─────────── */
+
+.superadmin__preview {
+  margin-top: 1rem;
+}
+
+.superadmin__preview-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sa-text);
+  margin-bottom: 0.5rem;
+}
+
+.superadmin__preview-frame {
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius);
+  overflow: hidden;
+}
+
+.superadmin__preview-frame--email {
+  min-height: 300px;
+}
+
+.superadmin__preview-steps {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.superadmin__preview-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ── Background Images ────────────────────────────────── */
+
+.superadmin__bg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.superadmin__bg-card {
+  background: var(--sa-bg);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius);
+  overflow: hidden;
+}
+
+.superadmin__bg-preview {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.superadmin__bg-placeholder {
+  width: 100%;
+  height: 140px;
+  background: var(--sa-bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sa-text-tertiary);
+  font-size: 0.82rem;
+}
+
+.superadmin__bg-info {
+  padding: 0.75rem 1rem;
+}
+
+.superadmin__bg-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sa-text);
+}
+
+.superadmin__bg-desc {
+  font-size: 0.78rem;
+  color: var(--sa-text-secondary);
+  margin-top: 0.15rem;
+}
+
+.superadmin__bg-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.superadmin__bg-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--sa-accent);
+  background: transparent;
+  color: var(--sa-accent);
+  transition: background 160ms;
+}
+
+.superadmin__bg-upload-label:hover {
+  background: var(--sa-accent-light);
+}
+
+/* ── DataProtection sub-classes ───────────────────────── */
+
+.sa-section__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sa-text);
+  margin: 0 0 0.5rem;
+}
+
+.sa-section__hint {
+  font-size: 0.78rem;
+  color: var(--sa-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.sa-section__subtitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sa-text);
+  margin: 0.75rem 0 0.35rem;
+}
+
+.sa-field__msg {
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+}
+
+.sa-field__msg--success {
+  color: var(--sa-success);
+}
+
+.sa-field__msg--error {
+  color: var(--sa-error);
 }

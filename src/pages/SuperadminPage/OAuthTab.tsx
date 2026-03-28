@@ -369,7 +369,7 @@ export function OAuthTab() {
                 onClick={handleDelete}
                 disabled={saving}
               >
-                {saving ? '��schen...' : 'Endgültig löschen'}
+                {saving ? 'Löschen...' : 'Endgültig löschen'}
               </button>
             </div>
           </div>
