@@ -91,7 +91,7 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
         <h3>Terminverwaltung</h3>
       </div>
 
-      <div className="teacher-form-container" style={{ marginBottom: '1rem' }}>
+      <div className="content-section" style={{ marginBottom: '1rem' }}>
         <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
           <div className="form-group">
             <label htmlFor="cal-counselor">Berater/in</label>

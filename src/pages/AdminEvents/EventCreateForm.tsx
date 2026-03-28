@@ -76,7 +76,7 @@ export function EventCreateForm({ onCreated, creating }: Props) {
   };
 
   return (
-    <div className="teacher-form-container">
+    <div className="content-section">
       <button
         type="button"
         className="ev-section-toggle"

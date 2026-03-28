@@ -181,7 +181,7 @@ export function AdminEvents() {
         <EventCreateForm onCreated={handleCreated} creating={creating} />
 
         {/* Events list with inline detail */}
-        <div className="teacher-form-container" style={{ padding: events.length ? '0' : undefined }}>
+        <div className="content-section" style={{ padding: events.length ? '0' : undefined }}>
           {events.length === 0 ? (
             <div style={{ padding: '2rem' }}>
               <h3 style={{ margin: '0 0 0.75rem' }}>Keine Events vorhanden</h3>
@@ -298,7 +298,7 @@ export function AdminEvents() {
           )}
         </div>
 
-        <div className="teacher-form-container" style={{ padding: '1rem 1.5rem' }}>
+        <div className="content-section" style={{ padding: '1rem 1.5rem' }}>
           <p className="text-muted" style={{ margin: 0, fontSize: '0.88rem' }}>
             <strong>Hinweis:</strong> „Aktiv" ist das zuletzt veröffentlichte Event, das innerhalb seines Buchungsfensters liegt.
             Buchungen sind nur möglich, solange ein Event den Status „Veröffentlicht" hat.

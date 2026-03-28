@@ -124,7 +124,7 @@ export function AdminSlots() {
   return (
     <AdminPageWrapper style={adminBgStyle}>
         {flash && <div className="admin-success">{flash}</div>}
-        <div className="teacher-form-container">
+        <div className="content-section">
           <div className="admin-section-header">
             <h3>Sprechzeiten verwalten</h3>
             {selectedTeacherId && !showForm && (
