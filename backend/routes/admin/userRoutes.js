@@ -224,6 +224,25 @@ router.put('/users/:id/admin-access', requireSuperadmin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid admin module keys: ' + invalid.join(', ') });
   }
 
+  // Nur für freigeschaltete Module Adminrechte vergeben
+  if (adminModules.length > 0) {
+    try {
+      const { rows: enabledRows } = await query(
+        'SELECT module_id FROM module_config WHERE enabled = TRUE'
+      );
+      const enabledSet = new Set(enabledRows.map(r => r.module_id));
+      const disabled = adminModules.filter(k => !enabledSet.has(k));
+      if (disabled.length > 0) {
+        return res.status(400).json({
+          error: `Adminrechte können nur für freigeschaltete Module vergeben werden. Deaktiviert: ${disabled.join(', ')}`,
+        });
+      }
+    } catch {
+      // module_config Tabelle fehlt oder Fehler — sicherheitshalber ablehnen
+      return res.status(500).json({ error: 'Modulkonfiguration konnte nicht geprüft werden' });
+    }
+  }
+
   try {
     await query('DELETE FROM user_admin_access WHERE user_id = $1', [userId]);
     for (const moduleKey of adminModules) {

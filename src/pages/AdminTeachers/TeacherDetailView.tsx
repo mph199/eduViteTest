@@ -15,6 +15,7 @@ interface Props {
   blModuleActive: boolean;
   sswModuleActive: boolean;
   isSuperadmin: boolean;
+  isModuleEnabled: (key: string) => boolean;
   createdCreds: { username: string; tempPassword: string } | null;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -25,7 +26,7 @@ export function TeacherDetailView({
   editingTeacher, formData, setFormData,
   blForm, setBlForm, sswForm, setSswForm,
   adminModules, setAdminModules,
-  blModuleActive, sswModuleActive, isSuperadmin,
+  blModuleActive, sswModuleActive, isSuperadmin, isModuleEnabled,
   createdCreds, loading, onSubmit, onBack,
 }: Props) {
   const title = editingTeacher
@@ -63,6 +64,7 @@ export function TeacherDetailView({
           adminModules={adminModules}
           setAdminModules={setAdminModules}
           isSuperadmin={isSuperadmin}
+          isModuleEnabled={isModuleEnabled}
           createdCreds={createdCreds}
           onSubmit={onSubmit}
         />

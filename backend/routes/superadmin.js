@@ -452,6 +452,12 @@ router.put('/modules/:moduleId', requireSuperadmin, async (req, res) => {
        RETURNING *`,
       [moduleId, enabled]
     );
+
+    // Bei Deaktivierung: Adminrechte für dieses Modul entfernen
+    if (!enabled) {
+      await query('DELETE FROM user_admin_access WHERE module_key = $1', [moduleId]);
+    }
+
     return res.json({ success: true, module: rows[0] });
   } catch (error) {
     logger.error({ err: error }, 'Error updating module config');

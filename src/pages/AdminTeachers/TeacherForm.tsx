@@ -22,6 +22,7 @@ interface Props {
   adminModules: string[];
   setAdminModules: (modules: string[]) => void;
   isSuperadmin: boolean;
+  isModuleEnabled: (key: string) => boolean;
   createdCreds: { username: string; tempPassword: string } | null;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -92,7 +93,7 @@ function ScheduleEditor({ schedule, onChange }: {
 
 // ── Main Form ────────────────────────────────────────────────────────
 
-export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm, setSswForm, editingTeacher, blModuleActive, sswModuleActive, adminModules, setAdminModules, isSuperadmin, createdCreds, onSubmit }: Props) {
+export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm, setSswForm, editingTeacher, blModuleActive, sswModuleActive, adminModules, setAdminModules, isSuperadmin, isModuleEnabled, createdCreds, onSubmit }: Props) {
   const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState<FormTab>('stammdaten');
 
@@ -310,7 +311,7 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
             <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
               Modulspezifische Adminrechte vergeben. Benutzer mit Adminrechten können das jeweilige Modul verwalten, ohne Global-Admin zu sein.
             </p>
-            {ADMIN_MODULE_OPTIONS.map(({ key, label }) => (
+            {ADMIN_MODULE_OPTIONS.filter(({ key }) => isModuleEnabled(key)).map(({ key, label }) => (
               <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
                 <input
                   type="checkbox"
