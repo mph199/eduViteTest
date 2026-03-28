@@ -341,6 +341,16 @@ export interface BlFormData {
   schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
 }
 
+export interface SswFormData {
+  enabled: boolean;
+  phone: string;
+  room: string;
+  specializations: string;
+  slot_duration_minutes: number;
+  requires_confirmation: boolean;
+  schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
+}
+
 // ---------------------------------------------------------------------------
 // Data Subject / DSGVO (Art. 15-21)
 // ---------------------------------------------------------------------------
