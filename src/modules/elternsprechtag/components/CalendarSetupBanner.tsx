@@ -1,8 +1,9 @@
 /**
  * CalendarSetupBanner — Einzeiliger, dismissbarer Hinweis wenn kein Abo aktiv.
  *
- * Zustand 1: Banner sichtbar (nicht dismissed)
- * Zustand 2: Banner dismissed → nur "Kalender-Sync" Link im Header
+ * Zustand 1: Kein Abo, Banner sichtbar → "Einrichten"-Link
+ * Zustand 2: Kein Abo, Banner dismissed → nur "Kalender-Sync" Link im Header
+ * Zustand 3: Token gerade erstellt → URL + Kopieren + Kalender-App öffnen
  */
 
 import { useState } from 'react';
@@ -14,18 +15,11 @@ interface Props {
 }
 
 export function CalendarSetupBanner({ sub }: Props) {
-  const [showSetup, setShowSetup] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  if (sub.isLoading || sub.isActive) return null;
+  if (sub.isLoading) return null;
 
-  const isExpired = sub.isExpired;
-  const label = isExpired
-    ? 'Ihr Kalender-Abo ist abgelaufen. Erneuern Sie es, um Termine weiter zu synchronisieren.'
-    : 'Termine automatisch in Ihren Kalender übernehmen';
-  const actionLabel = isExpired ? 'Erneuern' : 'Einrichten';
-
-  // Token wurde gerade erstellt — Setup-Flow anzeigen
+  // Token gerade erstellt — URL-Anzeige hat Vorrang (auch wenn isActive=true)
   if (sub.token) {
     const url = sub.buildUrl(sub.token);
     const webcalUrl = sub.buildWebcalUrl(sub.token);
@@ -67,8 +61,17 @@ export function CalendarSetupBanner({ sub }: Props) {
     );
   }
 
+  // Abo aktiv (ohne gerade erzeugten Token) — kein Banner nötig
+  if (sub.isActive) return null;
+
+  const isExpired = sub.isExpired;
+  const label = isExpired
+    ? 'Ihr Kalender-Abo ist abgelaufen. Erneuern Sie es, um Termine weiter zu synchronisieren.'
+    : 'Termine automatisch in Ihren Kalender übernehmen';
+  const actionLabel = isExpired ? 'Erneuern' : 'Einrichten';
+
   // Dismissed — kein Banner
-  if (sub.dismissed && !showSetup) return null;
+  if (sub.dismissed) return null;
 
   return (
     <div className={`cal-banner${isExpired ? ' cal-banner--expired' : ''}`}>
@@ -78,8 +81,8 @@ export function CalendarSetupBanner({ sub }: Props) {
         <div className="cal-banner__actions">
           <button
             type="button"
-            className="cal-banner__btn"
-            onClick={isExpired ? sub.handleCreate : () => { setShowSetup(true); sub.handleCreate(); }}
+            className="cal-banner__link"
+            onClick={sub.handleCreate}
           >
             {actionLabel}
           </button>
@@ -103,7 +106,7 @@ export function CalendarSyncLink({ sub }: Props) {
     <button
       type="button"
       className="cal-sync-link"
-      onClick={() => { sub.dismiss(); sub.handleCreate(); }}
+      onClick={sub.handleCreate}
     >
       <Calendar size={14} aria-hidden="true" /> Kalender-Sync
     </button>

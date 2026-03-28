@@ -1,8 +1,8 @@
 /**
  * BookingCard — Einheitliche Buchungskarte für Lehrkräfte und Admins.
  *
- * Design: Abgerundete Karte mit farbigem Header (Datum + Uhrzeit + Uhr-Icon),
- * Body mit Besuchername + Termindauer, Footer mit Stornieren-Button.
+ * Design: Farbiger Header (Uhrzeit + Status), Body mit Name + Infos,
+ * Drei-Punkte-Menü für Aktionen.
  *
  * Akzentfarben pro Modul:
  *   elternsprechtag  → Petrol
@@ -10,7 +10,8 @@
  *   schulsozialarbeit → Gold
  */
 
-import { Clock } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Clock, MoreVertical } from 'lucide-react';
 
 export type BookingCardAccent = 'petrol' | 'coral' | 'gold' | 'default';
 
@@ -29,33 +30,6 @@ interface BookingCardProps {
   confirmLabel?: string;
 }
 
-/**
- * Robustes Datum-Parsing: akzeptiert ISO (2026-03-15), ISO mit Zeitzone
- * (2026-03-15T00:00:00.000Z), DD.MM.YYYY, oder Postgres-Date-Strings.
- */
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '--';
-
-  // Nur den Datumsteil extrahieren (vor T oder Leerzeichen)
-  const cleaned = dateStr.split('T')[0].split(' ')[0].trim();
-
-  let d: Date;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
-    // ISO: YYYY-MM-DD
-    const [y, m, day] = cleaned.split('-').map(Number);
-    d = new Date(y, m - 1, day);
-  } else if (/^\d{2}\.\d{2}\.\d{4}$/.test(cleaned)) {
-    // DE: DD.MM.YYYY
-    const [day, m, y] = cleaned.split('.').map(Number);
-    d = new Date(y, m - 1, day);
-  } else {
-    return dateStr;
-  }
-
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
 function formatTime(timeStr: string): string {
   return timeStr?.toString().slice(0, 5) || '';
 }
@@ -71,11 +45,9 @@ function statusLabel(status: string): string {
 }
 
 export function BookingCard({
-  date,
   time,
   durationMinutes = 30,
   visitorName,
-  visitorLabel,
   studentInfo,
   status,
   accent = 'default',
@@ -84,46 +56,78 @@ export function BookingCard({
   cancelLabel = 'Stornieren',
   confirmLabel = 'Bestätigen',
 }: BookingCardProps) {
-  const isConfirmed = status === 'confirmed';
   const isPending = status === 'requested' || status === 'reserved';
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const hasActions = onCancel || onConfirm;
 
   return (
-    <article className={`booking-card booking-card--${accent} ${isConfirmed ? 'booking-card--confirmed' : ''} ${isPending ? 'booking-card--pending' : ''}`}>
+    <article className={`booking-card booking-card--${accent}`}>
+      {/* Header: Uhrzeit + Dauer + Status (kein Datum — kommt aus der Gruppenüberschrift) */}
       <div className="booking-card__header">
         <Clock className="booking-card__clock" size={16} aria-hidden="true" />
         <span className="booking-card__datetime">
-          {formatDate(date)} | {formatTime(time)} Uhr
+          {formatTime(time)} Uhr · {durationMinutes} min
         </span>
         <span className={`booking-card__status booking-card__status--${status}`}>
           {statusLabel(status)}
         </span>
       </div>
 
+      {/* Body: Name + Info */}
       <div className="booking-card__body">
-        <div className="booking-card__visitor">
-          {visitorLabel && <span className="booking-card__visitor-label">{visitorLabel}</span>}
+        <div className="booking-card__body-main">
           <span className="booking-card__visitor-name">{visitorName || '--'}</span>
+          {studentInfo && <span className="booking-card__student">{studentInfo}</span>}
         </div>
-        {studentInfo && (
-          <div className="booking-card__student">{studentInfo}</div>
-        )}
-        <div className="booking-card__duration">{durationMinutes} Minuten</div>
-      </div>
 
-      {(onCancel || onConfirm) && (
-        <div className="booking-card__footer">
-          {onConfirm && isPending && (
-            <button type="button" className="booking-card__btn booking-card__btn--confirm" onClick={onConfirm}>
-              {confirmLabel}
+        {/* Drei-Punkte-Menü */}
+        {hasActions && (
+          <div className="booking-card__menu" ref={menuRef}>
+            <button
+              type="button"
+              className="booking-card__menu-trigger"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Aktionen"
+              aria-expanded={menuOpen}
+            >
+              <MoreVertical size={18} />
             </button>
-          )}
-          {onCancel && (
-            <button type="button" className="booking-card__btn booking-card__btn--cancel" onClick={onCancel}>
-              {cancelLabel}
-            </button>
-          )}
-        </div>
-      )}
+            {menuOpen && (
+              <div className="booking-card__menu-dropdown">
+                {onConfirm && isPending && (
+                  <button
+                    type="button"
+                    className="booking-card__menu-item"
+                    onClick={() => { onConfirm(); setMenuOpen(false); }}
+                  >
+                    {confirmLabel}
+                  </button>
+                )}
+                {onCancel && (
+                  <button
+                    type="button"
+                    className="booking-card__menu-item booking-card__menu-item--danger"
+                    onClick={() => { onCancel(); setMenuOpen(false); }}
+                  >
+                    {cancelLabel}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </article>
   );
 }

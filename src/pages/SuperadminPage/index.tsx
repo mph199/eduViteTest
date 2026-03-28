@@ -12,6 +12,8 @@ import { BackgroundImagesTab } from './BackgroundImagesTab';
 import { ModulesTab } from './ModulesTab';
 import { DataProtectionTab } from './DataProtectionTab';
 import { OAuthTab } from './OAuthTab';
+import { SuperadminSidebar, type TabId } from './SuperadminSidebar';
+import { ConfigPageHeader } from './ConfigPageHeader';
 import '../SuperadminPage.css';
 
 const DEFAULT_EMAIL_BRANDING: EmailBranding = {
@@ -20,8 +22,6 @@ const DEFAULT_EMAIL_BRANDING: EmailBranding = {
   primary_color: '#2d5016',
   footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team',
 };
-
-type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts' | 'datenschutz' | 'oauth';
 
 export function SuperadminPage() {
   const { user } = useAuth();
@@ -170,40 +170,22 @@ export function SuperadminPage() {
     return <Navigate to="/" replace />;
   }
 
+  const TAB_TITLES: Record<TabId, { title: string; desc?: string }> = {
+    modules: { title: 'Module', desc: 'Aktivierte Funktionsmodule verwalten' },
+    branding: { title: 'Erscheinungsbild', desc: 'Farben, Logo und Seitengestaltung' },
+    backgrounds: { title: 'Hintergrundbilder', desc: 'Hintergrundbilder für verschiedene Bereiche' },
+    email: { title: 'E-Mail-Vorlage', desc: 'Branding und Vorschau für ausgehende E-Mails' },
+    texts: { title: 'Buchungsseiten-Texte', desc: 'Texte und Hinweise auf der Buchungsseite' },
+    datenschutz: { title: 'Datenschutz & DSGVO', desc: 'Betroffenenrechte, Audit-Log und Datenschutzbeauftragter' },
+    oauth: { title: 'SSO / OAuth', desc: 'Single Sign-On Provider verwalten' },
+  };
+
   return (
     <div className="superadmin">
-      <div className="superadmin__inner">
-        <div className="superadmin__header">
-          <span className="superadmin__badge">Superadmin</span>
-          <h1 className="superadmin__title">Konfiguration</h1>
-        </div>
-        <p className="superadmin__subtitle">
-          Module, Branding und Systemeinstellungen verwalten
-        </p>
-
-        <div className="superadmin__tabs">
-          <button type="button" className={`superadmin__tab ${activeTab === 'modules' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('modules')}>
-            Module
-          </button>
-          <button type="button" className={`superadmin__tab ${activeTab === 'branding' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('branding')}>
-            Erscheinungsbild
-          </button>
-          <button type="button" className={`superadmin__tab ${activeTab === 'backgrounds' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('backgrounds')}>
-            Hintergrundbilder
-          </button>
-          <button type="button" className={`superadmin__tab ${activeTab === 'email' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('email')}>
-            E-Mail
-          </button>
-          <button type="button" className={`superadmin__tab ${activeTab === 'texts' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('texts')}>
-            Buchungsseiten-Texte
-          </button>
-          <button type="button" className={`superadmin__tab ${activeTab === 'datenschutz' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('datenschutz')}>
-            Datenschutz
-          </button>
-          <button type="button" className={`superadmin__tab ${activeTab === 'oauth' ? 'superadmin__tab--active' : ''}`} onClick={() => setActiveTab('oauth')}>
-            SSO / OAuth
-          </button>
-        </div>
+      <div className="superadmin__layout">
+        <SuperadminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="superadmin__content">
+          <ConfigPageHeader title={TAB_TITLES[activeTab].title} description={TAB_TITLES[activeTab].desc} />
 
         {activeTab === 'modules' && (
           <ModulesTab />
@@ -267,6 +249,7 @@ export function SuperadminPage() {
         {activeTab === 'oauth' && (
           <OAuthTab />
         )}
+        </div>
       </div>
     </div>
   );

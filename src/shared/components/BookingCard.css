@@ -15,34 +15,25 @@
 
 /* ── Akzentfarben pro Modul ─────────────────────────────── */
 
-.booking-card--petrol .booking-card__header {
-  background: #1a7a6d;
-}
+.booking-card--petrol .booking-card__header { background: #1a7a6d; }
+.booking-card--coral .booking-card__header { background: #d4615a; }
+.booking-card--gold .booking-card__header { background: #b8860b; }
+.booking-card--default .booking-card__header { background: var(--brand-primary, #123C73); }
 
-.booking-card--coral .booking-card__header {
-  background: #d4615a;
-}
-
-.booking-card--gold .booking-card__header {
-  background: #b8860b;
-}
-
-.booking-card--default .booking-card__header {
-  background: var(--brand-primary, #123C73);
-}
-
-/* ── Header: farbig, Datum + Uhrzeit + Uhr-Icon ────────── */
+/* ── Header: Uhrzeit + Dauer + Status ────────────────────── */
 
 .booking-card__header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.65rem 1rem;
-  background: var(--brand-primary, #123C73);
-  color: #fff;
+  padding: 0.55rem 1rem;
+  color: var(--brand-button-text, #fff);
   font-size: 0.82rem;
   font-weight: 600;
 }
+
+.booking-card--confirmed .booking-card__header { background: var(--brand-primary, #123C73); }
+.booking-card--pending .booking-card__header { background: var(--brand-primary-dark, #0B2545); }
 
 .booking-card__clock {
   flex-shrink: 0;
@@ -54,113 +45,122 @@
 }
 
 .booking-card__status {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.15rem 0.5rem;
+  padding: 0.12rem 0.45rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.2);
 }
 
-.booking-card__status--confirmed {
-  background: rgba(255, 255, 255, 0.25);
-}
-
+.booking-card__status--confirmed { background: rgba(255, 255, 255, 0.25); }
 .booking-card__status--requested,
-.booking-card__status--reserved {
-  background: rgba(255, 255, 255, 0.15);
-}
+.booking-card__status--reserved { background: rgba(255, 255, 255, 0.15); }
+.booking-card__status--cancelled { background: rgba(255, 80, 80, 0.3); }
 
-.booking-card__status--cancelled {
-  background: rgba(255, 80, 80, 0.3);
-}
-
-/* ── Body: Besuchername + Dauer ─────────────────────────── */
+/* ── Body: Name + Info + Menü ────────────────────────────── */
 
 .booking-card__body {
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
-.booking-card__visitor {
+.booking-card__body-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-}
-
-.booking-card__visitor-label {
-  font-size: 0.72rem;
-  color: var(--color-gray-500, #64748b);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .booking-card__visitor-name {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--brand-ink, #0B2545);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .booking-card__student {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--color-gray-600, #475569);
 }
 
-.booking-card__duration {
-  font-size: 0.78rem;
-  color: var(--color-gray-500, #64748b);
+/* ── Drei-Punkte-Menü ────────────────────────────────────── */
+
+.booking-card__menu {
+  position: relative;
+  flex-shrink: 0;
 }
 
-/* ── Footer: Aktionen ───────────────────────────────────── */
-
-.booking-card__footer {
+.booking-card__menu-trigger {
   display: flex;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  border-top: 1px solid var(--color-gray-100, #f1f5f9);
-}
-
-.booking-card__btn {
-  flex: 1;
-  padding: 0.45rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
   cursor: pointer;
-  border: 1.5px solid transparent;
-  transition: background 160ms ease, border-color 160ms ease;
+  border-radius: 6px;
+  color: var(--color-gray-400, #94a3b8);
+  transition: background 160ms, color 160ms;
 }
 
-.booking-card__btn--cancel {
-  background: transparent;
+.booking-card__menu-trigger:hover {
+  background: var(--color-gray-100, #f1f5f9);
+  color: var(--brand-ink, #0B2545);
+}
+
+.booking-card__menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  min-width: 140px;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.booking-card__menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.85rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--brand-ink, #0B2545);
+  text-align: left;
+  transition: background 120ms;
+}
+
+.booking-card__menu-item:hover {
+  background: var(--color-gray-50, #f8fafc);
+}
+
+.booking-card__menu-item--danger {
   color: var(--color-error, #991b1b);
-  border-color: var(--color-error, #991b1b);
 }
 
-.booking-card__btn--cancel:hover {
-  background: rgba(153, 27, 27, 0.08);
-}
-
-.booking-card__btn--confirm {
-  background: var(--brand-primary, #123C73);
-  color: var(--brand-button-text, #fff);
-  border-color: var(--brand-primary, #123C73);
-}
-
-.booking-card__btn--confirm:hover {
-  opacity: 0.9;
+.booking-card__menu-item--danger:hover {
+  background: rgba(153, 27, 27, 0.05);
 }
 
 /* ── Grid-Layout für Kartenlisten ───────────────────────── */
 
 .booking-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
 }
 
 @media (max-width: 640px) {
@@ -182,13 +182,13 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
   border-bottom: 2px solid var(--brand-primary, #123C73);
 }
 
 .date-group__label {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--brand-ink, #0B2545);
   margin: 0;
@@ -198,11 +198,11 @@
 }
 
 .date-group__badge {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.15rem 0.5rem;
+  padding: 0.12rem 0.45rem;
   border-radius: 999px;
 }
 
@@ -212,7 +212,7 @@
 }
 
 .date-group__count {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--color-gray-500, #64748b);
   white-space: nowrap;
 }
