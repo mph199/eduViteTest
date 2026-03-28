@@ -40,25 +40,27 @@ export function GlobalTopHeader() {
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperadmin = user?.role === 'superadmin';
+  const hasAdminModules = Array.isArray(user?.adminModules) && user.adminModules.length > 0;
+  const isAdminOrModuleAdmin = isAdmin || hasAdminModules;
   const hasTeacherId = Boolean(user?.teacherId);
   const userModules = user?.modules || [];
 
   const hasModuleAccess = (moduleKey?: string) => {
-    if (!moduleKey) return isAdmin;
-    return isAdmin || userModules.includes(moduleKey);
+    if (!moduleKey) return isAdminOrModuleAdmin;
+    return isAdmin || userModules.includes(moduleKey) || (user?.adminModules?.includes(moduleKey) ?? false);
   };
 
-  // View switcher options (only for admin users who are also teachers)
+  // View switcher options (admin/module-admin users who are also teachers)
   const viewSwitcherOptions = useMemo(() => {
     if (!user) return null;
-    if (isAdmin && hasTeacherId) {
+    if (isAdminOrModuleAdmin && hasTeacherId) {
       return [
         { value: 'admin' as ActiveView, label: 'Admin' },
         { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
       ];
     }
     return null;
-  }, [user, isAdmin, hasTeacherId]);
+  }, [user, isAdminOrModuleAdmin, hasTeacherId]);
 
   const handleViewChange = useCallback((next: ActiveView) => {
     setActiveView(next);
@@ -76,7 +78,7 @@ export function GlobalTopHeader() {
   const navGroups = useMemo(() => {
     const groups: NavGroup[] = [];
 
-    // Dashboard (admin/superadmin only)
+    // Dashboard (only full admin/superadmin — module-admins access modules directly)
     if (isAdmin) {
       groups.push({
         label: '',
@@ -146,7 +148,7 @@ export function GlobalTopHeader() {
     }
 
     return groups;
-  }, [isAdmin, isSuperadmin, hasTeacherId, userModules, user?.role, activeModules]);
+  }, [isAdmin, isAdminOrModuleAdmin, isSuperadmin, hasTeacherId, userModules, user?.adminModules, user?.role, activeModules]);
 
   // Filter groups by active view (always applies when activeView is set)
   const filteredGroups = useMemo(() => {

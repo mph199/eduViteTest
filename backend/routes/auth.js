@@ -176,12 +176,20 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
     );
     const modules = moduleRows.map(r => r.module_key);
 
+    // Admin-Modulrechte laden
+    const { rows: adminRows } = await query(
+      'SELECT module_key FROM user_admin_access WHERE user_id = $1',
+      [dbUser.id]
+    );
+    const adminModules = adminRows.map(r => r.module_key);
+
     const user = {
       id: dbUser.id,
       username: dbUser.username,
       role,
       teacherId: dbUser.teacher_id || undefined,
       modules: modules.length > 0 ? modules : undefined,
+      adminModules: adminModules.length > 0 ? adminModules : undefined,
       tokenVersion: dbUser.token_version ?? 0,
       forcePasswordChange: !!dbUser.force_password_change,
     };

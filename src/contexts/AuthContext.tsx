@@ -23,8 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdminLike = (u: User | { role: string; modules?: string[]; adminModules?: string[] }) =>
     u.role === 'admin' || u.role === 'superadmin' ||
-    (Array.isArray(u.adminModules) && u.adminModules.length > 0) ||
-    (Array.isArray(u.modules) && (u.modules.includes('schulsozialarbeit') || u.modules.includes('beratungslehrer')));
+    (Array.isArray(u.adminModules) && u.adminModules.length > 0);
 
   const computeInitialView = useCallback((u: User): ActiveView => {
     if (u.role === 'teacher' && !isAdminLike(u)) {

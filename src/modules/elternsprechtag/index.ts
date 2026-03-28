@@ -53,8 +53,8 @@ const elternsprechtagModule: ModuleDefinition = {
   sidebarNav: {
     label: 'Elternsprechtag',
     items: [
-      { path: '/admin/events', label: 'Sprechtage verwalten', roles: ['admin', 'superadmin'] },
-      { path: '/admin/slots', label: 'Sprechzeiten', roles: ['admin', 'superadmin'] },
+      { path: '/admin/events', label: 'Sprechtage verwalten', roles: ['admin', 'superadmin'], allowedModules: ['elternsprechtag'], view: 'admin' },
+      { path: '/admin/slots', label: 'Sprechzeiten', roles: ['admin', 'superadmin'], allowedModules: ['elternsprechtag'], view: 'admin' },
     ],
   },
 
