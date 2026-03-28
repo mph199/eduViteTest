@@ -19,7 +19,7 @@ export function ColorField({
         />
         <input
           type="text"
-          className="superadmin__color-hex"
+          className="superadmin__color-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={9}
