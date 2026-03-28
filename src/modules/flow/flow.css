@@ -2,7 +2,7 @@
 
 :root {
     /* Surfaces – fallback to brand/gray tokens */
-    --flow-bg: var(--color-gray-50, #f7f8fa);
+    --flow-bg: var(--brand-surface-1, #f7f8fa);
     --flow-surface: var(--color-white, #ffffff);
     --flow-surface-hover: var(--color-gray-50, #f9fafb);
     --flow-bg-hover: var(--color-gray-100, #f0f2f6);

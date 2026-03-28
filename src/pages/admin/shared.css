@@ -2,7 +2,7 @@
   position: relative;
   min-height: 100vh;
   width: 100%;
-  background-color: var(--color-white);
+  background-color: var(--brand-surface-1, #f8fafc);
 }
 
 /* Background overlay via shared .page-bg-overlay + .page-bg-overlay--subtle (index.css) */

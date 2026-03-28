@@ -3,7 +3,7 @@
 .cb-layout {
   position: relative;
   min-height: 100vh;
-  background-color: var(--color-white);
+  background-color: var(--brand-surface-1, #f8fafc);
   padding-top: 1.25rem;
   padding-left: var(--page-gutter, 1.25rem);
   padding-right: var(--page-gutter, 1.25rem);
