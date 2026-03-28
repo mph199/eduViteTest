@@ -337,10 +337,11 @@ export interface CsvImportResult {
 
 export interface BlFormData {
   enabled: boolean;
+  room: string;
   phone: string;
   specializations: string;
   slot_duration_minutes: number;
-  schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
+  schedule: ScheduleEntry[];
 }
 
 export interface SswFormData {
@@ -350,7 +351,7 @@ export interface SswFormData {
   specializations: string;
   slot_duration_minutes: number;
   requires_confirmation: boolean;
-  schedule: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>;
+  schedule: ScheduleEntry[];
 }
 
 // ---------------------------------------------------------------------------

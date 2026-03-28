@@ -223,6 +223,12 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
             {blForm.enabled && (
               <>
                 <div className="form-group">
+                  <label htmlFor="bl_room">Raum</label>
+                  <input id="bl_room" type="text" value={blForm.room}
+                    onChange={(e) => setBlForm({ ...blForm, room: e.target.value })}
+                    placeholder="z.B. A1.12" />
+                </div>
+                <div className="form-group">
                   <label htmlFor="bl_phone">Telefon</label>
                   <input id="bl_phone" type="text" value={blForm.phone}
                     onChange={(e) => setBlForm({ ...blForm, phone: e.target.value })}

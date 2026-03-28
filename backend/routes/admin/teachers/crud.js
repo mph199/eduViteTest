@@ -6,23 +6,16 @@ import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation
 import { resolveActiveEvent } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
 import { validatePassword } from '../../../shared/validatePassword.js';
-import { insertTeacherSlots, upsertBlCounselor, upsertSswCounselor } from './helpers.js';
+import { insertTeacherSlots, upsertBlCounselor, upsertSswCounselor, parseTeacherName } from './helpers.js';
 
 const router = express.Router();
 
 // ── POST /api/admin/teachers ────────────────────────────────────────────
 
 router.post('/teachers', requireAdmin, async (req, res) => {
-  const { first_name, last_name, name, email, salutation, subject, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
+  const { email, salutation, subject, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
 
-  // Support both new (first_name/last_name) and legacy (name) field
-  let firstName = (first_name || '').trim();
-  let lastName  = (last_name  || '').trim();
-  if (!firstName && !lastName && name) {
-    const parts = String(name).trim().split(/\s+/);
-    lastName  = parts.pop() || '';
-    firstName = parts.join(' ');
-  }
+  const { firstName, lastName } = parseTeacherName(req.body || {});
   if (!lastName) {
     return res.status(400).json({ error: 'Nachname ist erforderlich' });
   }
@@ -220,15 +213,9 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { first_name, last_name, name, email, salutation, subject, available_from, available_until } = req.body || {};
+    const { email, salutation, subject, available_from, available_until } = req.body || {};
 
-    let firstName = (first_name || '').trim();
-    let lastName  = (last_name  || '').trim();
-    if (!firstName && !lastName && name) {
-      const parts = String(name).trim().split(/\s+/);
-      lastName  = parts.pop() || '';
-      firstName = parts.join(' ');
-    }
+    const { firstName, lastName } = parseTeacherName(req.body || {});
     if (!lastName) {
       return res.status(400).json({ error: 'Nachname ist erforderlich' });
     }

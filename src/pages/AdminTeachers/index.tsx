@@ -15,6 +15,7 @@ import '../AdminDashboard.css';
 
 const defaultBlForm = (): BlFormData => ({
   enabled: false,
+  room: '',
   phone: '',
   specializations: '',
   slot_duration_minutes: 30,
@@ -127,6 +128,7 @@ export function AdminTeachers() {
       if (blModuleActive) {
         if (blForm.enabled) {
           teacherData.beratungslehrer = {
+            room: blForm.room,
             phone: blForm.phone,
             specializations: blForm.specializations,
             slot_duration_minutes: blForm.slot_duration_minutes,
@@ -208,8 +210,7 @@ export function AdminTeachers() {
     });
     setBlForm(defaultBlForm());
     setSswForm(defaultSswForm());
-    type ScheduleEntry = { weekday: number; start_time: string; end_time: string; active: boolean };
-    const buildSchedule = (entries: ScheduleEntry[]) =>
+    const buildSchedule = (entries: Array<{ weekday: number; start_time: string; end_time: string; active: boolean }>) =>
       WEEKDAY_LABELS.map((_, i) => {
         const wd = i + 1;
         const existing = entries.find(s => s.weekday === wd);
@@ -225,6 +226,7 @@ export function AdminTeachers() {
           const c = blData.counselor;
           setBlForm({
             enabled: c.active !== false,
+            room: c.room || '',
             phone: c.phone || '',
             specializations: c.specializations || '',
             slot_duration_minutes: c.slot_duration_minutes || 30,
