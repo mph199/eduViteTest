@@ -198,6 +198,9 @@ const api = {
     async getTeacherBL(teacherId: number) {
       return requestJSON(`/admin/teachers/${teacherId}/bl`);
     },
+    async getTeacherSSW(teacherId: number) {
+      return requestJSON(`/admin/teachers/${teacherId}/ssw`);
+    },
     async importTeachersCSV(file: File) {
       return uploadFile('/admin/teachers/import-csv', 'file', file);
     },

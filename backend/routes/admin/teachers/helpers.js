@@ -125,7 +125,7 @@ export async function upsertSswCounselor(rawDb, userId, sswData, { firstName, la
     sswData.available_from || '08:00',
     sswData.available_until || '14:00',
     sswData.slot_duration_minutes || 30,
-    sswData.requires_confirmation !== false,
+    sswData.requires_confirmation ?? true,
     userId,
   ];
 
