@@ -7,7 +7,7 @@
 .superadmin {
   --sa-bg: var(--color-white, #ffffff);
   --sa-bg-secondary: var(--brand-surface-1, #f8fafc);
-  --sa-bg-tertiary: var(--brand-surface-2, #f1f5f9);
+  --sa-bg-tertiary: var(--brand-surface-2, #D9E4F2);
   --sa-text: var(--brand-ink, #0B2545);
   --sa-text-secondary: var(--color-gray-600, #475569);
   --sa-text-tertiary: var(--color-gray-400, #94a3b8);
