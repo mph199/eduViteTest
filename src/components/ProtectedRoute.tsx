@@ -38,6 +38,7 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
 
   const role = user?.role;
   const modules = user?.modules || [];
+  const adminModules = user?.adminModules || [];
 
   // Admin/Superadmin bypass all role/module checks (incl. /teacher routes).
   // Admins with a teacherId can switch to teacher view via AuthContext.
@@ -45,9 +46,9 @@ export function ProtectedRoute({ children, allowedRoles, allowedModules }: Prote
     return <>{children}</>;
   }
 
-  // Check module-based access
+  // Check module-based access (includes admin module access)
   if (allowedModules && allowedModules.length > 0) {
-    const hasModuleAccess = allowedModules.some(m => modules.includes(m));
+    const hasModuleAccess = allowedModules.some(m => modules.includes(m) || adminModules.includes(m));
     if (hasModuleAccess) return <>{children}</>;
     // Module required but not granted → deny
     if (!allowedRoles) {

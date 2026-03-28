@@ -78,8 +78,8 @@ export function GlobalTopHeader() {
   const navGroups = useMemo(() => {
     const groups: NavGroup[] = [];
 
-    // Dashboard (admin or module-admin)
-    if (isAdminOrModuleAdmin) {
+    // Dashboard (only full admin/superadmin — module-admins access modules directly)
+    if (isAdmin) {
       groups.push({
         label: '',
         view: 'admin',
