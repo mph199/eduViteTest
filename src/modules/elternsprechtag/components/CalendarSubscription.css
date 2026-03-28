@@ -1,80 +1,247 @@
-.calendar-sub {
-  border: 1px solid var(--brand-border, #ddd);
+/* ── CalendarSetupBanner ────────────────────────────────── */
+
+.cal-banner {
+  border: 1px solid rgba(var(--brand-primary-rgb, 18, 60, 115), 0.2);
   border-radius: 8px;
-  padding: 1rem 1.25rem;
-  background: var(--brand-surface, #fafafa);
+  padding: 0.6rem 1rem;
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.04);
+  margin-bottom: 1rem;
 }
 
-.calendar-sub__title {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
+.cal-banner--expired {
+  border-color: var(--color-warning, #d97706);
+  background: rgba(217, 119, 6, 0.06);
 }
 
-.calendar-sub__status {
-  font-size: 0.9rem;
-  color: var(--brand-text-secondary, #555);
-  margin-bottom: 0.5rem;
+.cal-banner--setup {
+  border-color: var(--color-success, #059669);
+  background: rgba(5, 150, 105, 0.04);
 }
 
-.calendar-sub__status--expired {
-  color: var(--brand-danger, #c62828);
-}
-
-.calendar-sub__hint {
-  font-size: 0.85rem;
-  color: var(--brand-text-secondary, #666);
-  margin: 0.5rem 0;
-  line-height: 1.4;
-}
-
-.calendar-sub__hint--warn {
-  color: var(--brand-danger, #c62828);
-  font-weight: 500;
-}
-
-.calendar-sub__hint--dsgvo {
-  background: var(--brand-surface-alt, #f5f5f5);
-  border-left: 3px solid var(--brand-warning, #f9a825);
-  padding: 0.6rem 0.8rem;
-  border-radius: 4px;
-}
-
-.calendar-sub__url-row {
+.cal-banner__row {
   display: flex;
-  gap: 8px;
   align-items: center;
-  margin: 0.75rem 0;
-}
-
-.calendar-sub__url-input {
-  flex: 1;
-  padding: 8px 10px;
-  font-family: monospace;
-  font-size: 0.85rem;
-  border: 1px solid var(--brand-border, #ccc);
-  border-radius: 4px;
-  background: var(--brand-bg, #fff);
-  color: var(--brand-text, #333);
-}
-
-.calendar-sub__actions {
-  display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
-  margin-top: 0.75rem;
 }
 
-.calendar-sub__error {
-  margin-bottom: 0.5rem;
+.cal-banner__text {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--brand-ink, #0B2545);
+  min-width: 0;
 }
 
-.calendar-sub__webcal-link {
+.cal-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.cal-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--brand-primary, #123C73);
+  background: var(--brand-primary, #123C73);
+  color: var(--brand-button-text, #fff);
+  transition: opacity 160ms;
   text-decoration: none;
 }
 
-.calendar-sub__copied {
-  font-size: 0.85rem;
-  color: var(--brand-success, #2e7d32);
+.cal-banner__btn:hover {
+  opacity: 0.88;
+}
+
+.cal-banner__btn--sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.cal-banner__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  color: var(--color-gray-500, #64748b);
+  transition: color 160ms;
+}
+
+.cal-banner__dismiss:hover {
+  color: var(--brand-ink, #0B2545);
+}
+
+.cal-banner__url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cal-banner__url {
+  flex: 1;
+  min-width: 200px;
+  font-family: monospace;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-gray-300, #cbd5e1);
+  border-radius: 6px;
+  background: var(--color-white, #fff);
+  color: var(--brand-ink, #0B2545);
+}
+
+.cal-banner__hint {
+  font-size: 0.78rem;
+  color: var(--color-warning, #d97706);
+  font-weight: 500;
+  margin: 0.4rem 0 0;
+}
+
+.cal-banner__error {
+  font-size: 0.8rem;
+  color: var(--color-error, #991b1b);
+  margin: 0.4rem 0 0;
+}
+
+/* ── CalendarSyncLink (Header) ─────────────────────────── */
+
+.cal-sync-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--brand-primary, #123C73);
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.3);
+  transition: color 160ms;
+}
+
+.cal-sync-link:hover {
+  color: var(--brand-primary-dark, #0B2545);
+}
+
+/* ── CalendarStatusFooter ──────────────────────────────── */
+
+.cal-footer {
+  border: 1px solid rgba(var(--brand-primary-rgb, 18, 60, 115), 0.12);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.02);
+  margin-top: 1rem;
+}
+
+.cal-footer__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cal-footer__text {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--color-gray-600, #475569);
+}
+
+.cal-footer__expiry-warn {
+  color: var(--color-warning, #d97706);
+  font-weight: 500;
+}
+
+.cal-footer__btn {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--brand-primary, #123C73);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.3);
+}
+
+.cal-footer__btn:hover {
+  color: var(--brand-primary-dark, #0B2545);
+}
+
+.cal-footer__manage {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(var(--brand-primary-rgb, 18, 60, 115), 0.08);
+}
+
+.cal-footer__detail {
+  font-size: 0.82rem;
+  color: var(--color-gray-600, #475569);
+  margin: 0 0 0.5rem;
+}
+
+.cal-footer__error {
+  font-size: 0.8rem;
+  color: var(--color-error, #991b1b);
+  margin: 0 0 0.5rem;
+}
+
+.cal-footer__manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cal-footer__manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--brand-primary, #123C73);
+  background: transparent;
+  color: var(--brand-primary, #123C73);
+  transition: background 160ms;
+}
+
+.cal-footer__manage-btn:hover {
+  background: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.06);
+}
+
+.cal-footer__manage-btn--danger {
+  border-color: var(--color-error, #991b1b);
+  color: var(--color-error, #991b1b);
+}
+
+.cal-footer__manage-btn--danger:hover {
+  background: rgba(153, 27, 27, 0.06);
+}
+
+.cal-footer__confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cal-footer__confirm-text {
+  font-size: 0.78rem;
+  color: var(--color-error, #991b1b);
   font-weight: 500;
 }

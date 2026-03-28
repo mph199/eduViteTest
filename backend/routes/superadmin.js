@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { createRateLimiter } from '../config/rateLimiter.js';
 import { requireSuperadmin } from '../middleware/auth.js';
-import { query } from '../config/db.js';
+import { query, getClient } from '../config/db.js';
 import * as oauthService from '../services/oauthService.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
@@ -445,6 +445,29 @@ router.put('/modules/:moduleId', requireSuperadmin, async (req, res) => {
     return res.status(400).json({ error: 'Ungültige Modul-ID' });
   }
   try {
+    if (!enabled) {
+      // Transaktion: Deaktivierung + Adminrechte-Cleanup atomar
+      const client = await getClient();
+      try {
+        await client.query('BEGIN');
+        const { rows } = await client.query(
+          `INSERT INTO module_config (module_id, enabled, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (module_id) DO UPDATE SET enabled = $2, updated_at = NOW()
+           RETURNING *`,
+          [moduleId, enabled]
+        );
+        await client.query('DELETE FROM user_admin_access WHERE module_key = $1', [moduleId]);
+        await client.query('COMMIT');
+        return res.json({ success: true, module: rows[0] });
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
+      }
+    }
+
     const { rows } = await query(
       `INSERT INTO module_config (module_id, enabled, updated_at)
        VALUES ($1, $2, NOW())

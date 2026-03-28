@@ -163,6 +163,7 @@ export function AdminTeachers() {
           blModuleActive={blModuleActive}
           sswModuleActive={sswModuleActive}
           isSuperadmin={isSuperadmin}
+          isModuleEnabled={isModuleEnabled}
           createdCreds={form.createdCreds}
           loading={form.loading}
           onSubmit={form.handleSubmit}
