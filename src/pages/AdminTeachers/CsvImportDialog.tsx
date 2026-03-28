@@ -10,7 +10,7 @@ export function CsvImportDialog({ csvImport, onClose, onImportAnother }: Props) 
   if (!csvImport.show) return null;
 
   return (
-    <div className="content-section" style={{ marginBottom: '1.5rem' }}>
+    <div className="teacher-form-container" style={{ marginBottom: '1.5rem' }}>
       <h3>CSV Import</h3>
       {csvImport.uploading && <p>Import wird verarbeitet…</p>}
       {csvImport.result?.error && (

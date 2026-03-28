@@ -135,7 +135,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
       </div>
 
       {showForm && (
-        <div className="content-section">
+        <div className="teacher-form-container">
           <h3>{editingId ? 'Berater/in bearbeiten' : 'Neue/r Berater/in'}</h3>
           <form className="teacher-form" onSubmit={handleSave}>
             <div className="form-group">

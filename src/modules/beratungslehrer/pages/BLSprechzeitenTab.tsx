@@ -43,7 +43,7 @@ export function BLSprechzeitenTab({ profile, initialSchedule, showFlash }: Props
         </p>
       </div>
 
-      <div className="content-section">
+      <div className="teacher-form-container">
         <div className="schedule-list">
           {schedule.map((entry, idx) => (
             <div key={entry.weekday} className={`schedule-row ${entry.active ? 'schedule-row--active' : 'schedule-row--inactive'}`}>

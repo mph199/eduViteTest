@@ -87,7 +87,7 @@ export function BLTermineTab({ profile, showFlash }: Props) {
         <h3>Termine verwalten</h3>
       </div>
 
-      <div className="content-section" style={{ marginBottom: '1rem' }}>
+      <div className="teacher-form-container" style={{ marginBottom: '1rem' }}>
         <form className="teacher-form" onSubmit={e => { e.preventDefault(); handleGenerateSlots(); }}>
           <div className="form-group">
             <label>Termine freischalten für Zeitraum</label>

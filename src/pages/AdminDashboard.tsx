@@ -204,7 +204,7 @@ export function AdminDashboard() {
       style={adminBgStyle}
     >
       <main className="admin-main">
-        <div className="content-section">
+        <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Aktive Events</h3>
           </div>
@@ -270,14 +270,14 @@ export function AdminDashboard() {
           </div>
         )}
 
-        <div className="content-section">
+        <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Buchungen des Kollegiums</h3>
           </div>
 
           {bookings.length > 0 && (
             <div className="admin-stats" style={{ gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-              <div className="filter-row" style={{ marginBottom: "1rem" }}>
+              <div className="stat-card" style={{ flex: '1 1 100%', minWidth: 0, padding: '1rem 1.1rem' }}>
                 <h3 style={{ marginBottom: 8 }}>Filter &amp; Sortierung</h3>
                 <div className="admin-filter-bar">
                   <input
