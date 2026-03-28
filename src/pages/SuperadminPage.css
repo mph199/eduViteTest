@@ -483,42 +483,13 @@
 /* ── Responsive ────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
-  .sa-sidebar {
-    display: none;
-  }
-
-  .sa-sidebar--open {
-    display: block;
-    position: fixed;
-    top: var(--globalTopHeaderHeight, 56px);
-    left: 0;
-    z-index: 900;
-    height: calc(100vh - var(--globalTopHeaderHeight, 56px));
-    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.1);
-  }
-
-  .sa-sidebar__mobile-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.6rem 1rem;
-    min-height: 44px;
-    margin-bottom: 1rem;
-    border: 1px solid var(--sa-border);
-    border-radius: 6px;
-    background: var(--sa-bg);
-    color: var(--sa-text);
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
+  /* On mobile: hide the Superadmin sidebar entirely.
+     Navigation is handled by the global sidebar's Superadmin accordion. */
+  .sa-sidebar,
+  .sa-sidebar--open,
+  .sa-sidebar__mobile-toggle,
   .sa-sidebar__backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 899;
+    display: none !important;
   }
 
   .superadmin__content {

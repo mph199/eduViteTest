@@ -139,11 +139,19 @@ export function GlobalTopHeader() {
       });
     }
 
-    // Superadmin (always visible, no view restriction)
+    // Superadmin: Akkordeon mit Konfigurations-Unterseiten
     if (isSuperadmin) {
       groups.push({
-        label: '',
-        items: [{ path: '/superadmin', label: 'Superadmin' }],
+        label: 'Superadmin',
+        items: [
+          { path: '/superadmin?tab=modules', label: 'Module' },
+          { path: '/superadmin?tab=branding', label: 'Erscheinungsbild' },
+          { path: '/superadmin?tab=backgrounds', label: 'Hintergrundbilder' },
+          { path: '/superadmin?tab=email', label: 'E-Mail-Vorlage' },
+          { path: '/superadmin?tab=texts', label: 'Buchungsseiten-Texte' },
+          { path: '/superadmin?tab=datenschutz', label: 'Datenschutz & DSGVO' },
+          { path: '/superadmin?tab=oauth', label: 'SSO / OAuth' },
+        ],
       });
     }
 
