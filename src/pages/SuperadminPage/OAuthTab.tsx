@@ -299,7 +299,7 @@ export function OAuthTab() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.2rem' }}>
+          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.2rem', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', color: 'var(--sa-text-label)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
