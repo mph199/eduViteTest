@@ -674,22 +674,33 @@
   margin-top: 0.25rem;
 }
 
-/* ── Toggle (legacy superadmin__toggle) ───────────────── */
+/* ── Toggle (legacy superadmin__toggle — label + hidden checkbox) ── */
 
 .superadmin__toggle {
   width: 36px;
   height: 20px;
   border-radius: 10px;
   background: var(--sa-border);
-  border: none;
   cursor: pointer;
   position: relative;
   transition: background 200ms;
   flex-shrink: 0;
-  padding: 0;
+  display: inline-block;
 }
 
-.superadmin__toggle.active {
+.superadmin__toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.superadmin__toggle input[type="checkbox"]:checked ~ .superadmin__toggle-slider {
+  left: 18px;
+}
+
+.superadmin__toggle:has(input:checked) {
   background: var(--sa-success);
 }
 
@@ -703,10 +714,7 @@
   left: 2px;
   transition: left 200ms;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.superadmin__toggle.active .superadmin__toggle-slider {
-  left: 18px;
+  pointer-events: none;
 }
 
 /* ── Confirm Dialog (legacy superadmin__confirm-*) ───── */
