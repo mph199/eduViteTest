@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
-import { CalendarSubscription } from '../../components/CalendarSubscription';
+import { useCalendarSubscription } from '../../components/useCalendarSubscription';
+import { CalendarSetupBanner, CalendarSyncLink } from '../../components/CalendarSetupBanner';
+import { CalendarStatusFooter } from '../../components/CalendarStatusFooter';
 import { BookingCard } from '../../../../shared/components/BookingCard';
 import { statusLabel } from '../../../../shared/utils/statusLabel';
+import '../../components/CalendarSubscription.css';
 import '../../../../shared/components/BookingCard.css';
 import './TeacherBookings.css';
 
@@ -81,6 +84,7 @@ export function TeacherBookings() {
   const [notice, setNotice] = useState<string>('');
   const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const calSub = useCalendarSubscription();
 
   const loadBookings = async () => {
     try {
@@ -216,12 +220,13 @@ export function TeacherBookings() {
         </div>
       )}
 
-      <CalendarSubscription />
+      <CalendarSetupBanner sub={calSub} />
 
       <section className="stat-card teacher-table-section teacher-bookings-section">
         <div className="teacher-bookings-toolbar">
           <div className="teacher-bookings-title">
             <h3>Meine Buchungen</h3>
+            <CalendarSyncLink sub={calSub} />
             <span className="teacher-bookings-count">
               {bookings.length} gebuchte {bookings.length === 1 ? 'Termin' : 'Termine'}
             </span>
@@ -408,6 +413,7 @@ export function TeacherBookings() {
         )}
       </section>
 
+      <CalendarStatusFooter sub={calSub} />
     </>
   );
 }
