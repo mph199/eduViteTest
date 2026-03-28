@@ -46,6 +46,7 @@ export async function upsertBlCounselor(rawDb, userId, blData, { firstName, last
   if (blData === null || blData === false) {
     await db.query('UPDATE bl_counselors SET active = false WHERE user_id = $1', [userId]);
     await db.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'beratungslehrer']);
+    await db.query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
     return;
   }
 
@@ -98,7 +99,9 @@ export async function upsertBlCounselor(rawDb, userId, blData, { firstName, last
     'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
     [userId, 'beratungslehrer']
   );
+  await db.query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
 }
+
 
 // ── Helper: upsert SSW counselor profile ────────────────────────────────
 
@@ -114,6 +117,7 @@ export async function upsertSswCounselor(rawDb, userId, sswData, { firstName, la
   if (sswData === null || sswData === false) {
     await db.query('UPDATE ssw_counselors SET active = false WHERE user_id = $1', [userId]);
     await db.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'schulsozialarbeit']);
+    await db.query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
     return;
   }
 
@@ -167,4 +171,5 @@ export async function upsertSswCounselor(rawDb, userId, sswData, { firstName, la
     'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
     [userId, 'schulsozialarbeit']
   );
+  await db.query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
 }
