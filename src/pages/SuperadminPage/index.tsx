@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 import { useBranding, parseImageMaps, type SiteBranding } from '../../contexts/BrandingContext';
 import { useTextBranding, type TextBranding } from '../../contexts/TextBrandingContext';
@@ -42,7 +42,19 @@ export function SuperadminPage() {
   const [textSaving, setTextSaving] = useState(false);
   const [textMsg, setTextMsg] = useState('');
 
-  const [activeTab, setActiveTab] = useState<TabId>('modules');
+  const [searchParams] = useSearchParams();
+  const VALID_TABS: TabId[] = ['modules', 'branding', 'backgrounds', 'email', 'texts', 'datenschutz', 'oauth'];
+  const tabFromUrl = searchParams.get('tab') as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(
+    tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'modules'
+  );
+
+  // Sync tab from URL on navigation (e.g. from global sidebar)
+  useEffect(() => {
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   const loadEmailBranding = useCallback(async () => {
     try {
