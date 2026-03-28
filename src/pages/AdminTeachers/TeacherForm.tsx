@@ -19,12 +19,21 @@ interface Props {
   editingTeacher: ApiTeacher | null;
   blModuleActive: boolean;
   sswModuleActive: boolean;
+  adminModules: string[];
+  setAdminModules: (modules: string[]) => void;
+  isSuperadmin: boolean;
   createdCreds: { username: string; tempPassword: string } | null;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
 }
 
-export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm, setSswForm, editingTeacher, blModuleActive, sswModuleActive, createdCreds, onSubmit, onCancel }: Props) {
+const ADMIN_MODULE_OPTIONS = [
+  { key: 'elternsprechtag', label: 'Eltern- und Ausbildersprechtag' },
+  { key: 'schulsozialarbeit', label: 'Schulsozialarbeit' },
+  { key: 'beratungslehrer', label: 'Beratungslehrkräfte' },
+];
+
+export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm, setSswForm, editingTeacher, blModuleActive, sswModuleActive, adminModules, setAdminModules, isSuperadmin, createdCreds, onSubmit, onCancel }: Props) {
   const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
 
   const updateNameAndSuggestUsername = (field: 'first_name' | 'last_name', value: string) => {
@@ -346,6 +355,34 @@ export function TeacherForm({ formData, setFormData, blForm, setBlForm, sswForm,
                 </div>
               </div>
             )}
+          </details>
+        )}
+        {editingTeacher && isSuperadmin && (
+          <details style={{ marginTop: '1rem', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '0.5rem', padding: '0.75rem' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+              Adminrechte
+            </summary>
+            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-gray-600)' }}>
+                Modulspezifische Adminrechte vergeben. Benutzer mit Adminrechten können das jeweilige Modul verwalten, ohne Global-Admin zu sein.
+              </p>
+              {ADMIN_MODULE_OPTIONS.map(({ key, label }) => (
+                <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={adminModules.includes(key)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setAdminModules([...adminModules, key]);
+                      } else {
+                        setAdminModules(adminModules.filter(m => m !== key));
+                      }
+                    }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
           </details>
         )}
         <div className="form-actions">

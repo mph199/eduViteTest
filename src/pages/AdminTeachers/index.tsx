@@ -55,8 +55,10 @@ export function AdminTeachers() {
   const [csvImport, setCsvImport] = useState<{ show: boolean; uploading: boolean; result: CsvImportResult | null }>({ show: false, uploading: false, result: null });
   const [blForm, setBlForm] = useState<BlFormData>(defaultBlForm());
   const [sswForm, setSswForm] = useState<SswFormData>(defaultSswForm());
+  const [adminModules, setAdminModules] = useState<string[]>([]);
   const csvFileRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   useActiveView('admin');
   const adminBgStyle = useBgStyle('admin', '--page-bg');
 
@@ -162,6 +164,17 @@ export function AdminTeachers() {
 
       if (editingTeacher) {
         await api.admin.updateTeacher(editingTeacher.id, teacherData);
+        // Save admin modules if changed (superadmin only)
+        if (isSuperadmin) {
+          try {
+            const linkedUser = users.find(u => u.teacher_id === editingTeacher.id);
+            if (linkedUser) {
+              await api.admin.updateUserAdminAccess(linkedUser.id, adminModules);
+            }
+          } catch {
+            // supplementary — don't block teacher save
+          }
+        }
       } else {
         const res = await api.admin.createTeacher(teacherData);
         const typed = res as TeacherLoginResponse;
@@ -175,6 +188,7 @@ export function AdminTeachers() {
       setFormData(defaultFormData());
       setBlForm(defaultBlForm());
       setSswForm(defaultSswForm());
+      setAdminModules([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
     }
@@ -216,6 +230,19 @@ export function AdminTeachers() {
         }
       } catch {
         // BL data is supplementary
+      }
+    }
+    // Load admin modules for this user
+    setAdminModules([]);
+    if (isSuperadmin) {
+      try {
+        const linkedUser = users.find(u => u.teacher_id === teacher.id);
+        if (linkedUser) {
+          const data = await api.admin.getUserAdminAccess(linkedUser.id);
+          setAdminModules(Array.isArray(data?.adminModules) ? data.adminModules : []);
+        }
+      } catch {
+        // supplementary
       }
     }
     setShowForm(true);
@@ -414,6 +441,9 @@ export function AdminTeachers() {
             editingTeacher={editingTeacher}
             blModuleActive={blModuleActive}
             sswModuleActive={sswModuleActive}
+            adminModules={adminModules}
+            setAdminModules={setAdminModules}
+            isSuperadmin={isSuperadmin}
             createdCreds={createdCreds}
             onSubmit={handleSubmit}
             onCancel={handleCancel}

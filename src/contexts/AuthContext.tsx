@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setActiveView = (next: ActiveView) => {
     if (user) {
-      const canTeacher = Boolean(user.teacherId) || user.role === 'teacher';
+      const canTeacher = Boolean(user.teacherId);
       if (next === 'teacher' && !canTeacher) return;
       if (next === 'admin' && !isAdminLike(user)) return;
     }

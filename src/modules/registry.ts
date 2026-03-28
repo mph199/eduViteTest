@@ -30,6 +30,8 @@ export interface SidebarNavItem {
   roles?: string[];
   /** Also show for users with these module accesses (OR with roles). */
   allowedModules?: string[];
+  /** Restrict to this view ('admin' or 'teacher'). If omitted, shown in all views. */
+  view?: 'admin' | 'teacher';
 }
 
 /** Sidebar navigation group contributed by a module */
