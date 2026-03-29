@@ -1,0 +1,11 @@
+/* ══ Admin/Teacher Layout (Sidebar + Content) ════════════════════════ */
+
+.atl {
+  display: flex;
+  min-height: calc(100vh - var(--globalTopHeaderHeight, 56px));
+}
+
+.atl__content {
+  flex: 1;
+  min-width: 0;
+}
