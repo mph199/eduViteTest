@@ -6,7 +6,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Blocks, Palette, Image, Mail, FileText, Shield, Key,
   LayoutDashboard, Users, Home, Inbox, CalendarCheck,
@@ -16,8 +16,9 @@ import {
 import type { ComponentType } from 'react';
 import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
 import { useAuth } from '../contexts/useAuth';
+import { ViewSwitcher } from './ViewSwitcher';
 import { SidebarProfile } from './SidebarProfile';
-import type { NavGroup, NavItem } from '../types';
+import type { ActiveView, NavGroup, NavItem } from '../types';
 import './AdminTeacherSidebar.css';
 
 /** Map iconName string → lucide component */
@@ -37,8 +38,8 @@ const ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
 };
 
 export function AdminTeacherSidebar() {
-  const { filteredGroups, isActive } = useAdminNavGroups();
-  const { user, logout } = useAuth();
+  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, getViewChangeTarget } = useAdminNavGroups();
+  const { user, logout, activeView, setActiveView } = useAuth();
   const navigate = useNavigate();
 
   const handleClick = useCallback(
@@ -52,9 +53,35 @@ export function AdminTeacherSidebar() {
     void (async () => { await logout(); navigate('/login'); })();
   }, [logout, navigate]);
 
+  // View switcher: only for admin/module-admin users who are also teachers
+  const viewSwitcherOptions = useMemo(() => {
+    if (!user) return null;
+    if (isAdminOrModuleAdmin && hasTeacherId) {
+      return [
+        { value: 'admin' as ActiveView, label: 'Admin' },
+        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
+      ];
+    }
+    return null;
+  }, [user, isAdminOrModuleAdmin, hasTeacherId]);
+
+  const handleViewChange = useCallback((next: ActiveView) => {
+    setActiveView(next);
+    navigate(getViewChangeTarget(next));
+  }, [setActiveView, navigate, getViewChangeTarget]);
+
   return (
     <aside className="ats" aria-label="Navigation">
       <nav className="ats__nav">
+        {viewSwitcherOptions && activeView && (
+          <div className="ats__viewSwitcher">
+            <ViewSwitcher
+              options={viewSwitcherOptions}
+              activeValue={activeView}
+              onChange={handleViewChange}
+            />
+          </div>
+        )}
         {filteredGroups.map((group: NavGroup, gi: number) => (
           <div
             key={group.label || group.items[0]?.path || gi}
