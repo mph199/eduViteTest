@@ -14,25 +14,25 @@
   border: 1.5px solid rgba(var(--brand-primary-rgb), 0.45);
 }
 
+/**
+ * Layout-Constraint für Main Content (rechts der Sidebar):
+ * - max-width: 960px (nicht volle Viewport-Breite)
+ * - Kein margin: 0 auto (linksbündig am Sidebar-Rand)
+ * - Auf Screens > 1400px entsteht rechts bewusst Whitespace
+ */
 .admin-main {
   position: relative;
   z-index: 1;
-  max-width: 1280px;
+  max-width: 960px;
   width: 100%;
   margin: 0;
-  padding: 2rem 2.5rem;
+  padding: 32px 40px;
   overflow-x: hidden;
 }
 
 @media (max-width: 1024px) {
   .admin-main {
-    padding: 1.5rem 1.75rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .admin-main {
-    padding: 1.25rem 1.25rem;
+    padding: 24px 20px;
   }
 }
 

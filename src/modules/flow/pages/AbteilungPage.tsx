@@ -18,7 +18,7 @@ export function AbteilungPage() {
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
     if (!isAdmin) {
         return (
-            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+            <div >
                 <div className="flow-empty"><div className="flow-empty__text">Zugriff nur für Administratoren</div></div>
             </div>
         );
@@ -33,7 +33,7 @@ export function AbteilungPage() {
     }
 
     return (
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px' }}>
+        <div >
             <h1 className="flow-page-title">Abteilungsübersicht</h1>
             <p className="flow-page-subtitle">Aggregierte Sicht auf alle Arbeitspakete</p>
 

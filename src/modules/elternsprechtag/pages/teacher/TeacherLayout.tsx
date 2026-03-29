@@ -34,7 +34,9 @@ export function TeacherLayout() {
       className="admin-dashboard admin-dashboard--teacher page-bg-overlay page-bg-overlay--subtle"
       style={adminBgStyle}
     >
-      <Outlet context={outletContext} />
+      <div className="admin-main">
+        <Outlet context={outletContext} />
+      </div>
     </div>
   );
 }
