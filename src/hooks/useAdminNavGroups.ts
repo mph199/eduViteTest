@@ -59,7 +59,7 @@ export function useAdminNavGroups() {
       groups.push({
         label: '',
         view: 'admin',
-        items: [{ path: '/admin', label: 'Übersicht' }],
+        items: [{ path: '/admin', label: 'Übersicht', iconName: 'LayoutDashboard' }],
       });
     }
 
@@ -100,7 +100,7 @@ export function useAdminNavGroups() {
       groups.push({
         label: 'Verwaltung',
         view: 'admin',
-        items: [{ path: '/admin/teachers', label: 'Benutzer & Rechte' }],
+        items: [{ path: '/admin/teachers', label: 'Benutzer & Rechte', iconName: 'Users' }],
       });
     }
 
@@ -111,9 +111,9 @@ export function useAdminNavGroups() {
         accentRgb: '26, 127, 122',
         view: 'teacher',
         items: [
-          { path: '/teacher', label: 'Übersicht' },
-          { path: '/teacher/requests', label: 'Anfragen' },
-          { path: '/teacher/bookings', label: 'Buchungen' },
+          { path: '/teacher', label: 'Übersicht', iconName: 'Home' },
+          { path: '/teacher/requests', label: 'Anfragen', iconName: 'Inbox' },
+          { path: '/teacher/bookings', label: 'Buchungen', iconName: 'CalendarCheck' },
         ],
       });
     }

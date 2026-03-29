@@ -336,10 +336,23 @@
     display: none;
   }
 
+  .globalTopHeader--area .globalTopHeader__inner {
+    max-width: none;
+    padding-left: 0;
+    padding-right: var(--page-gutter, 1.25rem);
+  }
+
+  .globalTopHeader--area .globalTopHeader__left {
+    gap: 0;
+  }
+
   .globalTopHeader--area .globalTopHeader__brand {
     width: var(--sidebar-width, 220px);
     box-sizing: border-box;
     flex-shrink: 0;
+    padding-left: 1.25rem;
+    padding-right: 0.75rem;
+    border-right: 1px solid rgba(var(--color-gray-200-rgb, 229, 231, 235), 0.7);
   }
 }
 
