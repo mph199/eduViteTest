@@ -79,7 +79,7 @@ export function GlobalTopHeader() {
     }
 
     return null;
-  }, [inTeacher, pathname, showAreaMenu, navGroups]);
+  }, [inTeacher, pathname, showAreaMenu, navGroups, isActive]);
 
   useEffect(() => {
     const element = headerRef.current;

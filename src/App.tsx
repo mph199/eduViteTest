@@ -62,7 +62,7 @@ function App() {
               })}
 
               {/* ══ Authentifizierter Bereich mit Sidebar-Layout ══════════ */}
-              <Route element={<AdminTeacherLayout />}>
+              <Route element={<ProtectedRoute><AdminTeacherLayout /></ProtectedRoute>}>
 
                 {/* Geschützter Teacher-Bereich (aus Modulen) */}
                 {activeModules

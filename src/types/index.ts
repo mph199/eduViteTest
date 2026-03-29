@@ -223,6 +223,9 @@ export interface NavItem {
   path: string;
   label: string;
   icon?: string;
+  roles?: string[];
+  allowedModules?: string[];
+  view?: 'admin' | 'teacher';
 }
 
 export interface NavGroup {
