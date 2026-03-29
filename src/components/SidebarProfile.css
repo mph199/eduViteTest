@@ -98,10 +98,10 @@
 .sidebarProfile__popover {
   position: absolute;
   bottom: calc(100% + 8px);
-  left: 0;
-  width: 280px;
+  left: -4px;
+  width: 260px;
   background: var(--color-white);
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);
   box-shadow: 0 8px 40px rgba(var(--color-gray-900-rgb), 0.14);
   z-index: 1000;
@@ -126,13 +126,13 @@
 .sidebarProfile__header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 20px 20px 16px;
+  gap: 0.65rem;
+  padding: 16px 16px 12px;
 }
 
 .sidebarProfile__headerAvatar {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -195,7 +195,7 @@
 
 .sidebarProfile__infoSection {
   border-top: 1px solid rgba(var(--color-gray-200-rgb), 0.8);
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 .sidebarProfile__infoRow {
@@ -276,9 +276,9 @@
 
 .sidebarProfile__pwFlyout {
   position: absolute;
-  left: calc(100% + 8px);
+  left: calc(100% + 6px);
   top: 0;
-  width: 240px;
+  width: 220px;
   background: var(--color-white);
   border-radius: 16px;
   border: 1px solid rgba(var(--color-gray-200-rgb), 0.9);

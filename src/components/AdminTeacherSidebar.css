@@ -8,7 +8,7 @@
   position: sticky;
   top: var(--globalTopHeaderHeight, 56px);
   height: calc(100vh - var(--globalTopHeaderHeight, 56px));
-  overflow-y: auto;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   z-index: 10;
@@ -17,6 +17,7 @@
 .ats__nav {
   flex: 1;
   padding: 0.5rem 0;
+  overflow-y: auto;
 }
 
 /* ── Section separator (Stilleiste) ───────────────────────────────── */
