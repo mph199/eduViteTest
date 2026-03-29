@@ -37,6 +37,7 @@ const elternsprechtagModule: ModuleDefinition = {
   basePath: '/elternsprechtag',
   accent: 'var(--module-accent-elternsprechtag)',
   accentRgb: '26, 127, 122',
+  requiredModule: 'elternsprechtag',
 
   /** Öffentliche Buchungsseite */
   PublicPage: BookingApp,

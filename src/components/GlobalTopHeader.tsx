@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { SidebarProfile } from './SidebarProfile';
 import { NotificationBell } from './NotificationBell';
@@ -10,18 +10,21 @@ import { useBranding } from '../contexts/BrandingContext';
 import api from '../services/api';
 import { getAvatarInitial, getAvatarColor } from '../utils/avatarColor';
 import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
-import type { ActiveView } from '../types';
+
 import './GlobalTopHeader.css';
 
 export function GlobalTopHeader() {
   const headerRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout, activeView, setActiveView } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const { branding } = useBranding();
 
   // Shared navigation logic (same source for sidebar + drawer)
-  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, activeModules, getViewChangeTarget } = useAdminNavGroups();
+  const {
+    filteredGroups, isActive, activeModules, activeView,
+    viewSwitcherOptions, handleViewChange,
+  } = useAdminNavGroups();
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
@@ -29,23 +32,6 @@ export function GlobalTopHeader() {
   const inTeacher = pathname === '/teacher' || pathname.startsWith('/teacher/');
   const showAreaMenu = Boolean(isAuthenticated && (inAdmin || inTeacher));
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
-
-  // View switcher options (admin/module-admin users who are also teachers)
-  const viewSwitcherOptions = useMemo(() => {
-    if (!user) return null;
-    if (isAdminOrModuleAdmin && hasTeacherId) {
-      return [
-        { value: 'admin' as ActiveView, label: 'Admin' },
-        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
-      ];
-    }
-    return null;
-  }, [user, isAdminOrModuleAdmin, hasTeacherId]);
-
-  const handleViewChange = useCallback((next: ActiveView) => {
-    setActiveView(next);
-    navigate(getViewChangeTarget(next));
-  }, [setActiveView, navigate, getViewChangeTarget]);
 
   // Find which module the user is currently viewing (public page)
   const activeModule = useMemo(() => {
