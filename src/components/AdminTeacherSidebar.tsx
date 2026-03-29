@@ -6,7 +6,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import {
   Blocks, Palette, Image, Mail, FileText, Shield, Key,
   LayoutDashboard, Users, Home, Inbox, CalendarCheck,
@@ -18,57 +18,32 @@ import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
 import { useAuth } from '../contexts/useAuth';
 import { ViewSwitcher } from './ViewSwitcher';
 import { SidebarProfile } from './SidebarProfile';
-import type { ActiveView, NavGroup, NavItem } from '../types';
 import './AdminTeacherSidebar.css';
 
 /** Map iconName string → lucide component */
 const ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
-  // Superadmin
   Blocks, Palette, Image, Mail, FileText, Shield, Key,
-  // Admin core
-  LayoutDashboard, Users,
-  // Teacher
-  Home, Inbox, CalendarCheck,
-  // Elternsprechtag
-  Calendar, Clock,
-  // SSW / BL
-  HeartHandshake, GraduationCap,
-  // Flow
+  LayoutDashboard, Users, Home, Inbox, CalendarCheck,
+  Calendar, Clock, HeartHandshake, GraduationCap,
   LayoutGrid, CheckSquare, Settings, Building2,
 };
 
 export function AdminTeacherSidebar() {
-  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, getViewChangeTarget } = useAdminNavGroups();
-  const { user, logout, activeView, setActiveView } = useAuth();
+  const {
+    filteredGroups, isActive, activeView,
+    viewSwitcherOptions, handleViewChange,
+  } = useAdminNavGroups();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleClick = useCallback(
-    (path: string) => {
-      navigate(path);
-    },
+    (path: string) => navigate(path),
     [navigate],
   );
 
   const handleLogout = useCallback(() => {
     void (async () => { await logout(); navigate('/login'); })();
   }, [logout, navigate]);
-
-  // View switcher: only for admin/module-admin users who are also teachers
-  const viewSwitcherOptions = useMemo(() => {
-    if (!user) return null;
-    if (isAdminOrModuleAdmin && hasTeacherId) {
-      return [
-        { value: 'admin' as ActiveView, label: 'Admin' },
-        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
-      ];
-    }
-    return null;
-  }, [user, isAdminOrModuleAdmin, hasTeacherId]);
-
-  const handleViewChange = useCallback((next: ActiveView) => {
-    setActiveView(next);
-    navigate(getViewChangeTarget(next));
-  }, [setActiveView, navigate, getViewChangeTarget]);
 
   return (
     <aside className="ats" aria-label="Navigation">
@@ -82,7 +57,7 @@ export function AdminTeacherSidebar() {
             />
           </div>
         )}
-        {filteredGroups.map((group: NavGroup, gi: number) => (
+        {filteredGroups.map((group, gi) => (
           <div
             key={group.label || group.items[0]?.path || gi}
             className="ats__section"
@@ -91,7 +66,7 @@ export function AdminTeacherSidebar() {
             {group.label && (
               <div className="ats__sectionLabel">{group.label}</div>
             )}
-            {group.items.map((item: NavItem) => {
+            {group.items.map((item) => {
               const active = isActive(item.path);
               const Icon = item.iconName ? ICON_MAP[item.iconName] : null;
 

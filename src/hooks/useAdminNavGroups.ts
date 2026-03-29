@@ -5,8 +5,8 @@
  * als auch vom Hamburger-Drawer (Mobile) konsumiert.
  */
 
-import { useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useMemo, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { modules } from '../modules/registry';
 import type { SidebarNavItem } from '../modules/registry';
 import { useAuth } from '../contexts/useAuth';
@@ -28,7 +28,8 @@ export const SUPERADMIN_TABS: SuperadminNavItem[] = [
 ];
 
 export function useAdminNavGroups() {
-  const { user, activeView } = useAuth();
+  const { user, activeView, setActiveView } = useAuth();
+  const navigate = useNavigate();
   const { isModuleEnabled } = useModuleConfig();
   const location = useLocation();
   const pathname = location.pathname;
@@ -77,10 +78,14 @@ export function useAdminNavGroups() {
       });
 
       if (visibleItems.length > 0) {
-        // Module-admins (not full admins) always see their admin-module groups
-        // regardless of activeView — don't restrict by view
-        const isModuleAdminAccess = !isAdmin && mod.requiredModule &&
-          (user?.adminModules?.includes(mod.requiredModule) ?? false);
+        // Module-admins and dedicated counselors always see their groups
+        // regardless of activeView — don't restrict by view.
+        // Covers: adminModules access (module-admins) AND
+        // modules access for users without teacherId (dedicated counselors like SSW/BL).
+        const isModuleAdminAccess = !isAdmin && mod.requiredModule && (
+          (user?.adminModules?.includes(mod.requiredModule) ?? false) ||
+          (!hasTeacherId && userModules.includes(mod.requiredModule))
+        );
 
         let groupView: ActiveView | undefined;
         if (!isModuleAdminAccess) {
@@ -169,6 +174,23 @@ export function useAdminNavGroups() {
     return '/admin';
   };
 
+  // ViewSwitcher: only for admin/module-admin users who are also teachers
+  const viewSwitcherOptions = useMemo(() => {
+    if (!user) return null;
+    if (isAdminOrModuleAdmin && hasTeacherId) {
+      return [
+        { value: 'admin' as ActiveView, label: 'Admin' },
+        { value: 'teacher' as ActiveView, label: 'Lehrkraft' },
+      ];
+    }
+    return null;
+  }, [user, isAdminOrModuleAdmin, hasTeacherId]);
+
+  const handleViewChange = useCallback((next: ActiveView) => {
+    setActiveView(next);
+    navigate(getViewChangeTarget(next));
+  }, [setActiveView, navigate, getViewChangeTarget]);
+
   return {
     navGroups,
     filteredGroups,
@@ -178,6 +200,9 @@ export function useAdminNavGroups() {
     isAdminOrModuleAdmin,
     hasTeacherId,
     activeModules,
+    activeView,
     getViewChangeTarget,
+    viewSwitcherOptions,
+    handleViewChange,
   };
 }
