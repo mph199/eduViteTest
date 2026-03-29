@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../../contexts/useAuth';
 import { useActiveView } from '../../../hooks/useActiveView';
 import { useBgStyle } from '../../../hooks/useBgStyle';
 import type { Counselor, ScheduleEntry } from '../../../types';
