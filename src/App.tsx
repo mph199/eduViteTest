@@ -70,12 +70,16 @@ function App() {
                   .map((mod) => {
                     const Layout = mod.teacherLayout!;
                     const basePath = mod.teacherBasePath || '/teacher';
+                    // Only gate with allowedModules if the module has its own
+                    // teacherBasePath (e.g. /teacher/flow). The default /teacher
+                    // path is accessible to all authenticated teachers.
+                    const needsModuleGuard = mod.teacherBasePath && mod.requiredModule;
                     return (
                       <Route
                         key={`teacher-${mod.id}`}
                         path={basePath}
                         element={
-                          <ProtectedRoute allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}>
+                          <ProtectedRoute allowedModules={needsModuleGuard ? [mod.requiredModule!] : undefined}>
                             <Layout />
                           </ProtectedRoute>
                         }
