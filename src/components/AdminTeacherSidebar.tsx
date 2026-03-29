@@ -38,7 +38,7 @@ const ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
 };
 
 export function AdminTeacherSidebar() {
-  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId } = useAdminNavGroups();
+  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, getViewChangeTarget } = useAdminNavGroups();
   const { user, logout, activeView, setActiveView } = useAuth();
   const navigate = useNavigate();
 
@@ -67,9 +67,8 @@ export function AdminTeacherSidebar() {
 
   const handleViewChange = useCallback((next: ActiveView) => {
     setActiveView(next);
-    if (next === 'admin') navigate('/admin');
-    else if (next === 'teacher') navigate('/teacher');
-  }, [setActiveView, navigate]);
+    navigate(getViewChangeTarget(next));
+  }, [setActiveView, navigate, getViewChangeTarget]);
 
   return (
     <aside className="ats" aria-label="Navigation">

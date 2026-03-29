@@ -77,15 +77,24 @@ export function useAdminNavGroups() {
       });
 
       if (visibleItems.length > 0) {
-        const itemViews = visibleItems
-          .map((item: SidebarNavItem) => item.view)
-          .filter((v): v is NonNullable<typeof v> => !!v);
-        const groupView =
-          itemViews.length > 0 && itemViews.every((v) => v === itemViews[0])
-            ? (itemViews[0] as ActiveView)
-            : mod.requiredModule
-              ? undefined
-              : ('admin' as ActiveView);
+        // Module-admins (not full admins) always see their admin-module groups
+        // regardless of activeView — don't restrict by view
+        const isModuleAdminAccess = !isAdmin && mod.requiredModule &&
+          (user?.adminModules?.includes(mod.requiredModule) ?? false);
+
+        let groupView: ActiveView | undefined;
+        if (!isModuleAdminAccess) {
+          const itemViews = visibleItems
+            .map((item: SidebarNavItem) => item.view)
+            .filter((v): v is NonNullable<typeof v> => !!v);
+          groupView =
+            itemViews.length > 0 && itemViews.every((v) => v === itemViews[0])
+              ? (itemViews[0] as ActiveView)
+              : mod.requiredModule
+                ? undefined
+                : ('admin' as ActiveView);
+        }
+
         groups.push({
           label: mod.sidebarNav.label,
           accentRgb: mod.accentRgb,
@@ -145,6 +154,21 @@ export function useAdminNavGroups() {
     return pathname === path || pathname.startsWith(path + '/');
   };
 
+  /** Get the best navigation target when switching views.
+   *  Full admins go to /admin or /teacher.
+   *  Module-admins go to their first visible admin-module route. */
+  const getViewChangeTarget = (next: ActiveView): string => {
+    if (next === 'teacher') return '/teacher';
+    // For 'admin': full admins → /admin dashboard; module-admins → first admin-module item
+    if (isAdmin) return '/admin';
+    // Module-admin without full admin: find first admin-view item
+    const adminGroups = navGroups.filter((g) => !g.view || g.view === 'admin');
+    for (const g of adminGroups) {
+      if (g.items.length > 0) return g.items[0].path;
+    }
+    return '/admin';
+  };
+
   return {
     navGroups,
     filteredGroups,
@@ -154,5 +178,6 @@ export function useAdminNavGroups() {
     isAdminOrModuleAdmin,
     hasTeacherId,
     activeModules,
+    getViewChangeTarget,
   };
 }

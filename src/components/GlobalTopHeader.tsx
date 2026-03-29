@@ -21,7 +21,7 @@ export function GlobalTopHeader() {
   const { branding } = useBranding();
 
   // Shared navigation logic (same source for sidebar + drawer)
-  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, activeModules } = useAdminNavGroups();
+  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, activeModules, getViewChangeTarget } = useAdminNavGroups();
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
@@ -44,9 +44,8 @@ export function GlobalTopHeader() {
 
   const handleViewChange = useCallback((next: ActiveView) => {
     setActiveView(next);
-    if (next === 'admin') navigate('/admin');
-    else if (next === 'teacher') navigate('/teacher');
-  }, [setActiveView, navigate]);
+    navigate(getViewChangeTarget(next));
+  }, [setActiveView, navigate, getViewChangeTarget]);
 
   // Find which module the user is currently viewing (public page)
   const activeModule = useMemo(() => {
