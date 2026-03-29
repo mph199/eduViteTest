@@ -78,17 +78,20 @@ export function useAdminNavGroups() {
       });
 
       if (visibleItems.length > 0) {
-        // Module-admins and dedicated counselors always see their groups
-        // regardless of activeView — don't restrict by view.
-        // Covers: adminModules access (module-admins) AND
-        // modules access for users without teacherId (dedicated counselors like SSW/BL).
-        const isModuleAdminAccess = !isAdmin && mod.requiredModule && (
-          (user?.adminModules?.includes(mod.requiredModule) ?? false) ||
-          (!hasTeacherId && userModules.includes(mod.requiredModule))
-        );
+        // Determine if this user has special module access (not a full admin).
+        const hasAdminModuleAccess = !isAdmin && mod.requiredModule &&
+          (user?.adminModules?.includes(mod.requiredModule) ?? false);
+        const isCounselorAccess = !isAdmin && mod.requiredModule &&
+          !hasTeacherId && userModules.includes(mod.requiredModule);
 
         let groupView: ActiveView | undefined;
-        if (!isModuleAdminAccess) {
+        if (isCounselorAccess) {
+          // Dedicated counselors (no teacherId, no ViewSwitcher): always visible
+          groupView = undefined;
+        } else if (hasAdminModuleAccess) {
+          // Module-admins with teacherId: show in admin view, filtered in teacher view
+          groupView = 'admin';
+        } else {
           const itemViews = visibleItems
             .map((item: SidebarNavItem) => item.view)
             .filter((v): v is NonNullable<typeof v> => !!v);

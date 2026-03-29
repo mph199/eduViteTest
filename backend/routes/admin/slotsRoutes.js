@@ -1,13 +1,14 @@
 import express from 'express';
-import { requireAdmin } from '../../middleware/auth.js';
+import { requireModuleAdmin } from '../../middleware/auth.js';
 import { query } from '../../config/db.js';
 import { mapSlotRow } from '../../utils/mappers.js';
 import logger from '../../config/logger.js';
 
 const router = express.Router();
+const requireESTAdmin = requireModuleAdmin('elternsprechtag');
 
 // GET /api/admin/slots
-router.get('/slots', requireAdmin, async (req, res) => {
+router.get('/slots', requireESTAdmin, async (req, res) => {
   try {
     const { teacherId, eventId, booked, limit } = req.query;
 
@@ -66,7 +67,7 @@ router.get('/slots', requireAdmin, async (req, res) => {
 });
 
 // POST /api/admin/slots
-router.post('/slots', requireAdmin, async (req, res) => {
+router.post('/slots', requireESTAdmin, async (req, res) => {
   try {
     const { teacher_id, time, date } = req.body || {};
 
@@ -87,7 +88,7 @@ router.post('/slots', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/admin/slots/:id
-router.put('/slots/:id', requireAdmin, async (req, res) => {
+router.put('/slots/:id', requireESTAdmin, async (req, res) => {
   const slotId = parseInt(req.params.id, 10);
   if (isNaN(slotId)) {
     return res.status(400).json({ error: 'Invalid slot ID' });
@@ -117,7 +118,7 @@ router.put('/slots/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/admin/slots/:id
-router.delete('/slots/:id', requireAdmin, async (req, res) => {
+router.delete('/slots/:id', requireESTAdmin, async (req, res) => {
   const slotId = parseInt(req.params.id, 10);
   if (isNaN(slotId)) {
     return res.status(400).json({ error: 'Invalid slot ID' });
