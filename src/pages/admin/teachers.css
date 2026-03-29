@@ -142,7 +142,7 @@
   text-align: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .teachers-table-desktop {
     display: none;
   }
@@ -770,7 +770,7 @@
 }
 
 /* ── Teacher cards: mobile adjustments ─────────────────── */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .teacher-card__summary {
     flex-direction: column;
     align-items: flex-start;

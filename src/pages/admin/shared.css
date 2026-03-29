@@ -1,6 +1,6 @@
 .admin-dashboard {
   position: relative;
-  min-height: 100vh;
+  min-height: 100%;
   width: 100%;
   background-color: var(--brand-surface-1, #f8fafc);
 }
@@ -87,7 +87,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100%;
   gap: 1rem;
   color: var(--brand-ink);
 }
