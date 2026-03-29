@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
+import { useAuth } from '../contexts/useAuth';
+import { SidebarProfile } from './SidebarProfile';
 import type { NavGroup, NavItem } from '../types';
 import './AdminTeacherSidebar.css';
 
@@ -36,6 +38,7 @@ const ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
 
 export function AdminTeacherSidebar() {
   const { filteredGroups, isActive } = useAdminNavGroups();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleClick = useCallback(
@@ -44,6 +47,10 @@ export function AdminTeacherSidebar() {
     },
     [navigate],
   );
+
+  const handleLogout = useCallback(() => {
+    void (async () => { await logout(); navigate('/login'); })();
+  }, [logout, navigate]);
 
   return (
     <aside className="ats" aria-label="Navigation">
@@ -77,6 +84,15 @@ export function AdminTeacherSidebar() {
           </div>
         ))}
       </nav>
+      {user && (
+        <div className="ats__footer">
+          <SidebarProfile
+            user={user}
+            onLogout={handleLogout}
+            onNavigate={(path) => navigate(path)}
+          />
+        </div>
+      )}
     </aside>
   );
 }

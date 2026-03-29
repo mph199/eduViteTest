@@ -98,10 +98,9 @@
 /* ── Footer ───────────────────────────────────────────────────────── */
 
 .ats__footer {
-  padding: 0.75rem 1.25rem;
+  position: relative;
   border-top: 1px solid rgba(var(--color-gray-200-rgb, 229, 231, 235), 0.7);
-  font-size: 0.7rem;
-  color: rgba(var(--color-gray-900-rgb, 17, 24, 39), 0.32);
+  padding: 0.5rem 0.75rem;
 }
 
 /* ── Responsive: hide on mobile ───────────────────────────────────── */
