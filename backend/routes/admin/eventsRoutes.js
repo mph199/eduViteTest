@@ -1,13 +1,14 @@
 import express from 'express';
-import { requireAdmin } from '../../middleware/auth.js';
+import { requireModuleAdmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
 import { generateTimeSlotsForTeacher, formatDateDE } from '../../utils/timeWindows.js';
 import logger from '../../config/logger.js';
 
 const router = express.Router();
+const requireESTAdmin = requireModuleAdmin('elternsprechtag');
 
 // GET /api/admin/events
-router.get('/events', requireAdmin, async (_req, res) => {
+router.get('/events', requireESTAdmin, async (_req, res) => {
   try {
     const { rows } = await query('SELECT * FROM events ORDER BY starts_at DESC');
     res.json({ events: rows || [] });
@@ -18,7 +19,7 @@ router.get('/events', requireAdmin, async (_req, res) => {
 });
 
 // POST /api/admin/events
-router.post('/events', requireAdmin, async (req, res) => {
+router.post('/events', requireESTAdmin, async (req, res) => {
   try {
     const { name, school_year, starts_at, ends_at, timezone, booking_opens_at, booking_closes_at, status } = req.body || {};
     if (!name || !school_year || !starts_at || !ends_at) {
@@ -48,7 +49,7 @@ router.post('/events', requireAdmin, async (req, res) => {
 // PUT /api/admin/events/:id
 const EVENT_UPDATABLE_FIELDS = ['name', 'school_year', 'starts_at', 'ends_at', 'timezone', 'status', 'booking_opens_at', 'booking_closes_at'];
 
-router.put('/events/:id', requireAdmin, async (req, res) => {
+router.put('/events/:id', requireESTAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
   try {
@@ -102,7 +103,7 @@ router.put('/events/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/admin/events/:id
-router.delete('/events/:id', requireAdmin, async (req, res) => {
+router.delete('/events/:id', requireESTAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
   try {
@@ -115,7 +116,7 @@ router.delete('/events/:id', requireAdmin, async (req, res) => {
 });
 
 // GET /api/admin/events/:id/stats
-router.get('/events/:id/stats', requireAdmin, async (req, res) => {
+router.get('/events/:id/stats', requireESTAdmin, async (req, res) => {
   const eventId = parseInt(req.params.id, 10);
   if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid id' });
 
@@ -146,7 +147,7 @@ router.get('/events/:id/stats', requireAdmin, async (req, res) => {
 });
 
 // POST /api/admin/events/:id/generate-slots
-router.post('/events/:id/generate-slots', requireAdmin, async (req, res) => {
+router.post('/events/:id/generate-slots', requireESTAdmin, async (req, res) => {
   const eventId = parseInt(req.params.id, 10);
   if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid id' });
 
