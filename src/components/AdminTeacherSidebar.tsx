@@ -10,7 +10,7 @@ import { useCallback } from 'react';
 import { Blocks, Palette, Image, Mail, FileText, Shield, Key } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
-import type { NavGroup, SuperadminNavItem } from '../types';
+import type { NavGroup, NavItem, SuperadminNavItem } from '../types';
 import './AdminTeacherSidebar.css';
 
 /** Map iconName string → lucide component */
@@ -24,8 +24,8 @@ const SUPERADMIN_ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
   Key,
 };
 
-function isSuperadminNavItem(item: Record<string, unknown>): item is SuperadminNavItem {
-  return typeof (item as SuperadminNavItem).tabId === 'string';
+function isSuperadminNavItem(item: NavItem): item is NavItem & SuperadminNavItem {
+  return 'tabId' in item && typeof (item as unknown as SuperadminNavItem).tabId === 'string';
 }
 
 export function AdminTeacherSidebar() {
