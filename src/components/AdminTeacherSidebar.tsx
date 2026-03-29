@@ -24,8 +24,8 @@ const SUPERADMIN_ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
   Key,
 };
 
-function isSuperadminNavItem(item: { tabId?: string }): item is SuperadminNavItem {
-  return typeof item.tabId === 'string';
+function isSuperadminNavItem(item: Record<string, unknown>): item is SuperadminNavItem {
+  return typeof (item as SuperadminNavItem).tabId === 'string';
 }
 
 export function AdminTeacherSidebar() {
