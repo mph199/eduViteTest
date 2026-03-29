@@ -803,9 +803,7 @@
     gap: 1rem;
   }
 
-  .admin-main {
-    padding: 1.25rem 1.25rem;
-  }
+  /* admin-main padding handled by shared.css */
 
   .stat-card {
     flex: 1;
