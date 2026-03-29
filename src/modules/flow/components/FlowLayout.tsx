@@ -17,9 +17,9 @@ export function FlowLayout() {
         <QueryClientProvider client={queryClient}>
             <div className="flow-layout">
                 <FlowSidebar />
-                <main className="flow-content">
+                <div className="flow-content">
                     <Outlet />
-                </main>
+                </div>
             </div>
         </QueryClientProvider>
     );

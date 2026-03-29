@@ -1,0 +1,113 @@
+/* ══ Admin/Teacher Sidebar ════════════════════════════════════════════ */
+
+.ats {
+  width: var(--sidebar-width, 220px);
+  flex-shrink: 0;
+  background: var(--color-white, #fff);
+  border-right: 1px solid rgba(var(--color-gray-200-rgb, 229, 231, 235), 0.7);
+  position: sticky;
+  top: var(--globalTopHeaderHeight, 56px);
+  height: calc(100vh - var(--globalTopHeaderHeight, 56px));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.ats__nav {
+  flex: 1;
+  padding: 0.5rem 0;
+}
+
+/* ── Section separator (Stilleiste) ───────────────────────────────── */
+
+.ats__section {
+  padding: 0;
+}
+
+.ats__section + .ats__section {
+  border-top: 1px solid rgba(var(--color-gray-200-rgb, 229, 231, 235), 0.7);
+}
+
+.ats__sectionLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(var(--color-gray-900-rgb, 17, 24, 39), 0.42);
+  padding: 1rem 1.25rem 0.35rem;
+  user-select: none;
+}
+
+/* ── Nav items ────────────────────────────────────────────────────── */
+
+.ats__item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(var(--color-gray-900-rgb, 17, 24, 39), 0.62);
+  text-align: left;
+  transition: background 140ms, color 140ms;
+  border-left: 3px solid transparent;
+  line-height: 1.3;
+}
+
+.ats__item:hover {
+  background: rgba(var(--brand-primary-rgb, 0, 102, 204), 0.06);
+  color: rgba(var(--color-gray-900-rgb, 17, 24, 39), 0.88);
+}
+
+.ats__item--active {
+  background: rgba(var(--brand-primary-rgb, 0, 102, 204), 0.08);
+  color: rgb(var(--brand-primary-rgb, 0, 102, 204));
+  font-weight: 600;
+  border-left-color: rgb(var(--brand-primary-rgb, 0, 102, 204));
+}
+
+/* Accent color override (module-specific) */
+.ats__section[data-accent] .ats__item--active {
+  color: rgba(var(--section-accent-rgb), 1);
+  border-left-color: rgba(var(--section-accent-rgb), 1);
+  background: rgba(var(--section-accent-rgb), 0.08);
+}
+
+.ats__section[data-accent] .ats__item:hover {
+  background: rgba(var(--section-accent-rgb), 0.06);
+}
+
+/* ── Icon in nav item ─────────────────────────────────────────────── */
+
+.ats__itemIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ats__item--active .ats__itemIcon {
+  opacity: 1;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────── */
+
+.ats__footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid rgba(var(--color-gray-200-rgb, 229, 231, 235), 0.7);
+  font-size: 0.7rem;
+  color: rgba(var(--color-gray-900-rgb, 17, 24, 39), 0.32);
+}
+
+/* ── Responsive: hide on mobile ───────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .ats {
+    display: none;
+  }
+}

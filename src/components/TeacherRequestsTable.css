@@ -835,7 +835,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .sandbox-carousel {
     --sandbox-side-pad: 14px;
     --sandbox-card-width: min(88%, 780px);
@@ -1013,7 +1013,7 @@
   text-align: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .sandbox-requests-desktop {
     display: none;
   }

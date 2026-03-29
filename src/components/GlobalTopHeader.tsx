@@ -9,18 +9,9 @@ import { useAuth } from '../contexts/useAuth';
 import { useBranding } from '../contexts/BrandingContext';
 import api from '../services/api';
 import { getAvatarInitial, getAvatarColor } from '../utils/avatarColor';
-import { modules } from '../modules/registry';
-import type { SidebarNavItem } from '../modules/registry';
-import { useModuleConfig } from '../contexts/ModuleConfigContext';
+import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
 import type { ActiveView } from '../types';
 import './GlobalTopHeader.css';
-
-interface NavGroup {
-  label: string;
-  accentRgb?: string;
-  view?: ActiveView;
-  items: { path: string; label: string }[];
-}
 
 export function GlobalTopHeader() {
   const headerRef = useRef<HTMLElement | null>(null);
@@ -28,8 +19,9 @@ export function GlobalTopHeader() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout, activeView, setActiveView } = useAuth();
   const { branding } = useBranding();
-  const { isModuleEnabled } = useModuleConfig();
-  const activeModules = useMemo(() => modules.filter((m) => isModuleEnabled(m.id)), [isModuleEnabled]);
+
+  // Shared navigation logic (same source for sidebar + drawer)
+  const { filteredGroups, isActive, isAdminOrModuleAdmin, hasTeacherId, activeModules } = useAdminNavGroups();
 
   const pathname = location.pathname;
   const onLogin = pathname === '/login' || pathname === '/login/';
@@ -37,18 +29,6 @@ export function GlobalTopHeader() {
   const inTeacher = pathname === '/teacher' || pathname.startsWith('/teacher/');
   const showAreaMenu = Boolean(isAuthenticated && (inAdmin || inTeacher));
   const showModuleTitle = !onLogin && !inAdmin && !inTeacher;
-
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
-  const isSuperadmin = user?.role === 'superadmin';
-  const hasAdminModules = Array.isArray(user?.adminModules) && user.adminModules.length > 0;
-  const isAdminOrModuleAdmin = isAdmin || hasAdminModules;
-  const hasTeacherId = Boolean(user?.teacherId);
-  const userModules = user?.modules || [];
-
-  const hasModuleAccess = (moduleKey?: string) => {
-    if (!moduleKey) return isAdminOrModuleAdmin;
-    return isAdmin || userModules.includes(moduleKey) || (user?.adminModules?.includes(moduleKey) ?? false);
-  };
 
   // View switcher options (admin/module-admin users who are also teachers)
   const viewSwitcherOptions = useMemo(() => {
@@ -74,109 +54,13 @@ export function GlobalTopHeader() {
     return activeModules.find((m) => pathname === m.basePath || pathname === m.basePath + '/') ?? null;
   }, [pathname, showModuleTitle, activeModules]);
 
-  // Build navigation groups for the slide-out sidebar
-  const navGroups = useMemo(() => {
-    const groups: NavGroup[] = [];
-
-    // Dashboard (only full admin/superadmin — module-admins access modules directly)
-    if (isAdmin) {
-      groups.push({
-        label: '',
-        view: 'admin',
-        items: [{ path: '/admin', label: 'Übersicht' }],
-      });
-    }
-
-    // Module groups from registry
-    for (const mod of activeModules) {
-      if (!mod.sidebarNav) continue;
-      if (!hasModuleAccess(mod.requiredModule)) continue;
-
-      const visibleItems = mod.sidebarNav.items.filter((item: SidebarNavItem) => {
-        const roleMatch = !item.roles || (user?.role ? item.roles.includes(user.role) : false);
-        const moduleMatch = item.allowedModules?.some(m => user?.modules?.includes(m) || user?.adminModules?.includes(m));
-        return roleMatch || moduleMatch;
-      });
-
-      if (visibleItems.length > 0) {
-        // Determine group view: if all visible items have the same view, use it;
-        // otherwise use the module default (admin for non-required modules)
-        const itemViews = visibleItems.map((item: SidebarNavItem) => item.view).filter((v): v is NonNullable<typeof v> => !!v);
-        const groupView = itemViews.length > 0 && itemViews.every(v => v === itemViews[0])
-          ? itemViews[0] as ActiveView
-          : (mod.requiredModule ? undefined : 'admin' as ActiveView);
-        groups.push({
-          label: mod.sidebarNav.label,
-          accentRgb: mod.accentRgb,
-          ...(groupView ? { view: groupView } : {}),
-          items: visibleItems,
-        });
-      }
-    }
-
-    // Core admin group (admin/superadmin only)
-    if (isAdmin) {
-      groups.push({
-        label: 'Verwaltung',
-        view: 'admin',
-        items: [
-          { path: '/admin/teachers', label: 'Benutzer & Rechte' },
-        ],
-      });
-    }
-
-    // Teacher section (if user has a teacherId)
-    if (hasTeacherId) {
-      groups.push({
-        label: 'Lehrkraft',
-        accentRgb: '26, 127, 122', // Petrol (Elternsprechtag)
-        view: 'teacher',
-        items: [
-          { path: '/teacher', label: 'Übersicht' },
-          { path: '/teacher/requests', label: 'Anfragen' },
-          { path: '/teacher/bookings', label: 'Buchungen' },
-        ],
-      });
-    }
-
-    // Superadmin: Akkordeon mit Konfigurations-Unterseiten
-    if (isSuperadmin) {
-      groups.push({
-        label: 'Superadmin',
-        items: [
-          { path: '/superadmin?tab=modules', label: 'Module' },
-          { path: '/superadmin?tab=branding', label: 'Erscheinungsbild' },
-          { path: '/superadmin?tab=backgrounds', label: 'Hintergrundbilder' },
-          { path: '/superadmin?tab=email', label: 'E-Mail-Vorlage' },
-          { path: '/superadmin?tab=texts', label: 'Buchungsseiten-Texte' },
-          { path: '/superadmin?tab=datenschutz', label: 'Datenschutz & DSGVO' },
-          { path: '/superadmin?tab=oauth', label: 'SSO / OAuth' },
-        ],
-      });
-    }
-
-    return groups;
-  }, [isAdmin, isAdminOrModuleAdmin, isSuperadmin, hasTeacherId, userModules, user?.adminModules, user?.role, activeModules]);
-
-  // Filter groups by active view (always applies when activeView is set)
-  const filteredGroups = useMemo(() => {
-    if (!activeView) return navGroups;
-    return navGroups.filter((g) => !g.view || g.view === activeView);
-  }, [navGroups, activeView]);
-
-  const isActive = (path: string) => {
-    if (path === '/admin') return pathname === '/admin' || pathname === '/admin/';
-    if (path === '/teacher') return pathname === '/teacher' || pathname === '/teacher/';
-    return pathname === path || pathname.startsWith(path + '/');
-  };
-
-  const userLabel = user?.fullName || user?.username;
-
+  // areaLabel for mobile (hidden on desktop via CSS)
+  const navGroups = filteredGroups;
   const areaLabel = useMemo(() => {
     if (!showAreaMenu) return null;
 
     if (inTeacher) {
-      if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft · Übersicht';
+      if (pathname === '/teacher' || pathname === '/teacher/') return 'Lehrkraft';
       if (pathname.includes('/teacher/requests')) return 'Lehrkraft · Anfragen verwalten';
       if (pathname.includes('/teacher/bookings')) return 'Lehrkraft · Meine Buchungen';
       if (pathname.includes('/teacher/password')) return 'Lehrkraft · Passwort ändern';
@@ -195,7 +79,7 @@ export function GlobalTopHeader() {
     }
 
     return null;
-  }, [inTeacher, pathname, showAreaMenu, navGroups]);
+  }, [inTeacher, pathname, showAreaMenu, navGroups, isActive]);
 
   useEffect(() => {
     const element = headerRef.current;
@@ -306,7 +190,7 @@ export function GlobalTopHeader() {
             </>
           ) : !onLogin ? (
             isAuthenticated ? (
-              <Link className="globalTopHeader__loginStatus" to="/teacher" aria-label={`Angemeldet${userLabel ? ` als ${userLabel}` : ''} -- Zum internen Bereich`}>
+              <Link className="globalTopHeader__loginStatus" to="/teacher" aria-label={`Angemeldet${user?.fullName || user?.username ? ` als ${user?.fullName || user?.username}` : ''} -- Zum internen Bereich`}>
                 <span
                   className="globalTopHeader__avatar"
                   style={{ background: getAvatarColor(user?.username || '') }}

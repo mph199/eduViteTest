@@ -324,14 +324,33 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 900px) {
-  /* Admin/Teacher: keep header readable on tablets (burger + BKSB only) */
+/* ── Desktop with sidebar: hide hamburger + areaLabel, align logo ─── */
+
+@media (min-width: 1025px) {
+  .globalTopHeader--area .globalTopHeader__menuButton {
+    display: none;
+  }
+
+  /* areaLabel hidden on desktop: sidebar provides navigation context */
+  .globalTopHeader--area .globalTopHeader__areaLabel {
+    display: none;
+  }
+
+  .globalTopHeader--area .globalTopHeader__brand {
+    width: var(--sidebar-width, 220px);
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Tablet/mobile: compact header ─────────────────────────────────── */
+
+@media (max-width: 1024px) {
   .globalTopHeader--area .globalTopHeader__areaLabel,
   .globalTopHeader--area .globalTopHeader__moduleTitle {
     display: none;
   }
 
-  /* Hide user label but keep bell visible */
   .globalTopHeader--area .globalTopHeader__user {
     display: none;
   }

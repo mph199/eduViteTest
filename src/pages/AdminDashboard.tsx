@@ -203,7 +203,7 @@ export function AdminDashboard() {
       className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle"
       style={adminBgStyle}
     >
-      <main className="admin-main">
+      <div className="admin-main">
         <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Aktive Events</h3>
@@ -418,7 +418,7 @@ export function AdminDashboard() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

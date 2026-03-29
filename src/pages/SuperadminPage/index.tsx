@@ -12,7 +12,7 @@ import { BackgroundImagesTab } from './BackgroundImagesTab';
 import { ModulesTab } from './ModulesTab';
 import { DataProtectionTab } from './DataProtectionTab';
 import { OAuthTab } from './OAuthTab';
-import { SuperadminSidebar, type TabId } from './SuperadminSidebar';
+import type { TabId } from '../../types';
 import { ConfigPageHeader } from './ConfigPageHeader';
 import '../SuperadminPage.css';
 
@@ -194,8 +194,6 @@ export function SuperadminPage() {
 
   return (
     <div className="superadmin">
-      <div className="superadmin__layout">
-        <SuperadminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="superadmin__content">
           <ConfigPageHeader title={TAB_TITLES[activeTab].title} description={TAB_TITLES[activeTab].desc} />
 
@@ -262,7 +260,6 @@ export function SuperadminPage() {
           <OAuthTab />
         )}
         </div>
-      </div>
     </div>
   );
 }

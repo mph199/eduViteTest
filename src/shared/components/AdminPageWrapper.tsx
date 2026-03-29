@@ -16,9 +16,9 @@ export function AdminPageWrapper({ style, children }: AdminPageWrapperProps) {
       className="admin-dashboard admin-dashboard--admin page-bg-overlay page-bg-overlay--subtle"
       style={style}
     >
-      <main className="admin-main">
+      <div className="admin-main">
         {children}
-      </main>
+      </div>
     </div>
   );
 }

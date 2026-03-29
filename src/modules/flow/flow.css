@@ -72,7 +72,7 @@
 
 .flow-layout {
     display: flex;
-    min-height: calc(100vh - var(--globalTopHeaderHeight, 52px));
+    min-height: 100%;
     background: var(--flow-bg);
 }
 

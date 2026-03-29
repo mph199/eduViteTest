@@ -217,6 +217,31 @@ export interface EmailBranding {
   footer_text: string;
 }
 
+// ── Navigation types ────────────────────────────────────────────────
+
+export interface NavItem {
+  path: string;
+  label: string;
+  icon?: string;
+  roles?: string[];
+  allowedModules?: string[];
+  view?: 'admin' | 'teacher';
+}
+
+export interface NavGroup {
+  label: string;
+  accentRgb?: string;
+  view?: ActiveView;
+  items: NavItem[];
+}
+
+export interface SuperadminNavItem extends NavItem {
+  tabId: string;
+  iconName: string;
+}
+
+export type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts' | 'datenschutz' | 'oauth';
+
 // ── Auth types ───────────────────────────────────────────────────────
 
 export type ActiveView = 'admin' | 'teacher';
