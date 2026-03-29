@@ -20,6 +20,12 @@
   overflow-y: auto;
 }
 
+/* ── View Switcher (Admin/Lehrkraft toggle) ──────────────────────── */
+
+.ats__viewSwitcher {
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
 /* ── Section separator (Stilleiste) ───────────────────────────────── */
 
 .ats__section {
