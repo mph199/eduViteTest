@@ -38,7 +38,7 @@
 .superadmin__content {
   flex: 1;
   min-width: 0;
-  padding: 1.5rem 2rem;
+  padding: 2rem 2.5rem;
   max-width: 900px;
 }
 
@@ -410,7 +410,7 @@
 
 @media (max-width: 1024px) {
   .superadmin__content {
-    padding: 1.25rem 1.5rem;
+    padding: 1.5rem 1.75rem;
   }
 
   /* Touch-targets: Toggle-Switch */
@@ -448,7 +448,7 @@
   }
 
   .superadmin__content {
-    padding: 1rem 1.25rem;
+    padding: 1.25rem 1.25rem;
   }
 
   .superadmin__preview-steps,
