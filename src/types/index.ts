@@ -237,6 +237,8 @@ export interface SuperadminNavItem extends NavItem {
   iconName: string;
 }
 
+export type TabId = 'modules' | 'branding' | 'backgrounds' | 'email' | 'texts' | 'datenschutz' | 'oauth';
+
 // ── Auth types ───────────────────────────────────────────────────────
 
 export type ActiveView = 'admin' | 'teacher';

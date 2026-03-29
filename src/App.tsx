@@ -15,6 +15,7 @@ import { SuperadminPage } from './pages/SuperadminPage';
 import { Footer } from './components/Footer';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { GlobalTopHeader } from './components/GlobalTopHeader';
+import { AdminTeacherLayout } from './components/AdminTeacherLayout';
 import { modules } from './modules/registry';
 import { useModuleConfig } from './contexts/ModuleConfigContext';
 import './App.css'
@@ -60,85 +61,100 @@ function App() {
                 );
               })}
 
-              {/* Geschützter Teacher-Bereich (aus Modulen) */}
-              {activeModules
-                .filter((mod) => mod.teacherLayout && mod.teacherRoutes)
-                .map((mod) => {
-                  const Layout = mod.teacherLayout!;
-                  const basePath = mod.teacherBasePath || '/teacher';
-                  return (
+              {/* ══ Authentifizierter Bereich mit Sidebar-Layout ══════════ */}
+              <Route element={<AdminTeacherLayout />}>
+
+                {/* Geschützter Teacher-Bereich (aus Modulen) */}
+                {activeModules
+                  .filter((mod) => mod.teacherLayout && mod.teacherRoutes)
+                  .map((mod) => {
+                    const Layout = mod.teacherLayout!;
+                    const basePath = mod.teacherBasePath || '/teacher';
+                    return (
+                      <Route
+                        key={`teacher-${mod.id}`}
+                        path={basePath}
+                        element={
+                          <ProtectedRoute allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}>
+                            <Layout />
+                          </ProtectedRoute>
+                        }
+                      >
+                        {mod.teacherRoutes!.map((tr, i) =>
+                          tr.index ? (
+                            <Route key={i} index element={<tr.Component />} />
+                          ) : (
+                            <Route key={i} path={tr.path} element={<tr.Component />} />
+                          )
+                        )}
+                        <Route path="*" element={<Navigate to={basePath} replace />} />
+                      </Route>
+                    );
+                  })}
+
+                {/* Admin-Bereich */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/teachers"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                      <AdminTeachers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/events"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                      <AdminEvents />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                      <Navigate to="/admin/teachers" replace />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Admin-Routen aus Modulen */}
+                {activeModules.flatMap((mod) =>
+                  (mod.adminRoutes ?? []).map((ar) => (
                     <Route
-                      key={`teacher-${mod.id}`}
-                      path={basePath}
+                      key={ar.path}
+                      path={ar.path}
                       element={
-                        <ProtectedRoute allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}>
-                          <Layout />
+                        <ProtectedRoute
+                          allowedRoles={mod.requiredModule ? undefined : ['admin', 'superadmin']}
+                          allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}
+                        >
+                          <ar.Component />
                         </ProtectedRoute>
                       }
-                    >
-                      {mod.teacherRoutes!.map((tr, i) =>
-                        tr.index ? (
-                          <Route key={i} index element={<tr.Component />} />
-                        ) : (
-                          <Route key={i} path={tr.path} element={<tr.Component />} />
-                        )
-                      )}
-                      <Route path="*" element={<Navigate to={basePath} replace />} />
-                    </Route>
-                  );
-                })}
+                    />
+                  ))
+                )}
 
-              {/* Admin-Bereich */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/teachers"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-                    <AdminTeachers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/events"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-                    <AdminEvents />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={<Navigate to="/admin/teachers" replace />}
-              />
-              {/* Admin-Routen aus Modulen */}
-              {activeModules.flatMap((mod) =>
-                (mod.adminRoutes ?? []).map((ar) => (
-                  <Route
-                    key={ar.path}
-                    path={ar.path}
-                    element={
-                      <ProtectedRoute allowedModules={mod.requiredModule ? [mod.requiredModule] : undefined}>
-                        <ar.Component />
-                      </ProtectedRoute>
-                    }
-                  />
-                ))
-              )}
-              <Route
-                path="/superadmin"
-                element={
-                  <ProtectedRoute allowedRoles={['superadmin']}>
-                    <SuperadminPage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Superadmin (im selben Layout) */}
+                <Route
+                  path="/superadmin"
+                  element={
+                    <ProtectedRoute allowedRoles={['superadmin']}>
+                      <SuperadminPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+              </Route>
+              {/* ══ Ende authentifizierter Bereich ════════════════════════ */}
 
               {/* Catch-All: leite unbekannte Pfade auf die Startseite um */}
               <Route path="*" element={<Navigate to="/" replace />} />

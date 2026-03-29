@@ -28,83 +28,9 @@
   --sa-badge-bg: rgba(var(--brand-primary-rgb, 18, 60, 115), 0.08);
   --sa-error-bg: rgba(153, 27, 27, 0.06);
 
-  min-height: 100vh;
+  min-height: 100%;
   background: var(--sa-bg-secondary);
   color: var(--sa-text);
-}
-
-/* ── Layout: Sidebar + Content ─────────────────────────── */
-
-.superadmin__layout {
-  display: flex;
-  min-height: calc(100vh - var(--globalTopHeaderHeight, 56px));
-}
-
-/* ── Sidebar ───────────────────────────────────────────── */
-
-.sa-sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  background: var(--sa-bg);
-  border-right: 1px solid var(--sa-border);
-  padding: 1.5rem 0;
-  position: sticky;
-  top: var(--globalTopHeaderHeight, 56px);
-  height: calc(100vh - var(--globalTopHeaderHeight, 56px));
-  overflow-y: auto;
-}
-
-.sa-sidebar__title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--sa-text-tertiary);
-  padding: 0 1.25rem;
-  margin-bottom: 0.75rem;
-}
-
-.sa-sidebar__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.sa-sidebar__item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 0.55rem 1.25rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--sa-text-secondary);
-  text-align: left;
-  transition: background 160ms, color 160ms;
-  border-left: 3px solid transparent;
-}
-
-.sa-sidebar__item:hover {
-  background: var(--sa-accent-light);
-  color: var(--sa-text);
-}
-
-.sa-sidebar__item--active {
-  background: var(--sa-accent-light);
-  color: var(--sa-accent);
-  font-weight: 600;
-  border-left-color: var(--sa-accent);
-}
-
-.sa-sidebar__mobile-toggle {
-  display: none;
-}
-
-.sa-sidebar__backdrop {
-  display: none;
 }
 
 /* ── Content Area ──────────────────────────────────────── */
@@ -483,15 +409,6 @@
 /* ── Responsive ────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
-  /* On mobile: hide the Superadmin sidebar entirely.
-     Navigation is handled by the global sidebar's Superadmin accordion. */
-  .sa-sidebar,
-  .sa-sidebar--open,
-  .sa-sidebar__mobile-toggle,
-  .sa-sidebar__backdrop {
-    display: none !important;
-  }
-
   .superadmin__content {
     padding: 1rem;
   }
