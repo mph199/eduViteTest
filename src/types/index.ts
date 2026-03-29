@@ -223,6 +223,8 @@ export interface NavItem {
   path: string;
   label: string;
   icon?: string;
+  /** Lucide icon name for sidebar rendering */
+  iconName?: string;
   roles?: string[];
   allowedModules?: string[];
   view?: 'admin' | 'teacher';

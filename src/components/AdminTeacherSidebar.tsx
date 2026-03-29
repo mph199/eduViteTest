@@ -7,26 +7,32 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useCallback } from 'react';
-import { Blocks, Palette, Image, Mail, FileText, Shield, Key } from 'lucide-react';
+import {
+  Blocks, Palette, Image, Mail, FileText, Shield, Key,
+  LayoutDashboard, Users, Home, Inbox, CalendarCheck,
+  Calendar, Clock, HeartHandshake, GraduationCap,
+  LayoutGrid, CheckSquare, Settings, Building2,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAdminNavGroups } from '../hooks/useAdminNavGroups';
-import type { NavGroup, NavItem, SuperadminNavItem } from '../types';
+import type { NavGroup, NavItem } from '../types';
 import './AdminTeacherSidebar.css';
 
 /** Map iconName string → lucide component */
-const SUPERADMIN_ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
-  Blocks,
-  Palette,
-  Image,
-  Mail,
-  FileText,
-  Shield,
-  Key,
+const ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
+  // Superadmin
+  Blocks, Palette, Image, Mail, FileText, Shield, Key,
+  // Admin core
+  LayoutDashboard, Users,
+  // Teacher
+  Home, Inbox, CalendarCheck,
+  // Elternsprechtag
+  Calendar, Clock,
+  // SSW / BL
+  HeartHandshake, GraduationCap,
+  // Flow
+  LayoutGrid, CheckSquare, Settings, Building2,
 };
-
-function isSuperadminNavItem(item: NavItem): item is NavItem & SuperadminNavItem {
-  return 'tabId' in item && typeof (item as unknown as SuperadminNavItem).tabId === 'string';
-}
 
 export function AdminTeacherSidebar() {
   const { filteredGroups, isActive } = useAdminNavGroups();
@@ -51,12 +57,9 @@ export function AdminTeacherSidebar() {
             {group.label && (
               <div className="ats__sectionLabel">{group.label}</div>
             )}
-            {group.items.map((item) => {
+            {group.items.map((item: NavItem) => {
               const active = isActive(item.path);
-              const isSuperadmin = isSuperadminNavItem(item);
-              const Icon = isSuperadmin
-                ? SUPERADMIN_ICON_MAP[(item as SuperadminNavItem).iconName]
-                : null;
+              const Icon = item.iconName ? ICON_MAP[item.iconName] : null;
 
               return (
                 <button

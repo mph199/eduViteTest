@@ -26,6 +26,8 @@ export interface AdminRoute {
 export interface SidebarNavItem {
   path: string;
   label: string;
+  /** Lucide icon name for sidebar rendering */
+  iconName?: string;
   /** Only show for these roles. If omitted, visible to all with access. */
   roles?: string[];
   /** Also show for users with these module accesses (OR with roles). */
