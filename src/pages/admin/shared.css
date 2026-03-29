@@ -24,6 +24,18 @@
   overflow-x: hidden;
 }
 
+@media (max-width: 1024px) {
+  .admin-main {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-main {
+    padding: 1rem 1.25rem;
+  }
+}
+
 /* Table Styles */
 
 .admin-stats {
