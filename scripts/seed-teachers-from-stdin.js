@@ -371,10 +371,10 @@ async function main() {
 
   logger.info({ total: credentials.length }, 'Fertig. Zugangsdaten:');
   if (sharedPassword) {
-    logger.info({ password: sharedPassword }, 'Shared Password (einmalige Ausgabe)');
+    logger.info('Shared Password gesetzt (nicht geloggt aus Sicherheitsgruenden)');
   } else {
     for (const c of credentials) {
-      logger.info({ username: c.username, password: c.password, email: c.email, name: c.name }, 'Zugangsdaten');
+      logger.info({ username: c.username, email: c.email, name: c.name }, 'Zugangsdaten (Passwort wurde bei Erstellung angezeigt)');
     }
   }
 
