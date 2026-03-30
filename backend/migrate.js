@@ -3,11 +3,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from './config/db.js';
 import logger from './config/logger.js';
+import { migrateToLatest } from './db/migrator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
-async function runMigrations() {
+/**
+ * Run legacy SQL migrations (001-062).
+ * These are kept for backward compatibility with existing deployments.
+ * New migrations use the Kysely migrator (backend/db/migrations/).
+ */
+async function runLegacyMigrations() {
   const client = await pool.connect();
   try {
     // Create tracking table if it doesn't exist
@@ -35,7 +41,7 @@ async function runMigrations() {
       if (appliedSet.has(file)) continue;
 
       const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
-      logger.info(`Applying migration: ${file}`);
+      logger.info(`Applying legacy migration: ${file}`);
 
       await client.query('BEGIN');
       try {
@@ -48,36 +54,19 @@ async function runMigrations() {
         count++;
       } catch (err) {
         await client.query('ROLLBACK');
-        logger.error({ err, file }, 'Migration failed');
+        logger.error({ err, file }, 'Legacy migration failed');
         throw err;
       }
     }
 
     if (count === 0) {
-      logger.info('All migrations already applied');
+      logger.info('All legacy migrations already applied');
     } else {
-      logger.info(`${count} migration(s) applied successfully`);
+      logger.info(`${count} legacy migration(s) applied`);
     }
   } finally {
     client.release();
   }
-}
-
-// Run base schema first, then migrations
-async function initDatabase() {
-  const schemaPath = path.join(__dirname, 'schema.sql');
-  if (fs.existsSync(schemaPath)) {
-    const client = await pool.connect();
-    try {
-      const schema = fs.readFileSync(schemaPath, 'utf8');
-      await client.query(schema);
-      logger.info('Base schema applied');
-    } finally {
-      client.release();
-    }
-  }
-  await runMigrations();
-  await enforceSuperadminPolicy();
 }
 
 /**
@@ -88,11 +77,9 @@ async function initDatabase() {
 async function enforceSuperadminPolicy() {
   const client = await pool.connect();
   try {
-    // Ensure Start is superadmin
     await client.query(
       "UPDATE users SET role = 'superadmin' WHERE username = 'Start' AND role != 'superadmin'"
     );
-    // Demote everyone else
     const { rowCount } = await client.query(
       "UPDATE users SET role = 'admin' WHERE role = 'superadmin' AND username != 'Start'"
     );
@@ -104,7 +91,38 @@ async function enforceSuperadminPolicy() {
   }
 }
 
-export { initDatabase, runMigrations };
+/**
+ * Full database initialization:
+ * 1. Run base schema (idempotent)
+ * 2. Run legacy SQL migrations (001-062)
+ * 3. Run Kysely migrations (001+)
+ * 4. Enforce superadmin policy
+ */
+async function initDatabase() {
+  // 1. Base schema
+  const schemaPath = path.join(__dirname, 'schema.sql');
+  if (fs.existsSync(schemaPath)) {
+    const client = await pool.connect();
+    try {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      await client.query(schema);
+      logger.info('Base schema applied');
+    } finally {
+      client.release();
+    }
+  }
+
+  // 2. Legacy SQL migrations
+  await runLegacyMigrations();
+
+  // 3. Kysely migrations (new system)
+  await migrateToLatest();
+
+  // 4. Superadmin policy
+  await enforceSuperadminPolicy();
+}
+
+export { initDatabase, runLegacyMigrations as runMigrations };
 
 // Allow running directly: node migrate.js
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
