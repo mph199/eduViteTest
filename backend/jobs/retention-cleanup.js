@@ -57,7 +57,8 @@ async function cleanupExpiredSswAppointments() {
     UPDATE ssw_appointments
     SET first_name = NULL, last_name = NULL, student_class = NULL,
         email = NULL, phone = NULL, updated_at = NOW()
-    WHERE date::date < CURRENT_DATE - MAKE_INTERVAL(days => ${retention.sswAppointmentsDays})
+    WHERE status != 'cancelled'
+      AND date::date < CURRENT_DATE - MAKE_INTERVAL(days => ${retention.sswAppointmentsDays})
       AND (first_name IS NOT NULL OR last_name IS NOT NULL OR email IS NOT NULL)
     RETURNING id
   `.execute(db);
@@ -69,7 +70,8 @@ async function cleanupExpiredBlAppointments() {
     UPDATE bl_appointments
     SET first_name = NULL, last_name = NULL, student_class = NULL,
         email = NULL, phone = NULL, updated_at = NOW()
-    WHERE date::date < CURRENT_DATE - MAKE_INTERVAL(days => ${retention.blAppointmentsDays})
+    WHERE status != 'cancelled'
+      AND date::date < CURRENT_DATE - MAKE_INTERVAL(days => ${retention.blAppointmentsDays})
       AND (first_name IS NOT NULL OR last_name IS NOT NULL OR email IS NOT NULL)
     RETURNING id
   `.execute(db);
