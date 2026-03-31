@@ -8,7 +8,8 @@
 
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+import { sql } from 'kysely';
 
 import { generateSlotsForDateRange } from './counselorService.js';
 import logger from '../config/logger.js';
@@ -43,40 +44,39 @@ export function createCounselorRoutes(config) {
       const counselorId = req.counselor?.id;
       if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
-      const params = [counselorId];
-      let filters = '';
       const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-
       const { date, date_from, date_until, status } = req.query;
 
+      // Build dynamic WHERE conditions
+      const conditions = [sql`a.counselor_id = ${counselorId}`];
+
       if (date && dateRe.test(String(date))) {
-        params.push(String(date));
-        filters += ` AND a.date = $${params.length}`;
+        conditions.push(sql`a.date = ${String(date)}`);
       }
       if (date_from && dateRe.test(String(date_from))) {
-        params.push(String(date_from));
-        filters += ` AND a.date >= $${params.length}`;
+        conditions.push(sql`a.date >= ${String(date_from)}`);
       }
       if (date_until && dateRe.test(String(date_until))) {
-        params.push(String(date_until));
-        filters += ` AND a.date <= $${params.length}`;
+        conditions.push(sql`a.date <= ${String(date_until)}`);
       }
       if (status && typeof status === 'string') {
         const allowed = ['available', 'requested', 'confirmed', 'cancelled', 'completed'];
         const statuses = status.split(',').filter(s => allowed.includes(s));
         if (statuses.length > 0) {
-          const placeholders = statuses.map(s => { params.push(s); return `$${params.length}`; }).join(', ');
-          filters += ` AND a.status IN (${placeholders})`;
+          const statusList = sql.join(statuses.map(s => sql`${s}`), sql`, `);
+          conditions.push(sql`a.status IN (${statusList})`);
         }
       }
 
-      const { rows } = await query(
-        `SELECT a.*
-         FROM ${tables.appointmentsTable} a
-         WHERE a.counselor_id = $1 ${filters}
-         ORDER BY a.date, a.time`,
-        params
-      );
+      const whereClause = sql.join(conditions, sql` AND `);
+
+      const { rows } = await sql`
+        SELECT a.*
+        FROM ${sql.table(tables.appointmentsTable)} a
+        WHERE ${whereClause}
+        ORDER BY a.date, a.time
+      `.execute(db);
+
       res.json({ appointments: rows });
     } catch (err) {
       logger.error({ err }, `${logPrefix}: Fehler beim Laden der Termine`);
@@ -111,11 +111,12 @@ export function createCounselorRoutes(config) {
       const counselorId = req.counselor?.id;
       if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
-      const { rows } = await query(
-        `UPDATE ${tables.appointmentsTable} SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW()
-         WHERE id = $1 AND status = 'requested' AND counselor_id = $2 RETURNING *`,
-        [id, counselorId]
-      );
+      const { rows } = await sql`
+        UPDATE ${sql.table(tables.appointmentsTable)}
+        SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW()
+        WHERE id = ${id} AND status = 'requested' AND counselor_id = ${counselorId}
+        RETURNING *
+      `.execute(db);
 
       if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden oder nicht im Status "angefragt"' });
       res.json({ success: true, appointment: rows[0] });
@@ -132,18 +133,20 @@ export function createCounselorRoutes(config) {
       const counselorId = req.counselor?.id;
       if (!counselorId) return res.status(400).json({ error: 'Berater-ID erforderlich' });
 
-      const { rows } = await query(
-        `UPDATE ${tables.appointmentsTable}
-         SET status = 'cancelled',
-             first_name = NULL,
-             last_name = NULL,
-             student_class = NULL,
-             email = NULL,
-             phone = NULL,
-             updated_at = NOW()
-         WHERE id = $1 AND status IN ('requested', 'confirmed', 'available') AND counselor_id = $2 RETURNING *`,
-        [id, counselorId]
-      );
+      const { rows } = await sql`
+        UPDATE ${sql.table(tables.appointmentsTable)}
+        SET status = 'cancelled',
+            first_name = NULL,
+            last_name = NULL,
+            student_class = NULL,
+            email = NULL,
+            phone = NULL,
+            updated_at = NOW()
+        WHERE id = ${id}
+          AND status IN ('requested', 'confirmed', 'available')
+          AND counselor_id = ${counselorId}
+        RETURNING *
+      `.execute(db);
 
       if (!rows.length) return res.status(404).json({ error: 'Termin nicht gefunden' });
       res.json({ success: true, appointment: rows[0] });

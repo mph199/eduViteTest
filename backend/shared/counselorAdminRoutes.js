@@ -15,8 +15,8 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { query } from '../config/db.js';
 import { db } from '../db/database.js';
+import { sql } from 'kysely';
 import { generateSlotsForDateRange, upsertWeeklySchedule } from './counselorService.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
 import { generateUsername } from './generateUsername.js';
@@ -46,7 +46,12 @@ export function createCounselorAdminRoutes(config) {
 
   router.get('/counselors', authMiddleware, async (_req, res) => {
     try {
-      const { rows } = await query(`SELECT id, user_id, first_name, last_name, email, salutation, room, phone, specializations, active, requires_confirmation, created_at FROM ${counselorsTable} ORDER BY last_name, first_name`);
+      const { rows } = await sql`
+        SELECT id, user_id, first_name, last_name, email, salutation, room, phone,
+               specializations, active, requires_confirmation, created_at
+        FROM ${sql.table(counselorsTable)}
+        ORDER BY last_name, first_name
+      `.execute(db);
       res.json({ counselors: rows });
     } catch (err) {
       logger.error({ err }, `${tablePrefix}: Fehler beim Laden der ${counselorLabel}`);
@@ -61,24 +66,25 @@ export function createCounselorAdminRoutes(config) {
 
       if (!last_name?.trim()) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
-      const { rows } = await query(
-        `INSERT INTO ${counselorsTable} (first_name, last_name, email, salutation, room, phone,
-         specializations, available_from, available_until, slot_duration_minutes, requires_confirmation)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-        [
-          (first_name || '').trim(),
-          last_name.trim(),
-          email ? email.trim().toLowerCase() : null,
-          salutation || null,
-          room ? room.trim() : null,
-          phone ? phone.trim() : null,
-          specializations || null,
-          available_from || '08:00',
-          available_until || '14:00',
-          slot_duration_minutes || 30,
-          requires_confirmation !== false,
-        ]
-      );
+      const { rows } = await sql`
+        INSERT INTO ${sql.table(counselorsTable)}
+          (first_name, last_name, email, salutation, room, phone,
+           specializations, available_from, available_until, slot_duration_minutes, requires_confirmation)
+        VALUES (
+          ${(first_name || '').trim()},
+          ${last_name.trim()},
+          ${email ? email.trim().toLowerCase() : null},
+          ${salutation || null},
+          ${room ? room.trim() : null},
+          ${phone ? phone.trim() : null},
+          ${specializations || null},
+          ${available_from || '08:00'},
+          ${available_until || '14:00'},
+          ${slot_duration_minutes || 30},
+          ${requires_confirmation !== false}
+        )
+        RETURNING *
+      `.execute(db);
 
       const counselor = rows[0];
 
@@ -113,39 +119,33 @@ export function createCounselorAdminRoutes(config) {
 
       if (!last_name?.trim()) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
-      const { rows } = await query(
-        `UPDATE ${counselorsTable} SET
-           first_name = $1, last_name = $2, email = $3, salutation = $4,
-           room = $5, phone = $6, specializations = $7,
-           available_from = $8, available_until = $9,
-           slot_duration_minutes = $10, active = $11, requires_confirmation = $12
-         WHERE id = $13 RETURNING *`,
-        [
-          (first_name || '').trim(),
-          last_name.trim(),
-          email ? email.trim().toLowerCase() : null,
-          salutation || null,
-          room ? room.trim() : null,
-          phone ? phone.trim() : null,
-          specializations || null,
-          available_from || '08:00',
-          available_until || '14:00',
-          slot_duration_minutes || 30,
-          active !== false,
-          requires_confirmation !== false,
-          id,
-        ]
-      );
+      const { rows } = await sql`
+        UPDATE ${sql.table(counselorsTable)} SET
+          first_name = ${(first_name || '').trim()},
+          last_name = ${last_name.trim()},
+          email = ${email ? email.trim().toLowerCase() : null},
+          salutation = ${salutation || null},
+          room = ${room ? room.trim() : null},
+          phone = ${phone ? phone.trim() : null},
+          specializations = ${specializations || null},
+          available_from = ${available_from || '08:00'},
+          available_until = ${available_until || '14:00'},
+          slot_duration_minutes = ${slot_duration_minutes || 30},
+          active = ${active !== false},
+          requires_confirmation = ${requires_confirmation !== false}
+        WHERE id = ${id}
+        RETURNING *
+      `.execute(db);
 
       if (!rows.length) return res.status(404).json({ error: `${counselorLabel} nicht gefunden` });
 
       const counselor = rows[0];
       if (counselor.user_id) {
         try {
-          await query('UPDATE users SET email = $1 WHERE id = $2', [
-            email ? email.trim().toLowerCase() : null,
-            counselor.user_id,
-          ]);
+          await db.updateTable('users')
+            .set({ email: email ? email.trim().toLowerCase() : null })
+            .where('id', '=', counselor.user_id)
+            .execute();
         } catch (syncErr) {
           logger.warn({ err: syncErr }, 'Email sync to user failed');
         }
@@ -164,10 +164,14 @@ export function createCounselorAdminRoutes(config) {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
 
-      const { rows: counselorRows } = await query(`SELECT user_id FROM ${counselorsTable} WHERE id = $1`, [id]);
+      const { rows: counselorRows } = await sql`
+        SELECT user_id FROM ${sql.table(counselorsTable)} WHERE id = ${id}
+      `.execute(db);
       const counselorRow = counselorRows[0];
 
-      const { rows } = await query(`DELETE FROM ${counselorsTable} WHERE id = $1 RETURNING id`, [id]);
+      const { rows } = await sql`
+        DELETE FROM ${sql.table(counselorsTable)} WHERE id = ${id} RETURNING id
+      `.execute(db);
       if (!rows.length) return res.status(404).json({ error: `${counselorLabel} nicht gefunden` });
 
       if (counselorRow?.user_id && onCounselorDeleted) {
@@ -189,13 +193,13 @@ export function createCounselorAdminRoutes(config) {
 
   router.get('/stats', authMiddleware, async (_req, res) => {
     try {
-      const { rows: [counts] } = await query(`
+      const { rows: [counts] } = await sql`
         SELECT
-          (SELECT COUNT(*) FROM ${counselorsTable} WHERE active = TRUE) AS counselors,
-          (SELECT COUNT(*) FROM ${appointmentsTable} WHERE status = 'requested') AS pending,
-          (SELECT COUNT(*) FROM ${appointmentsTable} WHERE status = 'confirmed') AS confirmed,
-          (SELECT COUNT(*) FROM ${appointmentsTable} WHERE status = 'available' AND date >= CURRENT_DATE) AS available
-      `);
+          (SELECT COUNT(*) FROM ${sql.table(counselorsTable)} WHERE active = TRUE) AS counselors,
+          (SELECT COUNT(*) FROM ${sql.table(appointmentsTable)} WHERE status = 'requested') AS pending,
+          (SELECT COUNT(*) FROM ${sql.table(appointmentsTable)} WHERE status = 'confirmed') AS confirmed,
+          (SELECT COUNT(*) FROM ${sql.table(appointmentsTable)} WHERE status = 'available' AND date >= CURRENT_DATE) AS available
+      `.execute(db);
       res.json({ stats: counts });
     } catch (err) {
       logger.error({ err }, `${tablePrefix}: Fehler beim Laden der Statistiken`);
@@ -219,13 +223,15 @@ export function createCounselorAdminRoutes(config) {
         return res.status(400).json({ error: 'Datumsformat muss YYYY-MM-DD sein' });
       }
 
-      const { rows } = await query(
-        `SELECT a.*
-         FROM ${appointmentsTable} a
-         WHERE a.counselor_id = $1 AND a.date >= $2 AND a.date <= $3 AND a.restricted IS NOT TRUE
-         ORDER BY a.date, a.time`,
-        [counselorId, dateFrom, dateUntil]
-      );
+      const { rows } = await sql`
+        SELECT a.*
+        FROM ${sql.table(appointmentsTable)} a
+        WHERE a.counselor_id = ${counselorId}
+          AND a.date >= ${dateFrom}
+          AND a.date <= ${dateUntil}
+          AND a.restricted IS NOT TRUE
+        ORDER BY a.date, a.time
+      `.execute(db);
       res.json({ appointments: rows });
     } catch (err) {
       logger.error({ err }, `${tablePrefix} admin appointments error`);
@@ -250,10 +256,11 @@ export function createCounselorAdminRoutes(config) {
       const isAdmin = req.user?.role === 'admin' || req.user?.role === 'superadmin';
       let rowCount;
       if (!isAdmin) {
-        const { rows: counselorRows } = await query(
-          `SELECT id FROM ${counselorsTable} WHERE user_id = $1 AND active = true`,
-          [req.user.id]
-        );
+        const { rows: counselorRows } = await sql`
+          SELECT id FROM ${sql.table(counselorsTable)}
+          WHERE user_id = ${req.user.id} AND active = true
+        `.execute(db);
+
         if (counselorRows.length === 0) {
           return res.status(403).json({ error: 'Kein aktiver Beratungs-Account für diesen Benutzer' });
         }
@@ -271,7 +278,7 @@ export function createCounselorAdminRoutes(config) {
           .where('id', 'in', numericIds)
           .where('restricted', 'is not', true)
           .executeTakeFirst();
-        rowCount = result.rowCount;
+        rowCount = Number(result?.numDeletedRows ?? 0);
       }
       writeAuditLog(req.user?.id, 'DELETE', appointmentsTable, null, { ids: numericIds, count: rowCount }, req.ip);
       res.json({ success: true, deleted: rowCount });
@@ -286,10 +293,11 @@ export function createCounselorAdminRoutes(config) {
   router.get('/counselors/:id/schedule', authMiddleware, async (req, res) => {
     try {
       const counselorId = parseInt(req.params.id, 10);
-      const { rows } = await query(
-        `SELECT * FROM ${scheduleTable} WHERE counselor_id = $1 ORDER BY weekday`,
-        [counselorId]
-      );
+      const { rows } = await sql`
+        SELECT * FROM ${sql.table(scheduleTable)}
+        WHERE counselor_id = ${counselorId}
+        ORDER BY weekday
+      `.execute(db);
       res.json({ schedule: rows });
     } catch (err) {
       logger.error({ err }, `${tablePrefix}: Fehler beim Laden des Wochenplans`);
@@ -341,6 +349,8 @@ export async function createCounselorUser(counselor, req, config) {
   const { tablePrefix, userRole, moduleKey } = config;
   const { username: reqUsername, password: reqPassword } = req.body || {};
 
+  assertSafeIdentifier(tablePrefix, 'tablePrefix');
+
   const uname = (reqUsername && typeof reqUsername === 'string' && reqUsername.trim())
     ? reqUsername.trim()
     : generateUsername(counselor.first_name, counselor.last_name, counselor.id, tablePrefix);
@@ -362,28 +372,40 @@ export async function createCounselorUser(counselor, req, config) {
   const parsedEmail = counselor.email || null;
 
   // Check for existing username to avoid silent overwrite
-  const { rows: existing } = await query('SELECT id FROM users WHERE username = $1', [uname]);
-  if (existing.length > 0) {
+  const existingUser = await db.selectFrom('users')
+    .select(['id'])
+    .where('username', '=', uname)
+    .executeTakeFirst();
+
+  if (existingUser) {
     throw Object.assign(new Error('Benutzername ist bereits vergeben'), { statusCode: 409 });
   }
 
-  const { rows: userRows } = await query(
-    `INSERT INTO users (username, email, password_hash, role, force_password_change)
-     VALUES ($1, $2, $3, $4, true)
-     RETURNING id`,
-    [uname, parsedEmail, passwordHash, userRole]
-  );
+  const counselorsTable = `${tablePrefix}_counselors`;
 
-  if (userRows[0]) {
-    await query(`UPDATE ${tablePrefix}_counselors SET user_id = $1 WHERE id = $2`, [userRows[0].id, counselor.id]);
-    counselor.user_id = userRows[0].id;
+  const userRow = await db.insertInto('users')
+    .values({
+      username: uname,
+      email: parsedEmail,
+      password_hash: passwordHash,
+      role: userRole,
+      force_password_change: true,
+    })
+    .returning(['id'])
+    .executeTakeFirst();
+
+  if (userRow) {
+    await sql`
+      UPDATE ${sql.table(counselorsTable)} SET user_id = ${userRow.id} WHERE id = ${counselor.id}
+    `.execute(db);
+    counselor.user_id = userRow.id;
 
     // Grant module access if needed
     if (moduleKey) {
-      await query(
-        'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [userRows[0].id, moduleKey]
-      );
+      await db.insertInto('user_module_access')
+        .values({ user_id: userRow.id, module_key: moduleKey })
+        .onConflict((oc) => oc.doNothing())
+        .execute();
     }
 
     return { username: uname, tempPassword };
