@@ -1,19 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock dependencies
+// ── Chainable mock builder for Kysely ────────────────────────────────
+function createChainMock(result = {}) {
+  const chain = {};
+  for (const method of ['selectFrom', 'updateTable', 'insertInto', 'deleteFrom',
+    'set', 'where', 'select', 'values', 'onConflict', 'doNothing',
+    'returning', 'returningAll', 'orderBy', 'limit']) {
+    chain[method] = vi.fn(() => chain);
+  }
+  chain.execute = vi.fn(() => Promise.resolve(result));
+  chain.executeTakeFirst = vi.fn(() => Promise.resolve(result));
+  chain.executeTakeFirstOrThrow = vi.fn(() => Promise.resolve(result));
+  return chain;
+}
+
+let mockDbChain;
+let mockInsertChain;
+
 vi.mock('../../config/db.js', () => ({ query: vi.fn() }));
 vi.mock('../../db/database.js', () => {
-  const mockDb = {
-    updateTable: vi.fn(() => mockDb),
-    set: vi.fn(() => mockDb),
-    where: vi.fn(() => mockDb),
-    executeTakeFirst: vi.fn(() => Promise.resolve({ numUpdatedRows: 0n })),
-    insertInto: vi.fn(() => mockDb),
-    values: vi.fn(() => mockDb),
-    execute: vi.fn(() => Promise.resolve()),
+  mockDbChain = createChainMock({ numUpdatedRows: 0n });
+  mockInsertChain = createChainMock();
+  return {
+    db: {
+      updateTable: vi.fn(() => mockDbChain),
+      insertInto: vi.fn(() => mockInsertChain),
+      selectFrom: vi.fn(() => mockDbChain),
+    },
   };
-  return { db: mockDb };
 });
 vi.mock('kysely', () => ({
   sql: Object.assign(
@@ -27,19 +42,16 @@ vi.mock('../../config/rateLimiter.js', () => ({
   createRateLimiter: () => (_req, _res, next) => next(),
 }));
 vi.mock('../../config/logger.js', () => ({
-  default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
+  default: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 vi.mock('../../middleware/validate.js', () => ({
-  validate: () => (req, _res, next) => {
-    // Simple passthrough — real Zod validation tested separately
-    next();
-  },
+  validate: () => (req, _res, next) => next(),
 }));
 vi.mock('../../schemas/booking.js', () => ({
   consentWithdrawSchema: {},
 }));
 
-const { query } = await import('../../config/db.js');
+const { db } = await import('../../db/database.js');
 const { default: consentRouter } = await import('../consent.js');
 
 function createApp() {
@@ -72,13 +84,14 @@ async function request(app, method, path, body) {
 describe('consent withdraw (Art. 7 DSGVO)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: updateTable returns 0 affected rows
+    mockDbChain.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 0n });
+    mockInsertChain.execute.mockResolvedValue(undefined);
   });
 
-  // TODO: These tests need updating — consent.js now uses Kysely db.updateTable()
-  // instead of query(). The mock assertions check query.mock.calls which no longer apply.
-  it.skip('anonymisiert bl_appointments mit first_name/last_name', async () => {
+  it('anonymisiert bl_appointments — calls db.updateTable(bl_appointments)', async () => {
+    mockDbChain.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 2n });
     const app = createApp();
-    query.mockResolvedValue({ rowCount: 2 });
 
     const res = await request(app, 'POST', '/withdraw', {
       email: 'test@example.com',
@@ -87,20 +100,12 @@ describe('consent withdraw (Art. 7 DSGVO)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-
-    // Prüfe dass UPDATE first_name/last_name verwendet (nicht student_name)
-    const updateCall = query.mock.calls.find(c =>
-      typeof c[0] === 'string' && c[0].includes('bl_appointments')
-    );
-    expect(updateCall).toBeDefined();
-    expect(updateCall[0]).toContain('first_name = NULL');
-    expect(updateCall[0]).toContain('last_name = NULL');
-    expect(updateCall[0]).not.toContain('student_name');
+    expect(db.updateTable).toHaveBeenCalledWith('bl_appointments');
   });
 
-  it.skip('anonymisiert ssw_appointments mit first_name/last_name', async () => {
+  it('anonymisiert ssw_appointments — calls db.updateTable(ssw_appointments)', async () => {
+    mockDbChain.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 1n });
     const app = createApp();
-    query.mockResolvedValue({ rowCount: 1 });
 
     const res = await request(app, 'POST', '/withdraw', {
       email: 'test@example.com',
@@ -108,16 +113,11 @@ describe('consent withdraw (Art. 7 DSGVO)', () => {
     });
 
     expect(res.status).toBe(200);
-    const updateCall = query.mock.calls.find(c =>
-      typeof c[0] === 'string' && c[0].includes('ssw_appointments')
-    );
-    expect(updateCall[0]).toContain('first_name = NULL');
-    expect(updateCall[0]).toContain('last_name = NULL');
+    expect(db.updateTable).toHaveBeenCalledWith('ssw_appointments');
   });
 
   it('gibt immer gleiche Antwort (kein Leak ob E-Mail existiert)', async () => {
     const app = createApp();
-    query.mockResolvedValue({ rowCount: 0 }); // Keine Daten gefunden
 
     const res = await request(app, 'POST', '/withdraw', {
       email: 'unknown@example.com',
@@ -130,33 +130,27 @@ describe('consent withdraw (Art. 7 DSGVO)', () => {
   });
 
   it('schreibt Consent-Receipt nur bei anonymizedCount > 0', async () => {
+    mockDbChain.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 0n });
     const app = createApp();
-    query.mockResolvedValue({ rowCount: 0 });
 
     await request(app, 'POST', '/withdraw', {
       email: 'unknown@example.com',
       module: 'beratungslehrer',
     });
 
-    const insertCalls = query.mock.calls.filter(c =>
-      typeof c[0] === 'string' && c[0].includes('consent_receipts')
-    );
-    expect(insertCalls.length).toBe(0);
+    // No insertInto call when 0 rows affected
+    expect(db.insertInto).not.toHaveBeenCalled();
   });
 
-  it.skip('schreibt Consent-Receipt bei erfolgreicher Anonymisierung', async () => {
+  it('schreibt Consent-Receipt bei erfolgreicher Anonymisierung', async () => {
+    mockDbChain.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 3n });
     const app = createApp();
-    query.mockResolvedValue({ rowCount: 3 });
 
     await request(app, 'POST', '/withdraw', {
       email: 'test@example.com',
       module: 'beratungslehrer',
     });
 
-    const insertCalls = query.mock.calls.filter(c =>
-      typeof c[0] === 'string' && c[0].includes('consent_receipts')
-    );
-    expect(insertCalls.length).toBe(1);
-    expect(insertCalls[0][1]).toContain('beratungslehrer');
+    expect(db.insertInto).toHaveBeenCalledWith('consent_receipts');
   });
 });

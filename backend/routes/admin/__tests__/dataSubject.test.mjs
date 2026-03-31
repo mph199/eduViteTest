@@ -6,6 +6,23 @@ vi.mock('../../../config/db.js', () => ({
   query: vi.fn(),
   getClient: vi.fn(),
 }));
+vi.mock('../../../db/database.js', () => {
+  const chain = {};
+  for (const m of ['selectFrom','updateTable','insertInto','deleteFrom','set','where','select',
+    'values','onConflict','doNothing','returning','returningAll','orderBy','limit']) {
+    chain[m] = vi.fn(() => chain);
+  }
+  chain.execute = vi.fn(() => Promise.resolve([]));
+  chain.executeTakeFirst = vi.fn(() => Promise.resolve(null));
+  chain.executeTakeFirstOrThrow = vi.fn(() => Promise.resolve({}));
+  return { db: { selectFrom: vi.fn(() => chain), updateTable: vi.fn(() => chain), insertInto: vi.fn(() => chain), deleteFrom: vi.fn(() => chain), transaction: vi.fn(() => ({ execute: vi.fn(fn => fn(chain)) })) } };
+});
+vi.mock('kysely', () => ({
+  sql: Object.assign(
+    (strings, ...values) => ({ execute: vi.fn(() => Promise.resolve({ rows: [], numAffectedRows: 0n })) }),
+    { raw: vi.fn(), table: vi.fn(), ref: vi.fn(), join: vi.fn(() => ({})) }
+  ),
+}));
 vi.mock('../../../config/logger.js', () => ({
   default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));

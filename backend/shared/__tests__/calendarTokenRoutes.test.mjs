@@ -3,6 +3,13 @@ import express from 'express';
 
 // Mock dependencies
 vi.mock('../../config/db.js', () => ({ query: vi.fn() }));
+vi.mock('../../db/database.js', () => ({ db: {} }));
+vi.mock('kysely', () => ({
+  sql: Object.assign(
+    (strings, ...values) => ({ execute: vi.fn(() => Promise.resolve({ rows: [] })) }),
+    { raw: vi.fn(), table: vi.fn(), ref: vi.fn() }
+  ),
+}));
 vi.mock('../../config/logger.js', () => ({
   default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
