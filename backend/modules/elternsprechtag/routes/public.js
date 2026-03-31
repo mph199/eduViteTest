@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
+import { sql } from 'kysely';
 
 import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from '../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../emails/template.js';
@@ -26,10 +27,16 @@ async function verifyBookingRequestToken(token) {
   }
 
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  const { rows } = await query(
-    `SELECT id, event_id, teacher_id, requested_time, date, status, visitor_type, parent_name, company_name, student_name, trainee_name, representative_name, class_name, email, assigned_slot_id, created_at FROM booking_requests WHERE status = 'requested' AND verification_token_hash = $1`,
-    [tokenHash]
-  );
+  const rows = await db.selectFrom('booking_requests')
+    .select([
+      'id', 'event_id', 'teacher_id', 'requested_time', 'date', 'status',
+      'visitor_type', 'parent_name', 'company_name', 'student_name',
+      'trainee_name', 'representative_name', 'class_name', 'email',
+      'assigned_slot_id', 'created_at',
+    ])
+    .where('status', '=', 'requested')
+    .where('verification_token_hash', '=', tokenHash)
+    .execute();
   const reqRow = rows[0] || null;
 
   if (!reqRow) {
@@ -58,10 +65,10 @@ async function verifyBookingRequestToken(token) {
   }
 
   const now = new Date().toISOString();
-  await query(
-    `UPDATE booking_requests SET verified_at = $1, verification_token_hash = NULL, updated_at = $1 WHERE id = $2`,
-    [now, reqRow.id]
-  );
+  await db.updateTable('booking_requests')
+    .set({ verified_at: now, verification_token_hash: null, updated_at: now })
+    .where('id', '=', reqRow.id)
+    .execute();
 
   return {
     requestRow: { ...reqRow, verified_at: now, verification_token_hash: null },
@@ -105,7 +112,10 @@ router.get('/slots', async (req, res) => {
       return res.status(400).json({ error: 'teacherId must be a number' });
     }
 
-    const { rows: teacherRows } = await query('SELECT id, available_from, available_until FROM teachers WHERE id = $1', [teacherIdNum]);
+    const teacherRows = await db.selectFrom('teachers')
+      .select(['id', 'available_from', 'available_until'])
+      .where('id', '=', teacherIdNum)
+      .execute();
     const teacherRow = teacherRows[0] || null;
     if (!teacherRow) throw new Error('Teacher not found');
 
@@ -120,7 +130,10 @@ router.get('/slots', async (req, res) => {
       }
       resolvedEventId = parsed;
       try {
-        const { rows: evRows } = await query('SELECT id, starts_at FROM events WHERE id = $1', [resolvedEventId]);
+        const evRows = await db.selectFrom('events')
+          .select(['id', 'starts_at'])
+          .where('id', '=', resolvedEventId)
+          .execute();
         const ev = evRows[0] || null;
         resolvedEventStartsAt = ev?.starts_at || null;
       } catch {
@@ -181,18 +194,16 @@ router.post('/bookings', validate(bookingSchema), async (req, res) => {
 
     // Consent-Receipt (append-only, Art. 7 Abs. 1)
     if (slotRow) {
-      await query(
-        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          'elternsprechtag',
-          slotRow.id,
-          consentVersion,
-          'Terminbuchung Elternsprechtag',
-          req.ip || null,
-          req.get('user-agent') || null,
-        ]
-      );
+      await db.insertInto('consent_receipts')
+        .values({
+          module: 'elternsprechtag',
+          appointment_id: slotRow.id,
+          consent_version: consentVersion,
+          consent_purpose: 'Terminbuchung Elternsprechtag',
+          ip_address: req.ip || null,
+          user_agent: req.get('user-agent') || null,
+        })
+        .execute();
     }
 
     // Send verification email (best-effort)
@@ -238,8 +249,11 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
       return res.status(400).json({ error: 'teacherId required' });
     }
 
-    const { rows: teacherLookupRows2 } = await query('SELECT id, available_from, available_until FROM teachers WHERE id = $1', [teacherIdNum]);
-    const teacherRow = teacherLookupRows2[0] || null;
+    const teacherLookupRows = await db.selectFrom('teachers')
+      .select(['id', 'available_from', 'available_until'])
+      .where('id', '=', teacherIdNum)
+      .execute();
+    const teacherRow = teacherLookupRows[0] || null;
     if (!teacherRow) throw new Error('Teacher not found');
 
     const requestedTime = typeof payload.requestedTime === 'string' ? payload.requestedTime.trim() : '';
@@ -285,7 +299,7 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
     const now = new Date().toISOString();
     const eventDate = formatDateDE(activeEvent.starts_at) || formatDateDE(now) || '01.01.1970';
 
-    const insert = {
+    const insertValues = {
       event_id: activeEventId,
       teacher_id: teacherIdNum,
       requested_time: requestedTime,
@@ -304,43 +318,36 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
     };
 
     if (visitorType === 'parent') {
-      insert.parent_name = normalize(payload.parentName);
-      insert.student_name = normalize(payload.studentName);
-      insert.company_name = null;
-      insert.trainee_name = null;
-      insert.representative_name = null;
+      insertValues.parent_name = normalize(payload.parentName);
+      insertValues.student_name = normalize(payload.studentName);
+      insertValues.company_name = null;
+      insertValues.trainee_name = null;
+      insertValues.representative_name = null;
     } else {
-      insert.company_name = normalize(payload.companyName);
-      insert.trainee_name = normalize(payload.traineeName);
-      insert.representative_name = normalize(payload.representativeName);
-      insert.parent_name = null;
-      insert.student_name = null;
+      insertValues.company_name = normalize(payload.companyName);
+      insertValues.trainee_name = normalize(payload.traineeName);
+      insertValues.representative_name = normalize(payload.representativeName);
+      insertValues.parent_name = null;
+      insertValues.student_name = null;
     }
 
-    const insertKeys = Object.keys(insert);
-    const insertValues = Object.values(insert);
-    const insertPlaceholders = insertKeys.map((_, i) => `$${i + 1}`).join(', ');
-    const insertColumns = insertKeys.join(', ');
-    const { rows: createdRows } = await query(
-      `INSERT INTO booking_requests (${insertColumns}) VALUES (${insertPlaceholders}) RETURNING *`,
-      insertValues
-    );
-    const created = createdRows[0] || null;
+    const created = await db.insertInto('booking_requests')
+      .values(insertValues)
+      .returningAll()
+      .executeTakeFirst();
 
     // Consent-Receipt (append-only, Art. 7 Abs. 1)
     if (created) {
-      await query(
-        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          'elternsprechtag',
-          created.id,
-          consentVersion,
-          'Terminbuchung Elternsprechtag',
-          req.ip || null,
-          req.get('user-agent') || null,
-        ]
-      );
+      await db.insertInto('consent_receipts')
+        .values({
+          module: 'elternsprechtag',
+          appointment_id: created.id,
+          consent_version: consentVersion,
+          consent_purpose: 'Terminbuchung Elternsprechtag',
+          ip_address: req.ip || null,
+          user_agent: req.get('user-agent') || null,
+        })
+        .execute();
     }
 
     // Send verification email (best-effort)
@@ -401,7 +408,10 @@ router.get('/bookings/verify/:token', async (req, res) => {
             label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
           }, branding);
           await sendMail({ to: slot.email, subject, text, html });
-          await query('UPDATE slots SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, slot.id]);
+          await db.updateTable('slots')
+            .set({ confirmation_sent_at: now, updated_at: now })
+            .where('id', '=', slot.id)
+            .execute();
         } catch (e) {
           logger.warn({ err: e }, 'Sending confirmation after verify failed');
         }
@@ -413,7 +423,10 @@ router.get('/bookings/verify/:token', async (req, res) => {
     if (request) {
       if (request.status === 'accepted' && request.assigned_slot_id && !request.confirmation_sent_at && isEmailConfigured()) {
         try {
-          const { rows: slotLookupRows } = await query('SELECT id, teacher_id, time, date, booked, status, email, verified_at FROM slots WHERE id = $1', [request.assigned_slot_id]);
+          const slotLookupRows = await db.selectFrom('slots')
+            .select(['id', 'teacher_id', 'time', 'date', 'booked', 'status', 'email', 'verified_at'])
+            .where('id', '=', request.assigned_slot_id)
+            .execute();
           const slotRow = slotLookupRows[0] || null;
           const teacher = await getTeacherById(request.teacher_id) || {};
           const when = slotRow ? `${slotRow.date} ${slotRow.time}` : `${request.date} ${request.requested_time}`;
@@ -424,7 +437,10 @@ router.get('/bookings/verify/:token', async (req, res) => {
             teacherName: teacher.name,
           }, branding4);
           await sendMail({ to: request.email, subject, text, html });
-          await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, request.id]);
+          await db.updateTable('booking_requests')
+            .set({ confirmation_sent_at: now, updated_at: now })
+            .where('id', '=', request.id)
+            .execute();
         } catch (e) {
           logger.warn({ err: e }, 'Sending confirmation after request verify failed');
         }
@@ -445,16 +461,27 @@ router.get('/bookings/verify/:token', async (req, res) => {
 router.get('/events/active', async (_req, res) => {
   try {
     const now = new Date().toISOString();
-    const { rows } = await query(
-      `SELECT id, name, school_year, starts_at, ends_at, timezone, status,
-              booking_opens_at, booking_closes_at
-       FROM events
-       WHERE status = 'published'
-         AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
-         AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
-       ORDER BY starts_at DESC LIMIT 1`,
-      [now]
-    );
+    const rows = await db.selectFrom('events')
+      .select([
+        'id', 'name', 'school_year', 'starts_at', 'ends_at', 'timezone', 'status',
+        'booking_opens_at', 'booking_closes_at',
+      ])
+      .where('status', '=', 'published')
+      .where((eb) =>
+        eb.or([
+          eb('booking_opens_at', 'is', null),
+          eb('booking_opens_at', '<=', now),
+        ])
+      )
+      .where((eb) =>
+        eb.or([
+          eb('booking_closes_at', 'is', null),
+          eb('booking_closes_at', '>=', now),
+        ])
+      )
+      .orderBy('starts_at', 'desc')
+      .limit(1)
+      .execute();
 
     const activeEvent = rows && rows.length ? rows[0] : null;
     res.json({ event: activeEvent });
@@ -469,14 +496,16 @@ router.get('/events/active', async (_req, res) => {
 router.get('/events/upcoming', async (_req, res) => {
   try {
     const now = new Date().toISOString();
-    const { rows } = await query(
-      `SELECT id, name, school_year, starts_at, ends_at, timezone, status,
-              booking_opens_at, booking_closes_at
-       FROM events
-       WHERE status = 'published' AND starts_at >= $1
-       ORDER BY starts_at ASC LIMIT 3`,
-      [now]
-    );
+    const rows = await db.selectFrom('events')
+      .select([
+        'id', 'name', 'school_year', 'starts_at', 'ends_at', 'timezone', 'status',
+        'booking_opens_at', 'booking_closes_at',
+      ])
+      .where('status', '=', 'published')
+      .where('starts_at', '>=', now)
+      .orderBy('starts_at', 'asc')
+      .limit(3)
+      .execute();
 
     res.json({ events: rows || [] });
   } catch (error) {
@@ -489,7 +518,7 @@ router.get('/events/upcoming', async (_req, res) => {
 
 router.get('/health', async (_req, res) => {
   try {
-    await query('SELECT 1');
+    await sql`SELECT 1`.execute(db);
     res.json({ status: 'ok' });
   } catch (error) {
     logger.error({ err: error }, 'Error in health check');
