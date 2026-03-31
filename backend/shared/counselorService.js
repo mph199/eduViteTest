@@ -9,9 +9,7 @@
  * @param {string} config.counselorLabel       – e.g. 'Berater/in' or 'Beratungslehrer'
  */
 
-import { sql } from 'kysely';
-import { db } from '../db/database.js';
-import { query } from '../config/db.js'; // kept for upsertWeeklySchedule (dynamic table)
+import { query } from '../config/db.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
 
 /**

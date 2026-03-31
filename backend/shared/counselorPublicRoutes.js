@@ -15,7 +15,7 @@
 import express from 'express';
 import { createRateLimiter } from '../config/rateLimiter.js';
 import { query } from '../config/db.js';
-import { db } from '../db/database.js';
+
 import { assertSafeIdentifier } from './sqlGuards.js';
 import { validate } from '../middleware/validate.js';
 import { counselorBookingSchema } from '../schemas/counselor.js';

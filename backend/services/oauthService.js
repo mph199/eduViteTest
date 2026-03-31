@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { query } from '../config/db.js';
-import { db } from '../db/database.js';
+
 import { encrypt, decrypt } from '../config/encryption.js';
 import logger from '../config/logger.js';
 

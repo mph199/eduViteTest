@@ -9,7 +9,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../config/db.js';
-import { db } from '../db/database.js';
+
 import { generateSlotsForDateRange } from './counselorService.js';
 import logger from '../config/logger.js';
 
