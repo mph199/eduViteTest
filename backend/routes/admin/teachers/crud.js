@@ -1,12 +1,14 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import { sql } from 'kysely';
 import { requireAdmin } from '../../../middleware/auth.js';
-import { query, getClient } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation } from '../../../utils/validators.js';
 import { resolveActiveEvent } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
 import { validatePassword } from '../../../shared/validatePassword.js';
 import { insertTeacherSlots, upsertBlCounselor, upsertSswCounselor, parseTeacherName } from './helpers.js';
+import { getClient } from '../../../config/db.js';
 
 const router = express.Router();
 
@@ -16,37 +18,27 @@ router.post('/teachers', requireAdmin, async (req, res) => {
   const { email, salutation, subject, available_from, available_until, username: reqUsername, password: reqPassword } = req.body || {};
 
   const { firstName, lastName } = parseTeacherName(req.body || {});
-  if (!lastName) {
-    return res.status(400).json({ error: 'Nachname ist erforderlich' });
-  }
+  if (!lastName) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
   const parsedEmail = normalizeAndValidateTeacherEmail(email);
-  if (!parsedEmail.ok) {
-    return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
-  }
+  if (!parsedEmail.ok) return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
 
   const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
-  if (!parsedSalutation.ok) {
-    return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
-  }
+  if (!parsedSalutation.ok) return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
 
-  // Username + password are required
   const username = (reqUsername && typeof reqUsername === 'string') ? reqUsername.trim() : '';
-  if (!username) {
-    return res.status(400).json({ error: 'Benutzername ist erforderlich' });
-  }
+  if (!username) return res.status(400).json({ error: 'Benutzername ist erforderlich' });
 
   const tempPassword = (reqPassword && typeof reqPassword === 'string') ? reqPassword.trim() : '';
   const pwCheck = validatePassword(tempPassword);
-  if (!pwCheck.valid) {
-    return res.status(400).json({ error: pwCheck.message });
-  }
+  if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.message });
 
+  // Transaction uses getClient because upsertBlCounselor/upsertSswCounselor
+  // still use raw query (Shared-Kernel migration pending)
   const client = await getClient();
   try {
     await client.query('BEGIN');
 
-    // Check for duplicate username inside the transaction
     const { rows: existingUser } = await client.query('SELECT id FROM users WHERE username = $1', [username]);
     if (existingUser.length > 0) {
       await client.query('ROLLBACK');
@@ -56,14 +48,12 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     const availFrom = available_from || '16:00';
     const availUntil = available_until || '19:00';
 
-    // Create teacher
     const { rows: newTeacherRows } = await client.query(
       'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil]
     );
     const teacher = newTeacherRows[0];
 
-    // Create linked user account (no ON CONFLICT – duplicates are rejected)
     const passwordHash = await bcrypt.hash(tempPassword, 10);
     const { rows: userRows } = await client.query(
       'INSERT INTO users (username, email, password_hash, role, teacher_id, force_password_change) VALUES ($1, $2, $3, $4, $5, true) RETURNING id',
@@ -71,25 +61,20 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     );
     const userId = userRows[0]?.id ?? null;
 
-    // Optional: Beratungslehrer-Profil anlegen
-    const blData = req.body.beratungslehrer;
-    if (blData && userId) {
-      await upsertBlCounselor(client, userId, blData, {
+    if (req.body.beratungslehrer && userId) {
+      await upsertBlCounselor(client, userId, req.body.beratungslehrer, {
         firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
       });
     }
 
-    // Optional: SSW-Berater-Profil anlegen
-    const sswData = req.body.schulsozialarbeit;
-    if (sswData && userId) {
-      await upsertSswCounselor(client, userId, sswData, {
+    if (req.body.schulsozialarbeit && userId) {
+      await upsertSswCounselor(client, userId, req.body.schulsozialarbeit, {
         firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
       });
     }
 
     await client.query('COMMIT');
 
-    // Generate time slots outside transaction (non-critical, can fail independently)
     const { eventId: targetEventId, eventDate } = await resolveActiveEvent();
     let slotsCreated = 0;
     try {
@@ -99,16 +84,12 @@ router.post('/teachers', requireAdmin, async (req, res) => {
     }
 
     res.json({
-      success: true,
-      teacher,
-      slotsCreated,
-      slotsEventId: targetEventId,
-      slotsEventDate: eventDate,
-      user: { username, passwordSet: true }
+      success: true, teacher, slotsCreated,
+      slotsEventId: targetEventId, slotsEventDate: eventDate,
+      user: { username, passwordSet: true },
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    // UNIQUE constraint violation (race condition)
     if (error.code === '23505' && error.constraint?.includes('username')) {
       return res.status(409).json({ error: `Benutzername "${username}" ist bereits vergeben` });
     }
@@ -123,15 +104,13 @@ router.post('/teachers', requireAdmin, async (req, res) => {
 
 router.get('/teachers', requireAdmin, async (_req, res) => {
   try {
-    const { rows } = await query(`
+    const rows = await sql`
       SELECT t.*,
-             bl.id AS bl_counselor_id,
-             bl.phone AS bl_phone,
+             bl.id AS bl_counselor_id, bl.phone AS bl_phone,
              bl.specializations AS bl_specializations,
              bl.slot_duration_minutes AS bl_slot_duration_minutes,
              bl.active AS bl_active,
-             ssw.id AS ssw_counselor_id,
-             ssw.room AS ssw_room,
+             ssw.id AS ssw_counselor_id, ssw.room AS ssw_room,
              ssw.phone AS ssw_phone,
              ssw.specializations AS ssw_specializations,
              ssw.slot_duration_minutes AS ssw_slot_duration_minutes,
@@ -142,8 +121,8 @@ router.get('/teachers', requireAdmin, async (_req, res) => {
       LEFT JOIN bl_counselors bl ON bl.user_id = u.id AND bl.active = true
       LEFT JOIN ssw_counselors ssw ON ssw.user_id = u.id AND ssw.active = true
       ORDER BY t.id
-    `);
-    return res.json({ teachers: rows || [] });
+    `.execute(db);
+    return res.json({ teachers: rows.rows || [] });
   } catch (error) {
     logger.error({ err: error }, 'Error fetching admin teachers');
     return res.status(500).json({ error: 'Failed to fetch teachers' });
@@ -157,19 +136,19 @@ router.get('/teachers/:id/bl', requireAdmin, async (req, res) => {
   if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
 
   try {
-    const { rows: blRows } = await query(
-      `SELECT bl.* FROM bl_counselors bl
-       JOIN users u ON u.id = bl.user_id
-       WHERE u.teacher_id = $1 LIMIT 1`,
-      [teacherId]
-    );
-    if (!blRows.length) return res.json({ counselor: null, schedule: [] });
+    const counselor = await sql`
+      SELECT bl.* FROM bl_counselors bl
+      JOIN users u ON u.id = bl.user_id
+      WHERE u.teacher_id = ${teacherId} LIMIT 1
+    `.execute(db).then(r => r.rows[0] || null);
 
-    const counselor = blRows[0];
-    const { rows: scheduleRows } = await query(
-      'SELECT id, counselor_id, weekday, start_time, end_time, active FROM bl_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
-      [counselor.id]
-    );
+    if (!counselor) return res.json({ counselor: null, schedule: [] });
+
+    const scheduleRows = await db.selectFrom('bl_weekly_schedule')
+      .select(['id', 'counselor_id', 'weekday', 'start_time', 'end_time', 'active'])
+      .where('counselor_id', '=', counselor.id)
+      .orderBy('weekday')
+      .execute();
     return res.json({ counselor, schedule: scheduleRows });
   } catch (error) {
     logger.error({ err: error }, 'Error fetching BL data for teacher');
@@ -184,19 +163,19 @@ router.get('/teachers/:id/ssw', requireAdmin, async (req, res) => {
   if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
 
   try {
-    const { rows: sswRows } = await query(
-      `SELECT ssw.* FROM ssw_counselors ssw
-       JOIN users u ON u.id = ssw.user_id
-       WHERE u.teacher_id = $1 LIMIT 1`,
-      [teacherId]
-    );
-    if (!sswRows.length) return res.json({ counselor: null, schedule: [] });
+    const counselor = await sql`
+      SELECT ssw.* FROM ssw_counselors ssw
+      JOIN users u ON u.id = ssw.user_id
+      WHERE u.teacher_id = ${teacherId} LIMIT 1
+    `.execute(db).then(r => r.rows[0] || null);
 
-    const counselor = sswRows[0];
-    const { rows: scheduleRows } = await query(
-      'SELECT id, counselor_id, weekday, start_time, end_time, active FROM ssw_weekly_schedule WHERE counselor_id = $1 ORDER BY weekday',
-      [counselor.id]
-    );
+    if (!counselor) return res.json({ counselor: null, schedule: [] });
+
+    const scheduleRows = await db.selectFrom('ssw_weekly_schedule')
+      .select(['id', 'counselor_id', 'weekday', 'start_time', 'end_time', 'active'])
+      .where('counselor_id', '=', counselor.id)
+      .orderBy('weekday')
+      .execute();
     return res.json({ counselor, schedule: scheduleRows });
   } catch (error) {
     logger.error({ err: error }, 'Error fetching SSW data for teacher');
@@ -208,55 +187,50 @@ router.get('/teachers/:id/ssw', requireAdmin, async (req, res) => {
 
 router.put('/teachers/:id', requireAdmin, async (req, res) => {
   const teacherId = parseInt(req.params.id, 10);
-  if (isNaN(teacherId)) {
-    return res.status(400).json({ error: 'Invalid teacher ID' });
-  }
+  if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
 
   try {
     const { email, salutation, subject, available_from, available_until } = req.body || {};
 
     const { firstName, lastName } = parseTeacherName(req.body || {});
-    if (!lastName) {
-      return res.status(400).json({ error: 'Nachname ist erforderlich' });
-    }
+    if (!lastName) return res.status(400).json({ error: 'Nachname ist erforderlich' });
 
     const parsedEmail = normalizeAndValidateTeacherEmail(email);
-    if (!parsedEmail.ok) {
-      return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
-    }
+    if (!parsedEmail.ok) return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse eingeben.' });
 
     const parsedSalutation = normalizeAndValidateTeacherSalutation(salutation);
-    if (!parsedSalutation.ok) {
-      return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
-    }
+    if (!parsedSalutation.ok) return res.status(400).json({ error: 'Ungültige Anrede. Erlaubt: Herr, Frau, Divers.' });
 
     const availFrom = available_from || '16:00';
     const availUntil = available_until || '19:00';
 
-    const { rows } = await query(
-      `UPDATE teachers SET first_name = $1, last_name = $2, email = $3, salutation = $4, subject = $5, available_from = $6, available_until = $7
-       WHERE id = $8 RETURNING *`,
-      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil, teacherId]
-    );
+    const teacher = await db.updateTable('teachers')
+      .set({
+        first_name: firstName, last_name: lastName,
+        email: parsedEmail.email, salutation: parsedSalutation.salutation,
+        subject: subject || 'Sprechstunde',
+        available_from: availFrom, available_until: availUntil,
+      })
+      .where('id', '=', teacherId)
+      .returningAll()
+      .executeTakeFirst();
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Teacher not found' });
-    }
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
 
     // Sync email to linked user account
-    await query(
-      'UPDATE users SET email = $1 WHERE teacher_id = $2',
-      [parsedEmail.email, teacherId]
-    );
+    await db.updateTable('users')
+      .set({ email: parsedEmail.email })
+      .where('teacher_id', '=', teacherId)
+      .execute();
 
-    // Optional: Beratungslehrer-Profil anlegen/aktualisieren/deaktivieren
-    const blData = req.body.beratungslehrer;
-    if (blData !== undefined) {
+    // Optional BL counselor upsert (uses legacy query via helpers.js)
+    if (req.body.beratungslehrer !== undefined) {
       try {
-        const { rows: userRows } = await query('SELECT id FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
-        const userId = userRows[0]?.id;
-        if (userId) {
-          await upsertBlCounselor(query, userId, blData, {
+        const userRow = await db.selectFrom('users').select('id').where('teacher_id', '=', teacherId).executeTakeFirst();
+        if (userRow) {
+          // upsertBlCounselor still uses raw query internally
+          const { query } = await import('../../../config/db.js');
+          await upsertBlCounselor(query, userRow.id, req.body.beratungslehrer, {
             firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
           });
         }
@@ -265,14 +239,13 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    // Optional: SSW-Berater-Profil anlegen/aktualisieren/deaktivieren
-    const sswData = req.body.schulsozialarbeit;
-    if (sswData !== undefined) {
+    // Optional SSW counselor upsert
+    if (req.body.schulsozialarbeit !== undefined) {
       try {
-        const { rows: userRows } = await query('SELECT id FROM users WHERE teacher_id = $1 LIMIT 1', [teacherId]);
-        const userId = userRows[0]?.id;
-        if (userId) {
-          await upsertSswCounselor(query, userId, sswData, {
+        const userRow = await db.selectFrom('users').select('id').where('teacher_id', '=', teacherId).executeTakeFirst();
+        if (userRow) {
+          const { query } = await import('../../../config/db.js');
+          await upsertSswCounselor(query, userRow.id, req.body.schulsozialarbeit, {
             firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
           });
         }
@@ -281,7 +254,7 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       }
     }
 
-    res.json({ success: true, teacher: rows[0] });
+    res.json({ success: true, teacher });
   } catch (error) {
     logger.error({ err: error }, 'Error updating teacher');
     res.status(500).json({ error: 'Failed to update teacher' });
@@ -292,53 +265,54 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
 
 router.delete('/teachers/:id', requireAdmin, async (req, res) => {
   const teacherId = parseInt(req.params.id, 10);
-  if (isNaN(teacherId)) {
-    return res.status(400).json({ error: 'Invalid teacher ID' });
-  }
+  if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
 
-  const client = await getClient();
   try {
-    await client.query('BEGIN');
+    await db.transaction().execute(async (trx) => {
+      const bookedSlots = await trx.selectFrom('slots')
+        .select(['id', 'booked'])
+        .where('teacher_id', '=', teacherId)
+        .execute();
 
-    const { rows: bookedSlots } = await client.query('SELECT id, booked FROM slots WHERE teacher_id = $1', [teacherId]);
-    const hasBookedSlots = bookedSlots && bookedSlots.some(slot => slot.booked);
+      if (bookedSlots.some(s => s.booked)) {
+        throw Object.assign(new Error('booked_slots'), { statusCode: 400 });
+      }
 
-    if (hasBookedSlots) {
-      await client.query('ROLLBACK');
-      client.release();
-      return res.status(400).json({
-        error: 'Lehrkraft kann nicht gelöscht werden, da noch gebuchte Termine existieren. Bitte zuerst alle gebuchten Termine stornieren.'
-      });
-    }
+      if (bookedSlots.length > 0) {
+        await trx.deleteFrom('slots').where('teacher_id', '=', teacherId).execute();
+      }
 
-    if (bookedSlots && bookedSlots.length > 0) {
-      await client.query('DELETE FROM slots WHERE teacher_id = $1', [teacherId]);
-    }
+      const userRow = await trx.selectFrom('users')
+        .select('id')
+        .where('teacher_id', '=', teacherId)
+        .executeTakeFirst();
 
-    // Find the user linked to this teacher so we can clean up counselor profiles
-    const { rows: userRows } = await client.query('SELECT id FROM users WHERE teacher_id = $1', [teacherId]);
-    const userId = userRows[0]?.id;
+      if (userRow) {
+        await trx.deleteFrom('bl_counselors').where('user_id', '=', userRow.id).execute();
+        await trx.deleteFrom('user_module_access')
+          .where('user_id', '=', userRow.id)
+          .where('module_key', '=', 'beratungslehrer')
+          .execute();
+        await trx.deleteFrom('ssw_counselors').where('user_id', '=', userRow.id).execute();
+        await trx.deleteFrom('user_module_access')
+          .where('user_id', '=', userRow.id)
+          .where('module_key', '=', 'schulsozialarbeit')
+          .execute();
+      }
 
-    // Delete BL counselor profile (if any) before deleting the user,
-    // preventing ghost entries from ON DELETE SET NULL
-    if (userId) {
-      await client.query('DELETE FROM bl_counselors WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'beratungslehrer']);
-      await client.query('DELETE FROM ssw_counselors WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2', [userId, 'schulsozialarbeit']);
-    }
+      await trx.deleteFrom('users').where('teacher_id', '=', teacherId).execute();
+      await trx.deleteFrom('teachers').where('id', '=', teacherId).execute();
+    });
 
-    await client.query('DELETE FROM users WHERE teacher_id = $1', [teacherId]);
-    await client.query('DELETE FROM teachers WHERE id = $1', [teacherId]);
-
-    await client.query('COMMIT');
     res.json({ success: true, message: 'Teacher deleted successfully' });
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (error.statusCode === 400) {
+      return res.status(400).json({
+        error: 'Lehrkraft kann nicht gelöscht werden, da noch gebuchte Termine existieren. Bitte zuerst alle gebuchten Termine stornieren.',
+      });
+    }
     logger.error({ err: error }, 'Error deleting teacher');
     res.status(500).json({ error: 'Failed to delete teacher' });
-  } finally {
-    client.release();
   }
 });
 
