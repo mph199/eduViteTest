@@ -8,7 +8,6 @@ import { resolveActiveEvent } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
 import { validatePassword } from '../../../shared/validatePassword.js';
 import { insertTeacherSlots, upsertBlCounselor, upsertSswCounselor, parseTeacherName } from './helpers.js';
-import { getClient } from '../../../config/db.js';
 
 const router = express.Router();
 
@@ -33,47 +32,51 @@ router.post('/teachers', requireAdmin, async (req, res) => {
   const pwCheck = validatePassword(tempPassword);
   if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.message });
 
-  // Transaction uses getClient because upsertBlCounselor/upsertSswCounselor
-  // still use raw query (Shared-Kernel migration pending)
-  const client = await getClient();
-  try {
-    await client.query('BEGIN');
+  const availFrom = available_from || '16:00';
+  const availUntil = available_until || '19:00';
 
-    const { rows: existingUser } = await client.query('SELECT id FROM users WHERE username = $1', [username]);
-    if (existingUser.length > 0) {
-      await client.query('ROLLBACK');
+  try {
+    // Check username uniqueness before transaction
+    const existing = await db.selectFrom('users').select('id').where('username', '=', username).executeTakeFirst();
+    if (existing) {
       return res.status(409).json({ error: `Benutzername "${username}" ist bereits vergeben` });
     }
 
-    const availFrom = available_from || '16:00';
-    const availUntil = available_until || '19:00';
-
-    const { rows: newTeacherRows } = await client.query(
-      'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [firstName, lastName, parsedEmail.email, parsedSalutation.salutation, subject || 'Sprechstunde', availFrom, availUntil]
-    );
-    const teacher = newTeacherRows[0];
-
     const passwordHash = await bcrypt.hash(tempPassword, 10);
-    const { rows: userRows } = await client.query(
-      'INSERT INTO users (username, email, password_hash, role, teacher_id, force_password_change) VALUES ($1, $2, $3, $4, $5, true) RETURNING id',
-      [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
-    );
-    const userId = userRows[0]?.id ?? null;
 
+    // Transaction for teacher + user + optional counselor profiles
+    const { teacher, userId } = await db.transaction().execute(async (trx) => {
+      const t = await trx.insertInto('teachers')
+        .values({
+          first_name: firstName, last_name: lastName, email: parsedEmail.email,
+          salutation: parsedSalutation.salutation, subject: subject || 'Sprechstunde',
+          available_from: availFrom, available_until: availUntil,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      const u = await trx.insertInto('users')
+        .values({
+          username, email: parsedEmail.email, password_hash: passwordHash,
+          role: 'teacher', teacher_id: t.id, force_password_change: true,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      return { teacher: t, userId: u.id };
+    });
+
+    // Counselor profiles (outside transaction — non-critical, uses global db)
     if (req.body.beratungslehrer && userId) {
-      await upsertBlCounselor(client, userId, req.body.beratungslehrer, {
+      await upsertBlCounselor(null, userId, req.body.beratungslehrer, {
         firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
       });
     }
-
     if (req.body.schulsozialarbeit && userId) {
-      await upsertSswCounselor(client, userId, req.body.schulsozialarbeit, {
+      await upsertSswCounselor(null, userId, req.body.schulsozialarbeit, {
         firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
       });
     }
-
-    await client.query('COMMIT');
 
     const { eventId: targetEventId, eventDate } = await resolveActiveEvent();
     let slotsCreated = 0;
@@ -89,14 +92,11 @@ router.post('/teachers', requireAdmin, async (req, res) => {
       user: { username, passwordSet: true },
     });
   } catch (error) {
-    await client.query('ROLLBACK');
     if (error.code === '23505' && error.constraint?.includes('username')) {
       return res.status(409).json({ error: `Benutzername "${username}" ist bereits vergeben` });
     }
     logger.error({ err: error }, 'Error creating teacher');
     res.status(500).json({ error: 'Fehler beim Anlegen des Nutzers' });
-  } finally {
-    client.release();
   }
 });
 
@@ -223,14 +223,12 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       .where('teacher_id', '=', teacherId)
       .execute();
 
-    // Optional BL counselor upsert (uses legacy query via helpers.js)
+    // Optional BL counselor upsert
     if (req.body.beratungslehrer !== undefined) {
       try {
         const userRow = await db.selectFrom('users').select('id').where('teacher_id', '=', teacherId).executeTakeFirst();
         if (userRow) {
-          // upsertBlCounselor still uses raw query internally
-          const { query } = await import('../../../config/db.js');
-          await upsertBlCounselor(query, userRow.id, req.body.beratungslehrer, {
+          await upsertBlCounselor(null, userRow.id, req.body.beratungslehrer, {
             firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
           });
         }
@@ -244,8 +242,7 @@ router.put('/teachers/:id', requireAdmin, async (req, res) => {
       try {
         const userRow = await db.selectFrom('users').select('id').where('teacher_id', '=', teacherId).executeTakeFirst();
         if (userRow) {
-          const { query } = await import('../../../config/db.js');
-          await upsertSswCounselor(query, userRow.id, req.body.schulsozialarbeit, {
+          await upsertSswCounselor(null, userRow.id, req.body.schulsozialarbeit, {
             firstName, lastName, email: parsedEmail.email, salutation: parsedSalutation.salutation,
           });
         }

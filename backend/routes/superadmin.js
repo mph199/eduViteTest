@@ -5,8 +5,8 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { createRateLimiter } from '../config/rateLimiter.js';
 import { requireSuperadmin } from '../middleware/auth.js';
-import { query, getClient } from '../config/db.js';
 import { db } from '../db/database.js';
+import { sql } from 'kysely';
 import * as oauthService from '../services/oauthService.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
@@ -118,20 +118,32 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
   if (!school_name || typeof school_name !== 'string') {
     return res.status(400).json({ error: 'school_name is required' });
   }
+  const cleanSchoolName = String(school_name).trim().slice(0, 255);
+  const cleanLogoUrl = sanitizeUploadUrl(String(logo_url || '').trim());
+  const cleanPrimaryColor = /^#[0-9a-fA-F]{3,8}$/.test(String(primary_color || '').trim()) ? String(primary_color).trim().slice(0, 9) : '#2d5016';
+  const cleanFooterText = String(footer_text || '').trim();
+
   try {
-    const { rows } = await query(
-      `INSERT INTO email_branding (id, school_name, logo_url, primary_color, footer_text, updated_at)
-       VALUES (1, $1, $2, $3, $4, NOW())
-       ON CONFLICT (id) DO UPDATE SET school_name = $1, logo_url = $2, primary_color = $3, footer_text = $4, updated_at = NOW()
-       RETURNING *`,
-      [
-        String(school_name).trim().slice(0, 255),
-        sanitizeUploadUrl(String(logo_url || '').trim()),
-        (/^#[0-9a-fA-F]{3,8}$/.test(String(primary_color || '').trim()) ? String(primary_color).trim().slice(0, 9) : '#2d5016'),
-        String(footer_text || '').trim(),
-      ]
-    );
-    return res.json({ success: true, branding: rows[0] });
+    const result = await db.insertInto('email_branding')
+      .values({
+        id: 1,
+        school_name: cleanSchoolName,
+        logo_url: cleanLogoUrl,
+        primary_color: cleanPrimaryColor,
+        footer_text: cleanFooterText,
+        updated_at: sql`NOW()`,
+      })
+      .onConflict((oc) => oc.column('id').doUpdateSet({
+        school_name: cleanSchoolName,
+        logo_url: cleanLogoUrl,
+        primary_color: cleanPrimaryColor,
+        footer_text: cleanFooterText,
+        updated_at: sql`NOW()`,
+      }))
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return res.json({ success: true, branding: result });
   } catch (error) {
     logger.error({ err: error }, 'Error updating email branding');
     return res.status(500).json({ error: 'Failed to update email branding' });
@@ -141,18 +153,18 @@ router.put('/email-branding', requireSuperadmin, async (req, res) => {
 // POST /api/superadmin/logo
 router.post('/logo', requireSuperadmin, handleUpload(logoUpload, 'logo', '/uploads/logos/'), async (req, res) => {
   try {
-    await query(
-      `UPDATE email_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
-      [req.uploadUrl]
-    );
+    await db.updateTable('email_branding')
+      .set({ logo_url: req.uploadUrl, updated_at: sql`NOW()` })
+      .where('id', '=', 1)
+      .execute();
   } catch (e) {
     logger.error({ err: e }, 'Error saving logo URL to email_branding');
   }
   try {
-    await query(
-      `UPDATE site_branding SET logo_url = $1, updated_at = NOW() WHERE id = 1`,
-      [req.uploadUrl]
-    );
+    await db.updateTable('site_branding')
+      .set({ logo_url: req.uploadUrl, updated_at: sql`NOW()` })
+      .where('id', '=', 1)
+      .execute();
   } catch (e) {
     logger.error({ err: e }, 'Error saving logo URL to site_branding');
   }
@@ -225,9 +237,11 @@ const SITE_BRANDING_DEFAULTS = {
 // GET /api/superadmin/site-branding  (public — no auth, everyone needs the theme)
 router.get('/site-branding', publicLimiter, async (_req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM site_branding WHERE id = 1 LIMIT 1');
-    const data = rows[0] || { ...SITE_BRANDING_DEFAULTS };
-    return res.json(data);
+    const data = await db.selectFrom('site_branding')
+      .selectAll()
+      .where('id', '=', 1)
+      .executeTakeFirst();
+    return res.json(data || { ...SITE_BRANDING_DEFAULTS });
   } catch (error) {
     // Table might not exist yet — return defaults
     return res.json({ ...SITE_BRANDING_DEFAULTS });
@@ -259,8 +273,8 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
     step_1:            String(b.step_1 ?? SITE_BRANDING_DEFAULTS.step_1).trim().slice(0, 255),
     step_2:            String(b.step_2 ?? SITE_BRANDING_DEFAULTS.step_2).trim().slice(0, 255),
     step_3:            String(b.step_3 ?? SITE_BRANDING_DEFAULTS.step_3).trim().slice(0, 255),
-    tile_images:       sanitizeImageMap(b.tile_images),
-    background_images: sanitizeImageMap(b.background_images),
+    tile_images:       JSON.stringify(sanitizeImageMap(b.tile_images)),
+    background_images: JSON.stringify(sanitizeImageMap(b.background_images)),
     dsb_name:              String(b.dsb_name ?? '').trim().slice(0, 255),
     dsb_email:             String(b.dsb_email ?? '').trim().slice(0, 255),
     responsible_name:      String(b.responsible_name ?? '').trim().slice(0, 255),
@@ -272,55 +286,32 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
   };
 
   try {
-    const { rows } = await query(
-      `INSERT INTO site_branding (
-        id, school_name, logo_url,
-        primary_color, primary_dark, primary_darker, secondary_color, ink_color, surface_1, surface_2,
-        header_font_color,
-        hero_title, hero_text, step_1, step_2, step_3,
-        tile_images, background_images,
-        dsb_name, dsb_email, responsible_name, responsible_address,
-        responsible_email, responsible_phone, supervisory_authority, privacy_policy_url,
-        updated_at
-      ) VALUES (
-        1, $1, $2,
-        $3, $4, $5, $6, $7, $8, $9,
-        $10,
-        $11, $12, $13, $14, $15,
-        $16, $17,
-        $18, $19, $20, $21,
-        $22, $23, $24, $25,
-        NOW()
-      )
-      ON CONFLICT (id) DO UPDATE SET
-        school_name = $1, logo_url = $2,
-        primary_color = $3, primary_dark = $4, primary_darker = $5, secondary_color = $6, ink_color = $7, surface_1 = $8, surface_2 = $9,
-        header_font_color = $10,
-        hero_title = $11, hero_text = $12, step_1 = $13, step_2 = $14, step_3 = $15,
-        tile_images = $16, background_images = $17,
-        dsb_name = $18, dsb_email = $19, responsible_name = $20, responsible_address = $21,
-        responsible_email = $22, responsible_phone = $23, supervisory_authority = $24, privacy_policy_url = $25,
-        updated_at = NOW()
-      RETURNING *`,
-      [
-        values.school_name, values.logo_url,
-        values.primary_color, values.primary_dark, values.primary_darker, values.secondary_color, values.ink_color, values.surface_1, values.surface_2,
-        values.header_font_color,
-        values.hero_title, values.hero_text, values.step_1, values.step_2, values.step_3,
-        JSON.stringify(values.tile_images), JSON.stringify(values.background_images),
-        values.dsb_name, values.dsb_email, values.responsible_name, values.responsible_address,
-        values.responsible_email, values.responsible_phone, values.supervisory_authority, values.privacy_policy_url,
-      ]
-    );
+    const result = await db.insertInto('site_branding')
+      .values({
+        id: 1,
+        ...values,
+        updated_at: sql`NOW()`,
+      })
+      .onConflict((oc) => oc.column('id').doUpdateSet({
+        ...values,
+        updated_at: sql`NOW()`,
+      }))
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     // ── Sync school_name + primary_color to email_branding ──
     try {
-      await query(
-        `UPDATE email_branding SET school_name = $1, primary_color = $2, updated_at = NOW() WHERE id = 1`,
-        [values.school_name, values.primary_color]
-      );
+      await db.updateTable('email_branding')
+        .set({
+          school_name: values.school_name,
+          primary_color: values.primary_color,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', 1)
+        .execute();
     } catch { /* email_branding table might not exist yet — ignore */ }
 
-    return res.json({ success: true, branding: rows[0] });
+    return res.json({ success: true, branding: result });
   } catch (error) {
     logger.error({ err: error }, 'Error updating site branding');
     return res.status(500).json({ error: 'Failed to update site branding' });
@@ -365,8 +356,11 @@ const TEXT_BRANDING_FIELDS = Object.keys(TEXT_BRANDING_DEFAULTS);
 // GET /api/superadmin/text-branding  (public — booking UI needs these texts)
 router.get('/text-branding', publicLimiter, async (_req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM text_branding WHERE id = 1 LIMIT 1');
-    return res.json(rows[0] || { ...TEXT_BRANDING_DEFAULTS });
+    const data = await db.selectFrom('text_branding')
+      .selectAll()
+      .where('id', '=', 1)
+      .executeTakeFirst();
+    return res.json(data || { ...TEXT_BRANDING_DEFAULTS });
   } catch {
     return res.json({ ...TEXT_BRANDING_DEFAULTS });
   }
@@ -386,19 +380,20 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
   }
 
   try {
-    const cols = TEXT_BRANDING_FIELDS;
-    const placeholders = cols.map((_, i) => `$${i + 1}`);
-    const setClause = cols.map((c, i) => `${c} = $${i + 1}`).join(', ');
-    const params = cols.map((c) => values[c]);
+    const result = await db.insertInto('text_branding')
+      .values({
+        id: 1,
+        ...values,
+        updated_at: sql`NOW()`,
+      })
+      .onConflict((oc) => oc.column('id').doUpdateSet({
+        ...values,
+        updated_at: sql`NOW()`,
+      }))
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
-    const { rows } = await query(
-      `INSERT INTO text_branding (id, ${cols.join(', ')}, updated_at)
-       VALUES (1, ${placeholders.join(', ')}, NOW())
-       ON CONFLICT (id) DO UPDATE SET ${setClause}, updated_at = NOW()
-       RETURNING *`,
-      params
-    );
-    return res.json({ success: true, textBranding: rows[0] });
+    return res.json({ success: true, textBranding: result });
   } catch (error) {
     logger.error({ err: error }, 'Error updating text branding');
     return res.status(500).json({ error: 'Failed to update text branding' });
@@ -412,9 +407,11 @@ router.put('/text-branding', requireSuperadmin, async (req, res) => {
 // GET /api/superadmin/modules/enabled  (public — frontend needs enabled module list)
 router.get('/modules/enabled', publicLimiter, async (_req, res) => {
   try {
-    const { rows } = await query(
-      'SELECT module_id, enabled FROM module_config WHERE enabled = TRUE ORDER BY module_id'
-    );
+    const rows = await db.selectFrom('module_config')
+      .select(['module_id', 'enabled'])
+      .where('enabled', '=', true)
+      .orderBy('module_id')
+      .execute();
     return res.json(rows);
   } catch {
     // Table might not exist yet — treat all as enabled
@@ -425,9 +422,10 @@ router.get('/modules/enabled', publicLimiter, async (_req, res) => {
 // GET /api/superadmin/modules  (superadmin only — sees all including disabled)
 router.get('/modules', requireSuperadmin, async (_req, res) => {
   try {
-    const { rows } = await query(
-      'SELECT module_id, enabled FROM module_config ORDER BY module_id'
-    );
+    const rows = await db.selectFrom('module_config')
+      .select(['module_id', 'enabled'])
+      .orderBy('module_id')
+      .execute();
     return res.json(rows);
   } catch {
     return res.json([]);
@@ -448,35 +446,35 @@ router.put('/modules/:moduleId', requireSuperadmin, async (req, res) => {
   try {
     if (!enabled) {
       // Transaktion: Deaktivierung + Adminrechte-Cleanup atomar
-      const client = await getClient();
-      try {
-        await client.query('BEGIN');
-        const { rows } = await client.query(
-          `INSERT INTO module_config (module_id, enabled, updated_at)
-           VALUES ($1, $2, NOW())
-           ON CONFLICT (module_id) DO UPDATE SET enabled = $2, updated_at = NOW()
-           RETURNING *`,
-          [moduleId, enabled]
-        );
-        await client.query('DELETE FROM user_admin_access WHERE module_key = $1', [moduleId]);
-        await client.query('COMMIT');
-        return res.json({ success: true, module: rows[0] });
-      } catch (txErr) {
-        await client.query('ROLLBACK');
-        throw txErr;
-      } finally {
-        client.release();
-      }
+      const result = await db.transaction().execute(async (trx) => {
+        const row = await trx.insertInto('module_config')
+          .values({ module_id: moduleId, enabled, updated_at: sql`NOW()` })
+          .onConflict((oc) => oc.column('module_id').doUpdateSet({
+            enabled,
+            updated_at: sql`NOW()`,
+          }))
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        await trx.deleteFrom('user_admin_access')
+          .where('module_key', '=', moduleId)
+          .execute();
+
+        return row;
+      });
+      return res.json({ success: true, module: result });
     }
 
-    const { rows } = await query(
-      `INSERT INTO module_config (module_id, enabled, updated_at)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (module_id) DO UPDATE SET enabled = $2, updated_at = NOW()
-       RETURNING *`,
-      [moduleId, enabled]
-    );
-    return res.json({ success: true, module: rows[0] });
+    const result = await db.insertInto('module_config')
+      .values({ module_id: moduleId, enabled, updated_at: sql`NOW()` })
+      .onConflict((oc) => oc.column('module_id').doUpdateSet({
+        enabled,
+        updated_at: sql`NOW()`,
+      }))
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return res.json({ success: true, module: result });
   } catch (error) {
     logger.error({ err: error }, 'Error updating module config');
     return res.status(500).json({ error: 'Failed to update module config' });
