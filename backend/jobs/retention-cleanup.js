@@ -94,6 +94,14 @@ async function cleanupExpiredSlots() {
   return result.rows.length;
 }
 
+async function cleanupFlowAktivitaet() {
+  const result = await sql`
+    DELETE FROM flow_aktivitaet
+    WHERE created_at < NOW() - MAKE_INTERVAL(days => ${retention.flowAktivitaetDays})
+  `.execute(db);
+  return Number(result.numAffectedRows ?? 0);
+}
+
 async function cleanupAuditLog() {
   const result = await sql`
     DELETE FROM audit_log
@@ -113,6 +121,7 @@ export async function runRetentionCleanup() {
     ['blExpired', cleanupExpiredBlAppointments],
     ['slotsExpired', cleanupExpiredSlots],
     ['auditLog', cleanupAuditLog],
+    ['flowAktivitaet', cleanupFlowAktivitaet],
   ];
 
   for (const [key, fn] of tasks) {

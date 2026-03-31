@@ -15,6 +15,8 @@ const defaults = {
   RETENTION_CANCELLED_DAYS: 30,
   // Audit log: days to keep entries
   RETENTION_AUDIT_LOG_DAYS: 730,
+  // Flow activity log: days to keep entries
+  RETENTION_FLOW_AKTIVITAET_DAYS: 730,
 };
 
 function envInt(key, fallback) {
@@ -30,6 +32,7 @@ export const retention = {
   blAppointmentsDays: envInt('RETENTION_BL_APPOINTMENTS_DAYS', defaults.RETENTION_BL_APPOINTMENTS_DAYS),
   cancelledDays: envInt('RETENTION_CANCELLED_DAYS', defaults.RETENTION_CANCELLED_DAYS),
   auditLogDays: envInt('RETENTION_AUDIT_LOG_DAYS', defaults.RETENTION_AUDIT_LOG_DAYS),
+  flowAktivitaetDays: envInt('RETENTION_FLOW_AKTIVITAET_DAYS', defaults.RETENTION_FLOW_AKTIVITAET_DAYS),
 };
 
 export default retention;

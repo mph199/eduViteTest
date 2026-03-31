@@ -82,12 +82,15 @@ export function createCounselorPublicRoutes(service, config) {
       const body = req.body;
       const { first_name, last_name, student_class, email, phone, consent_version } = body;
 
+      // Phone validation: allow digits, spaces, +, -, (, ) only
+      const sanitizedPhone = phone ? String(phone).replace(/[^\d\s+\-()]/g, '').slice(0, 30) : null;
+
       const bookingData = {
         first_name,
         last_name,
         student_class,
         email,
-        phone,
+        phone: sanitizedPhone,
       };
 
       // Determine if this counselor requires manual confirmation
