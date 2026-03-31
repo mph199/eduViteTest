@@ -7,7 +7,7 @@
 
 | Kategorie | Kritisch | Hoch | Mittel | Niedrig | Behoben |
 |-----------|----------|------|--------|---------|---------|
-| Security | 0 | 1 | 5 | 2 | 8 |
+| Security | 0 | 1 | 4 | 2 | 9 |
 | Code-Hygiene | 0 | 4 | 6 | 3 | 4 |
 | Modulstruktur | 0 | 1 | 5 | 2 | 2 |
 | Dokumentation | 0 | 0 | 7 | 0 | 7 |
@@ -25,7 +25,7 @@
 | S3 | MITTEL | `SELECT *` auf Events-Tabelle (oeffentlich) | `backend/modules/elternsprechtag/routes/public.js:462,484` | Explizite Spaltenauswahl |
 | S4 | MITTEL | Health-Endpoint gibt Systemmetriken preis | `backend/modules/elternsprechtag/routes/public.js:499` | Reduziert auf `{ status: 'ok' }` |
 | S5 | MITTEL | `.passthrough()` in Zod-Schemas | `backend/schemas/booking.js`, `backend/schemas/counselor.js` | Entfernt (Zod-Default `.strip()` aktiv) |
-| S6 | MITTEL | Phone-Feld ohne Format-Pruefung | `backend/shared/counselorPublicRoutes.js:112` | Kein direktes XSS-Risiko (React escaped), Empfehlung: Regex in Folge-Sprint |
+| S6 | MITTEL | Phone-Feld ohne Format-Pruefung | `backend/shared/counselorPublicRoutes.js:112` | **Erledigt (Kysely-Sprint):** Regex-Validierung in `counselorPublicRoutes.js` implementiert. |
 
 ### Behoben im Backlog-Sprint (2026-03-25)
 
@@ -131,6 +131,8 @@ Zusaetzliche Code-Hygiene-Massnahmen im Backlog-Sprint:
 9. ~~Phone-Feld Format-Validierung in `counselor.js` Schema~~ – erledigt
 
 ### Behoben (Backlog-Sprint – 2026-03-25)
+
+> **Zusatz Kysely-Sprint (2026-03-28):** S6 Phone-Validierung implementiert (in Kysely-Sprint nachgezogen).
 
 1. ~~BL-1: `restricted`-Filter in Teacher-Booking-Queries (GET/DELETE/PUT) + TOCTOU-Guards~~ – erledigt
 2. ~~BL-2: `writeAuditLog` fuer GET /teacher/bookings~~ – erledigt

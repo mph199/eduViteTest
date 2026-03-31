@@ -139,7 +139,33 @@ After repeated failed logins, accounts are temporarily locked. Tracked via `user
 
 ## Database
 
-PostgreSQL 16. DB name: `sprechtag`. Migrations in `backend/migrations/` (auto-run by `migrate.js`).
+PostgreSQL 16. DB name: `sprechtag`.
+
+### Migration-System
+
+Zwei Systeme coexistieren:
+
+| System | Dateien | Beschreibung |
+|--------|---------|-------------|
+| **Legacy-Migrator** | `backend/migrate.js` | Fuehrt SQL-Dateien aus `backend/migrations/` sequenziell aus. Erkennt Baseline: wenn `000_baseline.sql` noch nicht angewendet wurde, wird sie zuerst ausgefuehrt. |
+| **Kysely-Migrator** | `backend/db/migrator.js` | Kysely-nativer Migrator mit Up + Down Support, Checksummen-Validierung und Baseline-Erkennung. Liest JS-Migrations aus `backend/db/migrations/`. |
+
+**Baseline-Schema** (`backend/migrations/000_baseline.sql`): Konsolidiert die urspruenglichen 62 Legacy-Migrationen in ein einzelnes Schema-File. Neue Deployments spielen nur die Baseline ein; bestehende Deployments erkennen sie als bereits angewendet und ueberspringen sie.
+
+**Aktuelle Hoechstnummer Legacy-Migrations:** `062_user_admin_access.sql`
+
+### Query-Builder: Kysely
+
+Seit 2026-03-22 wird Kysely als Type-Safe Query-Builder eingesetzt. 38 von 50 Backend-Dateien sind migriert (Stand 2026-03-31). Neue Queries muessen Kysely verwenden (siehe `.claude/rules/backend.md`).
+
+| Datei | Inhalt |
+|-------|--------|
+| `backend/db/database.js` | Kysely-Instanz (teilt pg.Pool mit Legacy-`query()`) |
+| `backend/db/types.ts` | TypeScript-Typdefinitionen fuer alle DB-Tabellen (manuell gepflegt) |
+| `backend/db/migrator.js` | Kysely-Migrator (Up + Down, Checksummen, Baseline-Erkennung) |
+| `backend/db/seed.sql` | Seed-Daten fuer Entwicklungsumgebungen |
+
+Waehrend der Migration koennen `db.*` (Kysely) und `query()` (Legacy) in derselben Datei koexistieren. Der Legacy-Helper wird entfernt, sobald alle Dateien migriert sind.
 
 ### Core Tables
 
@@ -475,10 +501,16 @@ backend/
     auth.js             # JWT extraction, role checks (+ Security-Event-Logging bei 403)
     audit-log.js        # writeAuditLog(), logSecurityEvent() – fire-and-forget PII-Zugriffs-Logging
   config/
-    db.js               # PostgreSQL pool (query + getClient for transactions)
+    db.js               # PostgreSQL pool (query + getClient fuer Transaktionen; wird von Kysely geteilt)
     email.js            # Nodemailer config
     logger.js           # Pino logger (JSON in prod, pretty-print in dev)
     encryption.js       # AES-256-GCM for OAuth secrets and tokens
+  db/
+    database.js         # Kysely-Instanz (teilt Pool mit config/db.js)
+    types.ts            # TypeScript-Typdefinitionen fuer alle DB-Tabellen
+    migrator.js         # Kysely-Migrator (Up + Down, Checksummen, Baseline-Erkennung)
+    seed.sql            # Seed-Daten fuer Entwicklungsumgebungen
+    migrations/         # Kysely-native Migrations (JS, Up + Down)
   utils/
     resolveActiveEvent.js  # Shared active-event resolution logic
     timeWindows.js         # Slot generation helpers
@@ -523,6 +555,9 @@ Module differences are handled via config parameters (table prefix, topic schema
 13. **iOS Safari compatibility** – `background-attachment: fixed` is replaced with `scroll` on viewports <768px to prevent flicker on iOS Safari.
 14. **Background image pattern** – Branding images applied as `::before` pseudo-element with `opacity: 0.10` and `z-index: 0` so they never obscure content. CSS custom property (`--admin-bg`, `--landing-bg`, `--booking-bg`) set via inline style from `useBranding()`. Covers: landing page, admin/teacher area (shared `admin` slot), each module's public booking page.
 15. **Post-login redirect** – Password login redirects all roles to `/teacher`. OAuth login redirects based on role (admin/superadmin → `/admin`, ssw → `/ssw`, teacher → `/teacher`). Role-specific areas are also reachable via the hamburger menu.
+16. **Sticky Sidebar** – Die Sidebar bleibt beim Scrollen sichtbar (`position: sticky; top: 0`). `SidebarProfile` am unteren Sidebar-Ende zeigt Benutzername und Rolle; erscheint nur wenn der User eingeloggt ist.
+17. **ViewSwitcher fuer Modul-Admins** – `ViewSwitcher` ermoeglicht Benutzern mit mehreren Rollen (z.B. Lehrkraft + Beratungslehrer-Admin) den Wechsel zwischen Teacher-View und Admin-View. Zugaenglich fuer alle mit `user.modules` oder Lehrer-Zuordnung.
+18. **960px Layout-Constraint** – Inhaltsbereich in Admin- und Teacher-Layouts auf max. 960px begrenzt und zentriert. Verhindert zu breite Layouts auf groessen Bildschirmen.
 
 ## Responsive Strategy
 
@@ -531,6 +566,7 @@ Module differences are handled via config parameters (table prefix, topic schema
 | Breakpoint | Target | Usage |
 |------------|--------|-------|
 | 1024px | Desktop → Tablet | Grid collapse (sidebar becomes static) |
+| 960px | Content max-width | Layout-Constraint: Inhaltsbereich auf max 960px begrenzt, zentriert |
 | 900px | Events table | Desktop table → mobile cards toggle |
 | 768px | Tablet | admin-resp-table card layout, iOS bg-attachment fix, touch targets 44px |
 | 640px | Mobile | Full-width buttons, column layouts, single-column grids |
@@ -553,7 +589,7 @@ Module differences are handled via config parameters (table prefix, topic schema
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes* | PostgreSQL connection string (*or use `DB_HOST` etc.) |
 | `JWT_SECRET` | Yes | JWT signing secret (primary) |
-| `SESSION_SECRET` | No | Fallback alias for `JWT_SECRET` |
+| `SESSION_SECRET` | No | Veraltet — kein Fallback mehr. `JWT_SECRET` muss explizit gesetzt sein. |
 | `PORT` | No | Backend port (default: `4000`) |
 | `HOST` | No | Backend bind address (default: `0.0.0.0`) |
 | `NODE_ENV` | No | `production` or `development` |
