@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAdmin } from '../../../middleware/auth.js';
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import { generateTimeSlotsForTeacher } from '../../../utils/timeWindows.js';
 import { resolveActiveEvent } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
@@ -10,35 +10,32 @@ const router = express.Router();
 // POST /api/admin/teachers/:id/generate-slots
 router.post('/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
   const teacherId = parseInt(req.params.id, 10);
-  if (isNaN(teacherId)) {
-    return res.status(400).json({ error: 'Invalid teacher ID' });
-  }
+  if (isNaN(teacherId)) return res.status(400).json({ error: 'Invalid teacher ID' });
 
   try {
-    const { rows: teacherRows } = await query('SELECT id, available_from, available_until FROM teachers WHERE id = $1', [teacherId]);
-    const teacherRow = teacherRows[0];
+    const teacherRow = await db.selectFrom('teachers')
+      .select(['id', 'available_from', 'available_until'])
+      .where('id', '=', teacherId)
+      .executeTakeFirst();
     if (!teacherRow) return res.status(404).json({ error: 'Teacher not found' });
 
     const { eventId: targetEventId, eventDate } = await resolveActiveEvent();
 
     const times = generateTimeSlotsForTeacher(teacherRow.available_from, teacherRow.available_until);
-    const now = new Date().toISOString();
 
-    // Avoid duplicates
-    let existingConditions = 'teacher_id = $1 AND date = $2';
-    let existingParams = [teacherId, eventDate];
+    let existingQuery = db.selectFrom('slots')
+      .select('time')
+      .where('teacher_id', '=', teacherId)
+      .where('date', '=', eventDate);
+
     if (targetEventId === null) {
-      existingConditions += ' AND event_id IS NULL';
+      existingQuery = existingQuery.where('event_id', 'is', null);
     } else {
-      existingConditions += ' AND event_id = $3';
-      existingParams.push(targetEventId);
+      existingQuery = existingQuery.where('event_id', '=', targetEventId);
     }
 
-    const { rows: existingSlots } = await query(
-      `SELECT time FROM slots WHERE ${existingConditions}`,
-      existingParams
-    );
-    const existingTimes = new Set((existingSlots || []).map((s) => s.time));
+    const existingSlots = await existingQuery.execute();
+    const existingTimes = new Set(existingSlots.map(s => s.time));
 
     const inserts = [];
     let skipped = 0;
@@ -53,22 +50,12 @@ router.post('/teachers/:id/generate-slots', requireAdmin, async (req, res) => {
         time,
         date: eventDate,
         booked: false,
-        updated_at: now,
+        updated_at: new Date(),
       });
     }
 
     if (inserts.length) {
-      const values = inserts.map((ins, i) => {
-        const base = i * 6;
-        return `($${base+1}, $${base+2}, $${base+3}, $${base+4}, $${base+5}, $${base+6})`;
-      }).join(', ');
-      const flatParams = inserts.flatMap(ins => [
-        ins.teacher_id, ins.event_id, ins.time, ins.date, ins.booked, ins.updated_at
-      ]);
-      await query(
-        `INSERT INTO slots (teacher_id, event_id, time, date, booked, updated_at) VALUES ${values}`,
-        flatParams
-      );
+      await db.insertInto('slots').values(inserts).execute();
     }
 
     return res.json({ success: true, teacherId, eventId: targetEventId, eventDate, created: inserts.length, skipped });

@@ -1,4 +1,4 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import { generateTimeSlotsForTeacher } from '../../../utils/timeWindows.js';
 import { upsertWeeklySchedule } from '../../../shared/counselorService.js';
 import logger from '../../../config/logger.js';
@@ -9,18 +9,17 @@ export async function insertTeacherSlots(teacherId, availFrom, availUntil, targe
   const timeSlots = generateTimeSlotsForTeacher(availFrom, availUntil);
   if (!timeSlots.length || !eventDate) return timeSlots.length;
 
-  const now = new Date().toISOString();
-  const slotCols = ['teacher_id', 'event_id', 'time', 'date', 'booked', 'updated_at'];
-  const placeholders = [];
-  const vals = [];
-  let pIdx = 1;
-  for (const time of timeSlots) {
-    placeholders.push(`($${pIdx}, $${pIdx + 1}, $${pIdx + 2}, $${pIdx + 3}, $${pIdx + 4}, $${pIdx + 5})`);
-    vals.push(teacherId, targetEventId, time, eventDate, false, now);
-    pIdx += 6;
-  }
+  const inserts = timeSlots.map(time => ({
+    teacher_id: teacherId,
+    event_id: targetEventId,
+    time,
+    date: eventDate,
+    booked: false,
+    updated_at: new Date(),
+  }));
+
   try {
-    await query(`INSERT INTO slots (${slotCols.join(', ')}) VALUES ${placeholders.join(', ')}`, vals);
+    await db.insertInto('slots').values(inserts).execute();
   } catch (slotsError) {
     logger.error({ err: slotsError }, 'Error creating slots');
   }
