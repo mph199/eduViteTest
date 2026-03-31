@@ -6,6 +6,7 @@ import multer from 'multer';
 import { createRateLimiter } from '../config/rateLimiter.js';
 import { requireSuperadmin } from '../middleware/auth.js';
 import { query, getClient } from '../config/db.js';
+import { db } from '../db/database.js';
 import * as oauthService from '../services/oauthService.js';
 import { isEmailConfigured, sendMail } from '../config/email.js';
 import { buildEmail, getEmailBranding } from '../emails/template.js';
@@ -102,8 +103,8 @@ const router = express.Router();
 // GET /api/superadmin/email-branding
 router.get('/email-branding', requireSuperadmin, async (_req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM email_branding WHERE id = 1 LIMIT 1');
-    const data = rows[0] || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team' };
+    const data = await db.selectFrom('email_branding').selectAll().where('id', '=', 1).executeTakeFirst()
+      || { school_name: 'BKSB', logo_url: '', primary_color: '#2d5016', footer_text: 'Mit freundlichen Grüßen\n\nIhr BKSB-Team' };
     return res.json(data);
   } catch (error) {
     logger.error({ err: error }, 'Error fetching email branding');
