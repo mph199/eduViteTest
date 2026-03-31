@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import * as flowService from '../services/flowService.js';
 import { writeAuditLog } from '../../../middleware/audit-log.js';
 import logger from '../../../config/logger.js';
@@ -13,24 +13,24 @@ router.delete('/:id', async (req, res) => {
         if (isNaN(dateiId)) return res.status(400).json({ error: 'Ungueltige Datei-ID' });
 
         // Pruefen ob die Datei existiert und zu welchem Arbeitspaket sie gehoert
-        const dateiResult = await query(
-            'SELECT arbeitspaket_id FROM flow_datei WHERE id = $1',
-            [dateiId]
-        );
-        if (dateiResult.rows.length === 0) {
+        const dateiRow = await db.selectFrom('flow_datei')
+            .select('arbeitspaket_id')
+            .where('id', '=', dateiId)
+            .executeTakeFirst();
+        if (!dateiRow) {
             return res.status(404).json({ error: 'Datei nicht gefunden' });
         }
 
-        const paketId = dateiResult.rows[0].arbeitspaket_id;
+        const paketId = dateiRow.arbeitspaket_id;
 
         // Pruefen ob der User Mitglied des Arbeitspakets ist (koordination oder mitwirkende)
-        const mitgliedResult = await query(
-            `SELECT rolle FROM flow_arbeitspaket_mitglied
-             WHERE arbeitspaket_id = $1 AND user_id = $2`,
-            [paketId, req.user.id]
-        );
+        const mitgliedRow = await db.selectFrom('flow_arbeitspaket_mitglied')
+            .select('rolle')
+            .where('arbeitspaket_id', '=', paketId)
+            .where('user_id', '=', req.user.id)
+            .executeTakeFirst();
 
-        const rolle = mitgliedResult.rows[0]?.rolle;
+        const rolle = mitgliedRow?.rolle;
 
         if (!rolle || rolle === 'lesezugriff') {
             return res.status(403).json({ error: 'Keine Berechtigung zum Loeschen von Dateien' });

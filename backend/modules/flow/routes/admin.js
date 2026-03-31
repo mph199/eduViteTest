@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
+import { sql } from 'kysely';
 import * as flowService from '../services/flowService.js';
 import { writeAuditLog } from '../../../middleware/audit-log.js';
 import logger from '../../../config/logger.js';
@@ -17,17 +18,20 @@ function parseId(value) {
 
 router.get('/users', async (_req, res) => {
     try {
-        const result = await query(
-            `SELECT u.id, u.username,
-                    COALESCE(t.first_name, '') AS vorname,
-                    COALESCE(t.last_name, u.username) AS nachname,
-                    u.role
-             FROM users u
-             LEFT JOIN teachers t ON t.id = u.teacher_id
-             WHERE u.role IN ('teacher', 'admin', 'superadmin')
-             ORDER BY t.last_name NULLS LAST, t.first_name NULLS LAST, u.username`
-        );
-        res.json(result.rows);
+        const rows = await db.selectFrom('users as u')
+            .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+            .select([
+                'u.id', 'u.username',
+                sql`COALESCE(t.first_name, '')`.as('vorname'),
+                sql`COALESCE(t.last_name, u.username)`.as('nachname'),
+                'u.role'
+            ])
+            .where('u.role', 'in', ['teacher', 'admin', 'superadmin'])
+            .orderBy(sql`t.last_name NULLS LAST`)
+            .orderBy(sql`t.first_name NULLS LAST`)
+            .orderBy('u.username')
+            .execute();
+        res.json(rows);
     } catch (err) {
         logger.error({ err }, 'Fehler beim Laden der User');
         res.status(500).json({ error: 'Fehler beim Laden der User' });
@@ -93,11 +97,12 @@ router.post('/bildungsgaenge/:id/mitglieder', async (req, res) => {
         }
 
         // Sicherstellen dass der User existiert und eine erlaubte Rolle hat
-        const userCheck = await query(
-            `SELECT id FROM users WHERE id = $1 AND role IN ('teacher', 'admin', 'superadmin')`,
-            [uid]
-        );
-        if (userCheck.rows.length === 0) {
+        const userCheck = await db.selectFrom('users')
+            .select('id')
+            .where('id', '=', uid)
+            .where('role', 'in', ['teacher', 'admin', 'superadmin'])
+            .executeTakeFirst();
+        if (!userCheck) {
             return res.status(400).json({ error: 'User nicht gefunden oder nicht berechtigt' });
         }
 
@@ -107,19 +112,17 @@ router.post('/bildungsgaenge/:id/mitglieder', async (req, res) => {
         }
 
         // Sicherstellen, dass der User Zugang zum Flow-Modul hat
-        await query(
-            `INSERT INTO user_module_access (user_id, module_key)
-             VALUES ($1, 'flow')
-             ON CONFLICT (user_id, module_key) DO NOTHING`,
-            [uid]
-        );
+        await db.insertInto('user_module_access')
+            .values({ user_id: uid, module_key: 'flow' })
+            .onConflict((oc) => oc.columns(['user_id', 'module_key']).doNothing())
+            .execute();
 
         // Token-Version inkrementieren, damit der User beim naechsten Verify
         // die aktualisierte Modulliste erhaelt
-        await query(
-            `UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1`,
-            [uid]
-        );
+        await db.updateTable('users')
+            .set({ token_version: sql`COALESCE(token_version, 0) + 1` })
+            .where('id', '=', uid)
+            .execute();
 
         writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_ADDED', 'flow_bildungsgang_mitglied', mitglied.id, { bildungsgangId: id, userId: uid, rolle }, req.ip);
         res.status(201).json(mitglied);
@@ -165,23 +168,25 @@ router.delete('/bildungsgaenge/:id/mitglieder/:uid', async (req, res) => {
         }
 
         // Pruefen ob der User noch in anderen Bildungsgaengen ist
-        const remaining = await query(
-            `SELECT 1 FROM flow_bildungsgang_mitglied WHERE user_id = $1 LIMIT 1`,
-            [uid]
-        );
-        if (remaining.rows.length === 0) {
-            // Kein BG-Zugehörigkeit mehr → Flow-Modulzugang entfernen
-            await query(
-                `DELETE FROM user_module_access WHERE user_id = $1 AND module_key = 'flow'`,
-                [uid]
-            );
+        const remaining = await db.selectFrom('flow_bildungsgang_mitglied')
+            .select(sql`1`.as('exists'))
+            .where('user_id', '=', uid)
+            .limit(1)
+            .executeTakeFirst();
+
+        if (!remaining) {
+            // Kein BG-Zugehoerigkeit mehr -> Flow-Modulzugang entfernen
+            await db.deleteFrom('user_module_access')
+                .where('user_id', '=', uid)
+                .where('module_key', '=', 'flow')
+                .execute();
         }
 
         // Token-Version inkrementieren
-        await query(
-            `UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1`,
-            [uid]
-        );
+        await db.updateTable('users')
+            .set({ token_version: sql`COALESCE(token_version, 0) + 1` })
+            .where('id', '=', uid)
+            .execute();
 
         writeAuditLog(req.user.id, 'FLOW_BG_MITGLIED_REMOVED', 'flow_bildungsgang_mitglied', null, { bildungsgangId: id, userId: uid }, req.ip);
         res.status(204).end();
