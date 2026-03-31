@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { requireAdmin } from '../../../middleware/auth.js';
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import { normalizeAndValidateTeacherEmail, normalizeAndValidateTeacherSalutation } from '../../../utils/validators.js';
 import { resolveActiveEvent } from '../../../utils/resolveActiveEvent.js';
 import logger from '../../../config/logger.js';
@@ -30,16 +30,12 @@ const csvUpload = multer({
 // POST /api/admin/teachers/import-csv
 router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Keine Datei hochgeladen.' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen.' });
 
     const text = req.file.buffer.toString('utf-8');
     const { headers, rows } = parseCSV(text);
 
-    if (!rows.length) {
-      return res.status(400).json({ error: 'Die CSV-Datei enthält keine Datenzeilen.' });
-    }
+    if (!rows.length) return res.status(400).json({ error: 'Die CSV-Datei enthält keine Datenzeilen.' });
 
     const colMap = mapColumns(headers);
     if (!colMap.last_name) {
@@ -57,8 +53,10 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
 
     const { eventId: targetEventId, eventDate } = await resolveActiveEvent();
 
-    // Fetch existing emails to detect duplicates
-    const { rows: existingTeachers } = await query('SELECT email FROM teachers WHERE email IS NOT NULL');
+    const existingTeachers = await db.selectFrom('teachers')
+      .select('email')
+      .where('email', 'is not', null)
+      .execute();
     const existingEmails = new Set(existingTeachers.map(t => t.email.toLowerCase()));
 
     const imported = [];
@@ -92,25 +90,30 @@ router.post('/teachers/import-csv', requireAdmin, csvUpload.single('file'), asyn
       const availFrom = rawFrom || '16:00';
       const availUntil = rawUntil || '19:00';
 
-      const { rows: tRows } = await query(
-        'INSERT INTO teachers (first_name, last_name, email, salutation, subject, available_from, available_until) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [firstName, lastName, parsedEmail.email, salutation, rawSubj || 'Sprechstunde', availFrom, availUntil]
-      );
-      const teacher = tRows[0];
+      const teacher = await db.insertInto('teachers')
+        .values({
+          first_name: firstName, last_name: lastName, email: parsedEmail.email,
+          salutation, subject: rawSubj || 'Sprechstunde',
+          available_from: availFrom, available_until: availUntil,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
       existingEmails.add(parsedEmail.email);
 
       const slotsCreated = await insertTeacherSlots(teacher.id, availFrom, availUntil, targetEventId, eventDate);
 
-      // Create user account with unique username
-      const username = await generateUniqueUsername(firstName, lastName, teacher.id, 'teacher', query);
+      const username = await generateUniqueUsername(firstName, lastName, teacher.id, 'teacher');
       const tempPassword = crypto.randomBytes(6).toString('base64url');
       const passwordHash = await bcrypt.hash(tempPassword, 10);
 
       try {
-        await query(
-          'INSERT INTO users (username, email, password_hash, role, teacher_id, force_password_change) VALUES ($1, $2, $3, $4, $5, true)',
-          [username, parsedEmail.email, passwordHash, 'teacher', teacher.id]
-        );
+        await db.insertInto('users')
+          .values({
+            username, email: parsedEmail.email, password_hash: passwordHash,
+            role: 'teacher', teacher_id: teacher.id, force_password_change: true,
+          })
+          .execute();
       } catch (userErr) {
         logger.warn({ err: userErr, username }, 'User creation failed during CSV import');
       }
