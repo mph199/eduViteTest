@@ -44,7 +44,7 @@ export async function generateSlotsForDateRange(counselorId, opts, tables) {
 
   // Get counselor details
   const { rows: cRows } = await query(
-    `SELECT * FROM ${counselorsTable} WHERE id = $1`, [counselorId]
+    `SELECT id, first_name, last_name, name, email, phone, room, specializations, available_from, available_until, slot_duration_minutes, user_id, active, created_at FROM ${counselorsTable} WHERE id = $1`, [counselorId]
   );
   const counselor = cRows[0];
   if (!counselor) {
@@ -223,7 +223,7 @@ export function createCounselorService(config) {
     },
 
     async getCounselorById(id) {
-      const { rows } = await query(`SELECT * FROM ${counselorsTable} WHERE id = $1`, [id]);
+      const { rows } = await query(`SELECT id, first_name, last_name, name, email, phone, room, specializations, available_from, available_until, slot_duration_minutes, user_id, active, created_at FROM ${counselorsTable} WHERE id = $1`, [id]);
       if (!rows.length) {
         const err = new Error(`${counselorLabel} nicht gefunden`);
         err.statusCode = 404;

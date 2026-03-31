@@ -15,9 +15,9 @@ if (!ADMIN_USER) {
   logger.warn('[auth] ADMIN_USERNAME / ADMIN_PASSWORD_HASH nicht gesetzt – System-Admin-Login deaktiviert. Nur DB-User können sich anmelden.');
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET oder SESSION_SECRET Umgebungsvariable muss gesetzt sein');
+  throw new Error('JWT_SECRET Umgebungsvariable muss gesetzt sein');
 }
 const JWT_EXPIRES_IN = '8h';
 

@@ -27,7 +27,7 @@ async function verifyBookingRequestToken(token) {
 
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const { rows } = await query(
-    `SELECT * FROM booking_requests WHERE status = 'requested' AND verification_token_hash = $1`,
+    `SELECT id, event_id, teacher_id, requested_time, date, status, visitor_type, parent_name, company_name, student_name, trainee_name, representative_name, class_name, email, assigned_slot_id, created_at FROM booking_requests WHERE status = 'requested' AND verification_token_hash = $1`,
     [tokenHash]
   );
   const reqRow = rows[0] || null;
@@ -413,7 +413,7 @@ router.get('/bookings/verify/:token', async (req, res) => {
     if (request) {
       if (request.status === 'accepted' && request.assigned_slot_id && !request.confirmation_sent_at && isEmailConfigured()) {
         try {
-          const { rows: slotLookupRows } = await query('SELECT * FROM slots WHERE id = $1', [request.assigned_slot_id]);
+          const { rows: slotLookupRows } = await query('SELECT id, teacher_id, time, date, booked, status, email, verified_at FROM slots WHERE id = $1', [request.assigned_slot_id]);
           const slotRow = slotLookupRows[0] || null;
           const teacher = await getTeacherById(request.teacher_id) || {};
           const when = slotRow ? `${slotRow.date} ${slotRow.time}` : `${request.date} ${request.requested_time}`;

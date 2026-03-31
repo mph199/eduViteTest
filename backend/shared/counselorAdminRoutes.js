@@ -259,19 +259,18 @@ export function createCounselorAdminRoutes(config) {
         }
         const ownCounselorId = counselorRows[0].id;
         // Atomar: Ownership + restricted-Filter direkt im DELETE
-        const delPlaceholders = numericIds.map((_, i) => `$${i + 2}`).join(', ');
-        const result = await query(
-          `DELETE FROM ${appointmentsTable} WHERE id IN (${delPlaceholders}) AND counselor_id = $1 AND restricted IS NOT TRUE`,
-          [ownCounselorId, ...numericIds]
-        );
-        rowCount = result.rowCount;
+        const result = await db.deleteFrom(appointmentsTable)
+          .where('id', 'in', numericIds)
+          .where('counselor_id', '=', ownCounselorId)
+          .where('restricted', 'is not', true)
+          .executeTakeFirst();
+        rowCount = Number(result?.numDeletedRows ?? 0);
       } else {
         // Admins: restricted-Termine werden nicht gelöscht
-        const placeholders = numericIds.map((_, i) => `$${i + 1}`).join(', ');
-        const result = await query(
-          `DELETE FROM ${appointmentsTable} WHERE id IN (${placeholders}) AND restricted IS NOT TRUE`,
-          numericIds
-        );
+        const result = await db.deleteFrom(appointmentsTable)
+          .where('id', 'in', numericIds)
+          .where('restricted', 'is not', true)
+          .executeTakeFirst();
         rowCount = result.rowCount;
       }
       writeAuditLog(req.user?.id, 'DELETE', appointmentsTable, null, { ids: numericIds, count: rowCount }, req.ip);
