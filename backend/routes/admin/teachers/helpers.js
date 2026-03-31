@@ -124,8 +124,7 @@ function createCounselorUpsert(config) {
     }
 
     if (counselorId && Array.isArray(data.schedule)) {
-      const queryFn = typeof rawDb === 'function' ? rawDb : rawDb.query.bind(rawDb);
-      await upsertWeeklySchedule(counselorId, data.schedule, scheduleTable, { queryFn });
+      await upsertWeeklySchedule(counselorId, data.schedule, scheduleTable);
     }
 
     await db.query(
