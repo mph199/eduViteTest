@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import logger from '../config/logger.js';
 import { logSecurityEvent } from './audit-log.js';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
 
 // Admin User Credentials – aus Umgebungsvariablen laden
 const adminUsername = process.env.ADMIN_USERNAME;
@@ -97,8 +97,8 @@ async function authenticate(req, res) {
   if (decoded.id) {
     try {
       const tv = typeof decoded.tv === 'number' ? decoded.tv : -1;
-      const { rows } = await query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
-      if (rows.length === 0 || tv < rows[0].token_version) {
+      const row = await db.selectFrom('users').select('token_version').where('id', '=', decoded.id).executeTakeFirst();
+      if (!row || tv < row.token_version) {
         res.status(401).json({ error: 'Unauthorized', message: 'Token revoked' });
         return null;
       }
@@ -208,11 +208,12 @@ export function requireModuleAdmin(moduleKey) {
 
     // Check user_admin_access for module-specific admin rights
     try {
-      const { rows } = await query(
-        'SELECT 1 FROM user_admin_access WHERE user_id = $1 AND module_key = $2',
-        [decoded.id, moduleKey]
-      );
-      if (rows.length > 0) {
+      const row = await db.selectFrom('user_admin_access')
+        .select('id')
+        .where('user_id', '=', decoded.id)
+        .where('module_key', '=', moduleKey)
+        .executeTakeFirst();
+      if (row) {
         req.user = decoded;
         return next();
       }

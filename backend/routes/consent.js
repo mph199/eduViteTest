@@ -6,8 +6,9 @@
  */
 
 import express from 'express';
+import { sql } from 'kysely';
 import { createRateLimiter } from '../config/rateLimiter.js';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
 import logger from '../config/logger.js';
 import { validate } from '../middleware/validate.js';
 import { consentWithdrawSchema } from '../schemas/booking.js';
@@ -20,14 +21,6 @@ const consentLimiter = createRateLimiter({
   message: { error: 'Zu viele Anfragen. Bitte spaeter erneut versuchen.' },
 });
 
-/**
- * POST /api/consent/withdraw
- *
- * Body: { email: string, module: 'elternsprechtag' | 'schulsozialarbeit' | 'beratungslehrer' }
- *
- * Anonymizes all bookings for the given email in the given module.
- * Does NOT delete consent_receipts (append-only, proof of prior consent).
- */
 router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async (req, res) => {
   try {
     const { email: normalizedEmail, module: moduleName } = req.body;
@@ -35,48 +28,43 @@ router.post('/withdraw', consentLimiter, validate(consentWithdrawSchema), async 
     let anonymizedCount = 0;
 
     if (moduleName === 'elternsprechtag') {
-      // Use DB function for consistent anonymization (includes restricted flag)
-      const { rows } = await query(
-        'SELECT anonymize_booking_requests_by_email($1) AS affected',
-        [normalizedEmail]
-      );
-      anonymizedCount = rows[0]?.affected || 0;
+      const result = await sql`SELECT anonymize_booking_requests_by_email(${normalizedEmail}) AS affected`.execute(db);
+      anonymizedCount = result.rows[0]?.affected || 0;
     } else if (moduleName === 'schulsozialarbeit') {
-      const { rowCount } = await query(
-        `UPDATE ssw_appointments
-         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
-             restricted = TRUE, updated_at = NOW()
-         WHERE LOWER(email) = $1 AND email IS NOT NULL`,
-        [normalizedEmail]
-      );
-      anonymizedCount = rowCount;
+      const result = await db.updateTable('ssw_appointments')
+        .set({
+          student_name: null, student_class: null, email: null, phone: null,
+          restricted: true, updated_at: new Date(),
+        })
+        .where(sql`LOWER(email)`, '=', normalizedEmail)
+        .where('email', 'is not', null)
+        .executeTakeFirst();
+      anonymizedCount = Number(result?.numUpdatedRows ?? 0);
     } else if (moduleName === 'beratungslehrer') {
-      const { rowCount } = await query(
-        `UPDATE bl_appointments
-         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
-             restricted = TRUE, updated_at = NOW()
-         WHERE LOWER(email) = $1 AND email IS NOT NULL`,
-        [normalizedEmail]
-      );
-      anonymizedCount = rowCount;
+      const result = await db.updateTable('bl_appointments')
+        .set({
+          student_name: null, student_class: null, email: null, phone: null,
+          restricted: true, updated_at: new Date(),
+        })
+        .where(sql`LOWER(email)`, '=', normalizedEmail)
+        .where('email', 'is not', null)
+        .executeTakeFirst();
+      anonymizedCount = Number(result?.numUpdatedRows ?? 0);
     }
 
-    // Log the withdrawal (append-only) – only if data was actually anonymized
     if (anonymizedCount > 0) {
-      await query(
-        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
-         VALUES ($1, NULL, $2, $3, $4, $5)`,
-        [
-          moduleName,
-          'withdrawal',
-          'Widerruf der Einwilligung',
-          req.ip || null,
-          req.get('user-agent') || null,
-        ]
-      );
+      await db.insertInto('consent_receipts')
+        .values({
+          module: moduleName,
+          appointment_id: null,
+          consent_version: 'withdrawal',
+          consent_purpose: 'Widerruf der Einwilligung',
+          ip_address: req.ip || null,
+          user_agent: req.get('user-agent') || null,
+        })
+        .execute();
     }
 
-    // Einheitliche Antwort (kein Leak ob E-Mail im System existiert)
     res.json({
       success: true,
       message: 'Widerruf verarbeitet. Falls Daten vorhanden waren, wurden diese anonymisiert.',

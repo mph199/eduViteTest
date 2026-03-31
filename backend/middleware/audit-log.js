@@ -1,17 +1,21 @@
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
 import logger from '../config/logger.js';
 
 /**
  * Write an entry to the audit_log table (fire-and-forget).
- * Used by middleware and route handlers to log PII access and security events.
  */
 export async function writeAuditLog(userId, action, tableName, recordId, details, ipAddress) {
   try {
-    await query(
-      `INSERT INTO audit_log (user_id, action, table_name, record_id, details, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId || null, action, tableName || null, recordId || null, details ? JSON.stringify(details) : '{}', ipAddress || null]
-    );
+    await db.insertInto('audit_log')
+      .values({
+        user_id: userId || null,
+        action,
+        table_name: tableName || null,
+        record_id: recordId || null,
+        details: details ? JSON.stringify(details) : '{}',
+        ip_address: ipAddress || null,
+      })
+      .execute();
   } catch (err) {
     logger.error({ err, action, tableName }, 'Failed to write audit log');
   }

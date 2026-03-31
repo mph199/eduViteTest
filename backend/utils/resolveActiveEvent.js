@@ -1,12 +1,10 @@
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
 import { formatDateDE } from './timeWindows.js';
 import logger from '../config/logger.js';
 
 /**
  * Resolves the best event to use for slot generation.
  * Tries: active published event → latest event → settings fallback → today.
- *
- * @returns {{ eventId: number|null, eventDate: string }}
  */
 export async function resolveActiveEvent() {
   let eventId = null;
@@ -14,18 +12,25 @@ export async function resolveActiveEvent() {
 
   // 1. Active published event
   try {
-    const nowIso = new Date().toISOString();
-    const { rows } = await query(
-      `SELECT id, starts_at FROM events
-       WHERE status = 'published'
-         AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
-         AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
-       ORDER BY starts_at DESC LIMIT 1`,
-      [nowIso]
-    );
-    if (rows.length) {
-      eventId = rows[0].id;
-      eventDate = formatDateDE(rows[0].starts_at);
+    const now = new Date();
+    const row = await db.selectFrom('events')
+      .select(['id', 'starts_at'])
+      .where('status', '=', 'published')
+      .where((eb) => eb.or([
+        eb('booking_opens_at', 'is', null),
+        eb('booking_opens_at', '<=', now),
+      ]))
+      .where((eb) => eb.or([
+        eb('booking_closes_at', 'is', null),
+        eb('booking_closes_at', '>=', now),
+      ]))
+      .orderBy('starts_at', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (row) {
+      eventId = row.id;
+      eventDate = formatDateDE(row.starts_at);
     }
   } catch (e) {
     logger.warn({ err: e }, 'Resolving active event failed');
@@ -34,10 +39,14 @@ export async function resolveActiveEvent() {
   // 2. Latest event fallback
   if (!eventId || !eventDate) {
     try {
-      const { rows } = await query('SELECT id, starts_at FROM events ORDER BY starts_at DESC LIMIT 1');
-      if (rows.length) {
-        eventId = rows[0].id;
-        eventDate = formatDateDE(rows[0].starts_at);
+      const row = await db.selectFrom('events')
+        .select(['id', 'starts_at'])
+        .orderBy('starts_at', 'desc')
+        .limit(1)
+        .executeTakeFirst();
+      if (row) {
+        eventId = row.id;
+        eventDate = formatDateDE(row.starts_at);
       }
     } catch (e) {
       logger.warn({ err: e }, 'Resolving latest event failed');
@@ -47,9 +56,12 @@ export async function resolveActiveEvent() {
   // 3. Settings fallback
   if (!eventDate) {
     try {
-      const { rows } = await query('SELECT event_date FROM settings LIMIT 1');
-      if (rows[0]?.event_date) {
-        eventDate = formatDateDE(rows[0].event_date);
+      const row = await db.selectFrom('settings')
+        .select('event_date')
+        .limit(1)
+        .executeTakeFirst();
+      if (row?.event_date) {
+        eventDate = formatDateDE(row.event_date);
       }
     } catch (err) {
       logger.warn({ err }, 'resolveActiveEvent: settings fallback query failed');
@@ -66,21 +78,27 @@ export async function resolveActiveEvent() {
 
 /**
  * Returns the currently active event row (id, starts_at) or null.
- * No fallbacks – returns null when no active event exists.
- * Used by booking guard checks that must reject requests when no event is open.
+ * No fallbacks – used by booking guard checks.
  */
 export async function findActiveEventId() {
   try {
-    const nowIso = new Date().toISOString();
-    const { rows } = await query(
-      `SELECT id, starts_at FROM events
-       WHERE status = 'published'
-         AND (booking_opens_at IS NULL OR booking_opens_at <= $1)
-         AND (booking_closes_at IS NULL OR booking_closes_at >= $1)
-       ORDER BY starts_at DESC LIMIT 1`,
-      [nowIso]
-    );
-    return rows.length ? rows[0] : null;
+    const now = new Date();
+    const row = await db.selectFrom('events')
+      .select(['id', 'starts_at'])
+      .where('status', '=', 'published')
+      .where((eb) => eb.or([
+        eb('booking_opens_at', 'is', null),
+        eb('booking_opens_at', '<=', now),
+      ]))
+      .where((eb) => eb.or([
+        eb('booking_closes_at', 'is', null),
+        eb('booking_closes_at', '>=', now),
+      ]))
+      .orderBy('starts_at', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    return row || null;
   } catch (e) {
     logger.warn({ err: e }, 'Finding active event failed');
     return null;
