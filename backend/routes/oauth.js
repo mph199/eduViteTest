@@ -15,6 +15,7 @@ import { generateToken } from '../middleware/auth.js';
 import { logSecurityEvent } from '../middleware/audit-log.js';
 import logger from '../config/logger.js';
 import { query } from '../config/db.js';
+import { db } from '../db/database.js';
 
 const router = express.Router();
 

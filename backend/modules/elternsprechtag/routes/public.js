@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import { isEmailConfigured, sendMail, getLastEmailDebugInfo } from '../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../emails/template.js';
 import { listTeachers, getTeacherById } from '../services/teachersService.js';

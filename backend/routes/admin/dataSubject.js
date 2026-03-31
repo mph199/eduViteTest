@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireSuperadmin } from '../../middleware/auth.js';
 import { query, getClient } from '../../config/db.js';
+import { db } from '../../db/database.js';
 import logger from '../../config/logger.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import { writeAuditLog } from '../../middleware/audit-log.js';
