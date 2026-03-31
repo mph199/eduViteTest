@@ -1,4 +1,4 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 
 export function camelToSnake(str) {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -35,9 +35,12 @@ export function composeName(row, prefix) {
 }
 
 export async function erstelleAktivitaet(typ, akteur, arbeitspaketId, details) {
-    await query(
-        `INSERT INTO flow_aktivitaet (typ, akteur, arbeitspaket_id, details)
-         VALUES ($1, $2, $3, $4)`,
-        [typ, akteur, arbeitspaketId, JSON.stringify(details)]
-    );
+    await db.insertInto('flow_aktivitaet')
+        .values({
+            typ,
+            akteur,
+            arbeitspaket_id: arbeitspaketId,
+            details: JSON.stringify(details)
+        })
+        .execute();
 }

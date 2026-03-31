@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../../../../middleware/auth.js';
-import { query } from '../../../../config/db.js';
+import { db } from '../../../../db/database.js';
 import { mapSlotRow } from '../../../../utils/mappers.js';
 import logger from '../../../../config/logger.js';
 import { requireTeacher } from './lib/middleware.js';
@@ -18,10 +18,12 @@ router.get('/slots', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { rows: slotData } = await query(
-      'SELECT * FROM slots WHERE teacher_id = $1 ORDER BY date, time',
-      [teacherId]
-    );
+    const slotData = await db.selectFrom('slots')
+      .selectAll()
+      .where('teacher_id', '=', teacherId)
+      .orderBy('date')
+      .orderBy('time')
+      .execute();
 
     const slots = (slotData || []).map(mapSlotRow);
 
@@ -43,10 +45,10 @@ router.get('/info', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { rows: teacherInfoRows } = await query(
-      'SELECT id, name, first_name, last_name, email, salutation, subject FROM teachers WHERE id = $1',
-      [teacherId]
-    );
+    const teacherInfoRows = await db.selectFrom('teachers')
+      .select(['id', 'name', 'first_name', 'last_name', 'email', 'salutation', 'subject'])
+      .where('id', '=', teacherId)
+      .execute();
     const data = teacherInfoRows[0];
 
     if (!data) throw new Error('Teacher not found');

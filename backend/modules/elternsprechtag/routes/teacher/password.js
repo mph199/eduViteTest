@@ -1,7 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import { sql } from 'kysely';
 import { requireAuth } from '../../../../middleware/auth.js';
-import { query } from '../../../../config/db.js';
+import { db } from '../../../../db/database.js';
 import logger from '../../../../config/logger.js';
 import { validatePassword } from '../../../../shared/validatePassword.js';
 import { requireTeacher } from './lib/middleware.js';
@@ -19,10 +20,12 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
   }
   try {
     const username = req.user.username;
-    const { rows: users } = await query(
-      'SELECT id, username, email, role, teacher_id, password_hash, created_at FROM users WHERE username = $1 LIMIT 1',
-      [username]
-    );
+    const users = await db.selectFrom('users')
+      .select(['id', 'username', 'email', 'role', 'teacher_id', 'password_hash', 'created_at'])
+      .where('username', '=', username)
+      .limit(1)
+      .execute();
+
     if (!users || users.length === 0) {
       return res.status(404).json({ error: 'Benutzer nicht gefunden' });
     }
@@ -33,7 +36,14 @@ router.put('/password', requireAuth, requireTeacher, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
-    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, force_password_change = false WHERE id = $2', [passwordHash, user.id]);
+    await db.updateTable('users')
+      .set({
+        password_hash: passwordHash,
+        token_version: sql`token_version + 1`,
+        force_password_change: false,
+      })
+      .where('id', '=', user.id)
+      .execute();
 
     res.json({ success: true, message: 'Passwort erfolgreich geändert' });
   } catch (error) {

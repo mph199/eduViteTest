@@ -1,36 +1,41 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
+import { sql } from 'kysely';
 import { camelToSnake, mapRow, mapRows, composeName, erstelleAktivitaet } from './flowHelpers.js';
 
 // ── Tagungen ──
 
 export async function getTagungen(paketId) {
-    const result = await query(
-        `SELECT t.*, (SELECT COUNT(*) FROM flow_tagung_teilnehmer WHERE tagung_id = t.id) AS teilnehmende_count
-         FROM flow_tagung t
-         WHERE t.arbeitspaket_id = $1
-         ORDER BY t.start_at DESC`,
-        [paketId]
-    );
-    return mapRows(result.rows);
+    const rows = await db.selectFrom('flow_tagung as t')
+        .selectAll('t')
+        .select((eb) =>
+            eb.selectFrom('flow_tagung_teilnehmer')
+                .whereRef('flow_tagung_teilnehmer.tagung_id', '=', 't.id')
+                .select(eb.fn.countAll().as('count'))
+                .as('teilnehmende_count')
+        )
+        .where('t.arbeitspaket_id', '=', paketId)
+        .orderBy('t.start_at', 'desc')
+        .execute();
+    return mapRows(rows);
 }
 
 export async function createTagung(paketId, data, erstelltVon) {
-    const result = await query(
-        `INSERT INTO flow_tagung (arbeitspaket_id, titel, start_at, end_at, raum)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-        [paketId, data.titel, data.startAt, data.endAt || null, data.raum || null]
-    );
-    const tagung = result.rows[0];
+    const tagung = await db.insertInto('flow_tagung')
+        .values({
+            arbeitspaket_id: paketId,
+            titel: data.titel,
+            start_at: data.startAt,
+            end_at: data.endAt || null,
+            raum: data.raum || null
+        })
+        .returningAll()
+        .executeTakeFirst();
 
     if (Array.isArray(data.teilnehmende) && data.teilnehmende.length > 0) {
-        const valuesParts = data.teilnehmende.map((uid, i) => `($1, $${i + 2})`);
-        await query(
-            `INSERT INTO flow_tagung_teilnehmer (tagung_id, user_id)
-             VALUES ${valuesParts.join(', ')}
-             ON CONFLICT DO NOTHING`,
-            [tagung.id, ...data.teilnehmende]
-        );
+        await db.insertInto('flow_tagung_teilnehmer')
+            .values(data.teilnehmende.map(uid => ({ tagung_id: tagung.id, user_id: uid })))
+            .onConflict((oc) => oc.doNothing())
+            .execute();
     }
 
     await erstelleAktivitaet('tagung_erstellt', erstelltVon, paketId, {
@@ -41,145 +46,141 @@ export async function createTagung(paketId, data, erstelltVon) {
 }
 
 export async function getTagungDetail(tagungId) {
-    const tagungResult = await query('SELECT * FROM flow_tagung WHERE id = $1', [tagungId]);
-    if (tagungResult.rows.length === 0) return null;
+    const tagungRow = await db.selectFrom('flow_tagung')
+        .selectAll()
+        .where('id', '=', tagungId)
+        .executeTakeFirst();
+    if (!tagungRow) return null;
 
-    const teilnehmerResult = await query(
-        `SELECT tt.user_id,
-                COALESCE(t.first_name, '') AS vorname,
-                COALESCE(t.last_name, u.username) AS nachname
-         FROM flow_tagung_teilnehmer tt
-         JOIN users u ON u.id = tt.user_id
-         LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE tt.tagung_id = $1
-         ORDER BY t.last_name NULLS LAST`,
-        [tagungId]
-    );
+    const teilnehmerRows = await db.selectFrom('flow_tagung_teilnehmer as tt')
+        .innerJoin('users as u', 'u.id', 'tt.user_id')
+        .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+        .select([
+            'tt.user_id',
+            sql`COALESCE(t.first_name, '')`.as('vorname'),
+            sql`COALESCE(t.last_name, u.username)`.as('nachname')
+        ])
+        .where('tt.tagung_id', '=', tagungId)
+        .orderBy(sql`t.last_name NULLS LAST`)
+        .execute();
 
-    const agendaResult = await query(
-        `SELECT * FROM flow_agenda_punkt
-         WHERE tagung_id = $1
-         ORDER BY sortierung, created_at`,
-        [tagungId]
-    );
+    const agendaRows = await db.selectFrom('flow_agenda_punkt')
+        .selectAll()
+        .where('tagung_id', '=', tagungId)
+        .orderBy('sortierung')
+        .orderBy('created_at')
+        .execute();
 
     return {
-        ...mapRow(tagungResult.rows[0]),
-        teilnehmende: mapRows(teilnehmerResult.rows),
-        agendaPunkte: mapRows(agendaResult.rows)
+        ...mapRow(tagungRow),
+        teilnehmende: mapRows(teilnehmerRows),
+        agendaPunkte: mapRows(agendaRows)
     };
 }
 
 const ERLAUBTE_TAGUNG_FELDER = ['titel', 'start_at', 'end_at', 'raum'];
 
 export async function updateTagung(tagungId, data) {
-    const sets = [];
-    const values = [];
-    let idx = 1;
-
+    const setObj = {};
     for (const [key, value] of Object.entries(data)) {
         const dbKey = camelToSnake(key);
         if (!ERLAUBTE_TAGUNG_FELDER.includes(dbKey)) continue;
-        sets.push(`${dbKey} = $${idx}`);
-        values.push(value);
-        idx++;
+        setObj[dbKey] = value;
     }
 
-    if (sets.length === 0) return null;
+    if (Object.keys(setObj).length === 0) return null;
 
-    values.push(tagungId);
-
-    const result = await query(
-        `UPDATE flow_tagung SET ${sets.join(', ')}
-         WHERE id = $${idx}
-         RETURNING *`,
-        values
-    );
-    return mapRow(result.rows[0]) || null;
+    const row = await db.updateTable('flow_tagung')
+        .set(setObj)
+        .where('id', '=', tagungId)
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row) || null;
 }
 
 export async function deleteTagung(tagungId) {
-    await query('DELETE FROM flow_tagung WHERE id = $1', [tagungId]);
+    await db.deleteFrom('flow_tagung').where('id', '=', tagungId).execute();
 }
 
 // ── Agenda ──
 
 export async function addAgendaPunkt(tagungId, data) {
-    const maxSort = await query(
-        'SELECT COALESCE(MAX(sortierung), -1) + 1 AS next FROM flow_agenda_punkt WHERE tagung_id = $1',
-        [tagungId]
-    );
+    const maxSortRow = await db.selectFrom('flow_agenda_punkt')
+        .select(sql`COALESCE(MAX(sortierung), -1) + 1`.as('next'))
+        .where('tagung_id', '=', tagungId)
+        .executeTakeFirst();
 
-    const result = await query(
-        `INSERT INTO flow_agenda_punkt (tagung_id, titel, beschreibung, referenzierte_aufgabe_id, sortierung)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-        [tagungId, data.titel, data.beschreibung || '', data.referenzierteAufgabeId || null, maxSort.rows[0].next]
-    );
-    return mapRow(result.rows[0]);
+    const row = await db.insertInto('flow_agenda_punkt')
+        .values({
+            tagung_id: tagungId,
+            titel: data.titel,
+            beschreibung: data.beschreibung || '',
+            referenzierte_aufgabe_id: data.referenzierteAufgabeId || null,
+            sortierung: maxSortRow.next
+        })
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row);
 }
 
 export async function dokumentiereAgendaPunkt(punktId, data) {
-    const sets = [];
-    const values = [];
-    let idx = 1;
+    const setObj = {};
 
     if (data.ergebnis !== undefined) {
-        sets.push(`ergebnis = $${idx}`);
-        values.push(data.ergebnis);
-        idx++;
+        setObj.ergebnis = data.ergebnis;
     }
     if (data.entscheidung !== undefined) {
-        sets.push(`entscheidung = $${idx}`);
-        values.push(data.entscheidung);
-        idx++;
+        setObj.entscheidung = data.entscheidung;
     }
 
-    if (sets.length === 0) return null;
+    if (Object.keys(setObj).length === 0) return null;
 
-    values.push(punktId);
-
-    const result = await query(
-        `UPDATE flow_agenda_punkt SET ${sets.join(', ')}
-         WHERE id = $${idx}
-         RETURNING *`,
-        values
-    );
-    return mapRow(result.rows[0]) || null;
+    const row = await db.updateTable('flow_agenda_punkt')
+        .set(setObj)
+        .where('id', '=', punktId)
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row) || null;
 }
 
 // ── Dateien ──
 
 export async function getDateien(paketId) {
-    const result = await query(
-        `SELECT d.*,
-                COALESCE(t.first_name, '') AS hochgeladen_von_vorname,
-                COALESCE(t.last_name, u.username) AS hochgeladen_von_nachname
-         FROM flow_datei d
-         LEFT JOIN users u ON u.id = d.hochgeladen_von
-         LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE d.arbeitspaket_id = $1
-         ORDER BY d.created_at DESC`,
-        [paketId]
-    );
-    return mapRows(result.rows).map(r => composeName(r, 'hochgeladenVon'));
+    const rows = await db.selectFrom('flow_datei as d')
+        .leftJoin('users as u', 'u.id', 'd.hochgeladen_von')
+        .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+        .selectAll('d')
+        .select([
+            sql`COALESCE(t.first_name, '')`.as('hochgeladen_von_vorname'),
+            sql`COALESCE(t.last_name, u.username)`.as('hochgeladen_von_nachname')
+        ])
+        .where('d.arbeitspaket_id', '=', paketId)
+        .orderBy('d.created_at', 'desc')
+        .execute();
+    return mapRows(rows).map(r => composeName(r, 'hochgeladenVon'));
 }
 
 export async function addDateiMetadaten(paketId, data, hochgeladenVon) {
-    const result = await query(
-        `INSERT INTO flow_datei (name, original_name, mime_type, groesse, hochgeladen_von, external_url, arbeitspaket_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING *`,
-        [data.name, data.originalName, data.mimeType, data.groesse, hochgeladenVon, data.externalUrl || null, paketId]
-    );
+    const row = await db.insertInto('flow_datei')
+        .values({
+            name: data.name,
+            original_name: data.originalName,
+            mime_type: data.mimeType,
+            groesse: data.groesse,
+            hochgeladen_von: hochgeladenVon,
+            external_url: data.externalUrl || null,
+            arbeitspaket_id: paketId
+        })
+        .returningAll()
+        .executeTakeFirst();
 
     await erstelleAktivitaet('datei_hochgeladen', hochgeladenVon, paketId, {
-        dateiId: result.rows[0].id, name: data.originalName
+        dateiId: row.id, name: data.originalName
     });
 
-    return mapRow(result.rows[0]);
+    return mapRow(row);
 }
 
 export async function deleteDatei(dateiId) {
-    await query('DELETE FROM flow_datei WHERE id = $1', [dateiId]);
+    await db.deleteFrom('flow_datei').where('id', '=', dateiId).execute();
 }

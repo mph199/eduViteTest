@@ -1,8 +1,8 @@
-import { query, getClient } from '../../../../../config/db.js';
+import { sql } from 'kysely';
+import { db } from '../../../../../db/database.js';
 import { isEmailConfigured, sendMail } from '../../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../../emails/template.js';
 import { getTeacherById } from '../../../services/teachersService.js';
-import { assertSafeIdentifier } from '../../../../../shared/sqlGuards.js';
 import logger from '../../../../../config/logger.js';
 
 // ── Time parsing helpers ────────────────────────────────────────────────
@@ -94,10 +94,10 @@ export function pickPreferredSlot(slotRows, orderedTimes, eventId) {
 }
 
 export async function getTeacherTimeRange(teacherId) {
-  const { rows } = await query(
-    'SELECT available_from, available_until FROM teachers WHERE id = $1',
-    [teacherId]
-  );
+  const rows = await db.selectFrom('teachers')
+    .select(['available_from', 'available_until'])
+    .where('id', '=', teacherId)
+    .execute();
   if (rows.length === 0) throw new Error('Teacher not found');
   return { availableFrom: rows[0]?.available_from || '16:00', availableUntil: rows[0]?.available_until || '19:00' };
 }
@@ -117,8 +117,14 @@ async function sendRequestConfirmationIfPossible(updatedSlot, requestRow, teache
       teacherMessage: safeTeacherMessage,
     }, branding);
     await sendMail({ to: updatedSlot.email, subject, text, html });
-    await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [now, updatedSlot.id]);
-    await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
+    await db.updateTable('slots')
+      .set({ confirmation_sent_at: now })
+      .where('id', '=', updatedSlot.id)
+      .execute();
+    await db.updateTable('booking_requests')
+      .set({ confirmation_sent_at: now, updated_at: now })
+      .where('id', '=', requestRow.id)
+      .execute();
   } catch (e) {
     logger.warn({ err: e }, 'Sending request confirmation email failed');
   }
@@ -142,9 +148,15 @@ export async function sendMultiSlotConfirmation(allSlots, requestRow, teacherId,
     await sendMail({ to: allSlots[0].email, subject, text, html });
 
     for (const slot of allSlots) {
-      await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [now, slot.id]);
+      await db.updateTable('slots')
+        .set({ confirmation_sent_at: now })
+        .where('id', '=', slot.id)
+        .execute();
     }
-    await query('UPDATE booking_requests SET confirmation_sent_at = $1, updated_at = $1 WHERE id = $2', [now, requestRow.id]);
+    await db.updateTable('booking_requests')
+      .set({ confirmation_sent_at: now, updated_at: now })
+      .where('id', '=', requestRow.id)
+      .execute();
   } catch (e) {
     logger.warn({ err: e }, 'Sending multi-slot confirmation email failed');
   }
@@ -166,12 +178,14 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   }
 
   if (!orderedTimes.length) {
-    const { rows: anyFreeSlots } = await query(
-      `SELECT time FROM slots
-       WHERE teacher_id = $1 AND date = $2 AND booked = false
-       ORDER BY time ASC LIMIT 50`,
-      [teacherId, current.date]
-    );
+    const anyFreeSlots = await db.selectFrom('slots')
+      .select(['time'])
+      .where('teacher_id', '=', teacherId)
+      .where('date', '=', current.date)
+      .where('booked', '=', false)
+      .orderBy('time', 'asc')
+      .limit(50)
+      .execute();
     if (!anyFreeSlots?.length) {
       return { ok: false, code: 'NO_SLOT_AVAILABLE' };
     }
@@ -180,12 +194,14 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
     }
   }
 
-  const { rows: slotRows } = await query(
-    `SELECT id, time, event_id FROM slots
-     WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = ANY($3)
-     LIMIT 50`,
-    [teacherId, current.date, orderedTimes]
-  );
+  const slotRows = await db.selectFrom('slots')
+    .select(['id', 'time', 'event_id'])
+    .where('teacher_id', '=', teacherId)
+    .where('date', '=', current.date)
+    .where('booked', '=', false)
+    .where('time', '=', sql`ANY(${orderedTimes})`)
+    .limit(50)
+    .execute();
 
   const slot = pickPreferredSlot(slotRows, orderedTimes, current.event_id ?? null);
   if (!slot) {
@@ -208,56 +224,58 @@ export async function assignRequestToSlot(current, teacherId, preferredTime = nu
   const now = new Date().toISOString();
   const slotUpdate = buildSlotUpdateFromRequest(current, slot, now);
 
-  const slotUpdateKeys = Object.keys(slotUpdate);
-  slotUpdateKeys.forEach((k) => assertSafeIdentifier(k, `slotAssignment slotUpdate key: ${k}`));
-  const slotSetClauses = slotUpdateKeys.map((k, i) => `${k} = $${i + 1}`);
-  const slotValues = slotUpdateKeys.map((k) => slotUpdate[k]);
-  const slotOffset = slotValues.length;
+  // Wrap both UPDATEs in a Kysely transaction to prevent inconsistent state
+  const txResult = await db.transaction().execute(async (trx) => {
+    const updatedSlotRows = await sql`
+      UPDATE slots SET
+        event_id = ${slotUpdate.event_id},
+        booked = ${slotUpdate.booked},
+        status = ${slotUpdate.status},
+        visitor_type = ${slotUpdate.visitor_type},
+        class_name = ${slotUpdate.class_name},
+        email = ${slotUpdate.email},
+        message = ${slotUpdate.message},
+        parent_name = ${slotUpdate.parent_name},
+        student_name = ${slotUpdate.student_name},
+        company_name = ${slotUpdate.company_name},
+        trainee_name = ${slotUpdate.trainee_name},
+        representative_name = ${slotUpdate.representative_name},
+        verified_at = ${slotUpdate.verified_at},
+        verification_token_hash = ${slotUpdate.verification_token_hash},
+        verification_sent_at = ${slotUpdate.verification_sent_at},
+        updated_at = ${slotUpdate.updated_at}
+      WHERE id = ${slot.id} AND teacher_id = ${teacherId} AND booked = false
+      RETURNING *
+    `.execute(trx);
 
-  // Wrap both UPDATEs in a transaction to prevent inconsistent state
-  const client = await getClient();
-  try {
-    await client.query('BEGIN');
-
-    const { rows: updatedSlotRows } = await client.query(
-      `UPDATE slots SET ${slotSetClauses.join(', ')}
-       WHERE id = $${slotOffset + 1} AND teacher_id = $${slotOffset + 2} AND booked = false
-       RETURNING *`,
-      [...slotValues, slot.id, teacherId]
-    );
-
-    if (updatedSlotRows.length === 0) {
-      await client.query('ROLLBACK');
+    if (updatedSlotRows.rows.length === 0) {
       return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
     }
-    const updatedSlot = updatedSlotRows[0];
+    const updatedSlot = updatedSlotRows.rows[0];
 
-    const { rows: updatedReqRows } = await client.query(
-      `UPDATE booking_requests SET status = 'accepted', assigned_slot_id = $1, updated_at = $2
-       WHERE id = $3 AND teacher_id = $4 AND status = 'requested'
-       RETURNING *`,
-      [updatedSlot.id, now, current.id, teacherId]
-    );
+    const updatedReqRows = await sql`
+      UPDATE booking_requests SET status = 'accepted', assigned_slot_id = ${updatedSlot.id}, updated_at = ${now}
+      WHERE id = ${current.id} AND teacher_id = ${teacherId} AND status = 'requested'
+      RETURNING *
+    `.execute(trx);
 
-    if (updatedReqRows.length === 0) {
-      await client.query('ROLLBACK');
+    if (updatedReqRows.rows.length === 0) {
       return { ok: false, code: 'REQUEST_NOT_PENDING_ANYMORE' };
     }
-    const updatedReq = updatedReqRows[0];
+    const updatedReq = updatedReqRows.rows[0];
 
-    await client.query('COMMIT');
-
-    // Email sending outside transaction – non-critical
-    if (!options.skipEmail) {
-      await sendRequestConfirmationIfPossible(updatedSlot, updatedReq, teacherId, now, teacherMessage);
-    }
     return { ok: true, updatedSlot, updatedReq };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
+  });
+
+  if (!txResult.ok) {
+    return txResult;
   }
+
+  // Email sending outside transaction -- non-critical
+  if (!options.skipEmail) {
+    await sendRequestConfirmationIfPossible(txResult.updatedSlot, txResult.updatedReq, teacherId, now, teacherMessage);
+  }
+  return txResult;
 }
 
 export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
@@ -266,12 +284,14 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
     return { ok: false, code: 'INVALID_TIME_SELECTION' };
   }
 
-  const { rows: slotRows } = await query(
-    `SELECT id, time, event_id FROM slots
-     WHERE teacher_id = $1 AND date = $2 AND booked = false AND time = $3
-     LIMIT 10`,
-    [teacherId, requestRow.date, normalizedTime]
-  );
+  const slotRows = await db.selectFrom('slots')
+    .select(['id', 'time', 'event_id'])
+    .where('teacher_id', '=', teacherId)
+    .where('date', '=', requestRow.date)
+    .where('booked', '=', false)
+    .where('time', '=', normalizedTime)
+    .limit(10)
+    .execute();
 
   const slot = pickPreferredSlot(slotRows, [normalizedTime], requestRow.event_id ?? null);
   if (!slot) {
@@ -281,35 +301,36 @@ export async function assignExtraSlot(requestRow, teacherId, preferredTime) {
   const now = new Date().toISOString();
   const slotUpdate = buildSlotUpdateFromRequest(requestRow, slot, now);
 
-  const extraKeys = Object.keys(slotUpdate);
-  extraKeys.forEach((k) => assertSafeIdentifier(k, `slotAssignment extraSlot key: ${k}`));
-  const extraSet = extraKeys.map((k, i) => `${k} = $${i + 1}`);
-  const extraVals = extraKeys.map((k) => slotUpdate[k]);
-  const extraOff = extraVals.length;
+  // Wrap in Kysely transaction for consistency with assignRequestToSlot
+  const txResult = await db.transaction().execute(async (trx) => {
+    const updatedSlotRows = await sql`
+      UPDATE slots SET
+        event_id = ${slotUpdate.event_id},
+        booked = ${slotUpdate.booked},
+        status = ${slotUpdate.status},
+        visitor_type = ${slotUpdate.visitor_type},
+        class_name = ${slotUpdate.class_name},
+        email = ${slotUpdate.email},
+        message = ${slotUpdate.message},
+        parent_name = ${slotUpdate.parent_name},
+        student_name = ${slotUpdate.student_name},
+        company_name = ${slotUpdate.company_name},
+        trainee_name = ${slotUpdate.trainee_name},
+        representative_name = ${slotUpdate.representative_name},
+        verified_at = ${slotUpdate.verified_at},
+        verification_token_hash = ${slotUpdate.verification_token_hash},
+        verification_sent_at = ${slotUpdate.verification_sent_at},
+        updated_at = ${slotUpdate.updated_at}
+      WHERE id = ${slot.id} AND teacher_id = ${teacherId} AND booked = false
+      RETURNING *
+    `.execute(trx);
 
-  // Wrap in transaction for consistency with assignRequestToSlot
-  const client = await getClient();
-  try {
-    await client.query('BEGIN');
-
-    const { rows: updatedSlotRows } = await client.query(
-      `UPDATE slots SET ${extraSet.join(', ')}
-       WHERE id = $${extraOff + 1} AND teacher_id = $${extraOff + 2} AND booked = false
-       RETURNING *`,
-      [...extraVals, slot.id, teacherId]
-    );
-
-    if (updatedSlotRows.length === 0) {
-      await client.query('ROLLBACK');
+    if (updatedSlotRows.rows.length === 0) {
       return { ok: false, code: 'SLOT_ALREADY_BOOKED' };
     }
 
-    await client.query('COMMIT');
-    return { ok: true, updatedSlot: updatedSlotRows[0] };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+    return { ok: true, updatedSlot: updatedSlotRows.rows[0] };
+  });
+
+  return txResult;
 }

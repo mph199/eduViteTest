@@ -1,4 +1,5 @@
-import { query } from '../../../../../config/db.js';
+import { sql } from 'kysely';
+import { db } from '../../../../../db/database.js';
 import logger from '../../../../../config/logger.js';
 import { assignRequestToSlot } from './slotAssignment.js';
 
@@ -6,18 +7,23 @@ export async function autoAssignOverdueRequestsForTeacher(teacherId) {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   // Pre-check: skip entirely if this teacher has no free slots
-  const { rows: freeCheck } = await query(
-    'SELECT 1 FROM slots WHERE teacher_id = $1 AND booked = false LIMIT 1',
-    [teacherId]
-  );
+  const freeCheck = await db.selectFrom('slots')
+    .select(sql`1`.as('exists'))
+    .where('teacher_id', '=', teacherId)
+    .where('booked', '=', false)
+    .limit(1)
+    .execute();
   if (freeCheck.length === 0) return;
 
-  const { rows: overdueRequests } = await query(
-    `SELECT * FROM booking_requests
-     WHERE teacher_id = $1 AND status = 'requested' AND verified_at IS NOT NULL AND created_at <= $2
-     ORDER BY created_at ASC LIMIT 200`,
-    [teacherId, cutoff]
-  );
+  const overdueRequests = await db.selectFrom('booking_requests')
+    .selectAll()
+    .where('teacher_id', '=', teacherId)
+    .where('status', '=', 'requested')
+    .where('verified_at', 'is not', null)
+    .where('created_at', '<=', cutoff)
+    .orderBy('created_at', 'asc')
+    .limit(200)
+    .execute();
 
   for (const reqRow of overdueRequests || []) {
     try {
@@ -32,12 +38,15 @@ export async function autoAssignOverdueRequestsForTeacher(teacherId) {
 
 async function autoAssignOverdueRequestsGlobal() {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { rows: overdueRequests } = await query(
-    `SELECT * FROM booking_requests
-     WHERE status = 'requested' AND verified_at IS NOT NULL AND created_at <= $1
-     ORDER BY teacher_id, created_at ASC LIMIT 500`,
-    [cutoff]
-  );
+  const overdueRequests = await db.selectFrom('booking_requests')
+    .selectAll()
+    .where('status', '=', 'requested')
+    .where('verified_at', 'is not', null)
+    .where('created_at', '<=', cutoff)
+    .orderBy('teacher_id')
+    .orderBy('created_at', 'asc')
+    .limit(500)
+    .execute();
 
   // Group by teacher to enable early-exit per teacher
   const byTeacher = new Map();
@@ -51,12 +60,11 @@ async function autoAssignOverdueRequestsGlobal() {
   const teacherIds = [...byTeacher.keys()];
   if (teacherIds.length === 0) return;
 
-  const { rows: teachersWithSlots } = await query(
-    `SELECT DISTINCT teacher_id FROM slots
-     WHERE teacher_id = ANY($1) AND booked = false`,
-    [teacherIds]
-  );
-  const hasSlots = new Set(teachersWithSlots.map((r) => r.teacher_id));
+  const teachersWithSlots = await sql`
+    SELECT DISTINCT teacher_id FROM slots
+    WHERE teacher_id = ANY(${teacherIds}) AND booked = false
+  `.execute(db);
+  const hasSlots = new Set((teachersWithSlots.rows || []).map((r) => r.teacher_id));
 
   for (const [teacherId, requests] of byTeacher) {
     if (!hasSlots.has(teacherId)) continue; // Skip teachers without free slots

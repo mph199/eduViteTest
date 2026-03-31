@@ -1,6 +1,7 @@
 import express from 'express';
+import { sql } from 'kysely';
 import { requireAuth } from '../../../../middleware/auth.js';
-import { query } from '../../../../config/db.js';
+import { db } from '../../../../db/database.js';
 import { mapSlotRow, mapBookingRequestRow } from '../../../../utils/mappers.js';
 import logger from '../../../../config/logger.js';
 import { requireTeacher } from './lib/middleware.js';
@@ -27,12 +28,13 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
     // Auto-assign verified requests older than 24h to the earliest free slot.
     await autoAssignOverdueRequestsForTeacher(teacherId);
 
-    const { rows: requestData } = await query(
-      `SELECT * FROM booking_requests
-       WHERE teacher_id = $1 AND status = 'requested'
-       ORDER BY created_at DESC LIMIT 500`,
-      [teacherId]
-    );
+    const requestData = await db.selectFrom('booking_requests')
+      .selectAll()
+      .where('teacher_id', '=', teacherId)
+      .where('status', '=', 'requested')
+      .orderBy('created_at', 'desc')
+      .limit(500)
+      .execute();
 
     return res.json({
       requests: await (async () => {
@@ -42,17 +44,18 @@ router.get('/requests', requireAuth, requireTeacher, async (req, res) => {
         let allFreeSlots = [];
         if (dates.length) {
           const SLOT_LIMIT = 3000;
-          const { rows: freeSlotRows } = await query(
-            `SELECT time, date FROM slots
-             WHERE teacher_id = $1 AND booked = false AND date = ANY($2)
-             ORDER BY time ASC LIMIT $3`,
-            [teacherId, dates, SLOT_LIMIT]
-          );
-          allFreeSlots = freeSlotRows || [];
+          allFreeSlots = await db.selectFrom('slots')
+            .select(['time', 'date'])
+            .where('teacher_id', '=', teacherId)
+            .where('booked', '=', false)
+            .where('date', '=', sql`ANY(${dates})`)
+            .orderBy('time', 'asc')
+            .limit(SLOT_LIMIT)
+            .execute();
         }
 
         return rows.map((row) => {
-          const scopedFreeTimes = allFreeSlots
+          const scopedFreeTimes = (allFreeSlots || [])
             .filter((slot) => slot.date === row.date)
             .map((slot) => slot.time)
             .filter((value, index, arr) => arr.indexOf(value) === index);
@@ -86,10 +89,11 @@ router.put('/requests/:id/accept', requireAuth, requireTeacher, async (req, res)
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { rows: currentRows } = await query(
-      'SELECT * FROM booking_requests WHERE id = $1 AND teacher_id = $2',
-      [requestId, teacherId]
-    );
+    const currentRows = await db.selectFrom('booking_requests')
+      .selectAll()
+      .where('id', '=', requestId)
+      .where('teacher_id', '=', teacherId)
+      .execute();
     const current = currentRows[0] || null;
 
     if (!current) {
@@ -204,18 +208,17 @@ router.put('/requests/:id/decline', requireAuth, requireTeacher, async (req, res
     }
 
     const now = new Date().toISOString();
-    const { rows: declineRows } = await query(
-      `UPDATE booking_requests SET status = 'declined', updated_at = $1
-       WHERE id = $2 AND teacher_id = $3 AND status = 'requested'
-       RETURNING *`,
-      [now, requestId, teacherId]
-    );
+    const declineRows = await sql`
+      UPDATE booking_requests SET status = 'declined', updated_at = ${now}
+      WHERE id = ${requestId} AND teacher_id = ${teacherId} AND status = 'requested'
+      RETURNING *
+    `.execute(db);
 
-    if (declineRows.length === 0) {
+    if (declineRows.rows.length === 0) {
       return res.status(404).json({ error: 'Request not found or not pending' });
     }
 
-    return res.json({ success: true, request: mapBookingRequestRow(declineRows[0]) });
+    return res.json({ success: true, request: mapBookingRequestRow(declineRows.rows[0]) });
   } catch (error) {
     logger.error({ err: error }, 'Error declining booking request');
     return res.status(500).json({ error: 'Failed to decline request' });

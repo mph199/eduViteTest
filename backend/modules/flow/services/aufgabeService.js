@@ -1,125 +1,134 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
+import { sql } from 'kysely';
 import { camelToSnake, mapRow, mapRows, composeName, erstelleAktivitaet } from './flowHelpers.js';
 
 // ── Aufgaben ──
 
 export async function getAufgaben(paketId) {
-    const result = await query(
-        `SELECT a.*,
-                COALESCE(t.first_name, '') AS zustaendig_vorname,
-                COALESCE(t.last_name, u.username) AS zustaendig_nachname
-         FROM flow_aufgabe a
-         LEFT JOIN users u ON u.id = a.zustaendig
-         LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE a.arbeitspaket_id = $1 AND a.restricted IS NOT TRUE
-         ORDER BY a.status, a.deadline NULLS LAST, a.created_at`,
-        [paketId]
-    );
-    return mapRows(result.rows).map(r => composeName(r, 'zustaendig'));
+    const rows = await db.selectFrom('flow_aufgabe as a')
+        .leftJoin('users as u', 'u.id', 'a.zustaendig')
+        .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+        .selectAll('a')
+        .select([
+            sql`COALESCE(t.first_name, '')`.as('zustaendig_vorname'),
+            sql`COALESCE(t.last_name, u.username)`.as('zustaendig_nachname')
+        ])
+        .where('a.arbeitspaket_id', '=', paketId)
+        .where((eb) => eb.or([
+            eb('a.restricted', 'is', null),
+            eb('a.restricted', '=', false)
+        ]))
+        .orderBy('a.status')
+        .orderBy(sql`a.deadline NULLS LAST`)
+        .orderBy('a.created_at')
+        .execute();
+    return mapRows(rows).map(r => composeName(r, 'zustaendig'));
 }
 
 export async function createAufgabe(paketId, data, erstelltVon) {
-    const result = await query(
-        `INSERT INTO flow_aufgabe (arbeitspaket_id, titel, beschreibung, zustaendig, erstellt_von, deadline, erstellt_aus, tagung_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING *`,
-        [
-            paketId, data.titel, data.beschreibung || '',
-            data.zustaendig, erstelltVon, data.deadline || null,
-            data.tagungId ? 'tagung' : 'planung', data.tagungId || null
-        ]
-    );
+    const row = await db.insertInto('flow_aufgabe')
+        .values({
+            arbeitspaket_id: paketId,
+            titel: data.titel,
+            beschreibung: data.beschreibung || '',
+            zustaendig: data.zustaendig,
+            erstellt_von: erstelltVon,
+            deadline: data.deadline || null,
+            erstellt_aus: data.tagungId ? 'tagung' : 'planung',
+            tagung_id: data.tagungId || null
+        })
+        .returningAll()
+        .executeTakeFirst();
 
     await erstelleAktivitaet('aufgabe_erstellt', erstelltVon, paketId, {
-        aufgabeId: result.rows[0].id, titel: data.titel
+        aufgabeId: row.id, titel: data.titel
     });
 
-    return mapRow(result.rows[0]);
+    return mapRow(row);
 }
 
 const ERLAUBTE_AUFGABE_FELDER = ['titel', 'beschreibung', 'zustaendig', 'deadline'];
 
 export async function updateAufgabe(aufgabeId, data) {
-    const sets = [];
-    const values = [];
-    let idx = 1;
-
+    const setObj = {};
     for (const [key, value] of Object.entries(data)) {
         const dbKey = camelToSnake(key);
         if (!ERLAUBTE_AUFGABE_FELDER.includes(dbKey)) continue;
-        sets.push(`${dbKey} = $${idx}`);
-        values.push(value);
-        idx++;
+        setObj[dbKey] = value;
     }
 
-    if (sets.length === 0) return null;
+    if (Object.keys(setObj).length === 0) return null;
 
-    sets.push(`updated_at = NOW()`);
-    values.push(aufgabeId);
+    setObj.updated_at = sql`NOW()`;
 
-    const result = await query(
-        `UPDATE flow_aufgabe SET ${sets.join(', ')}
-         WHERE id = $${idx}
-         RETURNING *`,
-        values
-    );
-    return mapRow(result.rows[0]) || null;
+    const row = await db.updateTable('flow_aufgabe')
+        .set(setObj)
+        .where('id', '=', aufgabeId)
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row) || null;
 }
 
 export async function updateAufgabeStatus(aufgabeId, status, userId) {
-    const result = await query(
-        `UPDATE flow_aufgabe SET status = $1,
-         erledigt_at = CASE WHEN $1 = 'erledigt' THEN NOW() ELSE NULL END,
-         updated_at = NOW()
-         WHERE id = $2
-         RETURNING *`,
-        [status, aufgabeId]
-    );
-    if (result.rows.length === 0) return null;
+    const row = await db.updateTable('flow_aufgabe')
+        .set({
+            status,
+            erledigt_at: sql`CASE WHEN ${status} = 'erledigt' THEN NOW() ELSE NULL END`,
+            updated_at: sql`NOW()`
+        })
+        .where('id', '=', aufgabeId)
+        .returningAll()
+        .executeTakeFirst();
+    if (!row) return null;
 
-    const aufgabe = result.rows[0];
-    await erstelleAktivitaet('aufgabe_status_geaendert', userId, aufgabe.arbeitspaket_id, {
+    await erstelleAktivitaet('aufgabe_status_geaendert', userId, row.arbeitspaket_id, {
         aufgabeId, status
+    });
+    return mapRow(row);
+}
+
+export async function deleteAufgabe(aufgabeId, userId) {
+    const aufgabe = await db.selectFrom('flow_aufgabe')
+        .selectAll()
+        .where('id', '=', aufgabeId)
+        .executeTakeFirst();
+    if (!aufgabe) return null;
+
+    await db.deleteFrom('flow_aufgabe').where('id', '=', aufgabeId).execute();
+    await erstelleAktivitaet('aufgabe_geloescht', userId, aufgabe.arbeitspaket_id, {
+        aufgabeId, titel: aufgabe.titel
     });
     return mapRow(aufgabe);
 }
 
-export async function deleteAufgabe(aufgabeId, userId) {
-    const aufgabe = await query('SELECT * FROM flow_aufgabe WHERE id = $1', [aufgabeId]);
-    if (aufgabe.rows.length === 0) return null;
-
-    await query('DELETE FROM flow_aufgabe WHERE id = $1', [aufgabeId]);
-    await erstelleAktivitaet('aufgabe_geloescht', userId, aufgabe.rows[0].arbeitspaket_id, {
-        aufgabeId, titel: aufgabe.rows[0].titel
-    });
-    return mapRow(aufgabe.rows[0]);
-}
-
 export async function getMeineAufgaben(userId, filter = {}) {
-    let where = 'a.zustaendig = $1 AND a.restricted IS NOT TRUE';
-    const values = [userId];
-    let idx = 2;
+    let query = db.selectFrom('flow_aufgabe as a')
+        .innerJoin('flow_arbeitspaket as ap', 'ap.id', 'a.arbeitspaket_id')
+        .leftJoin('users as u', 'u.id', 'a.zustaendig')
+        .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+        .selectAll('a')
+        .select([
+            'ap.titel as arbeitspaket_titel',
+            sql`COALESCE(t.first_name, '')`.as('zustaendig_vorname'),
+            sql`COALESCE(t.last_name, u.username)`.as('zustaendig_nachname')
+        ])
+        .where('a.zustaendig', '=', userId)
+        .where((eb) => eb.or([
+            eb('a.restricted', 'is', null),
+            eb('a.restricted', '=', false)
+        ]));
 
     if (filter.status) {
-        where += ` AND a.status = $${idx}`;
-        values.push(filter.status);
-        idx++;
+        query = query.where('a.status', '=', filter.status);
     }
     if (filter.ueberfaellig) {
-        where += ` AND a.deadline < NOW() AND a.status != 'erledigt'`;
+        query = query.where('a.deadline', '<', sql`NOW()`)
+            .where('a.status', '!=', 'erledigt');
     }
 
-    const result = await query(
-        `SELECT a.*, ap.titel AS arbeitspaket_titel,
-                COALESCE(t.first_name, '') AS zustaendig_vorname,
-                COALESCE(t.last_name, u.username) AS zustaendig_nachname
-         FROM flow_aufgabe a
-         JOIN flow_arbeitspaket ap ON ap.id = a.arbeitspaket_id
-         LEFT JOIN users u ON u.id = a.zustaendig
-         LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE ${where}
-         ORDER BY a.deadline NULLS LAST, a.created_at`,
-        values
-    );
-    return mapRows(result.rows).map(r => composeName(r, 'zustaendig'));
+    const rows = await query
+        .orderBy(sql`a.deadline NULLS LAST`)
+        .orderBy('a.created_at')
+        .execute();
+    return mapRows(rows).map(r => composeName(r, 'zustaendig'));
 }
