@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+import { sql } from 'kysely';
 
 import { encrypt, decrypt } from '../config/encryption.js';
 import logger from '../config/logger.js';
@@ -26,60 +27,63 @@ export async function fetchDiscovery(discoveryUrl) {
 // ── Provider CRUD ──
 
 export async function getEnabledProviders() {
-    const result = await query(
-        `SELECT id, provider_key, display_name, enabled
-         FROM oauth_providers
-         WHERE enabled = TRUE
-         ORDER BY display_name`
-    );
-    return result.rows.map((r) => ({
-        providerKey: r.provider_key,
-        displayName: r.display_name,
-    }));
+    const rows = await db.selectFrom('oauth_providers')
+        .select(['id', 'provider_key', 'display_name', 'enabled'])
+        .where('enabled', '=', true)
+        .orderBy('display_name')
+        .execute();
+    return Array.isArray(rows)
+        ? rows.map((r) => ({
+            providerKey: r.provider_key,
+            displayName: r.display_name,
+        }))
+        : [];
 }
 
 export async function getEnabledProvider(providerKey) {
-    const result = await query(
-        `SELECT * FROM oauth_providers WHERE provider_key = $1 AND enabled = TRUE`,
-        [providerKey]
-    );
-    return result.rows[0] || null;
+    const row = await db.selectFrom('oauth_providers')
+        .selectAll()
+        .where('provider_key', '=', providerKey)
+        .where('enabled', '=', true)
+        .executeTakeFirst();
+    return row || null;
 }
 
 export async function getAllProviders() {
-    const result = await query(
-        `SELECT id, provider_key, display_name, enabled, client_id,
-                discovery_url, scopes, email_claim, name_claim,
-                allowed_domains, auto_provisioning, created_at, updated_at
-         FROM oauth_providers
-         ORDER BY display_name`
-    );
-    return result.rows;
+    const rows = await db.selectFrom('oauth_providers')
+        .select([
+            'id', 'provider_key', 'display_name', 'enabled', 'client_id',
+            'discovery_url', 'scopes', 'email_claim', 'name_claim',
+            'allowed_domains', 'auto_provisioning', 'created_at', 'updated_at',
+        ])
+        .orderBy('display_name')
+        .execute();
+    return Array.isArray(rows) ? rows : [];
 }
 
 export async function createProvider(data) {
     const encryptedSecret = encrypt(data.clientSecret);
-    const result = await query(
-        `INSERT INTO oauth_providers
-            (provider_key, display_name, enabled, client_id, client_secret_encrypted,
-             discovery_url, scopes, email_claim, name_claim, allowed_domains, auto_provisioning)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-         RETURNING id, provider_key, display_name, enabled`,
-        [
-            data.providerKey, data.displayName, data.enabled ?? false,
-            data.clientId, encryptedSecret, data.discoveryUrl,
-            data.scopes || 'openid profile email',
-            data.emailClaim || 'email', data.nameClaim || 'name',
-            data.allowedDomains || null, data.autoProvisioning ?? false,
-        ]
-    );
-    return result.rows[0];
+    const row = await db.insertInto('oauth_providers')
+        .values({
+            provider_key: data.providerKey,
+            display_name: data.displayName,
+            enabled: data.enabled ?? false,
+            client_id: data.clientId,
+            client_secret_encrypted: encryptedSecret,
+            discovery_url: data.discoveryUrl,
+            scopes: data.scopes || 'openid profile email',
+            email_claim: data.emailClaim || 'email',
+            name_claim: data.nameClaim || 'name',
+            allowed_domains: data.allowedDomains || null,
+            auto_provisioning: data.autoProvisioning ?? false,
+        })
+        .returning(['id', 'provider_key', 'display_name', 'enabled'])
+        .executeTakeFirst();
+    return row;
 }
 
 export async function updateProvider(id, data) {
-    const fields = [];
-    const values = [];
-    let idx = 1;
+    const updates = {};
 
     const allowedFields = {
         displayName: 'display_name',
@@ -95,35 +99,33 @@ export async function updateProvider(id, data) {
 
     for (const [key, col] of Object.entries(allowedFields)) {
         if (data[key] !== undefined) {
-            fields.push(`${col} = $${idx++}`);
-            values.push(data[key]);
+            updates[col] = data[key];
         }
     }
 
     // Client secret only if explicitly provided
     if (data.clientSecret) {
-        fields.push(`client_secret_encrypted = $${idx++}`);
-        values.push(encrypt(data.clientSecret));
+        updates.client_secret_encrypted = encrypt(data.clientSecret);
     }
 
-    if (fields.length === 0) return null;
+    if (Object.keys(updates).length === 0) return null;
 
-    fields.push(`updated_at = NOW()`);
-    values.push(id);
+    updates.updated_at = sql`NOW()`;
 
-    const result = await query(
-        `UPDATE oauth_providers SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, provider_key, display_name, enabled`,
-        values
-    );
-    return result.rows[0] || null;
+    const row = await db.updateTable('oauth_providers')
+        .set(updates)
+        .where('id', '=', id)
+        .returning(['id', 'provider_key', 'display_name', 'enabled'])
+        .executeTakeFirst();
+    return row || null;
 }
 
 export async function deleteProvider(id) {
-    const result = await query(
-        `DELETE FROM oauth_providers WHERE id = $1 RETURNING id`,
-        [id]
-    );
-    return result.rows.length > 0;
+    const result = await db.deleteFrom('oauth_providers')
+        .where('id', '=', id)
+        .returning(['id'])
+        .executeTakeFirst();
+    return !!result;
 }
 
 // ── PKCE ──
@@ -265,7 +267,6 @@ export async function validateIdToken(idToken, provider, discovery) {
 export async function matchOrCreateUser(claims, provider) {
     const email = claims[provider.email_claim];
     const sub = claims.sub;
-    const name = claims[provider.name_claim] || '';
 
     if (!email) {
         throw new Error('Keine E-Mail im ID-Token gefunden');
@@ -281,43 +282,43 @@ export async function matchOrCreateUser(claims, provider) {
     }
 
     // 1. Check existing link
-    const linkResult = await query(
-        `SELECT u.id, u.username, u.role, u.teacher_id, u.token_version,
-                u.force_password_change
-         FROM oauth_user_links oul
-         JOIN users u ON u.id = oul.user_id
-         WHERE oul.provider_id = $1 AND oul.provider_subject = $2`,
-        [provider.id, sub]
-    );
+    const linkRow = await sql`
+        SELECT u.id, u.username, u.role, u.teacher_id, u.token_version,
+               u.force_password_change
+        FROM oauth_user_links oul
+        JOIN users u ON u.id = oul.user_id
+        WHERE oul.provider_id = ${provider.id} AND oul.provider_subject = ${sub}
+    `.execute(db);
 
-    if (linkResult.rows.length > 0) {
+    if (linkRow.rows.length > 0) {
         // Update last_login_at
-        await query(
-            `UPDATE oauth_user_links SET last_login_at = NOW(), provider_email = $1
-             WHERE provider_id = $2 AND provider_subject = $3`,
-            [email, provider.id, sub]
-        );
-        const u = linkResult.rows[0];
-        return buildUserObject(u);
+        await db.updateTable('oauth_user_links')
+            .set({ last_login_at: sql`NOW()`, provider_email: email })
+            .where('provider_id', '=', provider.id)
+            .where('provider_subject', '=', sub)
+            .execute();
+        return buildUserObject(linkRow.rows[0]);
     }
 
     // 2. Match by email
-    const emailResult = await query(
-        `SELECT id, username, role, teacher_id, token_version, force_password_change
-         FROM users WHERE LOWER(email) = LOWER($1)`,
-        [email]
-    );
+    const emailRow = await db.selectFrom('users')
+        .select(['id', 'username', 'role', 'teacher_id', 'token_version', 'force_password_change'])
+        .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+        .executeTakeFirst();
 
-    if (emailResult.rows.length > 0) {
-        const u = emailResult.rows[0];
+    if (emailRow) {
         // Create link automatically
-        await query(
-            `INSERT INTO oauth_user_links (user_id, provider_id, provider_subject, provider_email, last_login_at)
-             VALUES ($1, $2, $3, $4, NOW())`,
-            [u.id, provider.id, sub, email]
-        );
-        logger.info({ userId: u.id, provider: provider.provider_key }, 'OAuth-Link automatisch erstellt (E-Mail-Match)');
-        return buildUserObject(u);
+        await db.insertInto('oauth_user_links')
+            .values({
+                user_id: emailRow.id,
+                provider_id: provider.id,
+                provider_subject: sub,
+                provider_email: email,
+                last_login_at: sql`NOW()`,
+            })
+            .execute();
+        logger.info({ userId: emailRow.id, provider: provider.provider_key }, 'OAuth-Link automatisch erstellt (E-Mail-Match)');
+        return buildUserObject(emailRow);
     }
 
     // 3. Auto-provisioning
@@ -330,20 +331,26 @@ export async function matchOrCreateUser(claims, provider) {
     // Ensure unique username (retry with random suffix on conflict)
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
-            const newUser = await query(
-                `INSERT INTO users (username, email, role, password_hash)
-                 VALUES ($1, $2, 'teacher', NULL)
-                 RETURNING id, username, role, teacher_id, token_version, force_password_change`,
-                [username, email]
-            );
-            const created = newUser.rows[0];
+            const created = await db.insertInto('users')
+                .values({
+                    username,
+                    email,
+                    role: 'teacher',
+                    password_hash: null,
+                })
+                .returning(['id', 'username', 'role', 'teacher_id', 'token_version', 'force_password_change'])
+                .executeTakeFirst();
 
             // Create link
-            await query(
-                `INSERT INTO oauth_user_links (user_id, provider_id, provider_subject, provider_email, last_login_at)
-                 VALUES ($1, $2, $3, $4, NOW())`,
-                [created.id, provider.id, sub, email]
-            );
+            await db.insertInto('oauth_user_links')
+                .values({
+                    user_id: created.id,
+                    provider_id: provider.id,
+                    provider_subject: sub,
+                    provider_email: email,
+                    last_login_at: sql`NOW()`,
+                })
+                .execute();
 
             logger.info({ userId: created.id, email, provider: provider.provider_key }, 'Neuer OAuth-User angelegt (Auto-Provisioning)');
             return buildUserObject(created);
@@ -372,29 +379,23 @@ function buildUserObject(row) {
 // ── Token Persistence (for WebDAV) ──
 
 export async function saveOAuthTokens(userId, providerId, tokens) {
-    const updates = [];
-    const values = [];
-    let idx = 1;
+    const updates = {};
 
     if (tokens.refresh_token) {
-        updates.push(`refresh_token_encrypted = $${idx++}`);
-        values.push(encrypt(tokens.refresh_token));
+        updates.refresh_token_encrypted = encrypt(tokens.refresh_token);
     }
     if (tokens.access_token) {
-        updates.push(`access_token_encrypted = $${idx++}`);
-        values.push(encrypt(tokens.access_token));
+        updates.access_token_encrypted = encrypt(tokens.access_token);
     }
     if (tokens.expires_in) {
-        updates.push(`token_expires_at = NOW() + make_interval(secs => $${idx++}::int)`);
-        values.push(parseInt(tokens.expires_in, 10) || 3600);
+        updates.token_expires_at = sql`NOW() + make_interval(secs => ${parseInt(tokens.expires_in, 10) || 3600}::int)`;
     }
 
-    if (updates.length === 0) return;
+    if (Object.keys(updates).length === 0) return;
 
-    values.push(userId, providerId);
-    await query(
-        `UPDATE oauth_user_links SET ${updates.join(', ')}
-         WHERE user_id = $${idx++} AND provider_id = $${idx}`,
-        values
-    );
+    await db.updateTable('oauth_user_links')
+        .set(updates)
+        .where('user_id', '=', userId)
+        .where('provider_id', '=', providerId)
+        .execute();
 }
