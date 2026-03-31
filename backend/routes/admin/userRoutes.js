@@ -208,7 +208,8 @@ router.put('/users/:id/admin-access', requireSuperadmin, async (req, res) => {
           error: `Adminrechte können nur für freigeschaltete Module vergeben werden. Deaktiviert: ${disabled.join(', ')}`,
         });
       }
-    } catch {
+    } catch (err) {
+      logger.warn({ err }, 'Modulkonfiguration konnte nicht geprüft werden');
       return res.status(500).json({ error: 'Modulkonfiguration konnte nicht geprüft werden' });
     }
   }

@@ -309,7 +309,7 @@ router.put('/site-branding', requireSuperadmin, async (req, res) => {
         })
         .where('id', '=', 1)
         .execute();
-    } catch { /* email_branding table might not exist yet — ignore */ }
+    } catch (err) { logger.debug({ err }, 'email_branding table might not exist yet'); }
 
     return res.json({ success: true, branding: result });
   } catch (error) {
@@ -361,7 +361,8 @@ router.get('/text-branding', publicLimiter, async (_req, res) => {
       .where('id', '=', 1)
       .executeTakeFirst();
     return res.json(data || { ...TEXT_BRANDING_DEFAULTS });
-  } catch {
+  } catch (err) {
+    logger.debug({ err }, 'text_branding table not available, using defaults');
     return res.json({ ...TEXT_BRANDING_DEFAULTS });
   }
 });
@@ -413,8 +414,9 @@ router.get('/modules/enabled', publicLimiter, async (_req, res) => {
       .orderBy('module_id')
       .execute();
     return res.json(rows);
-  } catch {
+  } catch (err) {
     // Table might not exist yet — treat all as enabled
+    logger.debug({ err }, 'module_config table not available');
     return res.json([]);
   }
 });
@@ -427,7 +429,8 @@ router.get('/modules', requireSuperadmin, async (_req, res) => {
       .orderBy('module_id')
       .execute();
     return res.json(rows);
-  } catch {
+  } catch (err) {
+    logger.debug({ err }, 'module_config table not available');
     return res.json([]);
   }
 });

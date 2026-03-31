@@ -101,7 +101,7 @@ export async function verifyBookingToken(token) {
         .set({ verification_token_hash: null, updated_at: new Date() })
         .where('id', '=', slot.id)
         .execute();
-    } catch { /* non-critical */ }
+    } catch (err) { logger.debug({ err }, 'Non-critical: failed to clear verification token'); }
     return { slotRow: slot, verifiedAt: slot.verified_at };
   }
 

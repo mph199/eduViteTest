@@ -82,8 +82,8 @@ export function getLastEmailDebugInfo() {
       const parsed = raw ? JSON.parse(raw) : null;
       return parsed;
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    logger.debug({ err }, 'Failed to read last email from file');
   }
   return null;
 }
@@ -118,8 +118,8 @@ export async function sendMail({ to, subject, text, html }) {
   if (mailTransport === 'ethereal') {
     try {
       fs.writeFileSync(lastEmailFilePath, JSON.stringify(lastEmail, null, 2), 'utf8');
-    } catch {
-      // ignore
+    } catch (err) {
+      logger.debug({ err }, 'Failed to write last email to file');
     }
   }
   return { messageId: info.messageId, previewUrl };

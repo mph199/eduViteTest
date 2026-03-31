@@ -19,7 +19,8 @@ export async function getEmailBranding() {
   try {
     const rows = [await db.selectFrom('email_branding').selectAll().where('id', '=', 1).executeTakeFirst()].filter(Boolean);
     cachedBranding = rows[0] || null;
-  } catch {
+  } catch (err) {
+    logger.debug({ err }, 'email_branding table not available');
     cachedBranding = null;
   }
 
@@ -31,7 +32,7 @@ export async function getEmailBranding() {
     if (sbRows[0]) {
       cachedBranding = { ...cachedBranding, ...sbRows[0] };
     }
-  } catch { /* site_branding may not have new columns yet */ }
+  } catch (err) { logger.debug({ err }, 'site_branding DSB columns not available yet'); }
 
   cacheExpiry = now + 60_000;
   return cachedBranding;

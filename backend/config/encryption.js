@@ -61,7 +61,8 @@ export function isEncryptionAvailable() {
     try {
         getKey();
         return true;
-    } catch {
+    } catch (err) {
+        logger.debug({ err }, 'Encryption key not available');
         return false;
     }
 }

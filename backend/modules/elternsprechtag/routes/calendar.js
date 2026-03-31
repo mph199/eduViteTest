@@ -61,7 +61,7 @@ router.get('/:token/elternsprechtag.ics', async (req, res) => {
         .select('event_name')
         .executeTakeFirst();
       if (row?.event_name) eventName = row.event_name;
-    } catch { /* default */ }
+    } catch (err) { logger.debug({ err }, 'settings table not available, using default event name'); }
 
     const ics = generateTeacherICS(
       slots,

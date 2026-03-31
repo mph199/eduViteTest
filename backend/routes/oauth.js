@@ -125,7 +125,8 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
         let stored;
         try {
             stored = JSON.parse(req.cookies?.oauth_state || '{}');
-        } catch {
+        } catch (err) {
+            logger.debug({ err }, 'Failed to parse oauth_state cookie');
             return res.redirect('/login?error=oauth_state_invalid');
         }
 

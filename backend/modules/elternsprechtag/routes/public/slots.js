@@ -52,7 +52,7 @@ router.get('/slots', async (req, res) => {
           .where('id', '=', resolvedEventId)
           .executeTakeFirst();
         resolvedEventStartsAt = ev?.starts_at || null;
-      } catch { resolvedEventStartsAt = null; }
+      } catch (err) { logger.debug({ err }, 'Failed to fetch event starts_at'); resolvedEventStartsAt = null; }
     } else {
       const resolved = await resolveActiveEvent();
       resolvedEventId = resolved.eventId;
