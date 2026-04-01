@@ -71,7 +71,7 @@
 | H7 | MITTEL | `useMemo` ohne reaktive Deps in AnfragenTab | `BLAnfragenTab.tsx`, `SSWAnfragenTab.tsx` | **ERLEDIGT (BL-16)** | Durch Modul-Level-Konstanten ersetzt |
 | H8 | MITTEL | `defaultSchedule` Factory vs. Const inkonsistent | `SSWCounselorsTab.tsx` | **GESCHLOSSEN (falsch positiv)** | BLCounselorsTab ist Read-only ohne Schedule-Formular; kein Vergleichspunkt. SSW-Factory ist korrekt. |
 | H9 | MITTEL | `parseTimeWindow`/`fmtMinutes` reimplementiert | `slotAssignment.js:8-22` | **ERLEDIGT** | `parseTimeWindow` + `fmtMinutes` in `backend/utils/timeWindows.js` exportiert; Import in `slotAssignment.js` |
-| H10 | MITTEL | `AdminSlots.tsx` 346 Zeilen | `AdminSlots.tsx` | OFFEN | TeacherSelect + SlotForm extrahieren |
+| H10 | MITTEL | `AdminSlots.tsx` 346 Zeilen | `AdminSlots.tsx` | **ERLEDIGT** | `TeacherSelect.tsx` (43 Zeilen) + `SlotForm.tsx` (51 Zeilen) extrahiert; AdminSlots.tsx auf 294 Zeilen reduziert |
 | H11 | NIEDRIG | `normalize` als anonyme fn im Handler | `public.js:274` | OFFEN | An Dateianfang oder inline |
 | H12 | NIEDRIG | Weekday-Index 0-basiert vs. 1-basiert | `BLCounselorsTab.tsx` vs. `SSWCounselorsTab.tsx` | OFFEN | Dokumentieren |
 | H13 | NIEDRIG | Inline-Styles in `TeacherFeedback.tsx` | `TeacherFeedback.tsx` | OFFEN | In CSS auslagern |

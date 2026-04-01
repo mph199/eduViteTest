@@ -6,7 +6,9 @@ import api from '../../../services/api';
 import type { TimeSlot as ApiSlot, Teacher as ApiTeacher, GenerateSlotsResponse } from '../../../types';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
 import { exportTeacherSlotsToICal } from '../../../utils/icalExport';
-import { teacherDisplayName, teacherGroupKey } from '../../../utils/teacherDisplayName';
+import { teacherDisplayName } from '../../../utils/teacherDisplayName';
+import { TeacherSelect } from '../components/TeacherSelect';
+import { SlotForm } from '../components/SlotForm';
 import '../../../pages/AdminDashboard.css';
 
 export function AdminSlots() {
@@ -170,74 +172,20 @@ export function AdminSlots() {
             </div>
           )}
 
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label htmlFor="teacher-select">Lehrkraft auswählen</label>
-            <select
-              id="teacher-select"
-              value={selectedTeacherId || ''}
-              onChange={(e) => setSelectedTeacherId(parseInt(e.target.value))}
-              className="admin-select--teacher"
-            >
-                {(() => {
-                  const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
-                  const sorted = [...teachers].sort((l, r) => collator.compare(teacherDisplayName(l), teacherDisplayName(r)));
-                  const groups = new Map<string, typeof sorted>();
-                  for (const t of sorted) {
-                    const key = teacherGroupKey(t);
-                    const list = groups.get(key);
-                    if (list) list.push(t);
-                    else groups.set(key, [t]);
-                  }
-
-                  const entries = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], 'de'));
-                  return entries.map(([key, list]) => (
-                    <optgroup key={`tg-${key}`} label={key}>
-                      {list.map((teacher) => (
-                        <option key={teacher.id} value={teacher.id}>
-                          {teacherDisplayName(teacher)} - {teacher.available_from || '16:00'}–{teacher.available_until || '19:00'}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ));
-                })()}
-            </select>
-          </div>
+          <TeacherSelect
+            teachers={teachers}
+            selectedTeacherId={selectedTeacherId}
+            onSelect={setSelectedTeacherId}
+          />
 
           {showForm && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h3>{editingSlot ? 'Slot bearbeiten' : 'Neuen Slot anlegen'}</h3>
-              <form onSubmit={handleSubmit} className="teacher-form">
-                <div className="form-group">
-                  <label htmlFor="time">Zeit</label>
-                  <input
-                    id="time"
-                    type="text"
-                    value={formData.time}
-                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    placeholder="z.B. 16:00 - 16:15"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="date">Datum</label>
-                  <input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="btn-primary">
-                    {editingSlot ? 'Speichern' : 'Anlegen'}
-                  </button>
-                  <button type="button" onClick={handleCancel} className="btn-secondary">
-                    Abbrechen
-                  </button>
-                </div>
-              </form>
-            </div>
+            <SlotForm
+              formData={formData}
+              editing={!!editingSlot}
+              onFormDataChange={setFormData}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+            />
           )}
 
           {loading ? (
