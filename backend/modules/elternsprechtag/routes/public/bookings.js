@@ -23,6 +23,9 @@ import { bookingSchema, bookingRequestSchema } from '../../../../schemas/booking
 
 const router = express.Router();
 
+/** Trim string value or return empty string for non-strings. */
+const normalize = (v) => (typeof v === 'string' ? v.trim() : '');
+
 // ── Helper ────────────────────────────────────────────────────────────
 
 async function verifyBookingRequestToken(token) {
@@ -159,8 +162,6 @@ router.post('/booking-requests', validate(bookingRequestSchema), async (req, res
 
     if (!visitorType || !className || !email) return res.status(400).json({ error: 'visitorType, className, email required' });
     if (!consentVersion) return res.status(400).json({ error: 'Einwilligung ist erforderlich' });
-
-    const normalize = (v) => (typeof v === 'string' ? v.trim() : '');
 
     if (visitorType === 'parent') {
       if (!normalize(payload.parentName) || !normalize(payload.studentName)) {
