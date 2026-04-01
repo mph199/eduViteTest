@@ -9,7 +9,8 @@
  * @param {string} config.counselorLabel       – e.g. 'Berater/in' or 'Beratungslehrer'
  */
 
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+import { sql } from 'kysely';
 import { assertSafeIdentifier } from './sqlGuards.js';
 
 /**
@@ -41,9 +42,13 @@ export async function generateSlotsForDateRange(counselorId, opts, tables) {
   }
 
   // Get counselor details
-  const { rows: cRows } = await query(
-    `SELECT * FROM ${counselorsTable} WHERE id = $1`, [counselorId]
-  );
+  const { rows: cRows } = await sql`
+    SELECT id, first_name, last_name, name, email, phone, room, specializations,
+           available_from, available_until, slot_duration_minutes, user_id, active, created_at
+    FROM ${sql.table(counselorsTable)}
+    WHERE id = ${counselorId}
+  `.execute(db);
+
   const counselor = cRows[0];
   if (!counselor) {
     const err = new Error(`${counselorLabel || 'Berater/in'} nicht gefunden`);
@@ -52,10 +57,11 @@ export async function generateSlotsForDateRange(counselorId, opts, tables) {
   }
 
   // Load weekly schedule
-  const { rows: scheduleRows } = await query(
-    `SELECT * FROM ${scheduleTable} WHERE counselor_id = $1 AND active = TRUE ORDER BY weekday`,
-    [counselorId]
-  );
+  const { rows: scheduleRows } = await sql`
+    SELECT * FROM ${sql.table(scheduleTable)}
+    WHERE counselor_id = ${counselorId} AND active = TRUE
+    ORDER BY weekday
+  `.execute(db);
 
   // Build map: JS weekday (0=Sun..6=Sat) -> { start, end }
   // DB weekday: 0=Mon..4=Fri,5=Sat,6=Sun -> JS: Mon=1..Fri=5,Sat=6,Sun=0
@@ -96,29 +102,31 @@ export async function generateSlotsForDateRange(counselorId, opts, tables) {
     const timeSlots = generateTimeSlots(fromStr, untilStr, duration);
     const dateStr = d.toISOString().slice(0, 10);
 
-    const { rows: existing } = await query(
-      `SELECT time FROM ${appointmentsTable} WHERE counselor_id = $1 AND date = $2`,
-      [counselorId, dateStr]
-    );
+    const { rows: existing } = await sql`
+      SELECT time FROM ${sql.table(appointmentsTable)}
+      WHERE counselor_id = ${counselorId} AND date = ${dateStr}
+    `.execute(db);
+
     const existingTimes = new Set(existing.map(r => r.time?.toString()?.slice(0, 5)));
 
     const newSlots = timeSlots.filter(t => !existingTimes.has(t));
     totalSkipped += existingTimes.size;
     if (!newSlots.length) continue;
 
-    const cols = ['counselor_id', 'date', 'time', 'duration_minutes', 'status'];
-    const placeholders = [];
-    const vals = [];
-    let pIdx = 1;
-    for (const time of newSlots) {
-      placeholders.push(`($${pIdx}, $${pIdx + 1}, $${pIdx + 2}, $${pIdx + 3}, $${pIdx + 4})`);
-      vals.push(counselorId, dateStr, time, duration, 'available');
-      pIdx += 5;
-    }
-    await query(
-      `INSERT INTO ${appointmentsTable} (${cols.join(', ')}) VALUES ${placeholders.join(', ')}`,
-      vals
+    // Build VALUES clause for bulk insert
+    const valuesExpr = sql.join(
+      newSlots.map(time =>
+        sql`(${counselorId}, ${dateStr}, ${time}, ${duration}, 'available')`
+      ),
+      sql`, `
     );
+
+    await sql`
+      INSERT INTO ${sql.table(appointmentsTable)}
+        (counselor_id, date, time, duration_minutes, status)
+      VALUES ${valuesExpr}
+    `.execute(db);
+
     totalCreated += newSlots.length;
   }
 
@@ -151,14 +159,14 @@ export function generateTimeSlots(availFrom, availUntil, durationMinutes) {
  * @param {Array} schedule – [{ weekday, start_time, end_time, active }]
  * @param {string} scheduleTable – e.g. 'bl_weekly_schedule'
  * @param {object} [opts]
- * @param {Function} [opts.queryFn] – custom query function (e.g. transaction client), defaults to pool query
+ * @param {object} [opts.trx] – Kysely transaction instance, defaults to db
  * @param {number} [opts.minDay=0] – minimum valid weekday
  * @param {number} [opts.maxDay=6] – maximum valid weekday
  * @returns {Promise<Array>} – updated schedule rows
  */
 export async function upsertWeeklySchedule(counselorId, schedule, scheduleTable, opts = {}) {
   assertSafeIdentifier(scheduleTable, 'scheduleTable');
-  const { minDay = 0, maxDay = 6, queryFn = query } = opts;
+  const { minDay = 0, maxDay = 6, trx = db } = opts;
 
   if (!Array.isArray(schedule)) {
     const err = new Error('schedule muss ein Array sein');
@@ -182,19 +190,25 @@ export async function upsertWeeklySchedule(counselorId, schedule, scheduleTable,
 
   for (const entry of schedule) {
     const wd = parseInt(entry.weekday, 10);
-    await queryFn(
-      `INSERT INTO ${scheduleTable} (counselor_id, weekday, start_time, end_time, active)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (counselor_id, weekday)
-       DO UPDATE SET start_time = $3, end_time = $4, active = $5`,
-      [counselorId, wd, entry.start_time || '08:00', entry.end_time || '14:00', entry.active !== false]
-    );
+    const startTime = entry.start_time || '08:00';
+    const endTime = entry.end_time || '14:00';
+    const isActive = entry.active !== false;
+
+    await sql`
+      INSERT INTO ${sql.table(scheduleTable)} (counselor_id, weekday, start_time, end_time, active)
+      VALUES (${counselorId}, ${wd}, ${startTime}, ${endTime}, ${isActive})
+      ON CONFLICT (counselor_id, weekday)
+      DO UPDATE SET start_time = ${startTime}, end_time = ${endTime}, active = ${isActive}
+    `.execute(trx);
   }
 
-  const { rows } = await queryFn(
-    `SELECT id, counselor_id, weekday, start_time, end_time, active FROM ${scheduleTable} WHERE counselor_id = $1 ORDER BY weekday`,
-    [counselorId]
-  );
+  const { rows } = await sql`
+    SELECT id, counselor_id, weekday, start_time, end_time, active
+    FROM ${sql.table(scheduleTable)}
+    WHERE counselor_id = ${counselorId}
+    ORDER BY weekday
+  `.execute(trx);
+
   return rows;
 }
 
@@ -212,16 +226,24 @@ export function createCounselorService(config) {
 
   return {
     async listCounselors() {
-      const { rows } = await query(
-        `SELECT id, first_name, last_name, name, salutation, room, specializations,
-                available_from, available_until, slot_duration_minutes
-         FROM ${counselorsTable} WHERE active = TRUE ORDER BY last_name, first_name`
-      );
+      const { rows } = await sql`
+        SELECT id, first_name, last_name, name, salutation, room, specializations,
+               available_from, available_until, slot_duration_minutes
+        FROM ${sql.table(counselorsTable)}
+        WHERE active = TRUE
+        ORDER BY last_name, first_name
+      `.execute(db);
       return rows;
     },
 
     async getCounselorById(id) {
-      const { rows } = await query(`SELECT * FROM ${counselorsTable} WHERE id = $1`, [id]);
+      const { rows } = await sql`
+        SELECT id, first_name, last_name, name, email, phone, room, specializations,
+               available_from, available_until, slot_duration_minutes, user_id, active, created_at
+        FROM ${sql.table(counselorsTable)}
+        WHERE id = ${id}
+      `.execute(db);
+
       if (!rows.length) {
         const err = new Error(`${counselorLabel} nicht gefunden`);
         err.statusCode = 404;
@@ -231,13 +253,12 @@ export function createCounselorService(config) {
     },
 
     async getAvailableAppointments(counselorId, date) {
-      const { rows } = await query(
-        `SELECT id, date, time, duration_minutes
-         FROM ${appointmentsTable}
-         WHERE counselor_id = $1 AND date = $2 AND status = 'available'
-         ORDER BY time`,
-        [counselorId, date]
-      );
+      const { rows } = await sql`
+        SELECT id, date, time, duration_minutes
+        FROM ${sql.table(appointmentsTable)}
+        WHERE counselor_id = ${counselorId} AND date = ${date} AND status = 'available'
+        ORDER BY time
+      `.execute(db);
       return rows;
     },
 
@@ -245,18 +266,19 @@ export function createCounselorService(config) {
       const { first_name, last_name, student_class, email, phone } = bookingData;
 
       const targetStatus = requiresConfirmation ? 'requested' : 'confirmed';
-      const confirmedClause = requiresConfirmation ? '' : ', confirmed_at = NOW()';
+      const confirmedClause = requiresConfirmation
+        ? sql``
+        : sql`, confirmed_at = NOW()`;
 
-      const { rows } = await query(
-        `UPDATE ${appointmentsTable}
-         SET status = $1,
-             first_name = $2, last_name = $3, student_class = $4, email = $5, phone = $6,
-             booked_at = NOW(), updated_at = NOW()${confirmedClause}
-         WHERE id = $7 AND status = 'available'
-         RETURNING *`,
-        [targetStatus, first_name, last_name, student_class || null, email || null, phone || null,
-         appointmentId]
-      );
+      const { rows } = await sql`
+        UPDATE ${sql.table(appointmentsTable)}
+        SET status = ${targetStatus},
+            first_name = ${first_name}, last_name = ${last_name},
+            student_class = ${student_class || null}, email = ${email || null}, phone = ${phone || null},
+            booked_at = NOW(), updated_at = NOW()${confirmedClause}
+        WHERE id = ${appointmentId} AND status = 'available'
+        RETURNING *
+      `.execute(db);
 
       if (!rows.length) {
         const err = new Error('Termin nicht mehr verfügbar');

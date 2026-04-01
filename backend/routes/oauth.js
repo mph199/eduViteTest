@@ -14,7 +14,8 @@ import {
 import { generateToken } from '../middleware/auth.js';
 import { logSecurityEvent } from '../middleware/audit-log.js';
 import logger from '../config/logger.js';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+
 
 const router = express.Router();
 
@@ -124,7 +125,8 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
         let stored;
         try {
             stored = JSON.parse(req.cookies?.oauth_state || '{}');
-        } catch {
+        } catch (err) {
+            logger.debug({ err }, 'Failed to parse oauth_state cookie');
             return res.redirect('/login?error=oauth_state_invalid');
         }
 
@@ -157,20 +159,20 @@ router.get('/oauth/:providerKey/callback', oauthLimiter, async (req, res) => {
         const user = await matchOrCreateUser(claims, provider);
 
         // Check account lockout
-        const lockCheck = await query(
-            `SELECT locked_until FROM users WHERE id = $1`,
-            [user.id]
-        );
-        if (lockCheck.rows[0]?.locked_until && new Date(lockCheck.rows[0].locked_until) > new Date()) {
+        const lockRow = await db.selectFrom('users')
+            .select(['locked_until'])
+            .where('id', '=', user.id)
+            .executeTakeFirst();
+        if (lockRow?.locked_until && new Date(lockRow.locked_until) > new Date()) {
             return res.redirect('/login?error=account_locked');
         }
 
         // Load module access
-        const moduleResult = await query(
-            `SELECT module_key FROM user_module_access WHERE user_id = $1`,
-            [user.id]
-        );
-        user.modules = moduleResult.rows.map((r) => r.module_key);
+        const moduleRows = await db.selectFrom('user_module_access')
+            .select(['module_key'])
+            .where('user_id', '=', user.id)
+            .execute();
+        user.modules = Array.isArray(moduleRows) ? moduleRows.map((r) => r.module_key) : [];
 
         // Generate JWT and set cookie
         const jwtToken = generateToken(user);

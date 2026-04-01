@@ -215,8 +215,8 @@
 
 | Spalte | Datenart | Personenbezug | Art. 9 | Loeschbar | Aufbewahrung |
 |--------|----------|---------------|--------|-----------|--------------|
-| akteur | FK → users | Indirekt | Nein | ON DELETE SET NULL | Bis Paket-Loeschung |
-| details | JSONB (Aktivitaetsdaten) | Potentiell indirekt | Nein | CASCADE | Bis Paket-Loeschung |
+| akteur | FK → users | Indirekt | Nein | ON DELETE SET NULL | 730 Tage (automatisch) |
+| details | JSONB (Aktivitaetsdaten) | Potentiell indirekt | Nein | CASCADE | 730 Tage (automatisch) |
 
 #### Tabelle: `flow_abteilungsleitung`
 

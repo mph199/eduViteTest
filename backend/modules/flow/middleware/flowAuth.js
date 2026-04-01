@@ -1,4 +1,5 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
+import { sql } from 'kysely';
 import { assertSafeIdentifier } from '../../../shared/sqlGuards.js';
 import logger from '../../../config/logger.js';
 
@@ -15,12 +16,13 @@ export function requireFlowBildungsgangRolle(minRolle) {
             const userId = req.user.id;
             const bildungsgangId = req.params.bildungsgangId || req.params.id;
 
-            const result = await query(
-                'SELECT rolle FROM flow_bildungsgang_mitglied WHERE bildungsgang_id = $1 AND user_id = $2',
-                [bildungsgangId, userId]
-            );
+            const row = await db.selectFrom('flow_bildungsgang_mitglied')
+                .select('rolle')
+                .where('bildungsgang_id', '=', bildungsgangId)
+                .where('user_id', '=', userId)
+                .executeTakeFirst();
 
-            if (result.rows.length === 0) {
+            if (!row) {
                 if (['admin', 'superadmin'].includes(req.user.role)) {
                     req.flowBgRolle = 'leitung';
                     return next();
@@ -28,7 +30,7 @@ export function requireFlowBildungsgangRolle(minRolle) {
                 return res.status(403).json({ error: 'Kein Zugang zu diesem Bildungsgang' });
             }
 
-            const rolle = result.rows[0].rolle;
+            const rolle = row.rolle;
             if (!(BG_ROLLEN_HIERARCHIE[rolle] >= BG_ROLLEN_HIERARCHIE[minRolle])) {
                 return res.status(403).json({ error: 'Bildungsgangleitung erforderlich' });
             }
@@ -53,16 +55,17 @@ export function requireFlowPaketRolle(erlaubteRollen) {
             const userId = req.user.id;
             const arbeitspaketId = req.params.arbeitspaketId || req.params.id;
 
-            const result = await query(
-                'SELECT rolle FROM flow_arbeitspaket_mitglied WHERE arbeitspaket_id = $1 AND user_id = $2',
-                [arbeitspaketId, userId]
-            );
+            const row = await db.selectFrom('flow_arbeitspaket_mitglied')
+                .select('rolle')
+                .where('arbeitspaket_id', '=', arbeitspaketId)
+                .where('user_id', '=', userId)
+                .executeTakeFirst();
 
-            if (result.rows.length === 0) {
+            if (!row) {
                 return res.status(403).json({ error: 'Kein Zugang zu diesem Arbeitspaket' });
             }
 
-            const rolle = result.rows[0].rolle;
+            const rolle = row.rolle;
             if (!erlaubteRollen.includes(rolle)) {
                 return res.status(403).json({ error: 'Unzureichende Berechtigung' });
             }
@@ -84,12 +87,12 @@ export async function requireFlowAbteilungsleitung(req, res, next) {
     try {
         if (['admin', 'superadmin'].includes(req.user.role)) return next();
 
-        const result = await query(
-            'SELECT 1 FROM flow_abteilungsleitung WHERE user_id = $1',
-            [req.user.id]
-        );
+        const row = await db.selectFrom('flow_abteilungsleitung')
+            .select(sql`1`.as('exists'))
+            .where('user_id', '=', req.user.id)
+            .executeTakeFirst();
 
-        if (result.rows.length === 0) {
+        if (!row) {
             return res.status(403).json({ error: 'Nur fuer Abteilungsleitung' });
         }
 
@@ -114,19 +117,18 @@ export async function requireFlowPaketAnlage(req, res, next) {
             return next();
         }
 
-        const bgResult = await query(
-            `SELECT bgm.rolle, bg.erlaubt_mitgliedern_paket_erstellung
-             FROM flow_bildungsgang_mitglied bgm
-             JOIN flow_bildungsgang bg ON bg.id = bgm.bildungsgang_id
-             WHERE bgm.bildungsgang_id = $1 AND bgm.user_id = $2`,
-            [bildungsgangId, userId]
-        );
+        const row = await db.selectFrom('flow_bildungsgang_mitglied as bgm')
+            .innerJoin('flow_bildungsgang as bg', 'bg.id', 'bgm.bildungsgang_id')
+            .select(['bgm.rolle', 'bg.erlaubt_mitgliedern_paket_erstellung'])
+            .where('bgm.bildungsgang_id', '=', bildungsgangId)
+            .where('bgm.user_id', '=', userId)
+            .executeTakeFirst();
 
-        if (bgResult.rows.length === 0) {
+        if (!row) {
             return res.status(403).json({ error: 'Kein Mitglied des Bildungsgangs' });
         }
 
-        const { rolle, erlaubt_mitgliedern_paket_erstellung } = bgResult.rows[0];
+        const { rolle, erlaubt_mitgliedern_paket_erstellung } = row;
 
         if (rolle === 'leitung') return next();
         if (rolle === 'mitglied' && erlaubt_mitgliedern_paket_erstellung) return next();
@@ -151,24 +153,27 @@ function requireFlowEntityZugang(entityTable, entityLabel, storeResult) {
     return (erlaubteRollen) => {
         return async (req, res, next) => {
             try {
-                const entityResult = await query(
-                    `SELECT arbeitspaket_id FROM ${entityTable} WHERE id = $1`,
-                    [req.params.id]
-                );
-                if (entityResult.rows.length === 0) {
+                const entityRow = await db.selectFrom(entityTable)
+                    .select('arbeitspaket_id')
+                    .where('id', '=', req.params.id)
+                    .executeTakeFirst();
+
+                if (!entityRow) {
                     return res.status(404).json({ error: `${entityLabel} nicht gefunden` });
                 }
-                const arbeitspaketId = entityResult.rows[0].arbeitspaket_id;
+                const arbeitspaketId = entityRow.arbeitspaket_id;
                 storeResult(req, arbeitspaketId);
 
-                const result = await query(
-                    'SELECT rolle FROM flow_arbeitspaket_mitglied WHERE arbeitspaket_id = $1 AND user_id = $2',
-                    [arbeitspaketId, req.user.id]
-                );
-                if (result.rows.length === 0) {
+                const row = await db.selectFrom('flow_arbeitspaket_mitglied')
+                    .select('rolle')
+                    .where('arbeitspaket_id', '=', arbeitspaketId)
+                    .where('user_id', '=', req.user.id)
+                    .executeTakeFirst();
+
+                if (!row) {
                     return res.status(403).json({ error: 'Kein Zugang zu diesem Arbeitspaket' });
                 }
-                const rolle = result.rows[0].rolle;
+                const rolle = row.rolle;
                 if (!erlaubteRollen.includes(rolle)) {
                     return res.status(403).json({ error: 'Unzureichende Berechtigung' });
                 }

@@ -1,6 +1,7 @@
 import express from 'express';
+import { sql } from 'kysely';
 import { requireAdmin, requireSuperadmin } from '../../middleware/auth.js';
-import { query, getClient } from '../../config/db.js';
+import { db } from '../../db/database.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import logger from '../../config/logger.js';
 
@@ -11,16 +12,16 @@ const VALID_MODULE_KEYS = ['beratungslehrer', 'schulsozialarbeit', 'flow'];
 // GET /api/admin/users
 router.get('/users', requireAdmin, async (_req, res) => {
   try {
-    const { rows } = await query(
-      `SELECT u.id, u.username, u.role, u.teacher_id, u.created_at, u.updated_at,
-              COALESCE(
-                (SELECT json_agg(uma.module_key ORDER BY uma.module_key)
-                 FROM user_module_access uma WHERE uma.user_id = u.id),
-                '[]'::json
-              ) AS modules
-       FROM users u ORDER BY u.id`
-    );
-    return res.json({ users: rows });
+    const rows = await sql`
+      SELECT u.id, u.username, u.role, u.teacher_id, u.created_at, u.updated_at,
+             COALESCE(
+               (SELECT json_agg(uma.module_key ORDER BY uma.module_key)
+                FROM user_module_access uma WHERE uma.user_id = u.id),
+               '[]'::json
+             ) AS modules
+      FROM users u ORDER BY u.id
+    `.execute(db);
+    return res.json({ users: rows.rows });
   } catch (error) {
     logger.error({ err: error }, 'Error fetching admin users');
     return res.status(500).json({ error: 'Failed to fetch users' });
@@ -30,35 +31,33 @@ router.get('/users', requireAdmin, async (_req, res) => {
 // PATCH /api/admin/users/:id
 router.patch('/users/:id', requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: 'Invalid user ID' });
-  }
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
 
   const { role } = req.body || {};
   const roleStr = String(role || '').trim();
-  // superadmin is reserved for the env-based system account (Start) only
   if (!['admin', 'teacher'].includes(roleStr)) {
     return res.status(400).json({ error: 'role must be "admin" or "teacher"' });
   }
 
   try {
-    // Prevent an admin from demoting themselves
     if (req.user?.username) {
-      const { rows: meRows } = await query('SELECT id, role FROM users WHERE username = $1 LIMIT 1', [req.user.username]);
-      const me = meRows[0] || null;
+      const me = await db.selectFrom('users')
+        .select(['id', 'role'])
+        .where('username', '=', req.user.username)
+        .executeTakeFirst();
       if (me && Number(me.id) === userId && roleStr !== me.role && (me.role === 'admin' || me.role === 'superadmin')) {
         return res.status(400).json({ error: 'Sie koennen Ihre eigene Rolle nicht herabstufen.' });
       }
     }
 
-    const { rows } = await query(
-      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, username, role, teacher_id, created_at, updated_at',
-      [roleStr, userId]
-    );
-    if (!rows.length) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    return res.json({ success: true, user: rows[0] });
+    const updated = await db.updateTable('users')
+      .set({ role: roleStr })
+      .where('id', '=', userId)
+      .returning(['id', 'username', 'role', 'teacher_id', 'created_at', 'updated_at'])
+      .executeTakeFirst();
+
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+    return res.json({ success: true, user: updated });
   } catch (error) {
     logger.error({ err: error }, 'Error updating admin user role');
     return res.status(500).json({ error: 'Failed to update user' });
@@ -66,8 +65,6 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
 });
 
 // Counselor cleanup config per module key
-// NOTE: Table names are static constants, never from user input.
-// Keys must match VALID_MODULE_KEYS entries that have counselor data.
 const COUNSELOR_TABLES = {
   beratungslehrer: {
     counselors: 'bl_counselors',
@@ -86,98 +83,83 @@ const COUNSELOR_TABLES = {
 // PUT /api/admin/users/:id/modules
 router.put('/users/:id/modules', requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: 'Invalid user ID' });
-  }
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
 
   const { modules, force } = req.body || {};
-  if (!Array.isArray(modules)) {
-    return res.status(400).json({ error: 'modules must be an array of module keys' });
-  }
+  if (!Array.isArray(modules)) return res.status(400).json({ error: 'modules must be an array of module keys' });
 
-  // Validate module keys
   const invalid = modules.filter(m => !VALID_MODULE_KEYS.includes(m));
-  if (invalid.length > 0) {
-    return res.status(400).json({ error: 'Invalid module keys: ' + invalid.join(', ') });
-  }
+  if (invalid.length > 0) return res.status(400).json({ error: 'Invalid module keys: ' + invalid.join(', ') });
 
-  const client = await getClient();
   try {
-    await client.query('BEGIN');
+    await db.transaction().execute(async (trx) => {
+      const currentRows = await trx.selectFrom('user_module_access')
+        .select('module_key')
+        .where('user_id', '=', userId)
+        .execute();
+      const currentKeys = currentRows.map(r => r.module_key);
+      const removedKeys = currentKeys.filter(k => !modules.includes(k));
 
-    // Determine which modules are being removed
-    const { rows: currentRows } = await client.query(
-      'SELECT module_key FROM user_module_access WHERE user_id = $1',
-      [userId]
-    );
-    const currentKeys = currentRows.map(r => r.module_key);
-    const removedKeys = currentKeys.filter(k => !modules.includes(k));
+      // Check for counselor data conflicts on removed modules
+      const conflicts = [];
+      for (const key of removedKeys) {
+        const cfg = COUNSELOR_TABLES[key];
+        if (!cfg) continue;
+        assertSafeIdentifier(cfg.appointments);
+        assertSafeIdentifier(cfg.counselors);
+        assertSafeIdentifier(cfg.schedule);
 
-    // Check for counselor data conflicts on removed modules
-    // NOTE: Table names in COUNSELOR_TABLES are static constants, never from user input.
-    const conflicts = [];
-    for (const key of removedKeys) {
-      const cfg = COUNSELOR_TABLES[key];
-      if (!cfg) continue;
-      assertSafeIdentifier(cfg.appointments);
-      assertSafeIdentifier(cfg.counselors);
-      assertSafeIdentifier(cfg.schedule);
+        const stats = await sql`
+          SELECT c.id,
+                 (SELECT COUNT(*) FROM ${sql.table(cfg.appointments)} a WHERE a.counselor_id = c.id AND a.status NOT IN ('cancelled', 'available')) AS appointment_count,
+                 (SELECT COUNT(*) FROM ${sql.table(cfg.schedule)} s WHERE s.counselor_id = c.id AND s.active = true) AS schedule_count
+          FROM ${sql.table(cfg.counselors)} c WHERE c.user_id = ${userId}
+        `.execute(trx);
 
-      const { rows: stats } = await client.query(
-        `SELECT c.id,
-                (SELECT COUNT(*) FROM ${cfg.appointments} a WHERE a.counselor_id = c.id AND a.status NOT IN ('cancelled', 'available')) AS appointment_count,
-                (SELECT COUNT(*) FROM ${cfg.schedule} s WHERE s.counselor_id = c.id AND s.active = true) AS schedule_count
-         FROM ${cfg.counselors} c WHERE c.user_id = $1`,
-        [userId]
-      );
-
-      if (stats.length > 0) {
-        const row = stats[0];
-        const appointmentCount = parseInt(row.appointment_count, 10) || 0;
-        const scheduleCount = parseInt(row.schedule_count, 10) || 0;
-        if (appointmentCount > 0 || scheduleCount > 0) {
-          conflicts.push({
-            key,
-            label: cfg.label,
-            appointmentCount,
-            scheduleCount,
-          });
+        if (stats.rows.length > 0) {
+          const row = stats.rows[0];
+          const appointmentCount = parseInt(row.appointment_count, 10) || 0;
+          const scheduleCount = parseInt(row.schedule_count, 10) || 0;
+          if (appointmentCount > 0 || scheduleCount > 0) {
+            conflicts.push({ key, label: cfg.label, appointmentCount, scheduleCount });
+          }
         }
       }
-    }
 
-    // If conflicts exist and force is not set, rollback and return 409
-    if (conflicts.length > 0 && force !== true) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({ conflict: true, revokedModules: conflicts });
-    }
+      if (conflicts.length > 0 && force !== true) {
+        // Throwing inside transaction triggers rollback
+        const err = new Error('conflict');
+        err.conflicts = conflicts;
+        throw err;
+      }
 
-    // Clean up counselor data for removed modules
-    for (const key of removedKeys) {
-      const cfg = COUNSELOR_TABLES[key];
-      if (!cfg) continue;
-      // CASCADE on bl_counselors.id deletes appointments, schedule, requests
-      await client.query(`DELETE FROM ${cfg.counselors} WHERE user_id = $1`, [userId]);
-    }
+      // Clean up counselor data for removed modules
+      for (const key of removedKeys) {
+        const cfg = COUNSELOR_TABLES[key];
+        if (!cfg) continue;
+        await sql`DELETE FROM ${sql.table(cfg.counselors)} WHERE user_id = ${userId}`.execute(trx);
+      }
 
-    await client.query('DELETE FROM user_module_access WHERE user_id = $1', [userId]);
-    for (const moduleKey of modules) {
-      await client.query(
-        'INSERT INTO user_module_access (user_id, module_key) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [userId, moduleKey]
-      );
-    }
-    // Token-Version inkrementieren damit aktive Sessions die neuen Module laden
-    await client.query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
-    await client.query('COMMIT');
+      await trx.deleteFrom('user_module_access').where('user_id', '=', userId).execute();
+      for (const moduleKey of modules) {
+        await trx.insertInto('user_module_access')
+          .values({ user_id: userId, module_key: moduleKey })
+          .onConflict((oc) => oc.doNothing())
+          .execute();
+      }
+      await trx.updateTable('users')
+        .set((eb) => ({ token_version: eb('token_version', '+', 1) }))
+        .where('id', '=', userId)
+        .execute();
+    });
 
     return res.json({ success: true, modules });
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {});
+    if (error.conflicts) {
+      return res.status(409).json({ conflict: true, revokedModules: error.conflicts });
+    }
     logger.error({ err: error }, 'Error updating user modules');
     return res.status(500).json({ error: 'Failed to update user modules' });
-  } finally {
-    client.release();
   }
 });
 
@@ -185,21 +167,16 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
 
 const VALID_ADMIN_MODULE_KEYS = ['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer', 'flow'];
 
-/**
- * GET /api/admin/users/:id/admin-access
- * Liest die Admin-Modulrechte eines Users.
- * Auth: requireAdmin (nicht requireSuperadmin) — Admins dürfen Rechte lesen,
- * nur Superadmins dürfen sie schreiben (PUT).
- */
+// GET /api/admin/users/:id/admin-access
 router.get('/users/:id/admin-access', requireAdmin, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
 
   try {
-    const { rows } = await query(
-      'SELECT module_key FROM user_admin_access WHERE user_id = $1',
-      [userId]
-    );
+    const rows = await db.selectFrom('user_admin_access')
+      .select('module_key')
+      .where('user_id', '=', userId)
+      .execute();
     return res.json({ adminModules: rows.map(r => r.module_key) });
   } catch (error) {
     logger.error({ err: error }, 'Error loading admin access');
@@ -207,31 +184,23 @@ router.get('/users/:id/admin-access', requireAdmin, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/admin/users/:id/admin-access
- * Setzt die Admin-Modulrechte eines Users. Nur Superadmin.
- */
+// PUT /api/admin/users/:id/admin-access
 router.put('/users/:id/admin-access', requireSuperadmin, async (req, res) => {
-
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
 
   const { adminModules } = req.body || {};
-  if (!Array.isArray(adminModules)) {
-    return res.status(400).json({ error: 'adminModules must be an array' });
-  }
+  if (!Array.isArray(adminModules)) return res.status(400).json({ error: 'adminModules must be an array' });
 
   const invalid = adminModules.filter(k => !VALID_ADMIN_MODULE_KEYS.includes(k));
-  if (invalid.length > 0) {
-    return res.status(400).json({ error: 'Invalid admin module keys: ' + invalid.join(', ') });
-  }
+  if (invalid.length > 0) return res.status(400).json({ error: 'Invalid admin module keys: ' + invalid.join(', ') });
 
-  // Nur für freigeschaltete Module Adminrechte vergeben
   if (adminModules.length > 0) {
     try {
-      const { rows: enabledRows } = await query(
-        'SELECT module_id FROM module_config WHERE enabled = TRUE'
-      );
+      const enabledRows = await db.selectFrom('module_config')
+        .select('module_id')
+        .where('enabled', '=', true)
+        .execute();
       const enabledSet = new Set(enabledRows.map(r => r.module_id));
       const disabled = adminModules.filter(k => !enabledSet.has(k));
       if (disabled.length > 0) {
@@ -239,23 +208,24 @@ router.put('/users/:id/admin-access', requireSuperadmin, async (req, res) => {
           error: `Adminrechte können nur für freigeschaltete Module vergeben werden. Deaktiviert: ${disabled.join(', ')}`,
         });
       }
-    } catch {
-      // module_config Tabelle fehlt oder Fehler — sicherheitshalber ablehnen
+    } catch (err) {
+      logger.warn({ err }, 'Modulkonfiguration konnte nicht geprüft werden');
       return res.status(500).json({ error: 'Modulkonfiguration konnte nicht geprüft werden' });
     }
   }
 
   try {
-    await query('DELETE FROM user_admin_access WHERE user_id = $1', [userId]);
+    await db.deleteFrom('user_admin_access').where('user_id', '=', userId).execute();
     for (const moduleKey of adminModules) {
-      await query(
-        'INSERT INTO user_admin_access (user_id, module_key, granted_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-        [userId, moduleKey, req.user.id || null]
-      );
+      await db.insertInto('user_admin_access')
+        .values({ user_id: userId, module_key: moduleKey, granted_by: req.user.id || null })
+        .onConflict((oc) => oc.doNothing())
+        .execute();
     }
-
-    // Token-Version inkrementieren damit aktive Sessions die neuen Rechte laden
-    await query('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1', [userId]);
+    await db.updateTable('users')
+      .set((eb) => ({ token_version: eb('token_version', '+', 1) }))
+      .where('id', '=', userId)
+      .execute();
 
     return res.json({ success: true, adminModules });
   } catch (error) {

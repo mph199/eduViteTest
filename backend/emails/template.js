@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,9 +17,10 @@ export async function getEmailBranding() {
   if (cachedBranding && now < cacheExpiry) return cachedBranding;
 
   try {
-    const { rows } = await query('SELECT * FROM email_branding WHERE id = 1 LIMIT 1');
+    const rows = [await db.selectFrom('email_branding').selectAll().where('id', '=', 1).executeTakeFirst()].filter(Boolean);
     cachedBranding = rows[0] || null;
-  } catch {
+  } catch (err) {
+    logger.debug({ err }, 'email_branding table not available');
     cachedBranding = null;
   }
 
@@ -31,7 +32,7 @@ export async function getEmailBranding() {
     if (sbRows[0]) {
       cachedBranding = { ...cachedBranding, ...sbRows[0] };
     }
-  } catch { /* site_branding may not have new columns yet */ }
+  } catch (err) { logger.debug({ err }, 'site_branding DSB columns not available yet'); }
 
   cacheExpiry = now + 60_000;
   return cachedBranding;

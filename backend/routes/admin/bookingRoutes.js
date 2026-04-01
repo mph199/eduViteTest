@@ -1,6 +1,7 @@
 import express from 'express';
+import { sql } from 'kysely';
 import { requireAdmin } from '../../middleware/auth.js';
-import { query } from '../../config/db.js';
+import { db } from '../../db/database.js';
 import { isEmailConfigured, sendMail } from '../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../emails/template.js';
 import { listAdminBookings, cancelBookingAdmin } from '../../modules/elternsprechtag/services/slotsService.js';
@@ -23,21 +24,16 @@ router.get('/bookings', requireAdmin, async (_req, res) => {
 // DELETE /api/admin/bookings/:slotId
 router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
   const slotId = parseInt(req.params.slotId, 10);
-  if (isNaN(slotId)) {
-    return res.status(400).json({ error: 'Invalid slotId' });
-  }
+  if (isNaN(slotId)) return res.status(400).json({ error: 'Invalid slotId' });
 
   const cancellationMessage = typeof req.body?.cancellationMessage === 'string'
     ? req.body.cancellationMessage.trim()
     : '';
-  if (!cancellationMessage) {
-    return res.status(400).json({ error: 'cancellationMessage is required' });
-  }
+  if (!cancellationMessage) return res.status(400).json({ error: 'cancellationMessage is required' });
 
   try {
     const { previous } = await cancelBookingAdmin(slotId);
 
-    // Best-effort cancellation email (only if the booking email was verified)
     if (previous && previous.email && previous.verified_at && isEmailConfigured()) {
       try {
         const teacher = await getTeacherById(previous.teacher_id) || {};
@@ -48,7 +44,10 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
           cancellationMessage,
         }, branding);
         await sendMail({ to: previous.email, subject, text, html });
-        await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
+        await db.updateTable('slots')
+          .set({ cancellation_sent_at: new Date() })
+          .where('id', '=', slotId)
+          .execute();
       } catch (e) {
         logger.warn({ err: e }, 'Sending cancellation email (admin) failed');
       }
@@ -65,19 +64,13 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
 // DELETE /api/admin/booking-requests/:id — anonymize a single booking request
 router.delete('/booking-requests/:id', requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid id' });
-  }
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
   try {
-    const { rows } = await query(
-      'SELECT anonymize_booking_request($1) AS success',
-      [id]
-    );
-    if (!rows[0]?.success) {
+    const result = await sql`SELECT anonymize_booking_request(${id}) AS success`.execute(db);
+    if (!result.rows[0]?.success) {
       return res.status(404).json({ error: 'Booking request not found or already anonymized' });
     }
-
     logger.info({ bookingRequestId: id }, 'Booking request anonymized');
     res.json({ success: true });
   } catch (error) {
@@ -87,28 +80,20 @@ router.delete('/booking-requests/:id', requireAdmin, async (req, res) => {
 });
 
 // POST /api/admin/bookings/anonymize/:eventId
-// Anonymizes all PII in booking_requests for a closed event.
 router.post('/bookings/anonymize/:eventId', requireAdmin, async (req, res) => {
   const eventId = parseInt(req.params.eventId, 10);
-  if (isNaN(eventId)) {
-    return res.status(400).json({ error: 'Invalid eventId' });
-  }
+  if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid eventId' });
 
   try {
-    // Verify event exists and is closed
-    const { rows: eventRows } = await query(
-      'SELECT id, status FROM events WHERE id = $1',
-      [eventId]
-    );
-    if (!eventRows.length) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-    if (eventRows[0].status !== 'closed') {
-      return res.status(400).json({ error: 'Event must be closed before anonymization' });
-    }
+    const event = await db.selectFrom('events')
+      .select(['id', 'status'])
+      .where('id', '=', eventId)
+      .executeTakeFirst();
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (event.status !== 'closed') return res.status(400).json({ error: 'Event must be closed before anonymization' });
 
-    const { rows } = await query('SELECT anonymize_booking_requests($1) AS affected', [eventId]);
-    const affected = rows[0]?.affected || 0;
+    const result = await sql`SELECT anonymize_booking_requests(${eventId}) AS affected`.execute(db);
+    const affected = result.rows[0]?.affected || 0;
 
     logger.info({ eventId, affected }, 'Booking requests anonymized for event');
     res.json({ success: true, anonymized: affected });

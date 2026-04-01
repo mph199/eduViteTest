@@ -13,7 +13,9 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+import { sql } from 'kysely';
+
 import logger from '../config/logger.js';
 import { getExpiresAt } from './tokenUtils.js';
 import { writeAuditLog } from '../middleware/audit-log.js';
@@ -64,12 +66,11 @@ export function createCalendarFeedRoute(config) {
 
       const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-      const { rows } = await query(
-        `SELECT id, first_name, last_name, calendar_token_created_at
-         FROM ${table}
-         WHERE calendar_token_hash = $1`,
-        [tokenHash]
-      );
+      const { rows } = await sql`
+        SELECT id, first_name, last_name, calendar_token_created_at
+        FROM ${sql.table(table)}
+        WHERE calendar_token_hash = ${tokenHash}
+      `.execute(db);
 
       const counselor = rows[0];
       if (!counselor) {
@@ -84,14 +85,13 @@ export function createCalendarFeedRoute(config) {
 
       writeAuditLog(null, 'READ', auditResource, counselor.id, { source: 'calendar-feed' }, req.ip);
 
-      const { rows: appointments } = await query(
-        `SELECT id, date, time
-         FROM ${appointmentTable}
-         WHERE ${counselorIdColumn} = $1
-           AND status = 'confirmed'
-         ORDER BY date, time`,
-        [counselor.id]
-      );
+      const { rows: appointments } = await sql`
+        SELECT id, date, time
+        FROM ${sql.table(appointmentTable)}
+        WHERE ${sql.ref(counselorIdColumn)} = ${counselor.id}
+          AND status = 'confirmed'
+        ORDER BY date, time
+      `.execute(db);
 
       const counselorName = `${counselor.first_name} ${counselor.last_name}`.trim();
 

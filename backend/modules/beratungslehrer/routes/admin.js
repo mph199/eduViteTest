@@ -5,7 +5,7 @@
  */
 
 import { requireAdmin } from '../../../middleware/auth.js';
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 import { createCounselorAdminRoutes, createCounselorUser } from '../../../shared/counselorAdminRoutes.js';
 
 export default createCounselorAdminRoutes({
@@ -23,9 +23,9 @@ export default createCounselorAdminRoutes({
 
   async onCounselorDeleted(counselorRow) {
     // BL removes module access but keeps the user account (may be used by other modules)
-    await query(
-      'DELETE FROM user_module_access WHERE user_id = $1 AND module_key = $2',
-      [counselorRow.user_id, 'beratungslehrer']
-    );
+    await db.deleteFrom('user_module_access')
+      .where('user_id', '=', counselorRow.user_id)
+      .where('module_key', '=', 'beratungslehrer')
+      .execute();
   },
 });

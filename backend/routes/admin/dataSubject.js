@@ -1,6 +1,8 @@
 import express from 'express';
 import { requireSuperadmin } from '../../middleware/auth.js';
-import { query, getClient } from '../../config/db.js';
+import { db } from '../../db/database.js';
+import { sql } from 'kysely';
+
 import logger from '../../config/logger.js';
 import { assertSafeIdentifier } from '../../shared/sqlGuards.js';
 import { writeAuditLog } from '../../middleware/audit-log.js';
@@ -35,58 +37,60 @@ async function collectPersonData(email) {
   const data = {};
 
   // 1. Teachers
-  const teachers = await query(
-    `SELECT id, name, email, subject, created_at
-     FROM teachers WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (teachers.rows.length > 0) data.teachers = teachers.rows;
+  const teachers = await db.selectFrom('teachers')
+    .select(['id', 'name', 'email', 'subject', 'created_at'])
+    .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+    .execute();
+  if (teachers.length > 0) data.teachers = teachers;
 
   // 2. Users
-  const users = await query(
-    `SELECT id, username, email, role, teacher_id, created_at
-     FROM users WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (users.rows.length > 0) data.users = users.rows;
+  const users = await db.selectFrom('users')
+    .select(['id', 'username', 'email', 'role', 'teacher_id', 'created_at'])
+    .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+    .execute();
+  if (users.length > 0) data.users = users;
 
   // 3. Booking Requests (Elternsprechtag)
-  const bookingRequests = await query(
-    `SELECT id, event_id, teacher_id, parent_name, student_name, company_name,
-            trainee_name, representative_name, email, message, visitor_type,
-            class_name, status, restricted, created_at, updated_at
-     FROM booking_requests WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (bookingRequests.rows.length > 0) data.booking_requests = bookingRequests.rows;
+  const bookingRequests = await db.selectFrom('booking_requests')
+    .select([
+      'id', 'event_id', 'teacher_id', 'parent_name', 'student_name', 'company_name',
+      'trainee_name', 'representative_name', 'email', 'message', 'visitor_type',
+      'class_name', 'status', 'restricted', 'created_at', 'updated_at',
+    ])
+    .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+    .execute();
+  if (bookingRequests.length > 0) data.booking_requests = bookingRequests;
 
   // 4. Slots (booked by this email)
-  const slots = await query(
-    `SELECT id, teacher_id, event_id, date, time, booked, status,
-            visitor_type, parent_name, student_name, company_name, trainee_name,
-            representative_name, class_name, email, message, verified_at, created_at, updated_at
-     FROM slots WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (slots.rows.length > 0) data.slots = slots.rows;
+  const slots = await db.selectFrom('slots')
+    .select([
+      'id', 'teacher_id', 'event_id', 'date', 'time', 'booked', 'status',
+      'visitor_type', 'parent_name', 'student_name', 'company_name', 'trainee_name',
+      'representative_name', 'class_name', 'email', 'message', 'verified_at', 'created_at', 'updated_at',
+    ])
+    .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+    .execute();
+  if (slots.length > 0) data.slots = slots;
 
   // 5. SSW Appointments
-  const sswAppointments = await query(
-    `SELECT id, counselor_id, first_name, last_name, student_class, email, phone,
-            date, time, duration_minutes, status, restricted, created_at, updated_at
-     FROM ssw_appointments WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (sswAppointments.rows.length > 0) data.ssw_appointments = sswAppointments.rows;
+  const sswAppointments = await db.selectFrom('ssw_appointments')
+    .select([
+      'id', 'counselor_id', 'first_name', 'last_name', 'student_class', 'email', 'phone',
+      'date', 'time', 'duration_minutes', 'status', 'restricted', 'created_at', 'updated_at',
+    ])
+    .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+    .execute();
+  if (sswAppointments.length > 0) data.ssw_appointments = sswAppointments;
 
   // 6. BL Appointments
-  const blAppointments = await query(
-    `SELECT id, counselor_id, first_name, last_name, student_class, email, phone,
-            date, time, duration_minutes, status, restricted, created_at, updated_at
-     FROM bl_appointments WHERE LOWER(email) = LOWER($1)`,
-    [email]
-  );
-  if (blAppointments.rows.length > 0) data.bl_appointments = blAppointments.rows;
+  const blAppointments = await db.selectFrom('bl_appointments')
+    .select([
+      'id', 'counselor_id', 'first_name', 'last_name', 'student_class', 'email', 'phone',
+      'date', 'time', 'duration_minutes', 'status', 'restricted', 'created_at', 'updated_at',
+    ])
+    .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
+    .execute();
+  if (blAppointments.length > 0) data.bl_appointments = blAppointments;
 
   // 7. Consent Receipts (no email column – lookup via related appointments)
   // consent_receipts has no direct email reference; skipped (no email FK)
@@ -190,68 +194,74 @@ router.delete('/data-subject', requireSuperadmin, async (req, res) => {
     const trimmedEmail = email.trim();
     const protocol = { email: trimmedEmail, timestamp: new Date().toISOString(), actions: [] };
 
-    const client = await getClient();
-    try {
-      await client.query('BEGIN');
-
+    await db.transaction().execute(async (trx) => {
       // 1. Anonymize booking_requests (via DB function for consistency)
-      const brResult = await client.query(
-        'SELECT anonymize_booking_requests_by_email(LOWER($1)) AS affected',
-        [trimmedEmail]
-      );
+      const brResult = await sql`SELECT anonymize_booking_requests_by_email(LOWER(${trimmedEmail})) AS affected`.execute(trx);
       const brAffected = brResult.rows[0]?.affected || 0;
       if (brAffected > 0) {
         protocol.actions.push({ table: 'booking_requests', anonymized: brAffected });
       }
 
       // 2. Anonymize slots
-      const slotsResult = await client.query(
-        `UPDATE slots
-         SET parent_name = NULL, student_name = NULL, company_name = NULL,
-             trainee_name = NULL, representative_name = NULL, class_name = NULL,
-             email = NULL, message = NULL, verification_token_hash = NULL,
-             updated_at = NOW()
-         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-         RETURNING id`,
-        [trimmedEmail]
-      );
-      if (slotsResult.rows.length > 0) {
-        protocol.actions.push({ table: 'slots', anonymized: slotsResult.rows.length, ids: slotsResult.rows.map(r => r.id) });
+      const slotsResult = await trx.updateTable('slots')
+        .set({
+          parent_name: null,
+          student_name: null,
+          company_name: null,
+          trainee_name: null,
+          representative_name: null,
+          class_name: null,
+          email: null,
+          message: null,
+          verification_token_hash: null,
+          updated_at: sql`NOW()`,
+        })
+        .where(sql`LOWER(email)`, '=', sql`LOWER(${trimmedEmail})`)
+        .where('email', 'is not', null)
+        .returning(['id'])
+        .execute();
+      if (slotsResult.length > 0) {
+        protocol.actions.push({ table: 'slots', anonymized: slotsResult.length, ids: slotsResult.map(r => r.id) });
       }
 
       // 3. Anonymize SSW appointments
-      const sswResult = await client.query(
-        `UPDATE ssw_appointments
-         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
-             restricted = TRUE, updated_at = NOW()
-         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-         RETURNING id`,
-        [trimmedEmail]
-      );
-      if (sswResult.rows.length > 0) {
-        protocol.actions.push({ table: 'ssw_appointments', anonymized: sswResult.rows.length, ids: sswResult.rows.map(r => r.id) });
+      const sswResult = await trx.updateTable('ssw_appointments')
+        .set({
+          first_name: null,
+          last_name: null,
+          student_class: null,
+          email: null,
+          phone: null,
+          restricted: true,
+          updated_at: sql`NOW()`,
+        })
+        .where(sql`LOWER(email)`, '=', sql`LOWER(${trimmedEmail})`)
+        .where('email', 'is not', null)
+        .returning(['id'])
+        .execute();
+      if (sswResult.length > 0) {
+        protocol.actions.push({ table: 'ssw_appointments', anonymized: sswResult.length, ids: sswResult.map(r => r.id) });
       }
 
       // 4. Anonymize BL appointments
-      const blResult = await client.query(
-        `UPDATE bl_appointments
-         SET first_name = NULL, last_name = NULL, student_class = NULL, email = NULL, phone = NULL,
-             restricted = TRUE, updated_at = NOW()
-         WHERE LOWER(email) = LOWER($1) AND email IS NOT NULL
-         RETURNING id`,
-        [trimmedEmail]
-      );
-      if (blResult.rows.length > 0) {
-        protocol.actions.push({ table: 'bl_appointments', anonymized: blResult.rows.length, ids: blResult.rows.map(r => r.id) });
+      const blResult = await trx.updateTable('bl_appointments')
+        .set({
+          first_name: null,
+          last_name: null,
+          student_class: null,
+          email: null,
+          phone: null,
+          restricted: true,
+          updated_at: sql`NOW()`,
+        })
+        .where(sql`LOWER(email)`, '=', sql`LOWER(${trimmedEmail})`)
+        .where('email', 'is not', null)
+        .returning(['id'])
+        .execute();
+      if (blResult.length > 0) {
+        protocol.actions.push({ table: 'bl_appointments', anonymized: blResult.length, ids: blResult.map(r => r.id) });
       }
-
-      await client.query('COMMIT');
-    } catch (txErr) {
-      await client.query('ROLLBACK');
-      throw txErr;
-    } finally {
-      client.release();
-    }
+    });
 
     const totalAnonymized = protocol.actions.reduce((sum, a) => sum + a.anonymized, 0);
 
@@ -294,11 +304,8 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
     };
 
     const results = [];
-    const client = await getClient();
 
-    try {
-      await client.query('BEGIN');
-
+    await db.transaction().execute(async (trx) => {
       for (const [table, fields] of Object.entries(allowedFields)) {
         assertSafeIdentifier(table, 'table');
         const updates = {};
@@ -312,28 +319,22 @@ router.patch('/data-subject', requireSuperadmin, async (req, res) => {
         const updateKeys = Object.keys(updates);
         for (const k of updateKeys) assertSafeIdentifier(k, 'column');
 
-        const setClauses = updateKeys.map((k, i) => `${k} = $${i + 1}`);
-        const values = Object.values(updates);
-        const emailParamIdx = values.length + 1;
-        setClauses.push(`updated_at = NOW()`);
+        // Build SET clause and WHERE via sql tagged template
+        const setClauses = updateKeys.map(k => sql`${sql.ref(k)} = ${updates[k]}`);
+        setClauses.push(sql`updated_at = NOW()`);
 
-        const result = await client.query(
-          `UPDATE ${table} SET ${setClauses.join(', ')} WHERE LOWER(email) = LOWER($${emailParamIdx}) AND email IS NOT NULL RETURNING id`,
-          [...values, trimmedEmail]
-        );
+        const result = await sql`
+          UPDATE ${sql.table(table)}
+          SET ${sql.join(setClauses, sql`, `)}
+          WHERE LOWER(email) = LOWER(${trimmedEmail}) AND email IS NOT NULL
+          RETURNING id
+        `.execute(trx);
 
         if (result.rows.length > 0) {
           results.push({ table, corrected: result.rows.length, fields: updateKeys });
         }
       }
-
-      await client.query('COMMIT');
-    } catch (txErr) {
-      await client.query('ROLLBACK');
-      throw txErr;
-    } finally {
-      client.release();
-    }
+    });
 
     await writeAuditLog(req.user?.id, 'WRITE', 'data_subject', null, {
       email: trimmedEmail,
@@ -371,10 +372,12 @@ router.post('/data-subject/restrict', requireSuperadmin, async (req, res) => {
     // Set restricted flag on all tables that have it
     for (const table of ['booking_requests', 'ssw_appointments', 'bl_appointments']) {
       assertSafeIdentifier(table, 'table');
-      const result = await query(
-        `UPDATE ${table} SET restricted = $1, updated_at = NOW() WHERE LOWER(email) = LOWER($2) AND email IS NOT NULL RETURNING id`,
-        [restricted, trimmedEmail]
-      );
+      const result = await sql`
+        UPDATE ${sql.table(table)}
+        SET restricted = ${restricted}, updated_at = NOW()
+        WHERE LOWER(email) = LOWER(${trimmedEmail}) AND email IS NOT NULL
+        RETURNING id
+      `.execute(db);
       if (result.rows.length > 0) {
         results.push({ table, affected: result.rows.length });
       }
@@ -412,49 +415,44 @@ router.get('/audit-log', requireSuperadmin, async (req, res) => {
     const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
     const offset = (pageNum - 1) * limitNum;
 
+    // Build dynamic WHERE conditions
     const conditions = [];
-    const params = [];
-    let paramIdx = 1;
 
     if (from) {
       if (isNaN(Date.parse(from))) return res.status(400).json({ error: 'Ungueltiges Startdatum' });
-      conditions.push(`a.created_at >= $${paramIdx++}`);
-      params.push(from);
+      conditions.push(sql`a.created_at >= ${from}`);
     }
     if (to) {
       if (isNaN(Date.parse(to))) return res.status(400).json({ error: 'Ungueltiges Enddatum' });
-      conditions.push(`a.created_at <= $${paramIdx++}`);
-      params.push(to);
+      conditions.push(sql`a.created_at <= ${to}`);
     }
     if (action) {
       if (!ALLOWED_AUDIT_ACTIONS.includes(action)) return res.status(400).json({ error: 'Ungueltige Aktion' });
-      conditions.push(`a.action = $${paramIdx++}`);
-      params.push(action);
+      conditions.push(sql`a.action = ${action}`);
     }
     if (table) {
       if (!ALLOWED_AUDIT_TABLES.includes(table)) return res.status(400).json({ error: 'Ungueltiger Tabellenname' });
-      conditions.push(`a.table_name = $${paramIdx++}`);
-      params.push(table);
+      conditions.push(sql`a.table_name = ${table}`);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length > 0
+      ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+      : sql``;
 
-    const countResult = await query(
-      `SELECT COUNT(*) AS total FROM audit_log a ${whereClause}`,
-      params
-    );
+    const countResult = await sql`
+      SELECT COUNT(*) AS total FROM audit_log a ${whereClause}
+    `.execute(db);
     const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
-    const dataResult = await query(
-      `SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
-              a.record_id, a.details, a.ip_address, a.created_at
-       FROM audit_log a
-       LEFT JOIN users u ON a.user_id = u.id
-       ${whereClause}
-       ORDER BY a.created_at DESC
-       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
-      [...params, limitNum, offset]
-    );
+    const dataResult = await sql`
+      SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
+             a.record_id, a.details, a.ip_address, a.created_at
+      FROM audit_log a
+      LEFT JOIN users u ON a.user_id = u.id
+      ${whereClause}
+      ORDER BY a.created_at DESC
+      LIMIT ${limitNum} OFFSET ${offset}
+    `.execute(db);
 
     res.json({
       entries: Array.isArray(dataResult.rows) ? dataResult.rows : [],
@@ -481,33 +479,29 @@ router.get('/audit-log/export', requireSuperadmin, async (req, res) => {
     const EXPORT_LIMIT = 10000;
 
     const conditions = [];
-    const params = [];
-    let paramIdx = 1;
 
     if (from) {
       if (isNaN(Date.parse(from))) return res.status(400).json({ error: 'Ungueltiges Startdatum' });
-      conditions.push(`a.created_at >= $${paramIdx++}`);
-      params.push(from);
+      conditions.push(sql`a.created_at >= ${from}`);
     }
     if (to) {
       if (isNaN(Date.parse(to))) return res.status(400).json({ error: 'Ungueltiges Enddatum' });
-      conditions.push(`a.created_at <= $${paramIdx++}`);
-      params.push(to);
+      conditions.push(sql`a.created_at <= ${to}`);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length > 0
+      ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+      : sql``;
 
-    params.push(EXPORT_LIMIT);
-    const result = await query(
-      `SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
-              a.record_id, a.details, a.ip_address, a.created_at
-       FROM audit_log a
-       LEFT JOIN users u ON a.user_id = u.id
-       ${whereClause}
-       ORDER BY a.created_at DESC
-       LIMIT $${paramIdx}`,
-      params
-    );
+    const result = await sql`
+      SELECT a.id, a.user_id, u.username AS user_name, a.action, a.table_name,
+             a.record_id, a.details, a.ip_address, a.created_at
+      FROM audit_log a
+      LEFT JOIN users u ON a.user_id = u.id
+      ${whereClause}
+      ORDER BY a.created_at DESC
+      LIMIT ${EXPORT_LIMIT}
+    `.execute(db);
 
     const rows = Array.isArray(result.rows) ? result.rows : [];
     const truncated = rows.length >= EXPORT_LIMIT;

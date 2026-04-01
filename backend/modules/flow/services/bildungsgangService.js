@@ -1,55 +1,72 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
+import { sql } from 'kysely';
 import { mapRow, mapRows } from './flowHelpers.js';
 
 // ── Bildungsgang ──
 
 export async function getBildungsgaengeForUser(userId) {
-    const result = await query(
-        `SELECT bg.*, bgm.rolle AS meine_rolle,
-                (SELECT COUNT(*) FROM flow_arbeitspaket WHERE bildungsgang_id = bg.id) AS arbeitspakete_count
-         FROM flow_bildungsgang bg
-         JOIN flow_bildungsgang_mitglied bgm ON bgm.bildungsgang_id = bg.id
-         WHERE bgm.user_id = $1
-         ORDER BY bg.name`,
-        [userId]
-    );
-    return mapRows(result.rows);
+    const rows = await db.selectFrom('flow_bildungsgang as bg')
+        .innerJoin('flow_bildungsgang_mitglied as bgm', 'bgm.bildungsgang_id', 'bg.id')
+        .select([
+            'bg.id', 'bg.name', 'bg.erlaubt_mitgliedern_paket_erstellung', 'bg.created_at',
+            'bgm.rolle as meine_rolle',
+            (eb) => eb.selectFrom('flow_arbeitspaket')
+                .whereRef('flow_arbeitspaket.bildungsgang_id', '=', 'bg.id')
+                .select(eb.fn.countAll().as('count'))
+                .as('arbeitspakete_count')
+        ])
+        .where('bgm.user_id', '=', userId)
+        .orderBy('bg.name')
+        .execute();
+    return mapRows(rows);
 }
 
 export async function getBildungsgangDetail(bildungsgangId) {
-    const bgResult = await query(
-        'SELECT * FROM flow_bildungsgang WHERE id = $1',
-        [bildungsgangId]
-    );
-    if (bgResult.rows.length === 0) return null;
+    const bgRow = await db.selectFrom('flow_bildungsgang')
+        .selectAll()
+        .where('id', '=', bildungsgangId)
+        .executeTakeFirst();
+    if (!bgRow) return null;
 
-    const mitgliederResult = await query(
-        `SELECT bgm.id, bgm.user_id,
-                COALESCE(t.first_name, '') AS vorname,
-                COALESCE(t.last_name, u.username) AS nachname,
-                bgm.rolle, bgm.hinzugefuegt_am
-         FROM flow_bildungsgang_mitglied bgm
-         JOIN users u ON u.id = bgm.user_id
-         LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE bgm.bildungsgang_id = $1 AND bgm.restricted IS NOT TRUE
-         ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
-        [bildungsgangId]
-    );
+    const mitgliederRows = await db.selectFrom('flow_bildungsgang_mitglied as bgm')
+        .innerJoin('users as u', 'u.id', 'bgm.user_id')
+        .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+        .select([
+            'bgm.id', 'bgm.user_id',
+            sql`COALESCE(t.first_name, '')`.as('vorname'),
+            sql`COALESCE(t.last_name, u.username)`.as('nachname'),
+            'bgm.rolle', 'bgm.hinzugefuegt_am'
+        ])
+        .where('bgm.bildungsgang_id', '=', bildungsgangId)
+        .where((eb) => eb.or([
+            eb('bgm.restricted', 'is', null),
+            eb('bgm.restricted', '=', false)
+        ]))
+        .orderBy('bgm.rolle', 'desc')
+        .orderBy(sql`t.last_name NULLS LAST`)
+        .execute();
 
-    const paketeResult = await query(
-        `SELECT ap.id, ap.titel, ap.status, ap.deadline,
-                (SELECT COUNT(*) FILTER (WHERE status = 'erledigt') FROM flow_aufgabe WHERE arbeitspaket_id = ap.id) AS erledigt,
-                (SELECT COUNT(*) FROM flow_aufgabe WHERE arbeitspaket_id = ap.id) AS gesamt
-         FROM flow_arbeitspaket ap
-         WHERE ap.bildungsgang_id = $1
-         ORDER BY ap.created_at DESC`,
-        [bildungsgangId]
-    );
+    const paketeRows = await db.selectFrom('flow_arbeitspaket as ap')
+        .select([
+            'ap.id', 'ap.titel', 'ap.status', 'ap.deadline',
+            (eb) => eb.selectFrom('flow_aufgabe')
+                .whereRef('flow_aufgabe.arbeitspaket_id', '=', 'ap.id')
+                .where('flow_aufgabe.status', '=', 'erledigt')
+                .select(eb.fn.countAll().as('count'))
+                .as('erledigt'),
+            (eb) => eb.selectFrom('flow_aufgabe')
+                .whereRef('flow_aufgabe.arbeitspaket_id', '=', 'ap.id')
+                .select(eb.fn.countAll().as('count'))
+                .as('gesamt')
+        ])
+        .where('ap.bildungsgang_id', '=', bildungsgangId)
+        .orderBy('ap.created_at', 'desc')
+        .execute();
 
     return {
-        ...mapRow(bgResult.rows[0]),
-        mitglieder: mapRows(mitgliederResult.rows),
-        arbeitspakete: paketeResult.rows.map(p => {
+        ...mapRow(bgRow),
+        mitglieder: mapRows(mitgliederRows),
+        arbeitspakete: paketeRows.map(p => {
             const mapped = mapRow(p);
             return { ...mapped, fortschritt: { erledigt: parseInt(p.erledigt), gesamt: parseInt(p.gesamt) } };
         })
@@ -59,69 +76,76 @@ export async function getBildungsgangDetail(bildungsgangId) {
 // ── Bildungsgang Admin ──
 
 export async function getAllBildungsgaenge() {
-    const result = await query(
-        `SELECT bg.*,
-                (SELECT COUNT(*) FROM flow_bildungsgang_mitglied WHERE bildungsgang_id = bg.id) AS mitglieder_count,
-                (SELECT COUNT(*) FROM flow_arbeitspaket WHERE bildungsgang_id = bg.id) AS arbeitspakete_count
-         FROM flow_bildungsgang bg
-         ORDER BY bg.name`
-    );
-    return mapRows(result.rows);
+    const rows = await db.selectFrom('flow_bildungsgang as bg')
+        .select([
+            'bg.id', 'bg.name', 'bg.erlaubt_mitgliedern_paket_erstellung', 'bg.created_at',
+            (eb) => eb.selectFrom('flow_bildungsgang_mitglied')
+                .whereRef('flow_bildungsgang_mitglied.bildungsgang_id', '=', 'bg.id')
+                .select(eb.fn.countAll().as('count'))
+                .as('mitglieder_count'),
+            (eb) => eb.selectFrom('flow_arbeitspaket')
+                .whereRef('flow_arbeitspaket.bildungsgang_id', '=', 'bg.id')
+                .select(eb.fn.countAll().as('count'))
+                .as('arbeitspakete_count')
+        ])
+        .orderBy('bg.name')
+        .execute();
+    return mapRows(rows);
 }
 
 export async function createBildungsgang(name, erlaubtMitgliedernPaketErstellung = false) {
-    const result = await query(
-        `INSERT INTO flow_bildungsgang (name, erlaubt_mitgliedern_paket_erstellung)
-         VALUES ($1, $2)
-         RETURNING *`,
-        [name, erlaubtMitgliedernPaketErstellung]
-    );
-    return mapRow(result.rows[0]);
+    const row = await db.insertInto('flow_bildungsgang')
+        .values({ name, erlaubt_mitgliedern_paket_erstellung: erlaubtMitgliedernPaketErstellung })
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row);
 }
 
 export async function getBildungsgangMitglieder(bildungsgangId) {
-    const result = await query(
-        `SELECT bgm.id, bgm.user_id,
-                COALESCE(t.first_name, '') AS vorname,
-                COALESCE(t.last_name, u.username) AS nachname,
-                bgm.rolle, bgm.hinzugefuegt_am
-         FROM flow_bildungsgang_mitglied bgm
-         JOIN users u ON u.id = bgm.user_id
-         LEFT JOIN teachers t ON t.id = u.teacher_id
-         WHERE bgm.bildungsgang_id = $1 AND bgm.restricted IS NOT TRUE
-         ORDER BY bgm.rolle DESC, t.last_name NULLS LAST`,
-        [bildungsgangId]
-    );
-    return mapRows(result.rows);
+    const rows = await db.selectFrom('flow_bildungsgang_mitglied as bgm')
+        .innerJoin('users as u', 'u.id', 'bgm.user_id')
+        .leftJoin('teachers as t', 't.id', 'u.teacher_id')
+        .select([
+            'bgm.id', 'bgm.user_id',
+            sql`COALESCE(t.first_name, '')`.as('vorname'),
+            sql`COALESCE(t.last_name, u.username)`.as('nachname'),
+            'bgm.rolle', 'bgm.hinzugefuegt_am'
+        ])
+        .where('bgm.bildungsgang_id', '=', bildungsgangId)
+        .where((eb) => eb.or([
+            eb('bgm.restricted', 'is', null),
+            eb('bgm.restricted', '=', false)
+        ]))
+        .orderBy('bgm.rolle', 'desc')
+        .orderBy(sql`t.last_name NULLS LAST`)
+        .execute();
+    return mapRows(rows);
 }
 
 export async function addBildungsgangMitglied(bildungsgangId, userId, rolle) {
-    const result = await query(
-        `INSERT INTO flow_bildungsgang_mitglied (bildungsgang_id, user_id, rolle)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (bildungsgang_id, user_id) DO NOTHING
-         RETURNING *`,
-        [bildungsgangId, userId, rolle]
-    );
-    return mapRow(result.rows[0]) || null;
+    const row = await db.insertInto('flow_bildungsgang_mitglied')
+        .values({ bildungsgang_id: bildungsgangId, user_id: userId, rolle })
+        .onConflict((oc) => oc.columns(['bildungsgang_id', 'user_id']).doNothing())
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row) || null;
 }
 
 export async function updateBildungsgangMitgliedRolle(bildungsgangId, userId, rolle) {
-    const result = await query(
-        `UPDATE flow_bildungsgang_mitglied SET rolle = $1
-         WHERE bildungsgang_id = $2 AND user_id = $3
-         RETURNING *`,
-        [rolle, bildungsgangId, userId]
-    );
-    return mapRow(result.rows[0]) || null;
+    const row = await db.updateTable('flow_bildungsgang_mitglied')
+        .set({ rolle })
+        .where('bildungsgang_id', '=', bildungsgangId)
+        .where('user_id', '=', userId)
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row) || null;
 }
 
 export async function removeBildungsgangMitglied(bildungsgangId, userId) {
-    const result = await query(
-        `DELETE FROM flow_bildungsgang_mitglied
-         WHERE bildungsgang_id = $1 AND user_id = $2
-         RETURNING *`,
-        [bildungsgangId, userId]
-    );
-    return mapRow(result.rows[0]) || null;
+    const row = await db.deleteFrom('flow_bildungsgang_mitglied')
+        .where('bildungsgang_id', '=', bildungsgangId)
+        .where('user_id', '=', userId)
+        .returningAll()
+        .executeTakeFirst();
+    return mapRow(row) || null;
 }

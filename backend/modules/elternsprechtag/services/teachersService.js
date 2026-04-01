@@ -1,14 +1,16 @@
-import { query } from '../../../config/db.js';
+import { db } from '../../../db/database.js';
 
 export async function listTeachers() {
-  // Public endpoint: do not expose private fields (e.g. teacher email)
-  const { rows } = await query(
-    'SELECT id, first_name, last_name, name, salutation, subject, available_from, available_until FROM teachers ORDER BY last_name, first_name'
-  );
-  return rows;
+  return db.selectFrom('teachers')
+    .select(['id', 'first_name', 'last_name', 'name', 'salutation', 'subject', 'available_from', 'available_until'])
+    .orderBy('last_name')
+    .orderBy('first_name')
+    .execute();
 }
 
 export async function getTeacherById(teacherId) {
-  const { rows } = await query('SELECT id, name FROM teachers WHERE id = $1', [teacherId]);
-  return rows[0] || null;
+  return db.selectFrom('teachers')
+    .select(['id', 'name'])
+    .where('id', '=', teacherId)
+    .executeTakeFirst() ?? null;
 }

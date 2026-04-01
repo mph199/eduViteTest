@@ -1,6 +1,7 @@
 import express from 'express';
+import { sql } from 'kysely';
 import { requireAuth } from '../../../../middleware/auth.js';
-import { query } from '../../../../config/db.js';
+import { db } from '../../../../db/database.js';
 import { isEmailConfigured, sendMail } from '../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../emails/template.js';
 import { mapSlotRow, mapBookingRowWithTeacher } from '../../../../utils/mappers.js';
@@ -22,18 +23,17 @@ router.get('/bookings', requireAuth, requireTeacher, async (req, res) => {
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { rows: bookingRows } = await query(
-      `SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
-       FROM slots s
-       LEFT JOIN teachers t ON s.teacher_id = t.id
-       LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
-       WHERE s.teacher_id = $1 AND s.booked = true
-         AND (br.restricted IS NOT TRUE OR br.id IS NULL)
-       ORDER BY s.date, s.time`,
-      [teacherId]
-    );
+    const bookingRows = await sql`
+      SELECT s.*, t.name AS teacher_name, t.subject AS teacher_subject
+      FROM slots s
+      LEFT JOIN teachers t ON s.teacher_id = t.id
+      LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
+      WHERE s.teacher_id = ${teacherId} AND s.booked = true
+        AND (br.restricted IS NOT TRUE OR br.id IS NULL)
+      ORDER BY s.date, s.time
+    `.execute(db);
 
-    const bookings = (bookingRows || []).map((r) => {
+    const bookings = (bookingRows.rows || []).map((r) => {
       const { teacher_name, teacher_subject, ...slot } = r;
       slot.teacher = { name: teacher_name, subject: teacher_subject };
       return mapBookingRowWithTeacher(slot);
@@ -71,37 +71,36 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { rows: currentRows } = await query(
-      `SELECT s.*
-       FROM slots s
-       LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
-       WHERE s.id = $1 AND s.teacher_id = $2 AND s.booked = true
-         AND (br.restricted IS NOT TRUE OR br.id IS NULL)`,
-      [slotId, teacherId]
-    );
-    const current = currentRows[0] || null;
+    const currentResult = await sql`
+      SELECT s.*
+      FROM slots s
+      LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
+      WHERE s.id = ${slotId} AND s.teacher_id = ${teacherId} AND s.booked = true
+        AND (br.restricted IS NOT TRUE OR br.id IS NULL)
+    `.execute(db);
+    const current = currentResult.rows[0] || null;
 
     if (!current) {
       return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
     }
 
-    const { rows: clearedRows } = await query(
-      `UPDATE slots SET
-         booked = false, status = NULL, visitor_type = NULL,
-         parent_name = NULL, company_name = NULL, student_name = NULL,
-         trainee_name = NULL, representative_name = NULL, class_name = NULL,
-         email = NULL, message = NULL,
-         verification_token_hash = NULL,
-         verification_sent_at = NULL, verified_at = NULL,
-         confirmation_sent_at = NULL,
-         updated_at = $1
-       WHERE id = $2 AND teacher_id = $3 AND booked = true
-         AND id NOT IN (SELECT assigned_slot_id FROM booking_requests WHERE assigned_slot_id = $2 AND restricted = TRUE)
-       RETURNING *`,
-      [new Date().toISOString(), slotId, teacherId]
-    );
+    const now = new Date().toISOString();
+    const clearedResult = await sql`
+      UPDATE slots SET
+        booked = false, status = NULL, visitor_type = NULL,
+        parent_name = NULL, company_name = NULL, student_name = NULL,
+        trainee_name = NULL, representative_name = NULL, class_name = NULL,
+        email = NULL, message = NULL,
+        verification_token_hash = NULL,
+        verification_sent_at = NULL, verified_at = NULL,
+        confirmation_sent_at = NULL,
+        updated_at = ${now}
+      WHERE id = ${slotId} AND teacher_id = ${teacherId} AND booked = true
+        AND id NOT IN (SELECT assigned_slot_id FROM booking_requests WHERE assigned_slot_id = ${slotId} AND restricted = TRUE)
+      RETURNING *
+    `.execute(db);
 
-    if (clearedRows.length === 0) {
+    if (clearedResult.rows.length === 0) {
       return res.status(404).json({ error: 'Slot not found, not booked, or not yours' });
     }
 
@@ -115,7 +114,10 @@ router.delete('/bookings/:slotId', requireAuth, requireTeacher, async (req, res)
           cancellationMessage,
         }, branding);
         await sendMail({ to: current.email, subject, text, html });
-        await query('UPDATE slots SET cancellation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), slotId]);
+        await db.updateTable('slots')
+          .set({ cancellation_sent_at: new Date().toISOString() })
+          .where('id', '=', slotId)
+          .execute();
       } catch (e) {
         logger.warn({ err: e }, 'Sending cancellation email (teacher) failed');
       }
@@ -146,15 +148,14 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
       return res.status(400).json({ error: 'Teacher ID not found in token' });
     }
 
-    const { rows: acceptRows } = await query(
-      `SELECT s.*
-       FROM slots s
-       LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
-       WHERE s.id = $1 AND s.teacher_id = $2 AND s.booked = true
-         AND (br.restricted IS NOT TRUE OR br.id IS NULL)`,
-      [slotId, teacherId]
-    );
-    const current = acceptRows[0] || null;
+    const acceptResult = await sql`
+      SELECT s.*
+      FROM slots s
+      LEFT JOIN booking_requests br ON br.assigned_slot_id = s.id
+      WHERE s.id = ${slotId} AND s.teacher_id = ${teacherId} AND s.booked = true
+        AND (br.restricted IS NOT TRUE OR br.id IS NULL)
+    `.execute(db);
+    const current = acceptResult.rows[0] || null;
 
     if (!current) {
       return res.status(404).json({ error: 'Slot not found or not booked' });
@@ -170,14 +171,14 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
       });
     }
 
-    const { rows: confirmRows } = await query(
-      `UPDATE slots SET status = 'confirmed', updated_at = $1
-       WHERE id = $2 AND teacher_id = $3 AND booked = true
-         AND id NOT IN (SELECT assigned_slot_id FROM booking_requests WHERE assigned_slot_id = $2 AND restricted = TRUE)
-       RETURNING *`,
-      [new Date().toISOString(), slotId, teacherId]
-    );
-    const data = confirmRows[0] || null;
+    const now = new Date().toISOString();
+    const confirmResult = await sql`
+      UPDATE slots SET status = 'confirmed', updated_at = ${now}
+      WHERE id = ${slotId} AND teacher_id = ${teacherId} AND booked = true
+        AND id NOT IN (SELECT assigned_slot_id FROM booking_requests WHERE assigned_slot_id = ${slotId} AND restricted = TRUE)
+      RETURNING *
+    `.execute(db);
+    const data = confirmResult.rows[0] || null;
 
     if (!data) {
       return res.status(404).json({ error: 'Slot not found or not booked' });
@@ -193,7 +194,10 @@ router.put('/bookings/:slotId/accept', requireAuth, requireTeacher, async (req, 
           label: 'Ihre Terminbuchung wurde durch die Lehrkraft bestätigt.',
         }, branding);
         await sendMail({ to: data.email, subject, text, html });
-        await query('UPDATE slots SET confirmation_sent_at = $1 WHERE id = $2', [new Date().toISOString(), data.id]);
+        await db.updateTable('slots')
+          .set({ confirmation_sent_at: new Date().toISOString() })
+          .where('id', '=', data.id)
+          .execute();
       } catch (e) {
         logger.warn({ err: e }, 'Sending confirmation email failed');
       }

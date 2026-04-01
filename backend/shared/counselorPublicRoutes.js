@@ -14,7 +14,9 @@
 
 import express from 'express';
 import { createRateLimiter } from '../config/rateLimiter.js';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+import { sql } from 'kysely';
+
 import { assertSafeIdentifier } from './sqlGuards.js';
 import { validate } from '../middleware/validate.js';
 import { counselorBookingSchema } from '../schemas/counselor.js';
@@ -81,42 +83,45 @@ export function createCounselorPublicRoutes(service, config) {
       const body = req.body;
       const { first_name, last_name, student_class, email, phone, consent_version } = body;
 
+      // Phone validation: allow digits, spaces, +, -, (, ) only
+      const sanitizedPhone = phone ? String(phone).replace(/[^\d\s+\-()]/g, '').slice(0, 30) : null;
+
       const bookingData = {
         first_name,
         last_name,
         student_class,
         email,
-        phone,
+        phone: sanitizedPhone,
       };
 
       // Determine if this counselor requires manual confirmation
       const appointmentsTable = `${tablePrefix}_appointments`;
       const counselorsTable = `${tablePrefix}_counselors`;
-      const { rows: [apptRow] } = await query(
-        `SELECT a.counselor_id, c.requires_confirmation
-         FROM ${appointmentsTable} a
-         JOIN ${counselorsTable} c ON c.id = a.counselor_id
-         WHERE a.id = $1 AND a.status = 'available'`,
-        [appointmentId]
-      );
+
+      const { rows: apptRows } = await sql`
+        SELECT a.counselor_id, c.requires_confirmation
+        FROM ${sql.table(appointmentsTable)} a
+        JOIN ${sql.table(counselorsTable)} c ON c.id = a.counselor_id
+        WHERE a.id = ${appointmentId} AND a.status = 'available'
+      `.execute(db);
+
+      const apptRow = apptRows[0];
       if (!apptRow) return res.status(409).json({ error: 'Termin nicht mehr verfügbar' });
 
       const requiresConfirmation = apptRow.requires_confirmation !== false;
       const appointment = await service.bookAppointment(appointmentId, bookingData, requiresConfirmation);
 
       // Consent-Receipt (append-only, Art. 7 Abs. 1)
-      await query(
-        `INSERT INTO consent_receipts (module, appointment_id, consent_version, consent_purpose, ip_address, user_agent)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          moduleName,
-          appointment.id,
-          String(consent_version).slice(0, 20),
-          'Terminbuchung und Kontaktaufnahme',
-          req.ip || null,
-          req.get('user-agent') || null,
-        ]
-      );
+      await db.insertInto('consent_receipts')
+        .values({
+          module: moduleName,
+          appointment_id: appointment.id,
+          consent_version: String(consent_version).slice(0, 20),
+          consent_purpose: 'Terminbuchung und Kontaktaufnahme',
+          ip_address: req.ip || null,
+          user_agent: req.get('user-agent') || null,
+        })
+        .execute();
 
       res.json({ success: true, appointment });
     } catch (err) {

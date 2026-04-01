@@ -12,7 +12,9 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { query } from '../config/db.js';
+import { db } from '../db/database.js';
+import { sql } from 'kysely';
+
 import logger from '../config/logger.js';
 import { getExpiresAt } from './tokenUtils.js';
 import { assertSafeIdentifier } from './sqlGuards.js';
@@ -29,12 +31,11 @@ export function createCalendarTokenRoutes(config) {
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
     const now = new Date();
 
-    await query(
-      `UPDATE ${table}
-       SET calendar_token_hash = $1, calendar_token_created_at = $2
-       WHERE id = $3`,
-      [tokenHash, now.toISOString(), counselorId]
-    );
+    await sql`
+      UPDATE ${sql.table(table)}
+      SET calendar_token_hash = ${tokenHash}, calendar_token_created_at = ${now.toISOString()}
+      WHERE id = ${counselorId}
+    `.execute(db);
 
     const expiresAt = getExpiresAt(now);
     return { token: rawToken, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() };
@@ -46,13 +47,12 @@ export function createCalendarTokenRoutes(config) {
       const counselorId = await resolveCounselorId(req);
       if (!counselorId) return res.status(403).json({ error: 'Kein Berater-Zugang' });
 
-      const { rows } = await query(
-        `SELECT calendar_token_hash IS NOT NULL AS has_token,
-                calendar_token_created_at
-         FROM ${table}
-         WHERE id = $1`,
-        [counselorId]
-      );
+      const { rows } = await sql`
+        SELECT calendar_token_hash IS NOT NULL AS has_token,
+               calendar_token_created_at
+        FROM ${sql.table(table)}
+        WHERE id = ${counselorId}
+      `.execute(db);
 
       const row = rows[0];
       if (!row || !row.has_token) {
@@ -91,13 +91,12 @@ export function createCalendarTokenRoutes(config) {
       const counselorId = await resolveCounselorId(req);
       if (!counselorId) return res.status(403).json({ error: 'Kein Berater-Zugang' });
 
-      const { rows } = await query(
-        `SELECT calendar_token_hash IS NOT NULL AS has_token,
-                calendar_token_created_at
-         FROM ${table}
-         WHERE id = $1`,
-        [counselorId]
-      );
+      const { rows } = await sql`
+        SELECT calendar_token_hash IS NOT NULL AS has_token,
+               calendar_token_created_at
+        FROM ${sql.table(table)}
+        WHERE id = ${counselorId}
+      `.execute(db);
 
       const row = rows[0];
       if (row?.has_token) {
@@ -137,12 +136,11 @@ export function createCalendarTokenRoutes(config) {
       const counselorId = await resolveCounselorId(req);
       if (!counselorId) return res.status(403).json({ error: 'Kein Berater-Zugang' });
 
-      await query(
-        `UPDATE ${table}
-         SET calendar_token_hash = NULL, calendar_token_created_at = NULL
-         WHERE id = $1`,
-        [counselorId]
-      );
+      await sql`
+        UPDATE ${sql.table(table)}
+        SET calendar_token_hash = NULL, calendar_token_created_at = NULL
+        WHERE id = ${counselorId}
+      `.execute(db);
 
       logger.info({ counselorId, table }, `${logPrefix}: Kalender-Token widerrufen`);
       return res.json({ success: true });

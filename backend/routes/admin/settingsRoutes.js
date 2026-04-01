@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAdmin } from '../../middleware/auth.js';
-import { query } from '../../config/db.js';
+import { db } from '../../db/database.js';
 import logger from '../../config/logger.js';
 
 const router = express.Router();
@@ -8,14 +8,16 @@ const router = express.Router();
 // GET /api/admin/settings
 router.get('/settings', requireAdmin, async (_req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM settings LIMIT 1');
-    const data = rows[0] || null;
+    const data = await db.selectFrom('settings')
+      .selectAll()
+      .limit(1)
+      .executeTakeFirst();
 
     if (!data) {
       return res.json({
         id: 1,
         event_name: 'Elternsprechtag',
-        event_date: new Date().toISOString().split('T')[0]
+        event_date: new Date().toISOString().split('T')[0],
       });
     }
 
@@ -30,19 +32,28 @@ router.get('/settings', requireAdmin, async (_req, res) => {
 router.put('/settings', requireAdmin, async (req, res) => {
   try {
     const { event_name, event_date } = req.body || {};
-
     if (!event_name || !event_date) {
       return res.status(400).json({ error: 'event_name and event_date required' });
     }
 
-    const { rows } = await query(
-      `INSERT INTO settings (id, event_name, event_date, updated_at) VALUES (1, $1, $2, $3)
-       ON CONFLICT (id) DO UPDATE SET event_name = $1, event_date = $2, updated_at = $3
-       RETURNING *`,
-      [event_name.trim(), event_date, new Date().toISOString()]
-    );
+    const settings = await db.insertInto('settings')
+      .values({
+        id: 1,
+        event_name: event_name.trim(),
+        event_date,
+        updated_at: new Date(),
+      })
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet({
+          event_name: event_name.trim(),
+          event_date,
+          updated_at: new Date(),
+        })
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
-    res.json({ success: true, settings: rows[0] });
+    res.json({ success: true, settings });
   } catch (error) {
     logger.error({ err: error }, 'Error updating settings');
     res.status(500).json({ error: 'Failed to update settings' });
