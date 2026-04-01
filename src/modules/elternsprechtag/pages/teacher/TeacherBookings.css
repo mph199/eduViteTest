@@ -52,3 +52,16 @@
 .teacher-message-icon:hover {
   color: var(--brand-primary, #123C73);
 }
+
+.teacher-col-msg {
+  width: 40px;
+  text-align: center;
+}
+
+.teacher-col-actions {
+  width: 40px;
+}
+
+.teacher-col-actions .booking-card__menu {
+  position: relative;
+}
