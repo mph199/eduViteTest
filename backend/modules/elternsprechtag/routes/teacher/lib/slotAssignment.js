@@ -3,25 +3,8 @@ import { db } from '../../../../../db/database.js';
 import { isEmailConfigured, sendMail } from '../../../../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../../../../emails/template.js';
 import { getTeacherById } from '../../../services/teachersService.js';
+import { parseTimeWindow, fmtMinutes } from '../../../../../utils/timeWindows.js';
 import logger from '../../../../../config/logger.js';
-
-// ── Time parsing helpers ────────────────────────────────────────────────
-
-function parseTimeWindow(timeWindow) {
-  if (typeof timeWindow !== 'string') return null;
-  const m = timeWindow.trim().match(/^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const start = Number.parseInt(m[1], 10) * 60 + Number.parseInt(m[2], 10);
-  const end = Number.parseInt(m[3], 10) * 60 + Number.parseInt(m[4], 10);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
-  return { start, end };
-}
-
-function fmtMinutes(mins) {
-  const hh = String(Math.floor(mins / 60)).padStart(2, '0');
-  const mm = String(mins % 60).padStart(2, '0');
-  return `${hh}:${mm}`;
-}
 
 /**
  * Builds the slot update object from a booking request row.

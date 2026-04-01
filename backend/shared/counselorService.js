@@ -58,7 +58,8 @@ export async function generateSlotsForDateRange(counselorId, opts, tables) {
 
   // Load weekly schedule
   const { rows: scheduleRows } = await sql`
-    SELECT * FROM ${sql.table(scheduleTable)}
+    SELECT id, counselor_id, weekday, start_time, end_time, active
+    FROM ${sql.table(scheduleTable)}
     WHERE counselor_id = ${counselorId} AND active = TRUE
     ORDER BY weekday
   `.execute(db);

@@ -66,11 +66,11 @@
 | H2 | HOCH | `slotUpdate`-Objekt (14 Felder) dupliziert | `slotAssignment.js:184/271` | **ERLEDIGT (Sprint 2)** | `buildSlotUpdateFromRequest()` extrahiert |
 | H3 | HOCH | `buildHalfHourWindows` etc. aus Backend kopiert | `useBooking.ts:10-38` | **ERLEDIGT (BL-5)** | `src/utils/timeWindows.ts` angelegt; Logik dorthin extrahiert |
 | H4 | HOCH | `SELECT id, name, room FROM teachers WHERE id=$1` 9x inline | Diverse elternsprechtag-Dateien | **ERLEDIGT (Sprint 2)** | `getTeacherById()` in `teachersService.js` |
-| H5 | MITTEL | `public.js` 519 Zeilen, 7 Handler | `public.js` | OFFEN | Aufteilen in booking/verify/event/dev-Routes |
+| H5 | MITTEL | `public.js` 519 Zeilen, 7 Handler | `public.js` | **ERLEDIGT** | Aufgeteilt in `public/bookings.js`, `public/slots.js`, `public/events.js`, `public/misc.js`; `public.js` ist 24-Zeilen-Aggregator |
 | H6 | MITTEL | `TeacherBookings.tsx` 377 Zeilen, 13 Inline-Styles | `TeacherBookings.tsx` | **TEILWEISE ERLEDIGT (BL-7)** | 8 Inline-Styles durch CSS-Klassen ersetzt; `TeacherBookings.css` angelegt. Filter/Tabelle als Sub-Komponenten noch offen. |
 | H7 | MITTEL | `useMemo` ohne reaktive Deps in AnfragenTab | `BLAnfragenTab.tsx`, `SSWAnfragenTab.tsx` | **ERLEDIGT (BL-16)** | Durch Modul-Level-Konstanten ersetzt |
-| H8 | MITTEL | `defaultSchedule` Factory vs. Const inkonsistent | `SSWCounselorsTab.tsx` | OFFEN | Vereinheitlichen |
-| H9 | MITTEL | `parseTimeWindow`/`fmtMinutes` reimplementiert | `slotAssignment.js:8-22` | OFFEN | Import aus `timeWindows.js` |
+| H8 | MITTEL | `defaultSchedule` Factory vs. Const inkonsistent | `SSWCounselorsTab.tsx` | **GESCHLOSSEN (falsch positiv)** | BLCounselorsTab ist Read-only ohne Schedule-Formular; kein Vergleichspunkt. SSW-Factory ist korrekt. |
+| H9 | MITTEL | `parseTimeWindow`/`fmtMinutes` reimplementiert | `slotAssignment.js:8-22` | **ERLEDIGT** | `parseTimeWindow` + `fmtMinutes` in `backend/utils/timeWindows.js` exportiert; Import in `slotAssignment.js` |
 | H10 | MITTEL | `AdminSlots.tsx` 346 Zeilen | `AdminSlots.tsx` | OFFEN | TeacherSelect + SlotForm extrahieren |
 | H11 | NIEDRIG | `normalize` als anonyme fn im Handler | `public.js:274` | OFFEN | An Dateianfang oder inline |
 | H12 | NIEDRIG | Weekday-Index 0-basiert vs. 1-basiert | `BLCounselorsTab.tsx` vs. `SSWCounselorsTab.tsx` | OFFEN | Dokumentieren |
@@ -151,9 +151,9 @@ Zusaetzliche Code-Hygiene-Massnahmen im Backlog-Sprint:
 
 ### Backlog (offen)
 
-1. `public.js` aufteilen (519 Zeilen -> 4 Dateien) – H5
+1. ~~`public.js` aufteilen (519 Zeilen -> 4 Dateien) – H5~~ – erledigt (bereits in Sub-Router aufgeteilt)
 2. `TeacherBookings.tsx` weiter refactoren: Filter/Tabelle als Sub-Komponenten – H6 (Restarbeit)
 3. Elternsprechtag Admin-Routen ins Modul migrieren oder dokumentieren – M1
-4. `parseTimeWindow`/`fmtMinutes` in `slotAssignment.js` auf Import aus `timeWindows.js` umstellen – H9
-5. `defaultSchedule` Factory vs. Const konsolidieren in `SSWCounselorsTab.tsx` – H8
+4. ~~`parseTimeWindow`/`fmtMinutes` in `slotAssignment.js` auf Import aus `timeWindows.js` umstellen – H9~~ – erledigt
+5. ~~`defaultSchedule` Factory vs. Const konsolidieren in `SSWCounselorsTab.tsx` – H8~~ – geschlossen (falsch positiv)
 6. Emoji-Icons in SSW-Kategorie-Seeding durch Icon-Bezeichner ersetzen – M7
