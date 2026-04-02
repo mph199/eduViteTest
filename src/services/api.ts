@@ -493,6 +493,97 @@ const api = {
     },
   },
 
+  // Choice (Differenzierungswahl) – Admin endpoints
+  choice: {
+    // Groups
+    async listGroups() {
+      const res = await requestJSON('/choice/admin/groups');
+      return Array.isArray(res) ? res : [];
+    },
+    async getGroup(id: string) {
+      return requestJSON(`/choice/admin/groups/${encodeURIComponent(id)}`);
+    },
+    async createGroup(payload: Record<string, unknown>) {
+      return requestJSON('/choice/admin/groups', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateGroup(id: string, payload: Record<string, unknown>) {
+      return requestJSON(`/choice/admin/groups/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+    },
+    async changeGroupStatus(id: string, status: string) {
+      return requestJSON(`/choice/admin/groups/${encodeURIComponent(id)}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status }),
+      });
+    },
+    // Options
+    async listOptions(groupId: string) {
+      const res = await requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/options`);
+      return Array.isArray(res) ? res : [];
+    },
+    async createOption(groupId: string, payload: { title: string; description?: string; sort_order?: number }) {
+      return requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/options`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    async updateOption(id: string, payload: Record<string, unknown>) {
+      return requestJSON(`/choice/admin/options/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+    },
+    async deactivateOption(id: string) {
+      return requestJSON(`/choice/admin/options/${encodeURIComponent(id)}/deactivate`, {
+        method: 'POST',
+      });
+    },
+    // Participants
+    async listParticipants(groupId: string) {
+      const res = await requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/participants`);
+      return Array.isArray(res) ? res : [];
+    },
+    async createParticipant(groupId: string, payload: { first_name: string; last_name: string; email: string; audience_label?: string }) {
+      return requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/participants`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    async importParticipantsCSV(groupId: string, file: File) {
+      return uploadFile(`/choice/admin/groups/${encodeURIComponent(groupId)}/participants`, 'file', file);
+    },
+    async updateParticipant(id: string, payload: Record<string, unknown>) {
+      return requestJSON(`/choice/admin/participants/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+    },
+    async deactivateParticipant(id: string) {
+      return requestJSON(`/choice/admin/participants/${encodeURIComponent(id)}/deactivate`, {
+        method: 'POST',
+      });
+    },
+    // Submissions
+    async listSubmissions(groupId: string) {
+      const res = await requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/submissions`);
+      return Array.isArray(res) ? res : [];
+    },
+    async exportSubmissionsCSV(groupId: string) {
+      return requestRaw(`/choice/admin/groups/${encodeURIComponent(groupId)}/submissions?format=csv`);
+    },
+    // Invite
+    async sendInvites(groupId: string) {
+      return requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/invite`, {
+        method: 'POST',
+      });
+    },
+  },
+
   // Superadmin endpoints
   superadmin: {
     async getEmailBranding() {
