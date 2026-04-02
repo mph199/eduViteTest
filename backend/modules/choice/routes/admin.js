@@ -61,6 +61,7 @@ router.get('/groups', async (req, res) => {
     const groups = await choiceService.listGroups();
     res.json(groups);
   } catch (err) {
+    log.error({ err }, 'Groups-Liste Fehler');
     res.status(500).json({ error: 'Fehler beim Laden der Wahldaecher' });
   }
 });
@@ -74,6 +75,7 @@ router.post('/groups', validate(choiceGroupCreateSchema), async (req, res) => {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Ein Wahldach mit diesem Titel existiert bereits' });
     }
+    log.error({ err }, 'Group-Erstellung Fehler');
     res.status(500).json({ error: 'Fehler beim Erstellen des Wahldachs' });
   }
 });
@@ -85,6 +87,7 @@ router.get('/groups/:id', async (req, res) => {
     if (!group) return res.status(404).json({ error: 'Wahldach nicht gefunden' });
     res.json(group);
   } catch (err) {
+    log.error({ err }, 'Group-Detail Fehler');
     res.status(500).json({ error: 'Fehler beim Laden des Wahldachs' });
   }
 });
@@ -96,6 +99,7 @@ router.put('/groups/:id', validate(choiceGroupUpdateSchema), async (req, res) =>
     if (!group) return res.status(404).json({ error: 'Wahldach nicht gefunden' });
     res.json(group);
   } catch (err) {
+    log.error({ err }, 'Group-Update Fehler');
     res.status(500).json({ error: 'Fehler beim Aktualisieren des Wahldachs' });
   }
 });
@@ -107,6 +111,7 @@ router.post('/groups/:id/status', validate(choiceGroupStatusSchema), async (req,
     if (result.error) return res.status(result.status).json({ error: result.error });
     res.json(result.data);
   } catch (err) {
+    log.error({ err }, 'Statuswechsel Fehler');
     res.status(500).json({ error: 'Fehler beim Statuswechsel' });
   }
 });
@@ -119,6 +124,7 @@ router.get('/groups/:id/options', async (req, res) => {
     const options = await choiceService.listOptions(req.params.id);
     res.json(options);
   } catch (err) {
+    log.error({ err }, 'Options-Liste Fehler');
     res.status(500).json({ error: 'Fehler beim Laden der Optionen' });
   }
 });
@@ -135,6 +141,7 @@ router.post('/groups/:id/options', validate(choiceOptionCreateSchema), async (re
     if (err.code === '23503') {
       return res.status(404).json({ error: 'Wahldach nicht gefunden' });
     }
+    log.error({ err }, 'Option-Erstellung Fehler');
     res.status(500).json({ error: 'Fehler beim Erstellen der Option' });
   }
 });
@@ -149,6 +156,7 @@ router.put('/options/:id', validate(choiceOptionUpdateSchema), async (req, res) 
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Eine Option mit diesem Titel existiert bereits in diesem Wahldach' });
     }
+    log.error({ err }, 'Option-Update Fehler');
     res.status(500).json({ error: 'Fehler beim Aktualisieren der Option' });
   }
 });
@@ -160,6 +168,7 @@ router.post('/options/:id/deactivate', async (req, res) => {
     if (!option) return res.status(404).json({ error: 'Option nicht gefunden' });
     res.json(option);
   } catch (err) {
+    log.error({ err }, 'Option-Deaktivierung Fehler');
     res.status(500).json({ error: 'Fehler beim Deaktivieren der Option' });
   }
 });
@@ -172,6 +181,7 @@ router.get('/groups/:id/participants', async (req, res) => {
     const participants = await choiceService.listParticipants(req.params.id);
     res.json(participants);
   } catch (err) {
+    log.error({ err }, 'Teilnehmer-Liste Fehler');
     res.status(500).json({ error: 'Fehler beim Laden der Teilnehmer' });
   }
 });
@@ -225,6 +235,7 @@ router.post('/groups/:id/participants', handleCsvUpload, async (req, res) => {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Ein Teilnehmer mit dieser E-Mail existiert bereits in diesem Wahldach' });
     }
+    log.error({ err }, 'Teilnehmer-Erstellung Fehler');
     res.status(500).json({ error: 'Fehler beim Hinzufügen von Teilnehmern' });
   }
 });
@@ -239,6 +250,7 @@ router.put('/participants/:id', validate(choiceParticipantUpdateSchema), async (
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Ein Teilnehmer mit dieser E-Mail existiert bereits in diesem Wahldach' });
     }
+    log.error({ err }, 'Teilnehmer-Update Fehler');
     res.status(500).json({ error: 'Fehler beim Aktualisieren des Teilnehmers' });
   }
 });
@@ -250,6 +262,7 @@ router.post('/participants/:id/deactivate', async (req, res) => {
     if (!participant) return res.status(404).json({ error: 'Teilnehmer nicht gefunden' });
     res.json(participant);
   } catch (err) {
+    log.error({ err }, 'Teilnehmer-Deaktivierung Fehler');
     res.status(500).json({ error: 'Fehler beim Deaktivieren des Teilnehmers' });
   }
 });
@@ -288,6 +301,7 @@ router.get('/groups/:id/submissions', async (req, res) => {
 
     res.json(submissions);
   } catch (err) {
+    log.error({ err }, 'Submissions-Export Fehler');
     res.status(500).json({ error: 'Fehler beim Laden der Abgaben' });
   }
 });
@@ -347,6 +361,7 @@ router.post('/groups/:id/invite', async (req, res) => {
 
     res.json(results);
   } catch (err) {
+    log.error({ err }, 'Einladungsversand Fehler');
     res.status(500).json({ error: 'Fehler beim Versenden der Einladungen' });
   }
 });

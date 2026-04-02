@@ -32,10 +32,17 @@ router.post('/verify', validate(choiceVerifySchema), async (req, res) => {
       return res.status(401).json({ error: 'Ungültiger oder abgelaufener Link' });
     }
 
-    // Prüfen ob Gruppe offen ist
+    // Prüfen ob Gruppe offen ist (inkl. Zeitfenster)
     const group = await choiceService.getGroupById(result.groupId);
     if (!group || group.status !== 'open') {
       return res.status(403).json({ error: 'Diese Wahl ist derzeit nicht geöffnet' });
+    }
+    const now = new Date();
+    if (group.opens_at && new Date(group.opens_at) > now) {
+      return res.status(403).json({ error: 'Die Wahl ist noch nicht geöffnet' });
+    }
+    if (group.closes_at && new Date(group.closes_at) < now) {
+      return res.status(403).json({ error: 'Die Wahl ist bereits geschlossen' });
     }
 
     // Session-Cookie setzen (choice_session, getrennt vom Admin-JWT)

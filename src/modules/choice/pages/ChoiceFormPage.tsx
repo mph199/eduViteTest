@@ -15,6 +15,7 @@ export function ChoiceFormPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [flash, setFlash] = useState('');
+  const [flashType, setFlashType] = useState<'success' | 'error'>('success');
 
   const loadData = useCallback(async () => {
     if (!groupId) return;
@@ -74,8 +75,10 @@ export function ChoiceFormPage() {
     try {
       await api.choicePublic.saveDraft(groupId, items.map((i) => ({ option_id: i.option_id, priority: i.priority })));
       setSubmissionStatus('draft');
+      setFlashType('success');
       setFlash('Entwurf gespeichert.');
     } catch (err) {
+      setFlashType('error');
       setFlash(err instanceof Error ? err.message : 'Fehler beim Speichern.');
     } finally {
       setSaving(false);
@@ -85,6 +88,7 @@ export function ChoiceFormPage() {
   const handleSubmit = async () => {
     if (submitting || !groupId || !group) return;
     if (items.length < group.min_choices) {
+      setFlashType('error');
       setFlash(`Bitte mindestens ${group.min_choices} Wahl(en) treffen.`);
       return;
     }
@@ -94,6 +98,7 @@ export function ChoiceFormPage() {
       await api.choicePublic.submit(groupId, items.map((i) => ({ option_id: i.option_id, priority: i.priority })));
       navigate(`/wahl/${groupId}/bestaetigung`, { replace: true });
     } catch (err) {
+      setFlashType('error');
       setFlash(err instanceof Error ? err.message : 'Fehler beim Abgeben.');
     } finally {
       setSubmitting(false);
@@ -141,7 +146,11 @@ export function ChoiceFormPage() {
       )}
 
       {flash && (
-        <div style={{ padding: '0.5rem 1rem', marginBottom: '1rem', borderRadius: '4px', background: 'var(--color-gray-100)', fontSize: '0.9rem' }}>
+        <div style={{
+          padding: '0.5rem 1rem', marginBottom: '1rem', borderRadius: '4px', fontSize: '0.9rem',
+          background: flashType === 'error' ? 'var(--color-error-light)' : 'var(--color-gray-100)',
+          color: flashType === 'error' ? 'var(--color-error)' : 'inherit',
+        }}>
           {flash}
         </div>
       )}

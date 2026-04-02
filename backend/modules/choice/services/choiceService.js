@@ -361,7 +361,8 @@ export async function saveDraft(groupId, participantId, items, group) {
       throw Object.assign(new Error('Abgabe bereits eingereicht und Bearbeitung gesperrt'), { statusCode: 409 });
     }
 
-    // UPSERT Submission
+    // UPSERT Submission – bei bereits eingereichten Abgaben Status beibehalten
+    const keepStatus = existing?.status === 'submitted';
     const submission = await trx.insertInto('choice_submissions')
       .values({
         group_id: groupId,
@@ -369,6 +370,7 @@ export async function saveDraft(groupId, participantId, items, group) {
         status: 'draft',
       })
       .onConflict((oc) => oc.columns(['group_id', 'participant_id']).doUpdateSet({
+        ...(keepStatus ? {} : { status: 'draft' }),
         updated_at: new Date(),
       }))
       .returning(['id', 'status', 'submitted_at', 'updated_at'])
