@@ -19,6 +19,9 @@ import {
 } from '../../../schemas/choice.js';
 import * as choiceService from '../services/choiceService.js';
 import { parseParticipantCSV } from '../services/csvService.js';
+import { createToken, invalidateTokensForParticipant } from '../services/tokenService.js';
+import { sendInviteEmail } from '../services/emailService.js';
+import logger from '../../../config/logger.js';
 
 const csvUpload = multer({
   storage: multer.memoryStorage(),
@@ -246,6 +249,52 @@ router.post('/participants/:id/deactivate', async (req, res) => {
     res.json(participant);
   } catch (err) {
     res.status(500).json({ error: 'Fehler beim Deaktivieren des Teilnehmers' });
+  }
+});
+
+// ── Invite ──────────────────────────────────────────────────────────
+
+// POST /groups/:id/invite – Einladungsmails an aktive Teilnehmer senden
+router.post('/groups/:id/invite', async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const group = await choiceService.getGroupById(groupId);
+    if (!group) return res.status(404).json({ error: 'Wahldach nicht gefunden' });
+
+    if (group.status !== 'open') {
+      return res.status(400).json({ error: 'Einladungen können nur für geöffnete Wahldächer versendet werden' });
+    }
+
+    // Nur aktive Teilnehmer einladen
+    const participants = await choiceService.listParticipants(groupId);
+    const activeParticipants = (Array.isArray(participants) ? participants : []).filter((p) => p.is_active);
+
+    if (!activeParticipants.length) {
+      return res.status(400).json({ error: 'Keine aktiven Teilnehmer in diesem Wahldach' });
+    }
+
+    const results = { sent: 0, failed: 0, total: activeParticipants.length };
+
+    for (const p of activeParticipants) {
+      try {
+        await invalidateTokensForParticipant(p.id);
+        const { token } = await createToken(p.id);
+        const { sent } = await sendInviteEmail(
+          { email: p.email, firstName: p.first_name, lastName: p.last_name },
+          group,
+          token,
+        );
+        if (sent) results.sent++;
+        else results.failed++;
+      } catch (err) {
+        logger.error({ err, participantId: p.id }, 'Einladungsmail fehlgeschlagen');
+        results.failed++;
+      }
+    }
+
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Versenden der Einladungen' });
   }
 });
 

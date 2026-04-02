@@ -1,7 +1,7 @@
 /**
  * Zod-Schemas fuer das Choice-Modul (Differenzierungswahl).
  *
- * Validiert Admin-Eingaben fuer Groups, Options und Statuswechsel.
+ * Validiert Admin- und Public-Eingaben.
  */
 
 import { z } from 'zod/v4';
@@ -76,4 +76,15 @@ export const choiceParticipantUpdateSchema = z.object({
   last_name: z.string().min(1, 'Nachname erforderlich').max(100).transform((v) => v.trim()).optional(),
   email: z.string().email('Ungültiges E-Mail-Format').max(255).transform((v) => v.trim().toLowerCase()).optional(),
   audience_label: z.string().max(100).nullable().transform((v) => v?.trim() || null).optional(),
+});
+
+// ── Public Schemas ──────────────────────────────────────────────────
+
+export const choiceVerifySchema = z.object({
+  token: z.string().min(1, 'Token erforderlich').max(128),
+});
+
+export const choiceRequestAccessSchema = z.object({
+  email: z.string().email('Ungültiges E-Mail-Format').max(255).transform((v) => v.trim().toLowerCase()),
+  groupId: z.string().uuid('Ungültige Gruppen-ID'),
 });
