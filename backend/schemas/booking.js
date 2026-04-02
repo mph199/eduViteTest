@@ -29,7 +29,7 @@ export const bookingRequestSchema = z.object({
 
 export const consentWithdrawSchema = z.object({
   email: emailSchema,
-  module: z.enum(['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer'], {
-    message: 'Gueltiges Modul erforderlich (elternsprechtag, schulsozialarbeit, beratungslehrer)',
+  module: z.enum(['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer', 'choice'], {
+    message: 'Gültiges Modul erforderlich (elternsprechtag, schulsozialarbeit, beratungslehrer, choice)',
   }),
 });

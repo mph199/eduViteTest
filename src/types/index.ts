@@ -679,3 +679,80 @@ export interface OAuthProviderFormData {
   autoProvisioning: boolean;
   enabled: boolean;
 }
+
+// ── Choice types (Differenzierungswahl) ─────────────────────────────
+
+export type ChoiceGroupStatus = 'draft' | 'open' | 'closed' | 'archived';
+
+export interface ChoiceGroup {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: ChoiceGroupStatus;
+  min_choices: number;
+  max_choices: number;
+  ranking_mode: 'none' | 'required';
+  allow_edit_after_submit: boolean;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChoiceOption {
+  id: string;
+  group_id: string;
+  title: string;
+  description?: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ChoiceParticipant {
+  id: string;
+  group_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  audience_label?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type ChoiceSubmissionStatus = 'draft' | 'submitted';
+
+export interface ChoiceSubmissionItem {
+  submission_id?: string;
+  option_id: string;
+  priority: number;
+  option_title?: string;
+  option_active?: boolean;
+}
+
+export interface ChoicePublicGroup {
+  id: string;
+  title: string;
+  description?: string | null;
+  min_choices: number;
+  max_choices: number;
+  ranking_mode: 'none' | 'required';
+  options: { id: string; title: string; description?: string | null; sort_order: number }[];
+}
+
+export interface ChoiceSubmission {
+  id: string;
+  group_id?: string;
+  participant_id: string;
+  status: ChoiceSubmissionStatus;
+  submitted_at?: string | null;
+  created_at?: string;
+  updated_at: string;
+  items: ChoiceSubmissionItem[];
+  // Admin export fields
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  audience_label?: string | null;
+}

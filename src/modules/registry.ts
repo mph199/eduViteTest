@@ -87,12 +87,14 @@ import elternsprechtagModule from './elternsprechtag/index';
 import schulsozialarbeitModule from './schulsozialarbeit/index';
 import beratungslehrerModule from './beratungslehrer/index';
 import flowModule from './flow/index';
+import choiceModule from './choice/index';
 
 const allModules: ModuleDefinition[] = [
   elternsprechtagModule,
   schulsozialarbeitModule,
   beratungslehrerModule,
   flowModule,
+  choiceModule,
 ];
 
 // ── Filter über Env-Variable ────────────────────────────────────────────
