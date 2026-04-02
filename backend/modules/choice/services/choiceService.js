@@ -1,7 +1,5 @@
 /**
- * Choice Service – Geschaeftslogik fuer Groups und Options.
- *
- * Phase 1: CRUD fuer Groups und Options (Admin).
+ * Choice Service – Geschaeftslogik fuer Groups, Options, Participants und Submissions.
  */
 
 import { db } from '../../../db/database.js';
@@ -239,4 +237,255 @@ export async function deactivateParticipant(id) {
     .returning(['id', 'is_active'])
     .executeTakeFirst();
   return row || null;
+}
+
+// ── Submissions ─────────────────────────────────────────────────────
+
+/**
+ * Prüft ob eine Submission erlaubt ist (Group open, Zeitfenster, Participant aktiv).
+ * Gibt { group, participant } bei Erfolg oder { error, status } bei Fehler zurück.
+ */
+export async function validateSubmissionAccess(groupId, participantId) {
+  const group = await getGroupById(groupId);
+  if (!group) return { error: 'Wahldach nicht gefunden', status: 404 };
+  if (group.status !== 'open') return { error: 'Diese Wahl ist derzeit nicht geöffnet', status: 403 };
+
+  // Zeitfenster prüfen (NULL = kein Limit)
+  const now = new Date();
+  if (group.opens_at && new Date(group.opens_at) > now) {
+    return { error: 'Die Wahl ist noch nicht geöffnet', status: 403 };
+  }
+  if (group.closes_at && new Date(group.closes_at) < now) {
+    return { error: 'Die Wahl ist bereits geschlossen', status: 403 };
+  }
+
+  const participant = await db.selectFrom('choice_participants')
+    .select(['id', 'group_id', 'is_active'])
+    .where('id', '=', participantId)
+    .where('group_id', '=', groupId)
+    .executeTakeFirst();
+
+  if (!participant || !participant.is_active) {
+    return { error: 'Teilnehmer nicht gefunden oder deaktiviert', status: 403 };
+  }
+
+  return { group, participant };
+}
+
+/**
+ * Validiert die gewählten Items gegen Gruppenregeln.
+ */
+export function validateItems(items, group, activeOptionIds) {
+  // Duplikate prüfen
+  const optionIds = items.map((i) => i.option_id);
+  if (new Set(optionIds).size !== optionIds.length) {
+    return { error: 'Doppelte Optionen nicht erlaubt' };
+  }
+
+  // Alle Optionen müssen aktiv und zur Gruppe gehören
+  for (const id of optionIds) {
+    if (!activeOptionIds.has(id)) {
+      return { error: 'Ungültige oder deaktivierte Option gewählt' };
+    }
+  }
+
+  // Anzahl prüfen
+  if (items.length < group.min_choices) {
+    return { error: `Mindestens ${group.min_choices} Wahl(en) erforderlich` };
+  }
+  if (items.length > group.max_choices) {
+    return { error: `Maximal ${group.max_choices} Wahl(en) erlaubt` };
+  }
+
+  // Ranking-Prüfung
+  if (group.ranking_mode === 'required') {
+    const priorities = items.map((i) => i.priority).sort((a, b) => a - b);
+    const expected = Array.from({ length: items.length }, (_, i) => i + 1);
+    if (priorities.join(',') !== expected.join(',')) {
+      return { error: 'Prioritäten müssen lückenlos von 1 bis N vergeben werden' };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Lädt die aktiven Option-IDs einer Gruppe als Set.
+ */
+export async function getActiveOptionIds(groupId) {
+  const rows = await db.selectFrom('choice_options')
+    .select('id')
+    .where('group_id', '=', groupId)
+    .where('is_active', '=', true)
+    .execute();
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * Lädt die eigene Submission eines Teilnehmers mit Items.
+ */
+export async function getSubmission(groupId, participantId) {
+  const submission = await db.selectFrom('choice_submissions')
+    .select(['id', 'group_id', 'participant_id', 'status', 'submitted_at', 'created_at', 'updated_at'])
+    .where('group_id', '=', groupId)
+    .where('participant_id', '=', participantId)
+    .executeTakeFirst();
+
+  if (!submission) return null;
+
+  const items = await db.selectFrom('choice_submission_items as si')
+    .innerJoin('choice_options as o', 'o.id', 'si.option_id')
+    .select(['si.id', 'si.option_id', 'si.priority', 'o.title as option_title', 'o.is_active as option_active'])
+    .where('si.submission_id', '=', submission.id)
+    .orderBy('si.priority', 'asc')
+    .execute();
+
+  return { ...submission, items };
+}
+
+/**
+ * Speichert einen Entwurf (UPSERT Submission + DELETE/INSERT Items).
+ */
+export async function saveDraft(groupId, participantId, items, group) {
+  return db.transaction().execute(async (trx) => {
+    // Bestehende Submission prüfen (mit Lock)
+    const existing = await trx.selectFrom('choice_submissions')
+      .select(['id', 'status'])
+      .where('group_id', '=', groupId)
+      .where('participant_id', '=', participantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    // allow_edit_after_submit Guard
+    if (existing?.status === 'submitted' && !group.allow_edit_after_submit) {
+      throw Object.assign(new Error('Abgabe bereits eingereicht und Bearbeitung gesperrt'), { statusCode: 409 });
+    }
+
+    // UPSERT Submission
+    const submission = await trx.insertInto('choice_submissions')
+      .values({
+        group_id: groupId,
+        participant_id: participantId,
+        status: 'draft',
+      })
+      .onConflict((oc) => oc.columns(['group_id', 'participant_id']).doUpdateSet({
+        updated_at: new Date(),
+      }))
+      .returning(['id', 'status', 'submitted_at', 'updated_at'])
+      .executeTakeFirst();
+
+    // Bestehende Items löschen
+    await trx.deleteFrom('choice_submission_items')
+      .where('submission_id', '=', submission.id)
+      .execute();
+
+    // Neue Items einfügen
+    if (items.length > 0) {
+      await trx.insertInto('choice_submission_items')
+        .values(items.map((item) => ({
+          submission_id: submission.id,
+          option_id: item.option_id,
+          priority: item.priority,
+        })))
+        .execute();
+    }
+
+    return submission;
+  });
+}
+
+/**
+ * Gibt eine Wahl final ab (UPSERT mit status=submitted).
+ * Prüft allow_edit_after_submit bei bereits eingereichten Abgaben.
+ */
+export async function submitChoices(groupId, participantId, items, group) {
+  return db.transaction().execute(async (trx) => {
+    // Bestehende Submission prüfen (mit Lock)
+    const existing = await trx.selectFrom('choice_submissions')
+      .select(['id', 'status', 'submitted_at'])
+      .where('group_id', '=', groupId)
+      .where('participant_id', '=', participantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    // allow_edit_after_submit Guard
+    if (existing?.status === 'submitted' && !group.allow_edit_after_submit) {
+      throw Object.assign(new Error('Abgabe bereits eingereicht und Bearbeitung gesperrt'), { statusCode: 409 });
+    }
+
+    const now = new Date();
+    const submittedAt = existing?.submitted_at || now;
+
+    // UPSERT Submission
+    const submission = await trx.insertInto('choice_submissions')
+      .values({
+        group_id: groupId,
+        participant_id: participantId,
+        status: 'submitted',
+        submitted_at: now,
+      })
+      .onConflict((oc) => oc.columns(['group_id', 'participant_id']).doUpdateSet({
+        status: 'submitted',
+        submitted_at: existing?.status === 'submitted' ? submittedAt : now,
+        updated_at: now,
+      }))
+      .returning(['id', 'status', 'submitted_at', 'updated_at'])
+      .executeTakeFirst();
+
+    // Items ersetzen
+    await trx.deleteFrom('choice_submission_items')
+      .where('submission_id', '=', submission.id)
+      .execute();
+
+    await trx.insertInto('choice_submission_items')
+      .values(items.map((item) => ({
+        submission_id: submission.id,
+        option_id: item.option_id,
+        priority: item.priority,
+      })))
+      .execute();
+
+    return submission;
+  });
+}
+
+/**
+ * Lädt alle Submissions einer Gruppe (Admin-Export).
+ */
+export async function listSubmissions(groupId) {
+  const submissions = await db.selectFrom('choice_submissions as s')
+    .innerJoin('choice_participants as p', 'p.id', 's.participant_id')
+    .select([
+      's.id', 's.status', 's.submitted_at', 's.updated_at',
+      'p.id as participant_id', 'p.first_name', 'p.last_name',
+      'p.email', 'p.audience_label',
+    ])
+    .where('s.group_id', '=', groupId)
+    .orderBy('p.last_name', 'asc')
+    .orderBy('p.first_name', 'asc')
+    .execute();
+
+  if (!submissions.length) return [];
+
+  const submissionIds = submissions.map((s) => s.id);
+  const items = await db.selectFrom('choice_submission_items as si')
+    .innerJoin('choice_options as o', 'o.id', 'si.option_id')
+    .select(['si.submission_id', 'si.option_id', 'si.priority', 'o.title as option_title'])
+    .where('si.submission_id', 'in', submissionIds)
+    .orderBy('si.priority', 'asc')
+    .execute();
+
+  // Items nach submission_id gruppieren
+  const itemsBySubmission = new Map();
+  for (const item of items) {
+    if (!itemsBySubmission.has(item.submission_id)) {
+      itemsBySubmission.set(item.submission_id, []);
+    }
+    itemsBySubmission.get(item.submission_id).push(item);
+  }
+
+  return submissions.map((s) => ({
+    ...s,
+    items: itemsBySubmission.get(s.id) || [],
+  }));
 }

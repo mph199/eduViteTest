@@ -7,7 +7,12 @@
 
 import { Router } from 'express';
 import { validate } from '../../../middleware/validate.js';
-import { choiceVerifySchema, choiceRequestAccessSchema } from '../../../schemas/choice.js';
+import {
+  choiceVerifySchema,
+  choiceRequestAccessSchema,
+  choiceDraftSchema,
+  choiceSubmitSchema,
+} from '../../../schemas/choice.js';
 import { validateAndConsumeToken, createToken, invalidateTokensForParticipant } from '../services/tokenService.js';
 import { sendInviteEmail } from '../services/emailService.js';
 import { createChoiceSessionToken, choiceCookieOptions, requireChoiceSession } from '../middleware/publicAuth.js';
@@ -112,6 +117,15 @@ router.get('/groups/:id', requireChoiceSession, async (req, res) => {
       return res.status(403).json({ error: 'Diese Wahl ist derzeit nicht geöffnet' });
     }
 
+    // Zeitfenster prüfen
+    const now = new Date();
+    if (group.opens_at && new Date(group.opens_at) > now) {
+      return res.status(403).json({ error: 'Die Wahl ist noch nicht geöffnet' });
+    }
+    if (group.closes_at && new Date(group.closes_at) < now) {
+      return res.status(403).json({ error: 'Die Wahl ist bereits geschlossen' });
+    }
+
     // Nur aktive Optionen zurückgeben
     const options = await db.selectFrom('choice_options')
       .select(['id', 'title', 'description', 'sort_order'])
@@ -133,6 +147,84 @@ router.get('/groups/:id', requireChoiceSession, async (req, res) => {
   } catch (err) {
     log.error({ err }, 'Public Group-Abfrage-Fehler');
     res.status(500).json({ error: 'Fehler beim Laden der Wahldaten' });
+  }
+});
+
+// ── GET /groups/:id/submission – Eigene Wahl laden ─────────────────
+
+router.get('/groups/:id/submission', requireChoiceSession, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    if (req.choiceSession.groupId !== groupId) {
+      return res.status(403).json({ error: 'Kein Zugriff auf dieses Wahldach' });
+    }
+
+    const submission = await choiceService.getSubmission(groupId, req.choiceSession.participantId);
+    res.json(submission || { status: 'none', items: [] });
+  } catch (err) {
+    log.error({ err }, 'Submission-Abfrage-Fehler');
+    res.status(500).json({ error: 'Fehler beim Laden der Wahl' });
+  }
+});
+
+// ── PUT /groups/:id/submission/draft – Entwurf speichern ───────────
+
+router.put('/groups/:id/submission/draft', requireChoiceSession, validate(choiceDraftSchema), async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const { participantId } = req.choiceSession;
+
+    if (req.choiceSession.groupId !== groupId) {
+      return res.status(403).json({ error: 'Kein Zugriff auf dieses Wahldach' });
+    }
+
+    const access = await choiceService.validateSubmissionAccess(groupId, participantId);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+
+    // Items nur validieren wenn welche vorhanden (Draft darf leer sein)
+    if (req.body.items.length > 0) {
+      const activeOptionIds = await choiceService.getActiveOptionIds(groupId);
+      const itemError = choiceService.validateItems(req.body.items, access.group, activeOptionIds);
+      if (itemError) return res.status(400).json(itemError);
+    }
+
+    const submission = await choiceService.saveDraft(groupId, participantId, req.body.items, access.group);
+    res.json(submission);
+  } catch (err) {
+    if (err.statusCode === 409) {
+      return res.status(409).json({ error: err.message });
+    }
+    log.error({ err }, 'Draft-Speicher-Fehler');
+    res.status(500).json({ error: 'Fehler beim Speichern des Entwurfs' });
+  }
+});
+
+// ── POST /groups/:id/submission/submit – Wahl abgeben ──────────────
+
+router.post('/groups/:id/submission/submit', requireChoiceSession, validate(choiceSubmitSchema), async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const { participantId } = req.choiceSession;
+
+    if (req.choiceSession.groupId !== groupId) {
+      return res.status(403).json({ error: 'Kein Zugriff auf dieses Wahldach' });
+    }
+
+    const access = await choiceService.validateSubmissionAccess(groupId, participantId);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+
+    const activeOptionIds = await choiceService.getActiveOptionIds(groupId);
+    const itemError = choiceService.validateItems(req.body.items, access.group, activeOptionIds);
+    if (itemError) return res.status(400).json(itemError);
+
+    const submission = await choiceService.submitChoices(groupId, participantId, req.body.items, access.group);
+    res.json(submission);
+  } catch (err) {
+    if (err.statusCode === 409) {
+      return res.status(409).json({ error: err.message });
+    }
+    log.error({ err }, 'Submit-Fehler');
+    res.status(500).json({ error: 'Fehler beim Abgeben der Wahl' });
   }
 });
 

@@ -88,3 +88,18 @@ export const choiceRequestAccessSchema = z.object({
   email: z.string().email('Ungültiges E-Mail-Format').max(255).transform((v) => v.trim().toLowerCase()),
   groupId: z.string().uuid('Ungültige Gruppen-ID'),
 });
+
+// ── Submission Schemas ──────────────────────────────────────────────
+
+const choiceItemSchema = z.object({
+  option_id: z.string().uuid('Ungültige Options-ID'),
+  priority: z.number().int().min(1, 'Priorität muss mindestens 1 sein').max(20),
+});
+
+export const choiceDraftSchema = z.object({
+  items: z.array(choiceItemSchema).max(20),
+});
+
+export const choiceSubmitSchema = z.object({
+  items: z.array(choiceItemSchema).min(1, 'Mindestens eine Wahl erforderlich').max(20),
+});

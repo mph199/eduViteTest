@@ -254,6 +254,57 @@ router.post('/participants/:id/deactivate', async (req, res) => {
   }
 });
 
+// ── Submissions (Admin-Export) ──────────────────────────────────────
+
+// GET /groups/:id/submissions – Alle Abgaben einer Gruppe (JSON oder CSV)
+router.get('/groups/:id/submissions', async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const group = await choiceService.getGroupById(groupId);
+    if (!group) return res.status(404).json({ error: 'Wahldach nicht gefunden' });
+
+    const submissions = await choiceService.listSubmissions(groupId);
+
+    if (req.query.format === 'csv') {
+      const lines = ['Nachname;Vorname;E-Mail;Klasse;Status;Abgabe am;Optionen (Priorität)'];
+      for (const s of submissions) {
+        const optStr = (s.items || [])
+          .map((i) => `${i.option_title} (${i.priority})`)
+          .join(', ');
+        lines.push([
+          csvEscape(s.last_name),
+          csvEscape(s.first_name),
+          csvEscape(s.email),
+          csvEscape(s.audience_label || ''),
+          csvEscape(s.status),
+          csvEscape(s.submitted_at ? new Date(s.submitted_at).toISOString() : ''),
+          csvEscape(optStr),
+        ].join(';'));
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="wahlen-${groupId}.csv"`);
+      return res.send('\uFEFF' + lines.join('\n'));
+    }
+
+    res.json(submissions);
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Laden der Abgaben' });
+  }
+});
+
+/** CSV-Feld escapen (Semikolon-separiert, Formula-Injection-sicher). */
+function csvEscape(val) {
+  let str = String(val ?? '');
+  // Formula-Injection-Schutz: gefährliche Präfixe neutralisieren
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  if (str.includes(';') || str.includes('"') || str.includes('\n') || str.includes("'")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 // ── Invite ──────────────────────────────────────────────────────────
 
 // POST /groups/:id/invite – Einladungsmails an aktive Teilnehmer senden
