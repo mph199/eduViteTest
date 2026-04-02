@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS choice_options (
   sort_order      INT NOT NULL DEFAULT 0,
   is_active       BOOLEAN NOT NULL DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(group_id, title)
 );
 
@@ -103,8 +104,8 @@ CREATE INDEX IF NOT EXISTS idx_choice_email_tokens_participant_id
   ON choice_email_tokens(participant_id);
 
 -- Modul in module_config registrieren
-INSERT INTO module_config (module_key, enabled)
+INSERT INTO module_config (module_id, enabled)
 VALUES ('choice', false)
-ON CONFLICT (module_key) DO NOTHING;
+ON CONFLICT (module_id) DO NOTHING;
 
 COMMIT;

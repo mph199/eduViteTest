@@ -555,6 +555,7 @@ export interface ChoiceOptionsTable {
   sort_order: number;
   is_active: boolean;
   created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface ChoiceParticipantsTable {
