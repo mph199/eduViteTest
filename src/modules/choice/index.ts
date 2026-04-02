@@ -11,16 +11,22 @@ import type { ModuleDefinition } from '../registry';
 const ChoiceAdmin = lazy(() =>
   import('./pages/ChoiceAdmin').then((m) => ({ default: m.ChoiceAdmin }))
 );
+const ChoicePublicApp = lazy(() =>
+  import('./pages/ChoicePublicApp').then((m) => ({ default: m.ChoicePublicApp }))
+);
 
 const choiceModule: ModuleDefinition = {
   id: 'choice',
   title: 'Differenzierungswahl',
   description: 'Strukturierte Wunschabgabe für Differenzierungsfächer.',
   icon: '',
-  basePath: '/wahl',
+  basePath: '/wahl/*',
   accent: 'var(--module-accent-choice)',
   accentRgb: '67, 133, 187',
   requiredModule: 'choice',
+
+  // Teilnahme erfolgt über Link in Einladungsmail – kein Menüeintrag nötig
+  PublicPage: ChoicePublicApp,
 
   adminRoutes: [
     { path: '/admin/choice', label: 'Differenzierungswahl', Component: ChoiceAdmin },

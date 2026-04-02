@@ -731,6 +731,16 @@ export interface ChoiceSubmissionItem {
   option_active?: boolean;
 }
 
+export interface ChoicePublicGroup {
+  id: string;
+  title: string;
+  description?: string | null;
+  min_choices: number;
+  max_choices: number;
+  ranking_mode: 'none' | 'required';
+  options: { id: string; title: string; description?: string | null; sort_order: number }[];
+}
+
 export interface ChoiceSubmission {
   id: string;
   group_id?: string;

@@ -77,6 +77,35 @@ async function requestRaw(path: string, options: RequestInit = {}): Promise<Resp
 }
 
 /**
+ * Like requestJSON but does NOT dispatch auth:logout on 401.
+ * Used for public endpoints (choice session) that have separate auth.
+ */
+async function requestPublicJSON(path: string, options: RequestInit = {}) {
+  const { headers, ...rest } = options;
+  const mergedHeaders = { 'Content-Type': 'application/json', ...((headers as Record<string, string>) || {}) } as HeadersInit;
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...rest, headers: mergedHeaders, credentials: 'include' });
+  } catch {
+    throw new Error('Backend nicht erreichbar');
+  }
+
+  const tryParse = async () => {
+    const text = await response.text();
+    try { return text ? JSON.parse(text) : null; } catch { return { message: text || null } as any; }
+  };
+
+  if (!response.ok) {
+    const data = await tryParse();
+    const message = (data && ((data as any).message || (data as any).error)) || `Fehler ${response.status}`;
+    throw Object.assign(new Error(typeof message === 'string' ? message : 'Unbekannter Fehler'), { status: response.status });
+  }
+
+  return await tryParse();
+}
+
+/**
  * Shared admin methods for counselor modules (BL / SSW).
  * Avoids duplication of getAdminAppointments, deleteAppointments, getAdminCounselorSchedule.
  */
@@ -580,6 +609,40 @@ const api = {
     async sendInvites(groupId: string) {
       return requestJSON(`/choice/admin/groups/${encodeURIComponent(groupId)}/invite`, {
         method: 'POST',
+      });
+    },
+  },
+
+  // Choice – Public endpoints (choice_session cookie, no admin auth)
+  choicePublic: {
+    async verify(token: string) {
+      return requestPublicJSON('/choice/public/verify', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      });
+    },
+    async requestAccess(email: string, groupId: string) {
+      return requestPublicJSON('/choice/public/request-access', {
+        method: 'POST',
+        body: JSON.stringify({ email, groupId }),
+      });
+    },
+    async getGroup(groupId: string) {
+      return requestPublicJSON(`/choice/public/groups/${encodeURIComponent(groupId)}`);
+    },
+    async getSubmission(groupId: string) {
+      return requestPublicJSON(`/choice/public/groups/${encodeURIComponent(groupId)}/submission`);
+    },
+    async saveDraft(groupId: string, items: { option_id: string; priority: number }[]) {
+      return requestPublicJSON(`/choice/public/groups/${encodeURIComponent(groupId)}/submission/draft`, {
+        method: 'PUT',
+        body: JSON.stringify({ items }),
+      });
+    },
+    async submit(groupId: string, items: { option_id: string; priority: number }[]) {
+      return requestPublicJSON(`/choice/public/groups/${encodeURIComponent(groupId)}/submission/submit`, {
+        method: 'POST',
+        body: JSON.stringify({ items }),
       });
     },
   },
