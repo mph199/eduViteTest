@@ -56,6 +56,13 @@ export interface DB {
   flow_aktivitaet: FlowAktivitaetTable;
   flow_kalender_token: FlowKalenderTokenTable;
   flow_schulkalender: FlowSchulkalenderTable;
+  // Choice module
+  choice_groups: ChoiceGroupsTable;
+  choice_options: ChoiceOptionsTable;
+  choice_participants: ChoiceParticipantsTable;
+  choice_submissions: ChoiceSubmissionsTable;
+  choice_submission_items: ChoiceSubmissionItemsTable;
+  choice_email_tokens: ChoiceEmailTokensTable;
 }
 
 // ── Core tables ──────────────────────────────────────────────────────
@@ -521,3 +528,82 @@ export type UserUpdate = Updateable<UsersTable>;
 export type Teacher = Selectable<TeachersTable>;
 export type Slot = Selectable<SlotsTable>;
 export type Event = Selectable<EventsTable>;
+
+// ── Choice module tables ────────────────────────────────────────────
+
+export interface ChoiceGroupsTable {
+  id: Generated<string>;
+  title: string;
+  description: string | null;
+  status: string;
+  min_choices: number;
+  max_choices: number;
+  ranking_mode: string;
+  allow_edit_after_submit: boolean;
+  opens_at: Timestamp | null;
+  closes_at: Timestamp | null;
+  created_by: number | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface ChoiceOptionsTable {
+  id: Generated<string>;
+  group_id: string;
+  title: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: Timestamp;
+}
+
+export interface ChoiceParticipantsTable {
+  id: Generated<string>;
+  group_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  audience_label: string | null;
+  is_active: boolean;
+  created_at: Timestamp;
+}
+
+export interface ChoiceSubmissionsTable {
+  id: Generated<string>;
+  group_id: string;
+  participant_id: string;
+  status: string;
+  submitted_at: Timestamp | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface ChoiceSubmissionItemsTable {
+  id: Generated<string>;
+  submission_id: string;
+  option_id: string;
+  priority: number;
+  created_at: Timestamp;
+}
+
+export interface ChoiceEmailTokensTable {
+  id: Generated<string>;
+  participant_id: string;
+  token_hash: string;
+  expires_at: Timestamp;
+  used_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
+// Choice convenience aliases
+export type ChoiceGroup = Selectable<ChoiceGroupsTable>;
+export type NewChoiceGroup = Insertable<ChoiceGroupsTable>;
+export type ChoiceOption = Selectable<ChoiceOptionsTable>;
+export type NewChoiceOption = Insertable<ChoiceOptionsTable>;
+export type ChoiceParticipant = Selectable<ChoiceParticipantsTable>;
+export type NewChoiceParticipant = Insertable<ChoiceParticipantsTable>;
+export type ChoiceSubmission = Selectable<ChoiceSubmissionsTable>;
+export type ChoiceSubmissionItem = Selectable<ChoiceSubmissionItemsTable>;
+export type ChoiceEmailToken = Selectable<ChoiceEmailTokensTable>;
+export type UpdateChoiceGroup = Updateable<ChoiceGroupsTable>;
+export type UpdateChoiceOption = Updateable<ChoiceOptionsTable>;
