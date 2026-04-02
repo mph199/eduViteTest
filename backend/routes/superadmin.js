@@ -244,6 +244,7 @@ router.get('/site-branding', publicLimiter, async (_req, res) => {
     return res.json(data || { ...SITE_BRANDING_DEFAULTS });
   } catch (error) {
     // Table might not exist yet — return defaults
+    logger.warn({ err: error }, 'site_branding query failed, using defaults');
     return res.json({ ...SITE_BRANDING_DEFAULTS });
   }
 });
@@ -362,7 +363,7 @@ router.get('/text-branding', publicLimiter, async (_req, res) => {
       .executeTakeFirst();
     return res.json(data || { ...TEXT_BRANDING_DEFAULTS });
   } catch (err) {
-    logger.debug({ err }, 'text_branding table not available, using defaults');
+    logger.warn({ err }, 'text_branding query failed, using defaults');
     return res.json({ ...TEXT_BRANDING_DEFAULTS });
   }
 });
@@ -416,7 +417,7 @@ router.get('/modules/enabled', publicLimiter, async (_req, res) => {
     return res.json(rows);
   } catch (err) {
     // Table might not exist yet — treat all as enabled
-    logger.debug({ err }, 'module_config table not available');
+    logger.warn({ err }, 'module_config query failed');
     return res.json([]);
   }
 });
@@ -430,7 +431,7 @@ router.get('/modules', requireSuperadmin, async (_req, res) => {
       .execute();
     return res.json(rows);
   } catch (err) {
-    logger.debug({ err }, 'module_config table not available');
+    logger.warn({ err }, 'module_config query failed');
     return res.json([]);
   }
 });

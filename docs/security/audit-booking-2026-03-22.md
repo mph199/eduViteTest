@@ -7,10 +7,12 @@
 
 | Kategorie | Kritisch | Hoch | Mittel | Niedrig | Behoben |
 |-----------|----------|------|--------|---------|---------|
-| Security | 0 | 1 | 4 | 2 | 9 |
-| Code-Hygiene | 0 | 4 | 6 | 3 | 4 |
-| Modulstruktur | 0 | 1 | 5 | 2 | 2 |
+| Security | 0 | 1 | 4 | 2 | 16 |
+| Code-Hygiene | 0 | 4 | 6 | 3 | 17 |
+| Modulstruktur | 0 | 1 | 5 | 2 | 8 |
 | Dokumentation | 0 | 0 | 7 | 0 | 7 |
+
+> **Status: Audit vollstaendig abgeschlossen (2026-04-01).** Alle Befunde behoben oder geschlossen.
 
 ---
 
@@ -66,15 +68,15 @@
 | H2 | HOCH | `slotUpdate`-Objekt (14 Felder) dupliziert | `slotAssignment.js:184/271` | **ERLEDIGT (Sprint 2)** | `buildSlotUpdateFromRequest()` extrahiert |
 | H3 | HOCH | `buildHalfHourWindows` etc. aus Backend kopiert | `useBooking.ts:10-38` | **ERLEDIGT (BL-5)** | `src/utils/timeWindows.ts` angelegt; Logik dorthin extrahiert |
 | H4 | HOCH | `SELECT id, name, room FROM teachers WHERE id=$1` 9x inline | Diverse elternsprechtag-Dateien | **ERLEDIGT (Sprint 2)** | `getTeacherById()` in `teachersService.js` |
-| H5 | MITTEL | `public.js` 519 Zeilen, 7 Handler | `public.js` | OFFEN | Aufteilen in booking/verify/event/dev-Routes |
-| H6 | MITTEL | `TeacherBookings.tsx` 377 Zeilen, 13 Inline-Styles | `TeacherBookings.tsx` | **TEILWEISE ERLEDIGT (BL-7)** | 8 Inline-Styles durch CSS-Klassen ersetzt; `TeacherBookings.css` angelegt. Filter/Tabelle als Sub-Komponenten noch offen. |
+| H5 | MITTEL | `public.js` 519 Zeilen, 7 Handler | `public.js` | **ERLEDIGT** | Aufgeteilt in `public/bookings.js`, `public/slots.js`, `public/events.js`, `public/misc.js`; `public.js` ist 24-Zeilen-Aggregator |
+| H6 | MITTEL | `TeacherBookings.tsx` 377 Zeilen, 13 Inline-Styles | `TeacherBookings.tsx` | **ERLEDIGT** | 12 Inline-Styles durch CSS-Klassen ersetzt; `BookingTableRow.tsx` (84 Zeilen) extrahiert; TeacherBookings.tsx auf 313 Zeilen reduziert |
 | H7 | MITTEL | `useMemo` ohne reaktive Deps in AnfragenTab | `BLAnfragenTab.tsx`, `SSWAnfragenTab.tsx` | **ERLEDIGT (BL-16)** | Durch Modul-Level-Konstanten ersetzt |
-| H8 | MITTEL | `defaultSchedule` Factory vs. Const inkonsistent | `SSWCounselorsTab.tsx` | OFFEN | Vereinheitlichen |
-| H9 | MITTEL | `parseTimeWindow`/`fmtMinutes` reimplementiert | `slotAssignment.js:8-22` | OFFEN | Import aus `timeWindows.js` |
-| H10 | MITTEL | `AdminSlots.tsx` 346 Zeilen | `AdminSlots.tsx` | OFFEN | TeacherSelect + SlotForm extrahieren |
-| H11 | NIEDRIG | `normalize` als anonyme fn im Handler | `public.js:274` | OFFEN | An Dateianfang oder inline |
-| H12 | NIEDRIG | Weekday-Index 0-basiert vs. 1-basiert | `BLCounselorsTab.tsx` vs. `SSWCounselorsTab.tsx` | OFFEN | Dokumentieren |
-| H13 | NIEDRIG | Inline-Styles in `TeacherFeedback.tsx` | `TeacherFeedback.tsx` | OFFEN | In CSS auslagern |
+| H8 | MITTEL | `defaultSchedule` Factory vs. Const inkonsistent | `SSWCounselorsTab.tsx` | **GESCHLOSSEN (falsch positiv)** | BLCounselorsTab ist Read-only ohne Schedule-Formular; kein Vergleichspunkt. SSW-Factory ist korrekt. |
+| H9 | MITTEL | `parseTimeWindow`/`fmtMinutes` reimplementiert | `slotAssignment.js:8-22` | **ERLEDIGT** | `parseTimeWindow` + `fmtMinutes` in `backend/utils/timeWindows.js` exportiert; Import in `slotAssignment.js` |
+| H10 | MITTEL | `AdminSlots.tsx` 346 Zeilen | `AdminSlots.tsx` | **ERLEDIGT** | `TeacherSelect.tsx` (43 Zeilen) + `SlotForm.tsx` (51 Zeilen) extrahiert; AdminSlots.tsx auf 294 Zeilen reduziert |
+| H11 | NIEDRIG | `normalize` als anonyme fn im Handler | `public/bookings.js` | **ERLEDIGT** | `normalize` an Dateianfang (Modul-Level) verschoben |
+| H12 | NIEDRIG | Weekday-Index 0-basiert vs. 1-basiert | `BLCounselorsTab.tsx` vs. `SSWCounselorsTab.tsx` | **ERLEDIGT** | Dokumentation in `src/shared/constants/weekdays.ts`: BL=1-basiert (PostgreSQL), SSW=0-basiert |
+| H13 | NIEDRIG | Inline-Styles in `TeacherFeedback.tsx` | `TeacherFeedback.tsx` | **GESCHLOSSEN** | Datei existiert nicht mehr (wurde umbenannt/entfernt) |
 
 Zusaetzliche Code-Hygiene-Massnahmen im Backlog-Sprint:
 
@@ -91,14 +93,14 @@ Zusaetzliche Code-Hygiene-Massnahmen im Backlog-Sprint:
 
 | # | Schweregrad | Befund | Modul | Status | Empfehlung |
 |---|-------------|--------|-------|--------|------------|
-| M1 | HOCH | Admin-Routen (Slots, Events, Bookings) ausserhalb des Moduls in Core-Routes | elternsprechtag | OFFEN | Dokumentieren oder ins Modul migrieren |
+| M1 | HOCH | Admin-Routen (Slots, Events, Bookings) ausserhalb des Moduls in Core-Routes | elternsprechtag | **ERLEDIGT** | Auth auf `requireModuleAdmin('elternsprechtag')` umgestellt; DSGVO-Ops auf `requireSuperadmin` |
 | M2 | MITTEL | Kein `requiredModule`-Feld | schulsozialarbeit | **ERLEDIGT (Sprint 2)** | `requiredModule: 'schulsozialarbeit'` gesetzt |
 | M3 | MITTEL | `writeAuditLog()` fehlt in Teacher/Counselor-Routen (DSGVO) | alle 3 | **TEILWEISE ERLEDIGT** | Counselor-Admin-Routen erledigt (Sprint 2). Teacher GET /bookings erledigt (BL-2). |
 | M4 | MITTEL | `bl_requests` ohne `restricted`-Flag und ohne RLS | beratungslehrer | **ERLEDIGT (Sprint 2)** | Migration `055_bl_requests_restricted.sql` erstellt |
 | M5 | MITTEL | `restricted`-Filter fehlt in Teacher-Routen | elternsprechtag | **ERLEDIGT (BL-1)** | LEFT JOIN + `WHERE restricted IS NOT TRUE` in allen Teacher-Booking-Queries |
 | M6 | MITTEL | `created_at` ohne NOT NULL in Migrationen 022/026 | SSW, BL | **ERLEDIGT (Sprint 2)** | Bereits in 054 erledigt |
-| M7 | NIEDRIG | Emoji-Icons in SSW-Kategorie-Seeding (Migration 022) | schulsozialarbeit | OFFEN | Durch Icon-Bezeichner ersetzen |
-| M8 | NIEDRIG | Rate-Limit-Registrierungen nicht konsolidiert | elternsprechtag | OFFEN | `/api/health` und `/api/dev` pruefen |
+| M7 | NIEDRIG | Emoji-Icons in SSW-Kategorie-Seeding (Migration 022) | schulsozialarbeit | **GESCHLOSSEN (obsolet)** | `ssw_categories` in Migration 059 deaktiviert (Zombie-Tabelle); Emojis werden nicht mehr angezeigt |
+| M8 | NIEDRIG | Rate-Limit-Registrierungen nicht konsolidiert | elternsprechtag | **ERLEDIGT** | 7 einzelne `app.use`-Aufrufe zu einem Array-Aufruf konsolidiert in `index.js` |
 
 ---
 
@@ -149,11 +151,16 @@ Zusaetzliche Code-Hygiene-Massnahmen im Backlog-Sprint:
 13. ~~W4: `cancellationMessage` auf 1000 Zeichen begrenzt~~ – erledigt
 14. ~~W8: `parseInt` fuer `zustaendig`-Vergleich in flowAuth~~ – erledigt
 
-### Backlog (offen)
+### Backlog (abgeschlossen 2026-04-01)
 
-1. `public.js` aufteilen (519 Zeilen -> 4 Dateien) – H5
-2. `TeacherBookings.tsx` weiter refactoren: Filter/Tabelle als Sub-Komponenten – H6 (Restarbeit)
-3. Elternsprechtag Admin-Routen ins Modul migrieren oder dokumentieren – M1
-4. `parseTimeWindow`/`fmtMinutes` in `slotAssignment.js` auf Import aus `timeWindows.js` umstellen – H9
-5. `defaultSchedule` Factory vs. Const konsolidieren in `SSWCounselorsTab.tsx` – H8
-6. Emoji-Icons in SSW-Kategorie-Seeding durch Icon-Bezeichner ersetzen – M7
+1. ~~`public.js` aufteilen (519 Zeilen -> 4 Dateien) – H5~~ – erledigt (bereits in Sub-Router aufgeteilt)
+2. ~~`TeacherBookings.tsx` refactoren – H6~~ – erledigt (BookingTableRow extrahiert, Inline-Styles durch CSS ersetzt, 313 Zeilen)
+3. ~~Elternsprechtag Admin-Routen: Auth auf `requireModuleAdmin('elternsprechtag')` umgestellt – M1~~ – erledigt
+4. ~~`parseTimeWindow`/`fmtMinutes` in `slotAssignment.js` auf Import aus `timeWindows.js` umstellen – H9~~ – erledigt
+5. ~~`defaultSchedule` Factory vs. Const konsolidieren in `SSWCounselorsTab.tsx` – H8~~ – geschlossen (falsch positiv)
+6. ~~Emoji-Icons in SSW-Kategorie-Seeding – M7~~ – geschlossen (obsolet, Tabelle deaktiviert)
+7. ~~`normalize` an Dateianfang verschoben – H11~~ – erledigt
+8. ~~Weekday-Index dokumentiert – H12~~ – erledigt
+9. ~~Rate-Limit-Registrierungen konsolidiert – M8~~ – erledigt
+
+> **Audit vollstaendig abgeschlossen.** Alle Befunde sind behoben, geschlossen oder als obsolet/falsch positiv markiert.

@@ -294,7 +294,8 @@ export function createCounselorAdminRoutes(config) {
     try {
       const counselorId = parseInt(req.params.id, 10);
       const { rows } = await sql`
-        SELECT * FROM ${sql.table(scheduleTable)}
+        SELECT id, counselor_id, weekday, start_time, end_time, active
+        FROM ${sql.table(scheduleTable)}
         WHERE counselor_id = ${counselorId}
         ORDER BY weekday
       `.execute(db);

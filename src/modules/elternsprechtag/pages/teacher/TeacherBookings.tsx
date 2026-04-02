@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { MoreVertical, MessageSquare } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { MessageSquare } from 'lucide-react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
@@ -7,7 +7,7 @@ import { useCalendarSubscription } from '../../components/useCalendarSubscriptio
 import { CalendarSetupBanner, CalendarSyncLink } from '../../components/CalendarSetupBanner';
 import { CalendarStatusFooter } from '../../components/CalendarStatusFooter';
 import { BookingCard } from '../../../../shared/components/BookingCard';
-import { statusLabel } from '../../../../shared/utils/statusLabel';
+import { BookingTableRow } from '../../components/BookingTableRow';
 import '../../components/CalendarSubscription.css';
 import '../../../../shared/components/BookingCard.css';
 import './TeacherBookings.css';
@@ -77,87 +77,6 @@ function buildDateGroups(bookings: TimeSlot[]): DateGroup[] {
 }
 
 // ── Hauptkomponente ────────────────────────────────────────────────
-
-// ── Inline TableRow with three-dot menu ────────────────────────────
-
-function TableRow({ booking, onConfirm, onCancel }: {
-  booking: TimeSlot;
-  onConfirm: (id: number) => void;
-  onCancel: (b: TimeSlot) => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const isPending = booking.status === 'reserved';
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
-
-  return (
-    <tr>
-      <td data-label="Uhrzeit" className="teacher-when-cell">
-        <span className="teacher-when-time">{booking.time?.toString().slice(0, 5)}</span>
-        <span className={`teacher-status-pill teacher-status-pill--${booking.status || 'confirmed'}`}>
-          {statusLabel(booking.status || 'confirmed')}
-        </span>
-      </td>
-      <td data-label="Besuchende" className="teacher-visitor-cell">
-        <div className="teacher-visitor-name" title={visitorLabel(booking)}>
-          {visitorLabel(booking) || '--'}
-        </div>
-        {booking.email && (
-          <div className="teacher-visitor-meta teacher-visitor-meta--email" title={booking.email}>
-            <a href={`mailto:${booking.email}`}>{booking.email}</a>
-          </div>
-        )}
-      </td>
-      <td data-label="Schüler*in/Azubi" className="teacher-student-cell">
-        <div className="teacher-student-name">
-          {booking.visitorType === 'parent' ? booking.studentName : booking.traineeName}
-        </div>
-        <div className="teacher-student-meta">Klasse: {booking.className || '--'}</div>
-      </td>
-      <td style={{ textAlign: 'center' }}>
-        {booking.message ? (
-          <span title={booking.message || ''}>
-            <MessageSquare size={14} className="teacher-message-icon" aria-label="Nachricht vorhanden" />
-          </span>
-        ) : null}
-      </td>
-      <td>
-        <div className="booking-card__menu" ref={menuRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            className="booking-card__menu-trigger"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Aktionen"
-          >
-            <MoreVertical size={18} />
-          </button>
-          {menuOpen && (
-            <div className="booking-card__menu-dropdown">
-              {isPending && booking.verifiedAt && (
-                <button type="button" className="booking-card__menu-item" onClick={() => { onConfirm(booking.id); setMenuOpen(false); }}>
-                  Bestätigen
-                </button>
-              )}
-              <button type="button" className="booking-card__menu-item booking-card__menu-item--danger" onClick={() => { onCancel(booking); setMenuOpen(false); }}>
-                Stornieren
-              </button>
-            </div>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-// ── Main ───────────────────────────────────────────────────────────
 
 export function TeacherBookings() {
   const [bookings, setBookings] = useState<TimeSlot[]>([]);
@@ -366,13 +285,13 @@ export function TeacherBookings() {
                         <th>Uhrzeit</th>
                         <th>Besuchende</th>
                         <th>Schüler*in/Azubi</th>
-                        <th style={{ width: 40, textAlign: 'center' }} title="Nachricht"><MessageSquare size={14} aria-label="Nachricht" /></th>
-                        <th style={{ width: 40 }}></th>
+                        <th className="teacher-col-msg" title="Nachricht"><MessageSquare size={14} aria-label="Nachricht" /></th>
+                        <th className="teacher-col-actions"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {group.bookings.map((booking) => (
-                        <TableRow
+                        <BookingTableRow
                           key={booking.id}
                           booking={booking}
                           onConfirm={handleAcceptBooking}

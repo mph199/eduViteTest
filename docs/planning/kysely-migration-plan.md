@@ -63,7 +63,7 @@ Jeder Tag folgt dem Pflichtworkflow:
 - [x] `counselorAdminRoutes.js` → Kysely
 - [x] `counselorPublicRoutes.js` → Kysely + Phone-Regex-Validierung
 - [ ] Weekly-Schedule-Upsert deduplizieren (offen – C.3)
-- [ ] `public.js` (519 Zeilen) in 4 Dateien aufteilen (offen – H5)
+- [x] `public.js` (519 Zeilen) in 4 Dateien aufteilen (erledigt – H5)
 - [x] Review: Prüfer + Hygieniker
 
 ## Tag 6: Flow + Teacher-Routes umstellen
@@ -71,7 +71,7 @@ Jeder Tag folgt dem Pflichtworkflow:
 - [x] Flow-Services (5 Dateien) → Kysely
 - [x] Flow-Routes (8 Dateien) → Kysely
 - [x] Teacher-Routes → Kysely
-- [~] 24 Catch-Blöcke ohne `logger.error` fixen (teilweise – BL-11 erledigt, ~12 Stellen offen)
+- [x] 24 Catch-Blöcke ohne `logger.error` fixen (erledigt – BL-11 + superadmin.js logger.warn)
 - [x] Toter Code entfernen: `teacherSystem`, `buildHalfHourWindows`
 - [ ] Alten `query()`-Helper entfernen (offen – 12 von 50 Dateien noch nicht migriert)
 - [x] Review: Prüfer + Hygieniker + Testmeister

@@ -1,6 +1,6 @@
 import express from 'express';
 import { sql } from 'kysely';
-import { requireAdmin } from '../../middleware/auth.js';
+import { requireModuleAdmin, requireSuperadmin } from '../../middleware/auth.js';
 import { db } from '../../db/database.js';
 import { isEmailConfigured, sendMail } from '../../config/email.js';
 import { buildEmail, getEmailBranding } from '../../emails/template.js';
@@ -9,9 +9,10 @@ import { getTeacherById } from '../../modules/elternsprechtag/services/teachersS
 import logger from '../../config/logger.js';
 
 const router = express.Router();
+const requireESTAdmin = requireModuleAdmin('elternsprechtag');
 
 // GET /api/admin/bookings
-router.get('/bookings', requireAdmin, async (_req, res) => {
+router.get('/bookings', requireESTAdmin, async (_req, res) => {
   try {
     const bookings = await listAdminBookings();
     res.json({ bookings });
@@ -22,7 +23,7 @@ router.get('/bookings', requireAdmin, async (_req, res) => {
 });
 
 // DELETE /api/admin/bookings/:slotId
-router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
+router.delete('/bookings/:slotId', requireESTAdmin, async (req, res) => {
   const slotId = parseInt(req.params.slotId, 10);
   if (isNaN(slotId)) return res.status(400).json({ error: 'Invalid slotId' });
 
@@ -62,7 +63,7 @@ router.delete('/bookings/:slotId', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/admin/booking-requests/:id — anonymize a single booking request
-router.delete('/booking-requests/:id', requireAdmin, async (req, res) => {
+router.delete('/booking-requests/:id', requireSuperadmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
@@ -80,7 +81,7 @@ router.delete('/booking-requests/:id', requireAdmin, async (req, res) => {
 });
 
 // POST /api/admin/bookings/anonymize/:eventId
-router.post('/bookings/anonymize/:eventId', requireAdmin, async (req, res) => {
+router.post('/bookings/anonymize/:eventId', requireSuperadmin, async (req, res) => {
   const eventId = parseInt(req.params.eventId, 10);
   if (isNaN(eventId)) return res.status(400).json({ error: 'Invalid eventId' });
 
