@@ -23,6 +23,8 @@ import { createToken, invalidateTokensForParticipant } from '../services/tokenSe
 import { sendInviteEmail } from '../services/emailService.js';
 import logger from '../../../config/logger.js';
 
+const log = logger.child({ component: 'choice-admin' });
+
 const csvUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 },
@@ -287,7 +289,7 @@ router.post('/groups/:id/invite', async (req, res) => {
         if (sent) results.sent++;
         else results.failed++;
       } catch (err) {
-        logger.error({ err, participantId: p.id }, 'Einladungsmail fehlgeschlagen');
+        log.error({ err, participantId: p.id }, 'Einladungsmail fehlgeschlagen');
         results.failed++;
       }
     }

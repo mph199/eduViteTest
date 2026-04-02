@@ -61,7 +61,7 @@ export async function sendInviteEmail(participant, group, token) {
     `<p>Hallo ${escapeHtml(participant.firstName)} ${escapeHtml(participant.lastName)},</p>`,
     `<p>Sie wurden zur Differenzierungswahl <strong>&bdquo;${escapeHtml(group.title)}&ldquo;</strong> eingeladen.</p>`,
     '<p>Bitte klicken Sie auf den folgenden Button, um Ihre Wahl abzugeben:</p>',
-    `<p><a href="${escapeHtml(verifyUrl)}" style="display:inline-block;padding:12px 24px;color:#fff;text-decoration:none;border-radius:4px">Zur Wahl</a></p>`,
+    `<p><a href="${escapeHtml(verifyUrl)}" style="display:inline-block;padding:12px 24px;background:#1976d2;color:#fff;text-decoration:none;border-radius:4px">Zur Wahl</a></p>`,
     `<p style="font-size:0.85em;color:#666">Dieser Link ist ${TOKEN_TTL_HOURS} Stunden gültig und kann nur einmal verwendet werden.<br>`,
     'Falls der Link abgelaufen ist, können Sie über die Wahlseite einen neuen anfordern.</p>',
     '<p>Mit freundlichen Grüßen<br>Ihr Schulverwaltungsteam</p>',
