@@ -240,7 +240,7 @@
 | C.2 | `generateUsername` deduplizieren | `backend/shared/generateUsername.js` (neu), teacherRoutes + counselorAdminRoutes nutzen shared | P1 | [x] |
 | C.3 | Weekly-Schedule-Upsert deduplizieren | `teacherRoutes.js`, `counselorAdminRoutes.js` | P2 | [ ] |
 | C.4 | Rate-Limiter auf `/api/teacher` Mount | `backend/modules/elternsprechtag/index.js` – adminLimiter hinzugefuegt | P1 | [x] |
-| C.5 | Catch-Bloecke mit `logger.error` ergaenzen (24 Stellen) | Diverse | P2 | [~] Teilweise: `auth.js` (3 Stellen) + `resolveActiveEvent.js` erledigt (BL-11). ~12 Stellen noch offen. |
+| C.5 | Catch-Bloecke mit `logger.error` ergaenzen (24 Stellen) | Diverse | P2 | [x] Erledigt: `auth.js` (BL-11), `resolveActiveEvent.js` (BL-11), `superadmin.js` (4 Stellen auf `logger.warn` hochgestuft). Verbleibende `logger.debug`-Stellen sind bewusste Design-Entscheidungen. |
 | C.6 | `SELECT *` durch explizite Spalten ersetzen (password_hash) | `teacherRoutes.js:541`, `teacher.js:890` – explicit column lists | P1 | [x] |
 | C.7 | Toten Code entfernen (`teacherSystem`, `buildHalfHourWindows`) | `teacher.js:8,115` | P2 | [x] |
 | C.8 | `.env.example` vervollstaendigen | Alle 27 Variablen dokumentiert | P1 | [x] |
@@ -255,8 +255,8 @@
 | P1: Hoch (4 Wochen) | 24 | 0 | 0 | 24 | 100% |
 | P2: Mittel (3 Monate) | 15 | 9 | 0 | 6 | 40% |
 | P3: Niedrig | 13 | 12 | 0 | 1 | 8% |
-| Code-Hygiene | 8 | 1 | 1 | 6 | 75% |
-| **Gesamt** | **78** | **22** | **1** | **55** | **~71%** |
+| Code-Hygiene | 8 | 1 | 0 | 7 | 88% |
+| **Gesamt** | **78** | **22** | **0** | **56** | **~72%** |
 
 ---
 

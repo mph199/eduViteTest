@@ -33,14 +33,12 @@ export default {
     app.use('/api/calendar', calendarRouter);
 
     app.use('/api/teacher', rateLimiters.auth, requireAuth, teacherRouter);
-    // Rate-Limit nur auf oeffentliche Buchungs-Pfade (nicht alle /api/*)
-    app.use('/api/teachers', rateLimiters.booking);
-    app.use('/api/slots', rateLimiters.booking);
-    app.use('/api/bookings', rateLimiters.booking);
-    app.use('/api/booking-requests', rateLimiters.booking);
-    app.use('/api/events', rateLimiters.booking);
-    app.use('/api/health', rateLimiters.booking);
-    app.use('/api/dev', rateLimiters.booking);
+    // Rate-Limit auf alle öffentlichen Pfade dieses Moduls (ein Aufruf statt 7)
+    app.use(
+      ['/api/teachers', '/api/slots', '/api/bookings', '/api/booking-requests',
+       '/api/events', '/api/health', '/api/dev'],
+      rateLimiters.booking,
+    );
     app.use('/api', publicRouter);
   },
 };

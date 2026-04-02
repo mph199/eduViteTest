@@ -6,6 +6,20 @@ const pad2 = (n) => String(n).padStart(2, '0');
 const toMins = (h, m) => h * 60 + m;
 const fmt = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
 
+/** Format total minutes as "HH:MM". */
+export const fmtMinutes = fmt;
+
+/** Parse "HH:MM - HH:MM" time window string to { start, end } in total minutes. Returns null on invalid input. */
+export function parseTimeWindow(timeWindow) {
+  if (typeof timeWindow !== 'string') return null;
+  const m = timeWindow.trim().match(/^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const start = Number.parseInt(m[1], 10) * 60 + Number.parseInt(m[2], 10);
+  const end = Number.parseInt(m[3], 10) * 60 + Number.parseInt(m[4], 10);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+  return { start, end };
+}
+
 /** Parse "HH:MM" or "HH:MM:SS" string to total minutes. Returns null on invalid input. */
 export function parseTime(timeStr) {
   if (typeof timeStr !== 'string') return null;

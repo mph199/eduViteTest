@@ -26,11 +26,12 @@ export async function getEmailBranding() {
 
   // Merge DSB fields from site_branding
   try {
-    const { rows: sbRows } = await query(
-      'SELECT dsb_name, dsb_email, responsible_name, privacy_policy_url FROM site_branding WHERE id = 1 LIMIT 1'
-    );
-    if (sbRows[0]) {
-      cachedBranding = { ...cachedBranding, ...sbRows[0] };
+    const sbRow = await db.selectFrom('site_branding')
+      .select(['dsb_name', 'dsb_email', 'responsible_name', 'privacy_policy_url'])
+      .where('id', '=', 1)
+      .executeTakeFirst();
+    if (sbRow) {
+      cachedBranding = { ...cachedBranding, ...sbRow };
     }
   } catch (err) { logger.debug({ err }, 'site_branding DSB columns not available yet'); }
 
