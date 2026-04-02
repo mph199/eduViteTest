@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { MoreVertical, MessageSquare } from 'lucide-react';
-import type { TimeSlot } from '../../../../types';
-import { visitorLabel } from '../../../../utils/bookingSort';
-import { statusLabel } from '../../../../shared/utils/statusLabel';
+import type { TimeSlot } from '../../../types';
+import { visitorLabel } from '../../../utils/bookingSort';
+import { statusLabel } from '../../../shared/utils/statusLabel';
 
 interface BookingTableRowProps {
   booking: TimeSlot;
