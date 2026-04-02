@@ -19,7 +19,7 @@ export const choiceGroupCreateSchema = z.object({
   closes_at: z.string().datetime({ offset: true }).optional().nullable(),
 }).refine(
   (data) => data.min_choices <= data.max_choices,
-  { message: 'min_choices darf nicht gr\u00f6\u00dfer als max_choices sein' },
+  { message: 'min_choices darf nicht größer als max_choices sein' },
 );
 
 export const choiceGroupUpdateSchema = z.object({
@@ -38,12 +38,12 @@ export const choiceGroupUpdateSchema = z.object({
     }
     return true;
   },
-  { message: 'min_choices darf nicht gr\u00f6\u00dfer als max_choices sein' },
+  { message: 'min_choices darf nicht größer als max_choices sein' },
 );
 
 export const choiceGroupStatusSchema = z.object({
   status: z.enum(['draft', 'open', 'closed', 'archived'], {
-    message: 'Gueltiger Status: draft, open, closed, archived',
+    message: 'Gültiger Status: draft, open, closed, archived',
   }),
 });
 
@@ -60,4 +60,20 @@ export const choiceOptionUpdateSchema = z.object({
   description: z.string().max(2000).nullable().transform((v) => v?.trim() || null).optional(),
   sort_order: z.number().int().min(0).optional(),
   is_active: z.boolean().optional(),
+});
+
+// ── Participant Schemas ─────────────────────────────────────────────
+
+export const choiceParticipantCreateSchema = z.object({
+  first_name: z.string().min(1, 'Vorname erforderlich').max(100).transform((v) => v.trim()),
+  last_name: z.string().min(1, 'Nachname erforderlich').max(100).transform((v) => v.trim()),
+  email: z.string().email('Ungültiges E-Mail-Format').max(255).transform((v) => v.trim().toLowerCase()),
+  audience_label: z.string().max(100).nullable().transform((v) => v?.trim() || null).optional(),
+});
+
+export const choiceParticipantUpdateSchema = z.object({
+  first_name: z.string().min(1, 'Vorname erforderlich').max(100).transform((v) => v.trim()).optional(),
+  last_name: z.string().min(1, 'Nachname erforderlich').max(100).transform((v) => v.trim()).optional(),
+  email: z.string().email('Ungültiges E-Mail-Format').max(255).transform((v) => v.trim().toLowerCase()).optional(),
+  audience_label: z.string().max(100).nullable().transform((v) => v?.trim() || null).optional(),
 });

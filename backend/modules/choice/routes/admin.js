@@ -1,11 +1,12 @@
 /**
  * Choice-Modul – Admin-Routen
  *
- * CRUD fuer Groups und Options (Phase 1).
+ * CRUD fuer Groups, Options und Participants.
  * Auth via requireModuleAdmin('choice') im Modul-Manifest.
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { validate } from '../../../middleware/validate.js';
 import {
   choiceGroupCreateSchema,
@@ -13,8 +14,37 @@ import {
   choiceGroupStatusSchema,
   choiceOptionCreateSchema,
   choiceOptionUpdateSchema,
+  choiceParticipantCreateSchema,
+  choiceParticipantUpdateSchema,
 } from '../../../schemas/choice.js';
 import * as choiceService from '../services/choiceService.js';
+import { parseParticipantCSV } from '../services/csvService.js';
+
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = (file.originalname || '').split('.').pop()?.toLowerCase();
+    if (ext === 'csv') {
+      cb(null, true);
+    } else {
+      cb(new Error('Nur CSV-Dateien sind erlaubt'));
+    }
+  },
+});
+
+/** Wrapper: fängt Multer-Fehler ab und gibt strukturiertes JSON zurück. */
+function handleCsvUpload(req, res, next) {
+  csvUpload.single('file')(req, res, (err) => {
+    if (err) {
+      const message = err.code === 'LIMIT_FILE_SIZE'
+        ? 'Datei zu groß (maximal 2 MB)'
+        : err.message || 'Fehler beim Datei-Upload';
+      return res.status(400).json({ error: message });
+    }
+    next();
+  });
+}
 
 const router = Router();
 
@@ -126,6 +156,96 @@ router.post('/options/:id/deactivate', async (req, res) => {
     res.json(option);
   } catch (err) {
     res.status(500).json({ error: 'Fehler beim Deaktivieren der Option' });
+  }
+});
+
+// ── Participants ────────────────────────────────────────────────────
+
+// GET /groups/:id/participants – Teilnehmerliste
+router.get('/groups/:id/participants', async (req, res) => {
+  try {
+    const participants = await choiceService.listParticipants(req.params.id);
+    res.json(participants);
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Laden der Teilnehmer' });
+  }
+});
+
+// POST /groups/:id/participants – Teilnehmer hinzufuegen (einzeln JSON oder CSV)
+router.post('/groups/:id/participants', handleCsvUpload, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+
+    // Gruppen-Existenz pruefen
+    const group = await choiceService.getGroupById(groupId);
+    if (!group) return res.status(404).json({ error: 'Wahldach nicht gefunden' });
+
+    // CSV-Import wenn Datei vorhanden
+    if (req.file) {
+      const existingEmails = await choiceService.getExistingEmails(groupId);
+      const { toInsert, skipped, errors } = parseParticipantCSV(req.file.buffer, existingEmails);
+
+      if (errors.length) {
+        return res.status(400).json({ error: errors[0], details: errors });
+      }
+
+      if (!toInsert.length) {
+        return res.json({ imported: 0, skipped: skipped.length, total: skipped.length, details: { imported: [], skipped } });
+      }
+
+      const imported = await choiceService.bulkInsertParticipants(groupId, toInsert);
+      return res.status(201).json({
+        imported: imported.length,
+        skipped: skipped.length,
+        total: imported.length + skipped.length,
+        details: { imported, skipped },
+      });
+    }
+
+    // Multipart ohne Datei abfangen
+    if (req.is('multipart/form-data')) {
+      return res.status(400).json({ error: 'Keine CSV-Datei im Request gefunden (Feld: file)' });
+    }
+
+    // Einzelner Participant via JSON
+    const result = choiceParticipantCreateSchema.safeParse(req.body);
+    if (!result.success) {
+      const firstIssue = result.error.issues[0];
+      return res.status(400).json({ error: 'Validierungsfehler', message: firstIssue?.message || 'Ungültige Eingabe' });
+    }
+
+    const participant = await choiceService.createParticipant(groupId, result.data);
+    res.status(201).json(participant);
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Ein Teilnehmer mit dieser E-Mail existiert bereits in diesem Wahldach' });
+    }
+    res.status(500).json({ error: 'Fehler beim Hinzufügen von Teilnehmern' });
+  }
+});
+
+// PUT /participants/:id – Teilnehmer bearbeiten
+router.put('/participants/:id', validate(choiceParticipantUpdateSchema), async (req, res) => {
+  try {
+    const participant = await choiceService.updateParticipant(req.params.id, req.body);
+    if (!participant) return res.status(404).json({ error: 'Teilnehmer nicht gefunden' });
+    res.json(participant);
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Ein Teilnehmer mit dieser E-Mail existiert bereits in diesem Wahldach' });
+    }
+    res.status(500).json({ error: 'Fehler beim Aktualisieren des Teilnehmers' });
+  }
+});
+
+// POST /participants/:id/deactivate – Teilnehmer deaktivieren
+router.post('/participants/:id/deactivate', async (req, res) => {
+  try {
+    const participant = await choiceService.deactivateParticipant(req.params.id);
+    if (!participant) return res.status(404).json({ error: 'Teilnehmer nicht gefunden' });
+    res.json(participant);
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Deaktivieren des Teilnehmers' });
   }
 });
 

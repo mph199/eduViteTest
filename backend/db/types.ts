@@ -608,3 +608,4 @@ export type ChoiceSubmissionItem = Selectable<ChoiceSubmissionItemsTable>;
 export type ChoiceEmailToken = Selectable<ChoiceEmailTokensTable>;
 export type UpdateChoiceGroup = Updateable<ChoiceGroupsTable>;
 export type UpdateChoiceOption = Updateable<ChoiceOptionsTable>;
+export type UpdateChoiceParticipant = Updateable<ChoiceParticipantsTable>;

@@ -146,3 +146,97 @@ export async function deactivateOption(id) {
     .executeTakeFirst();
   return row || null;
 }
+
+// ── Participants ────────────────────────────────────────────────────
+
+export async function listParticipants(groupId) {
+  const rows = await db.selectFrom('choice_participants')
+    .select([
+      'id', 'group_id', 'first_name', 'last_name', 'email',
+      'audience_label', 'is_active', 'created_at',
+    ])
+    .where('group_id', '=', groupId)
+    .orderBy('last_name', 'asc')
+    .orderBy('first_name', 'asc')
+    .execute();
+  return rows;
+}
+
+export async function getExistingEmails(groupId) {
+  const rows = await db.selectFrom('choice_participants')
+    .select('email')
+    .where('group_id', '=', groupId)
+    .execute();
+  return new Set(rows.map((r) => r.email.toLowerCase()));
+}
+
+export async function createParticipant(groupId, data) {
+  const row = await db.insertInto('choice_participants')
+    .values({
+      group_id: groupId,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email,
+      audience_label: data.audience_label || null,
+    })
+    .returning([
+      'id', 'group_id', 'first_name', 'last_name', 'email',
+      'audience_label', 'is_active', 'created_at',
+    ])
+    .executeTakeFirst();
+  return row;
+}
+
+export async function bulkInsertParticipants(groupId, participants) {
+  const BATCH_SIZE = 100;
+  const inserted = [];
+
+  await db.transaction().execute(async (trx) => {
+    for (let i = 0; i < participants.length; i += BATCH_SIZE) {
+      const batch = participants.slice(i, i + BATCH_SIZE).map((p) => ({
+        group_id: groupId,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        email: p.email,
+        audience_label: p.audience_label || null,
+      }));
+
+      const rows = await trx.insertInto('choice_participants')
+        .values(batch)
+        .returning(['id', 'first_name', 'last_name', 'email', 'audience_label'])
+        .execute();
+      inserted.push(...rows);
+    }
+  });
+
+  return inserted;
+}
+
+export async function updateParticipant(id, data) {
+  const fields = {};
+  if (data.first_name !== undefined) fields.first_name = data.first_name;
+  if (data.last_name !== undefined) fields.last_name = data.last_name;
+  if (data.email !== undefined) fields.email = data.email;
+  if (data.audience_label !== undefined) fields.audience_label = data.audience_label;
+
+  if (!Object.keys(fields).length) return null;
+
+  const row = await db.updateTable('choice_participants')
+    .set(fields)
+    .where('id', '=', id)
+    .returning([
+      'id', 'group_id', 'first_name', 'last_name', 'email',
+      'audience_label', 'is_active',
+    ])
+    .executeTakeFirst();
+  return row || null;
+}
+
+export async function deactivateParticipant(id) {
+  const row = await db.updateTable('choice_participants')
+    .set({ is_active: false })
+    .where('id', '=', id)
+    .returning(['id', 'is_active'])
+    .executeTakeFirst();
+  return row || null;
+}
