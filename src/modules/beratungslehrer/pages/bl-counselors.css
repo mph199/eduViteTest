@@ -56,3 +56,15 @@
 .bl-schedule-item__time {
   color: var(--color-gray-500);
 }
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .bl-schedule-item {
+    font-size: 0.85rem;
+  }
+
+  .bl-info-banner {
+    font-size: 0.85rem;
+  }
+}

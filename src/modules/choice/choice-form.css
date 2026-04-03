@@ -125,6 +125,8 @@
   border: 1px solid var(--color-gray-300);
   border-radius: 3px;
   padding: 0 4px;
+  min-width: 28px;
+  min-height: 28px;
   cursor: pointer;
   font-size: 0.75rem;
 }
@@ -269,4 +271,27 @@
   color: var(--brand-primary);
   text-decoration: underline;
   font-size: 0.9rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .cf-actions {
+    flex-direction: column;
+  }
+
+  .cf-btn-draft,
+  .cf-btn-submit {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem;
+  }
+
+  .cf-access-page__input {
+    font-size: 1rem;
+  }
+
+  .cf-option {
+    padding: 0.65rem 0.75rem;
+  }
 }

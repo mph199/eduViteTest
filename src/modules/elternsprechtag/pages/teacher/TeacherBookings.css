@@ -106,3 +106,25 @@
 .tb-chevron--open {
   transform: rotate(180deg);
 }
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .teacher-bookings-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .teacher-bookings-actions {
+    justify-content: flex-start;
+  }
+
+  .tb-time-block {
+    width: 38px;
+    height: 38px;
+  }
+
+  .tb-time-block__time {
+    font-size: 0.72rem;
+  }
+}

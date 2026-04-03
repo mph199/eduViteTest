@@ -48,6 +48,14 @@
   color: var(--color-gray-500);
 }
 
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .ssw-schedule-item {
+    font-size: 0.85rem;
+  }
+}
+
 /* ── Form section ────────────────────────────────────────────────── */
 
 .ssw-form-section {

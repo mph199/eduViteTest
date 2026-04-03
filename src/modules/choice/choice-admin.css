@@ -436,6 +436,16 @@
   .choice-tab-btn {
     padding: 0.5rem 0.7rem;
     font-size: 0.82rem;
+    min-height: 44px;
+  }
+
+  .choice-form-panel input[type="text"],
+  .choice-form-panel input[type="email"],
+  .choice-form-panel input[type="number"],
+  .choice-form-panel input[type="datetime-local"],
+  .choice-form-panel textarea,
+  .choice-form-panel select {
+    font-size: 1rem;
   }
 
   .choice-card__actions {
