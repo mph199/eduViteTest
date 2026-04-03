@@ -114,7 +114,7 @@ export function ChoiceFormPage() {
     return (
       <div className="cf-page">
         <p className="cf-flash cf-flash--error">{error}</p>
-        <p><a href="/wahl/zugang" style={{ color: 'var(--brand-primary)' }}>Neuen Zugangslink anfordern</a></p>
+        <p><a href="/wahl/zugang" className="cf-confirm-page__link">Neuen Zugangslink anfordern</a></p>
       </div>
     );
   }
@@ -156,7 +156,10 @@ export function ChoiceFormPage() {
             <div
               key={opt.id}
               className={`cf-option${selected ? ' cf-option--selected' : ''}`}
+              role="button"
+              tabIndex={0}
               onClick={() => toggleOption(opt.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleOption(opt.id); } }}
             >
               <div className="cf-option__checkbox">
                 {selected && (isRanking ? item?.priority : '\u2713')}

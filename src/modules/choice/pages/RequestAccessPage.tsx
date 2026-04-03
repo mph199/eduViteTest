@@ -39,8 +39,9 @@ export function RequestAccessPage() {
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="cf-access-page__field">
-            <label className="cf-access-page__label">E-Mail-Adresse</label>
+            <label htmlFor="cf-email" className="cf-access-page__label">E-Mail-Adresse</label>
             <input
+              id="cf-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -49,8 +50,9 @@ export function RequestAccessPage() {
             />
           </div>
           <div className="cf-access-page__field">
-            <label className="cf-access-page__label">Wahl-ID</label>
+            <label htmlFor="cf-group-id" className="cf-access-page__label">Wahl-ID</label>
             <input
+              id="cf-group-id"
               type="text"
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}

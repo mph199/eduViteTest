@@ -319,7 +319,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                   </div>
                   <div className="form-group">
                     <label htmlFor="ssw-password">Passwort <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
-                    <input id="ssw-password" type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
+                    <input id="ssw-password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
                   </div>
                 </>
               )}

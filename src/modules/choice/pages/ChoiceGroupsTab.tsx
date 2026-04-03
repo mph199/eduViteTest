@@ -214,7 +214,7 @@ export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGrou
                     <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'open')}>Öffnen</button>
                   )}
                   {g.status === 'open' && (
-                    <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'closed')}>Schliessen</button>
+                    <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'closed')}>Schließen</button>
                   )}
                   {g.status === 'closed' && (
                     <>

@@ -51,7 +51,7 @@ export function SSWAdmin() {
           <p className="creds-box__hint">
             Bitte Zugangsdaten notieren — das Passwort wird nicht erneut angezeigt.
           </p>
-          <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schliessen</button>
+          <button className="btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => setCreatedCreds(null)}>Schließen</button>
         </div>
       )}
       {error && <div className="admin-error">{error}</div>}
