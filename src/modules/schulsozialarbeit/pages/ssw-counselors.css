@@ -26,11 +26,6 @@
   flex-shrink: 0;
 }
 
-.ssw-specs {
-  font-size: 0.78rem;
-  color: var(--color-gray-500);
-}
-
 .ssw-schedule-list {
   display: flex;
   flex-direction: column;
