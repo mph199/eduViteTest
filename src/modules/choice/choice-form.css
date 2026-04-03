@@ -168,3 +168,105 @@
   background: var(--color-gray-300);
   cursor: not-allowed;
 }
+
+/* ── Access Request Page ─────────────────────────────────────────── */
+
+.cf-access-page {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.cf-access-page__title {
+  margin-bottom: 1rem;
+}
+
+.cf-access-page__intro {
+  margin-bottom: 1.5rem;
+  color: var(--color-gray-600);
+  font-size: 0.9rem;
+}
+
+.cf-access-page__success {
+  padding: 1rem;
+  background: var(--color-gray-50);
+  border-radius: 8px;
+}
+
+.cf-access-page__field {
+  margin-bottom: 1rem;
+}
+
+.cf-access-page__field:last-of-type {
+  margin-bottom: 1.5rem;
+}
+
+.cf-access-page__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.cf-access-page__input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-gray-300);
+}
+
+.cf-access-page__error {
+  color: var(--color-error);
+  margin-bottom: 1rem;
+}
+
+.cf-access-page__submit {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--brand-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cf-access-page__submit:disabled {
+  cursor: wait;
+}
+
+/* ── Confirmation Page ───────────────────────────────────────────── */
+
+.cf-confirm-page {
+  text-align: center;
+  padding: 3rem 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.cf-confirm-page__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 1.75rem;
+}
+
+.cf-confirm-page__title {
+  margin-bottom: 0.75rem;
+}
+
+.cf-confirm-page__text {
+  color: var(--color-gray-600);
+  margin-bottom: 1.5rem;
+}
+
+.cf-confirm-page__link {
+  color: var(--brand-primary);
+  text-decoration: underline;
+  font-size: 0.9rem;
+}

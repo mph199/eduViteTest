@@ -8,7 +8,7 @@
 import publicRouter from './routes/public.js';
 import counselorRouter from './routes/counselor.js';
 import adminRouter from './routes/admin.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../../middleware/auth.js';
 import { createCalendarFeedRoute } from '../../shared/calendarFeedRouter.js';
 import { generateCounselorICS } from '../../shared/icalGenerator.js';
 
@@ -34,7 +34,7 @@ export default {
 
     // Admin- und Berater-Routen ZUERST (ohne Booking-Limiter)
     // Auth wird in adminRouter per requireModuleAdmin('schulsozialarbeit') geprüft
-    app.use('/api/ssw/admin', rateLimiters.admin, adminRouter);
+    app.use('/api/ssw/admin', rateLimiters.admin, requireAdmin, adminRouter);
     app.use('/api/ssw/counselor', rateLimiters.auth, requireAuth, counselorRouter);
     // Oeffentliche Routen (Termin buchen) – mit Rate-Limit
     app.use('/api/ssw', rateLimiters.booking, publicRouter);

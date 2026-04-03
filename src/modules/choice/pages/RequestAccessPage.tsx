@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../../services/api';
+import '../choice-form.css';
 
 export function RequestAccessPage() {
   const [searchParams] = useSearchParams();
@@ -25,56 +26,43 @@ export function RequestAccessPage() {
   };
 
   return (
-    <div style={{ maxWidth: '420px', margin: '0 auto', padding: '2rem 1rem' }}>
-      <h2 style={{ marginBottom: '1rem' }}>Neuen Zugangslink anfordern</h2>
-      <p style={{ marginBottom: '1.5rem', color: 'var(--color-gray-600)', fontSize: '0.9rem' }}>
+    <div className="cf-access-page">
+      <h2 className="cf-access-page__title">Neuen Zugangslink anfordern</h2>
+      <p className="cf-access-page__intro">
         Geben Sie Ihre E-Mail-Adresse ein, um einen neuen Link zur Differenzierungswahl zu erhalten.
       </p>
 
       {status === 'success' ? (
-        <div style={{ padding: '1rem', background: 'var(--color-gray-50)', borderRadius: '8px' }}>
+        <div className="cf-access-page__success">
           <p>{message}</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 500 }}>E-Mail-Adresse</label>
+          <div className="cf-access-page__field">
+            <label className="cf-access-page__label">E-Mail-Adresse</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-gray-300)' }}
+              className="cf-access-page__input"
             />
           </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 500 }}>Wahl-ID</label>
+          <div className="cf-access-page__field">
+            <label className="cf-access-page__label">Wahl-ID</label>
             <input
               type="text"
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
               required
               placeholder="Wird normalerweise automatisch ausgefüllt"
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-gray-300)' }}
+              className="cf-access-page__input"
             />
           </div>
           {status === 'error' && (
-            <p style={{ color: 'var(--color-error)', marginBottom: '1rem' }}>{message}</p>
+            <p className="cf-access-page__error">{message}</p>
           )}
-          <button
-            type="submit"
-            disabled={status === 'loading'}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              background: 'var(--brand-primary)',
-              color: 'var(--color-white)',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: status === 'loading' ? 'wait' : 'pointer',
-              fontWeight: 500,
-            }}
-          >
+          <button type="submit" disabled={status === 'loading'} className="cf-access-page__submit">
             {status === 'loading' ? 'Wird gesendet...' : 'Zugangslink anfordern'}
           </button>
         </form>

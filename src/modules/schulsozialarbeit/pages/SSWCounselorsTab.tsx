@@ -4,7 +4,7 @@ import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { WEEKDAY_LABELS_FULL } from '../../../shared/constants/weekdays';
 import { buildDefaultSchedule, mergeScheduleEntries } from '../../../shared/utils/schedule';
-import '../../../pages/admin/user-management.css';
+import '../../../shared/styles/um-components.css';
 import './ssw-counselors.css';
 
 function defaultSchedule(): ScheduleEntry[] {

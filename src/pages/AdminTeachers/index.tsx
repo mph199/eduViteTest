@@ -13,7 +13,7 @@ import { TeacherDetailView } from './TeacherDetailView';
 import { CsvImportDialog } from './CsvImportDialog';
 import { TeacherTable } from './TeacherTable';
 import '../AdminDashboard.css';
-import '../admin/user-management.css';
+import '../../shared/styles/um-components.css';
 
 export function AdminTeachers() {
   const { isModuleEnabled } = useModuleConfig();

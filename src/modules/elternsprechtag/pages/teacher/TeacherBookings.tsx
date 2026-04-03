@@ -9,7 +9,7 @@ import { BookingCard } from '../../../../shared/components/BookingCard';
 import { BookingTableRow } from '../../components/BookingTableRow';
 import '../../components/CalendarSubscription.css';
 import '../../../../shared/components/BookingCard.css';
-import '../../../../pages/admin/user-management.css';
+import '../../../../shared/styles/um-components.css';
 import './TeacherBookings.css';
 
 

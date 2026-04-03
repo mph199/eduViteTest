@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import { WEEKDAY_SHORT } from '../../../shared/constants/weekdays';
-import '../../../pages/admin/user-management.css';
+import '../../../shared/styles/um-components.css';
 import './bl-counselors.css';
 
 interface Props {

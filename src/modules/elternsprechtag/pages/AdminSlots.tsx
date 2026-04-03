@@ -10,7 +10,7 @@ import { exportTeacherSlotsToICal } from '../../../utils/icalExport';
 import { teacherDisplayName } from '../../../utils/teacherDisplayName';
 import { SlotForm } from '../components/SlotForm';
 import '../../../pages/AdminDashboard.css';
-import '../../../pages/admin/user-management.css';
+import '../../../shared/styles/um-components.css';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 
