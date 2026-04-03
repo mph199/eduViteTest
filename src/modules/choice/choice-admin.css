@@ -116,6 +116,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .choice-card__title {
@@ -132,11 +133,19 @@
 }
 
 .choice-card__icon {
+  flex-shrink: 0;
+  color: var(--module-accent-choice);
+}
+
+.choice-card__icon--group {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.choice-card__icon--option {
   display: inline-block;
   vertical-align: -0.15em;
   margin-right: 0.35rem;
-  flex-shrink: 0;
-  color: var(--module-accent-choice);
 }
 
 /* ── Status Badge ─────────────────────────────────────────────────── */

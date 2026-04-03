@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { ChoicePublicGroup, ChoiceSubmissionItem } from '../../../types';
 import api from '../../../services/api';
+import { DynamicIcon } from '../../../shared/components/IconPicker';
+import '../choice-form.css';
 
 export function ChoiceFormPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -47,7 +49,6 @@ export function ChoiceFormPage() {
     setItems((prev) => {
       const exists = prev.find((i) => i.option_id === optionId);
       if (exists) {
-        // Remove and reorder priorities
         const filtered = prev.filter((i) => i.option_id !== optionId);
         return filtered.map((i, idx) => ({ ...i, priority: idx + 1 }));
       }
@@ -106,16 +107,14 @@ export function ChoiceFormPage() {
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '3rem 1rem' }}><p>Lade Wahldaten...</p></div>;
+    return <div className="cf-page"><p>Lade Wahldaten...</p></div>;
   }
 
   if (error) {
     return (
-      <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-        <p style={{ color: 'var(--color-error)' }}>{error}</p>
-        <p style={{ marginTop: '1rem' }}>
-          <a href="/wahl/zugang" style={{ color: 'var(--brand-primary)' }}>Neuen Zugangslink anfordern</a>
-        </p>
+      <div className="cf-page">
+        <p className="cf-flash cf-flash--error">{error}</p>
+        <p><a href="/wahl/zugang" style={{ color: 'var(--brand-primary)' }}>Neuen Zugangslink anfordern</a></p>
       </div>
     );
   }
@@ -127,12 +126,10 @@ export function ChoiceFormPage() {
   const canSubmit = items.length >= group.min_choices && items.length <= group.max_choices;
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-      <h2 style={{ marginBottom: '0.5rem' }}>{group.title}</h2>
-      {group.description && (
-        <p style={{ color: 'var(--color-gray-600)', marginBottom: '1rem', fontSize: '0.9rem' }}>{group.description}</p>
-      )}
-      <p style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--color-gray-500)' }}>
+    <div className="cf-page">
+      <h2 className="cf-title">{group.title}</h2>
+      {group.description && <p className="cf-description">{group.description}</p>}
+      <p className="cf-hint">
         Wählen Sie {group.min_choices === group.max_choices
           ? `genau ${group.min_choices}`
           : `${group.min_choices} bis ${group.max_choices}`} Option(en).
@@ -140,66 +137,48 @@ export function ChoiceFormPage() {
       </p>
 
       {submissionStatus === 'submitted' && (
-        <div style={{ padding: '0.75rem 1rem', background: 'var(--color-gray-50)', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+        <div className="cf-submitted-notice">
           Ihre Wahl wurde bereits abgegeben. Sie können sie hier noch bearbeiten und erneut abgeben.
         </div>
       )}
 
       {flash && (
-        <div style={{
-          padding: '0.5rem 1rem', marginBottom: '1rem', borderRadius: '4px', fontSize: '0.9rem',
-          background: flashType === 'error' ? 'var(--color-error-light)' : 'var(--color-gray-100)',
-          color: flashType === 'error' ? 'var(--color-error)' : 'inherit',
-        }}>
+        <div className={`cf-flash${flashType === 'error' ? ' cf-flash--error' : ''}`}>
           {flash}
         </div>
       )}
 
-      {/* Options list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+      <div className="cf-options">
         {(group.options || []).map((opt) => {
           const selected = selectedIds.has(opt.id);
           const item = items.find((i) => i.option_id === opt.id);
           return (
             <div
               key={opt.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.75rem 1rem',
-                border: `2px solid ${selected ? 'var(--brand-primary)' : 'var(--color-gray-200)'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                background: selected ? 'rgba(var(--brand-primary-rgb), 0.05)' : 'var(--color-white)',
-                transition: 'border-color 0.15s',
-              }}
+              className={`cf-option${selected ? ' cf-option--selected' : ''}`}
               onClick={() => toggleOption(opt.id)}
             >
-              <div style={{
-                width: '24px', height: '24px', borderRadius: '4px', flexShrink: 0,
-                border: `2px solid ${selected ? 'var(--brand-primary)' : 'var(--color-gray-300)'}`,
-                background: selected ? 'var(--brand-primary)' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--color-white)', fontSize: '0.75rem', fontWeight: 700,
-              }}>
+              <div className="cf-option__checkbox">
                 {selected && (isRanking ? item?.priority : '\u2713')}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>{opt.title}</div>
-                {opt.description && <div style={{ fontSize: '0.85rem', color: 'var(--color-gray-500)', marginTop: '0.25rem' }}>{opt.description}</div>}
+              {opt.icon && (
+                <DynamicIcon name={opt.icon} size={24} className="cf-option__icon" />
+              )}
+              <div className="cf-option__body">
+                <div className="cf-option__title">{opt.title}</div>
+                {opt.description && <div className="cf-option__desc">{opt.description}</div>}
               </div>
               {selected && isRanking && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }} onClick={(e) => e.stopPropagation()}>
+                <div className="cf-option__rank-controls" onClick={(e) => e.stopPropagation()}>
                   <button
-                    style={{ background: 'none', border: '1px solid var(--color-gray-300)', borderRadius: '3px', padding: '0 4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                    className="cf-option__rank-btn"
                     onClick={() => movePriority(opt.id, -1)}
                     disabled={item?.priority === 1}
                   >
                     &#9650;
                   </button>
                   <button
-                    style={{ background: 'none', border: '1px solid var(--color-gray-300)', borderRadius: '3px', padding: '0 4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                    className="cf-option__rank-btn"
                     onClick={() => movePriority(opt.id, 1)}
                     disabled={item?.priority === items.length}
                   >
@@ -212,34 +191,11 @@ export function ChoiceFormPage() {
         })}
       </div>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <button
-          onClick={handleSaveDraft}
-          disabled={saving}
-          style={{
-            padding: '0.6rem 1.25rem',
-            border: '1px solid var(--color-gray-300)',
-            borderRadius: '4px',
-            background: 'var(--color-white)',
-            cursor: saving ? 'wait' : 'pointer',
-          }}
-        >
+      <div className="cf-actions">
+        <button onClick={handleSaveDraft} disabled={saving} className="cf-btn-draft">
           {saving ? 'Speichere...' : 'Entwurf speichern'}
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || !canSubmit}
-          style={{
-            padding: '0.6rem 1.25rem',
-            border: 'none',
-            borderRadius: '4px',
-            background: canSubmit ? 'var(--brand-primary)' : 'var(--color-gray-300)',
-            color: 'var(--color-white)',
-            cursor: submitting || !canSubmit ? 'not-allowed' : 'pointer',
-            fontWeight: 500,
-          }}
-        >
+        <button onClick={handleSubmit} disabled={submitting || !canSubmit} className="cf-btn-submit">
           {submitting ? 'Wird abgegeben...' : 'Wahl abgeben'}
         </button>
       </div>

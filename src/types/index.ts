@@ -740,7 +740,7 @@ export interface ChoicePublicGroup {
   min_choices: number;
   max_choices: number;
   ranking_mode: 'none' | 'required';
-  options: { id: string; title: string; description?: string | null; sort_order: number }[];
+  options: { id: string; title: string; description?: string | null; icon?: string | null; sort_order: number }[];
 }
 
 export interface ChoiceSubmission {
