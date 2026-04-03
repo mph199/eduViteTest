@@ -178,10 +178,8 @@ export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGrou
               <div className="choice-card__accent" />
               <div className="choice-card__body">
                 <div className="choice-card__header">
-                  <h3 className="choice-card__title">
-                    {g.icon && <DynamicIcon name={g.icon} size={18} className="choice-card__icon" />}
-                    {g.title}
-                  </h3>
+                  {g.icon && <DynamicIcon name={g.icon} size={34} className="choice-card__icon choice-card__icon--group" />}
+                  <h3 className="choice-card__title">{g.title}</h3>
                   <span className={`choice-status choice-status--${g.status}`}>
                     {STATUS_LABELS[g.status]}
                   </span>

@@ -1,4 +1,4 @@
-/* TeacherBookings inline-style replacements */
+/* TeacherBookings */
 
 .teacher-bookings-notice {
   margin-bottom: 1rem;
@@ -44,24 +44,65 @@
   flex-wrap: wrap;
 }
 
-.teacher-message-icon {
-  color: var(--color-gray-400, #94a3b8);
+/* ── Time block (avatar replacement) ─────────────────────────────── */
+
+.tb-time-block {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--color-gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tb-time-block__time {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gray-700);
+}
+
+/* ── Status chip ─────────────────────────────────────────────────── */
+
+.tb-status-chip {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+}
+
+.tb-status-chip--confirmed {
+  background: rgba(var(--color-success-rgb, 34, 197, 94), 0.1);
+  color: var(--color-success, #16a34a);
+}
+
+.tb-status-chip--reserved {
+  background: rgba(var(--color-warning-rgb, 234, 179, 8), 0.1);
+  color: var(--color-warning, #ca8a04);
+}
+
+.tb-status-chip--cancelled {
+  background: rgba(var(--color-error-rgb, 239, 68, 68), 0.1);
+  color: var(--color-error, #dc2626);
+}
+
+/* ── Message icon ────────────────────────────────────────────────── */
+
+.tb-message-icon {
+  color: var(--color-gray-400);
+  margin-left: 0.35rem;
+  vertical-align: -0.1em;
   cursor: help;
 }
 
-.teacher-message-icon:hover {
-  color: var(--brand-primary, #123C73);
+/* ── Chevron ─────────────────────────────────────────────────────── */
+
+.tb-chevron {
+  color: var(--color-gray-400);
+  transition: transform 0.18s;
+  flex-shrink: 0;
 }
 
-.teacher-col-msg {
-  width: 40px;
-  text-align: center;
-}
-
-.teacher-col-actions {
-  width: 40px;
-}
-
-.teacher-col-actions .booking-card__menu {
-  position: relative;
+.tb-chevron--open {
+  transform: rotate(180deg);
 }

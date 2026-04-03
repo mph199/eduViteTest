@@ -1,55 +1,139 @@
+import { useState, useMemo } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import { WEEKDAY_SHORT } from '../../../shared/constants/weekdays';
+import '../../../pages/admin/user-management.css';
+import './bl-counselors.css';
 
 interface Props {
   counselors: Counselor[];
   schedulesMap: Record<number, ScheduleEntry[]>;
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (parts[0]?.[0] || '?').toUpperCase();
+}
+
+function getLastName(c: Counselor): string {
+  if (c.last_name) return c.last_name;
+  const parts = (c.name || '').trim().split(/\s+/);
+  return parts[parts.length - 1] || '';
+}
+
+interface AlphaGroup {
+  letter: string;
+  items: Counselor[];
+}
+
+function groupAlphabetically(counselors: Counselor[]): AlphaGroup[] {
+  const sorted = [...counselors].sort((a, b) =>
+    getLastName(a).localeCompare(getLastName(b), 'de', { sensitivity: 'base' })
+  );
+  const groups: AlphaGroup[] = [];
+  let current: AlphaGroup | null = null;
+  for (const c of sorted) {
+    const letter = (getLastName(c)[0] || '#').toUpperCase();
+    if (!current || current.letter !== letter) {
+      current = { letter, items: [] };
+      groups.push(current);
+    }
+    current.items.push(c);
+  }
+  return groups;
+}
+
 export function BLCounselorsTab({ counselors, schedulesMap }: Props) {
+  const [openId, setOpenId] = useState<number | null>(null);
+  const groups = useMemo(() => groupAlphabetically(counselors), [counselors]);
+
   return (
     <>
-      <div className="admin-section-header">
-        <h3>Alle Beratungslehrkräfte</h3>
+      <div className="um-header">
+        <div className="um-header__left">
+          <h2 className="um-header__title">Beratungslehrkräfte</h2>
+          <span className="um-header__count">{counselors.length}</span>
+        </div>
       </div>
 
-      <div className="info-banner">
-        <p>
-          Beratungslehrkräfte werden über <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
-          Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrkräfte&quot;.
-        </p>
+      <div className="bl-info-banner">
+        Beratungslehrkräfte werden über <strong>Benutzer &amp; Rechte</strong> angelegt und bearbeitet.
+        Aktivieren Sie dort beim Anlegen oder Bearbeiten eines Nutzers die Sektion &quot;Beratungslehrkräfte&quot;.
       </div>
 
-      <div className="admin-resp-table-container">
-        <table className="admin-resp-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>E-Mail</th>
-              <th>Raum</th>
-              <th>Zeiten</th>
-            </tr>
-          </thead>
-          <tbody>
-            {counselors.length === 0 ? (
-              <tr><td colSpan={4}>Keine Beratungslehrkräfte vorhanden.</td></tr>
-            ) : counselors.map(c => (
-              <tr key={c.id}>
-                <td data-label="Name">{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
-                <td data-label="E-Mail">{c.email || '--'}</td>
-                <td data-label="Raum">{c.room || '--'}</td>
-                <td data-label="Zeiten">
-                  {(() => {
-                    const sch = (schedulesMap[c.id] || []).filter(s => s.active);
-                    if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '--'} -- ${c.available_until?.toString().slice(0, 5) || '--'}`;
-                    return sch.map(s => `${WEEKDAY_SHORT[s.weekday - 1] || '?'} ${s.start_time?.toString().slice(0, 5)}--${s.end_time?.toString().slice(0, 5)}`).join(', ');
-                  })()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {counselors.length === 0 ? (
+        <div className="um-empty">Keine Beratungslehrkräfte vorhanden.</div>
+      ) : (
+        groups.map((group) => (
+          <div key={group.letter}>
+            <div className="um-alpha-divider">
+              <span className="um-alpha-divider__letter">{group.letter}</span>
+              <span className="um-alpha-divider__line" />
+            </div>
+            <div className="um-list">
+              {group.items.map((c) => {
+                const isOpen = openId === c.id;
+                const scheduleEntries = (schedulesMap[c.id] || []).filter(s => s.active);
+                return (
+                  <div key={c.id} className="um-row-wrapper">
+                    <div className="um-row" onClick={() => setOpenId(isOpen ? null : c.id)}>
+                      <div className="bl-avatar">{getInitials(c.name || '')}</div>
+                      <div className="um-info">
+                        <span className="um-name">
+                          {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                        </span>
+                        <span className="um-email">{c.email || '--'}</span>
+                      </div>
+                      {c.room && <span className="bl-room-badge">Raum {c.room}</span>}
+                      <ChevronDown
+                        size={16}
+                        className={`tb-chevron${isOpen ? ' tb-chevron--open' : ''}`}
+                      />
+                    </div>
+
+                    <div className={`um-detail-panel${isOpen ? ' um-detail-panel--open' : ''}`}>
+                      <div className="um-detail-panel__inner">
+                        <div className="um-detail-grid">
+                          <div className="um-detail-item">
+                            <span className="um-detail-label">E-Mail</span>
+                            <span className="um-detail-value">
+                              {c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : '--'}
+                            </span>
+                          </div>
+                          <div className="um-detail-item">
+                            <span className="um-detail-label">Raum</span>
+                            <span className="um-detail-value">{c.room || '--'}</span>
+                          </div>
+                          <div className="um-detail-item" style={{ gridColumn: '1 / -1' }}>
+                            <span className="um-detail-label">Sprechzeiten</span>
+                            <span className="um-detail-value">
+                              {scheduleEntries.length === 0 ? (
+                                `${c.available_from?.toString().slice(0, 5) || '--'} – ${c.available_until?.toString().slice(0, 5) || '--'}`
+                              ) : (
+                                <div className="bl-schedule-list">
+                                  {scheduleEntries.map((s) => (
+                                    <div key={s.weekday} className="bl-schedule-item">
+                                      <span className="bl-schedule-item__day">{WEEKDAY_SHORT[s.weekday - 1] || '?'}</span>
+                                      <span className="bl-schedule-item__time">
+                                        {s.start_time?.toString().slice(0, 5)} – {s.end_time?.toString().slice(0, 5)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
     </>
   );
 }

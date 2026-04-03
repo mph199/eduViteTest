@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { ChevronDown, MoreVertical, UserPlus } from 'lucide-react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { WEEKDAY_LABELS_FULL } from '../../../shared/constants/weekdays';
 import { buildDefaultSchedule, mergeScheduleEntries } from '../../../shared/utils/schedule';
+import '../../../pages/admin/user-management.css';
+import './ssw-counselors.css';
 
 function defaultSchedule(): ScheduleEntry[] {
   return buildDefaultSchedule(
@@ -27,6 +30,66 @@ const emptyCounselor = {
   password: '',
 };
 
+function getInitials(c: Counselor): string {
+  if (c.first_name && c.last_name) return (c.first_name[0] + c.last_name[0]).toUpperCase();
+  const parts = (c.name || '').trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (parts[0]?.[0] || '?').toUpperCase();
+}
+
+function getLastName(c: Counselor): string {
+  return c.last_name || (c.name || '').trim().split(/\s+/).pop() || '';
+}
+
+interface AlphaGroup {
+  letter: string;
+  items: Counselor[];
+}
+
+function groupAlphabetically(counselors: Counselor[]): AlphaGroup[] {
+  const sorted = [...counselors].sort((a, b) =>
+    getLastName(a).localeCompare(getLastName(b), 'de', { sensitivity: 'base' })
+  );
+  const groups: AlphaGroup[] = [];
+  let current: AlphaGroup | null = null;
+  for (const c of sorted) {
+    const letter = (getLastName(c)[0] || '#').toUpperCase();
+    if (!current || current.letter !== letter) {
+      current = { letter, items: [] };
+      groups.push(current);
+    }
+    current.items.push(c);
+  }
+  return groups;
+}
+
+// ── Context Menu ────────────────────────────────────────────────────
+
+function ContextMenu({ onEdit, onDelete, onClose }: {
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <div className="um-context-menu" ref={ref}>
+      <button className="um-context-menu__item" onClick={onEdit}>Bearbeiten</button>
+      <div className="um-context-menu__divider" />
+      <button className="um-context-menu__item um-context-menu__item--danger" onClick={onDelete}>Löschen</button>
+    </div>
+  );
+}
+
+// ── Main Component ──────────────────────────────────────────────────
+
 interface Props {
   counselors: Counselor[];
   schedulesMap: Record<number, ScheduleEntry[]>;
@@ -41,6 +104,10 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
   const [form, setForm] = useState(emptyCounselor);
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(defaultSchedule());
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+
+  const groups = useMemo(() => groupAlphabetically(counselors), [counselors]);
 
   const loadSchedule = async (counselorId: number) => {
     setScheduleLoading(true);
@@ -108,6 +175,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
     });
     setEditingId(c.id);
     setShowForm(true);
+    setMenuOpenId(null);
     loadSchedule(c.id);
   };
 
@@ -122,173 +190,257 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
     }
   };
 
+  const handleNew = () => {
+    setForm(emptyCounselor);
+    setEditingId(null);
+    setSchedule(defaultSchedule());
+    setShowForm(true);
+  };
+
   return (
     <>
-      <div className="admin-section-header">
-        <h3>Berater/innen</h3>
-        <button
-          className="btn-primary"
-          onClick={() => { setForm(emptyCounselor); setEditingId(null); setSchedule(defaultSchedule()); setShowForm(true); }}
-        >
-          + Neue/r Berater/in
+      {/* Header */}
+      <div className="um-header">
+        <div className="um-header__left">
+          <h2 className="um-header__title">Berater/innen</h2>
+          <span className="um-header__count">{counselors.length}</span>
+        </div>
+        <button className="um-header__add-btn" onClick={handleNew}>
+          <UserPlus size={15} />
+          <span className="um-header__btn-label">Hinzufügen</span>
         </button>
       </div>
 
+      {/* Form */}
       {showForm && (
-        <div className="teacher-form-container">
-          <h3>{editingId ? 'Berater/in bearbeiten' : 'Neue/r Berater/in'}</h3>
-          <form className="teacher-form" onSubmit={handleSave}>
-            <div className="form-group">
-              <label htmlFor="ssw-salutation">Anrede</label>
-              <select id="ssw-salutation" value={form.salutation} onChange={e => setForm({ ...form, salutation: e.target.value })}>
-                <option value="Frau">Frau</option>
-                <option value="Herr">Herr</option>
-                <option value="">–</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-first-name">Vorname</label>
-              <input id="ssw-first-name" type="text" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="z.B. Maria" required />
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-last-name">Nachname</label>
-              <input id="ssw-last-name" type="text" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="z.B. Mueller" required />
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-email">E-Mail</label>
-              <input id="ssw-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="z.B. m.mueller@schule.de" />
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-room">Raum</label>
-              <input id="ssw-room" type="text" value={form.room} onChange={e => setForm({ ...form, room: e.target.value })} placeholder="z.B. B12" />
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-phone">Telefon</label>
-              <input id="ssw-phone" type="text" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="z.B. 0123-456789" />
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-specs">Schwerpunkte</label>
-              <input id="ssw-specs" type="text" value={form.specializations} onChange={e => setForm({ ...form, specializations: e.target.value })} placeholder="Kommasepariert, z.B. Mobbing, Familie" />
-            </div>
-            <div className="form-group">
-              <label>Wochenplan</label>
-              {scheduleLoading ? (
-                <p>Lade Wochenplan...</p>
-              ) : (
-                <table className="schedule-table">
-                  <thead>
-                    <tr>
-                      <th>Tag</th>
-                      <th>Aktiv</th>
-                      <th>Von</th>
-                      <th>Bis</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.map((entry) => (
-                      <tr key={entry.weekday} className={entry.active ? undefined : 'tr--inactive'}>
-                        <td data-label="Tag">{WEEKDAY_LABELS_FULL[entry.weekday]}</td>
-                        <td data-label="Aktiv">
-                          <input
-                            type="checkbox"
-                            checked={entry.active}
-                            onChange={() => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, active: !s.active } : s))}
-                          />
-                        </td>
-                        <td data-label="Von">
-                          <input
-                            type="time"
-                            value={entry.start_time}
-                            disabled={!entry.active}
-                            onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, start_time: e.target.value } : s))}
-                          />
-                        </td>
-                        <td data-label="Bis">
-                          <input
-                            type="time"
-                            value={entry.end_time}
-                            disabled={!entry.active}
-                            onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, end_time: e.target.value } : s))}
-                          />
-                        </td>
+        <div className="ssw-form-section">
+          <div className="teacher-form-container">
+            <h3>{editingId ? 'Berater/in bearbeiten' : 'Neue/r Berater/in'}</h3>
+            <form className="teacher-form" onSubmit={handleSave}>
+              <div className="form-group">
+                <label htmlFor="ssw-salutation">Anrede</label>
+                <select id="ssw-salutation" value={form.salutation} onChange={e => setForm({ ...form, salutation: e.target.value })}>
+                  <option value="Frau">Frau</option>
+                  <option value="Herr">Herr</option>
+                  <option value="">–</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-first-name">Vorname</label>
+                <input id="ssw-first-name" type="text" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="z.B. Maria" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-last-name">Nachname</label>
+                <input id="ssw-last-name" type="text" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="z.B. Mueller" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-email">E-Mail</label>
+                <input id="ssw-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="z.B. m.mueller@schule.de" />
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-room">Raum</label>
+                <input id="ssw-room" type="text" value={form.room} onChange={e => setForm({ ...form, room: e.target.value })} placeholder="z.B. B12" />
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-phone">Telefon</label>
+                <input id="ssw-phone" type="text" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="z.B. 0123-456789" />
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-specs">Schwerpunkte</label>
+                <input id="ssw-specs" type="text" value={form.specializations} onChange={e => setForm({ ...form, specializations: e.target.value })} placeholder="Kommasepariert, z.B. Mobbing, Familie" />
+              </div>
+              <div className="form-group">
+                <label>Wochenplan</label>
+                {scheduleLoading ? (
+                  <p>Lade Wochenplan...</p>
+                ) : (
+                  <table className="schedule-table">
+                    <thead>
+                      <tr>
+                        <th>Tag</th>
+                        <th>Aktiv</th>
+                        <th>Von</th>
+                        <th>Bis</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {schedule.map((entry) => (
+                        <tr key={entry.weekday} className={entry.active ? undefined : 'tr--inactive'}>
+                          <td data-label="Tag">{WEEKDAY_LABELS_FULL[entry.weekday]}</td>
+                          <td data-label="Aktiv">
+                            <input
+                              type="checkbox"
+                              checked={entry.active}
+                              onChange={() => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, active: !s.active } : s))}
+                            />
+                          </td>
+                          <td data-label="Von">
+                            <input
+                              type="time"
+                              value={entry.start_time}
+                              disabled={!entry.active}
+                              onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, start_time: e.target.value } : s))}
+                            />
+                          </td>
+                          <td data-label="Bis">
+                            <input
+                              type="time"
+                              value={entry.end_time}
+                              disabled={!entry.active}
+                              onChange={e => setSchedule(prev => prev.map(s => s.weekday === entry.weekday ? { ...s, end_time: e.target.value } : s))}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div className="form-group">
+                <label htmlFor="ssw-duration">Termindauer (Minuten)</label>
+                <input id="ssw-duration" type="number" min={10} max={120} value={form.slot_duration_minutes} onChange={e => setForm({ ...form, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
+              </div>
+              <div className="form-group">
+                <label className="cb-form__urgent">
+                  <input
+                    type="checkbox"
+                    checked={form.requires_confirmation}
+                    onChange={e => setForm({ ...form, requires_confirmation: e.target.checked })}
+                  />
+                  Manuelle Bestätigung erforderlich
+                </label>
+                <span className="cb-form__hint">Wenn deaktiviert, werden Buchungen direkt bestätigt.</span>
+              </div>
+              {!editingId && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="ssw-username">Benutzername <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
+                    <input id="ssw-username" type="text" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ssw-password">Passwort <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
+                    <input id="ssw-password" type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
+                  </div>
+                </>
               )}
-            </div>
-            <div className="form-group">
-              <label htmlFor="ssw-duration">Termindauer (Minuten)</label>
-              <input id="ssw-duration" type="number" min={10} max={120} value={form.slot_duration_minutes} onChange={e => setForm({ ...form, slot_duration_minutes: parseInt(e.target.value) || 30 })} />
-            </div>
-            <div className="form-group">
-              <label className="cb-form__urgent">
-                <input
-                  type="checkbox"
-                  checked={form.requires_confirmation}
-                  onChange={e => setForm({ ...form, requires_confirmation: e.target.checked })}
-                />
-                Manuelle Bestätigung erforderlich
-              </label>
-              <span className="cb-form__hint">Wenn deaktiviert, werden Buchungen direkt bestätigt.</span>
-            </div>
-            {!editingId && (
-              <>
-                <div className="form-group">
-                  <label htmlFor="ssw-username">Benutzername <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
-                  <input id="ssw-username" type="text" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="z.B. m.mueller" autoComplete="off" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="ssw-password">Passwort <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
-                  <input id="ssw-password" type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
-                </div>
-              </>
-            )}
-            <div className="form-actions">
-              <button className="btn-primary" type="submit">{editingId ? 'Speichern' : 'Erstellen'}</button>
-              <button className="btn-secondary" type="button" onClick={() => { setShowForm(false); setEditingId(null); setSchedule(defaultSchedule()); }}>Abbrechen</button>
-            </div>
-          </form>
+              <div className="form-actions">
+                <button className="btn-primary" type="submit">{editingId ? 'Speichern' : 'Erstellen'}</button>
+                <button className="btn-secondary" type="button" onClick={() => { setShowForm(false); setEditingId(null); setSchedule(defaultSchedule()); }}>Abbrechen</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      <div className="admin-resp-table-container">
-        <table className="admin-resp-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>E-Mail</th>
-              <th>Raum</th>
-              <th>Zeiten</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {counselors.length === 0 ? (
-              <tr><td colSpan={5}>Keine Berater/innen vorhanden.</td></tr>
-            ) : counselors.map(c => (
-              <tr key={c.id}>
-                <td data-label="Name">{c.salutation ? `${c.salutation} ` : ''}{c.name}</td>
-                <td data-label="E-Mail">{c.email || '–'}</td>
-                <td data-label="Raum">{c.room || '–'}</td>
-                <td data-label="Zeiten">
-                  {(() => {
-                    const sch = (schedulesMap[c.id] || []).filter(s => s.active);
-                    if (sch.length === 0) return `${c.available_from?.toString().slice(0, 5) || '–'} – ${c.available_until?.toString().slice(0, 5) || '–'}`;
-                    return sch.map(s => `${WEEKDAY_LABELS_FULL[s.weekday]?.slice(0, 2)} ${s.start_time?.toString().slice(0, 5)}–${s.end_time?.toString().slice(0, 5)}`).join(', ');
-                  })()}
-                </td>
-                <td data-label="Aktionen">
-                  <div className="action-btns">
-                    <button className="btn-secondary" onClick={() => handleEdit(c)}>Bearbeiten</button>
-                    <button className="btn-secondary btn--danger" onClick={() => handleDelete(c.id)}>Löschen</button>
+      {/* List */}
+      {counselors.length === 0 ? (
+        <div className="um-empty">Keine Berater/innen vorhanden.</div>
+      ) : (
+        groups.map((group) => (
+          <div key={group.letter}>
+            <div className="um-alpha-divider">
+              <span className="um-alpha-divider__letter">{group.letter}</span>
+              <span className="um-alpha-divider__line" />
+            </div>
+            <div className="um-list">
+              {group.items.map((c) => {
+                const isOpen = openId === c.id;
+                const scheduleEntries = (schedulesMap[c.id] || []).filter(s => s.active);
+                return (
+                  <div key={c.id} className="um-row-wrapper">
+                    <div className="um-row" onClick={() => setOpenId(isOpen ? null : c.id)}>
+                      <div className="ssw-avatar">{getInitials(c)}</div>
+                      <div className="um-info">
+                        <span className="um-name">
+                          {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                        </span>
+                        <span className="um-email">{c.email || '--'}</span>
+                      </div>
+                      {c.room && <span className="ssw-room-badge">Raum {c.room}</span>}
+                      <ChevronDown
+                        size={16}
+                        className={`tb-chevron${isOpen ? ' tb-chevron--open' : ''}`}
+                      />
+                      <div className="um-menu-anchor">
+                        <button
+                          className="um-menu-trigger"
+                          onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === c.id ? null : c.id); }}
+                          aria-label="Aktionen"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        {menuOpenId === c.id && (
+                          <ContextMenu
+                            onEdit={() => handleEdit(c)}
+                            onDelete={() => { handleDelete(c.id); setMenuOpenId(null); }}
+                            onClose={() => setMenuOpenId(null)}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={`um-detail-panel${isOpen ? ' um-detail-panel--open' : ''}`}>
+                      <div className="um-detail-panel__inner">
+                        <div className="um-detail-grid">
+                          <div className="um-detail-item">
+                            <span className="um-detail-label">E-Mail</span>
+                            <span className="um-detail-value">
+                              {c.email ? <a href={`mailto:${c.email}`}>{c.email}</a> : '--'}
+                            </span>
+                          </div>
+                          <div className="um-detail-item">
+                            <span className="um-detail-label">Raum</span>
+                            <span className="um-detail-value">{c.room || '--'}</span>
+                          </div>
+                          {c.phone && (
+                            <div className="um-detail-item">
+                              <span className="um-detail-label">Telefon</span>
+                              <span className="um-detail-value">{c.phone}</span>
+                            </div>
+                          )}
+                          {c.specializations && (
+                            <div className="um-detail-item">
+                              <span className="um-detail-label">Schwerpunkte</span>
+                              <span className="um-detail-value">{c.specializations}</span>
+                            </div>
+                          )}
+                          <div className="um-detail-item" style={{ gridColumn: '1 / -1' }}>
+                            <span className="um-detail-label">Sprechzeiten</span>
+                            <span className="um-detail-value">
+                              {scheduleEntries.length === 0 ? (
+                                `${c.available_from?.toString().slice(0, 5) || '--'} – ${c.available_until?.toString().slice(0, 5) || '--'}`
+                              ) : (
+                                <div className="ssw-schedule-list">
+                                  {scheduleEntries.map((s) => (
+                                    <div key={s.weekday} className="ssw-schedule-item">
+                                      <span className="ssw-schedule-item__day">{WEEKDAY_LABELS_FULL[s.weekday]?.slice(0, 2)}</span>
+                                      <span className="ssw-schedule-item__time">
+                                        {s.start_time?.toString().slice(0, 5)} – {s.end_time?.toString().slice(0, 5)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </span>
+                          </div>
+                          <div className="um-detail-item">
+                            <span className="um-detail-label">Termindauer</span>
+                            <span className="um-detail-value">{c.slot_duration_minutes || 30} Min.</span>
+                          </div>
+                          <div className="um-detail-item">
+                            <span className="um-detail-label">Bestätigung</span>
+                            <span className="um-detail-value">{c.requires_confirmation !== false ? 'Manuell' : 'Automatisch'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
     </>
   );
 }

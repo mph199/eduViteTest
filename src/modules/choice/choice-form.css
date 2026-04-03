@@ -1,0 +1,170 @@
+/* ── Choice Form (Public / Schüler-Ansicht) ──────────────────────── */
+
+.cf-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.cf-title {
+  margin-bottom: 0.5rem;
+}
+
+.cf-description {
+  color: var(--color-gray-600);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.cf-hint {
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--color-gray-500);
+}
+
+.cf-submitted-notice {
+  padding: 0.75rem 1rem;
+  background: var(--color-gray-50);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.cf-flash {
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: var(--color-gray-100);
+}
+
+.cf-flash--error {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+/* ── Options List ────────────────────────────────────────────────── */
+
+.cf-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.cf-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--color-white);
+  transition: border-color 0.15s;
+}
+
+.cf-option--selected {
+  border-color: var(--module-accent-choice);
+  background: rgba(var(--module-accent-choice-rgb, 196, 162, 101), 0.05);
+}
+
+.cf-option__checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-gray-300);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.cf-option--selected .cf-option__checkbox {
+  border-color: var(--module-accent-choice);
+  background: var(--module-accent-choice);
+}
+
+.cf-option__icon {
+  flex-shrink: 0;
+  color: var(--module-accent-choice);
+  opacity: 0.7;
+}
+
+.cf-option--selected .cf-option__icon {
+  opacity: 1;
+}
+
+.cf-option__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-option__title {
+  font-weight: 500;
+}
+
+.cf-option__desc {
+  font-size: 0.85rem;
+  color: var(--color-gray-500);
+  margin-top: 0.25rem;
+}
+
+.cf-option__rank-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cf-option__rank-btn {
+  background: none;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 3px;
+  padding: 0 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.cf-option__rank-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────── */
+
+.cf-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cf-btn-draft {
+  padding: 0.6rem 1.25rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 4px;
+  background: var(--color-white);
+  cursor: pointer;
+}
+
+.cf-btn-draft:disabled {
+  cursor: wait;
+}
+
+.cf-btn-submit {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--module-accent-choice);
+  color: var(--color-white);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cf-btn-submit:disabled {
+  background: var(--color-gray-300);
+  cursor: not-allowed;
+}

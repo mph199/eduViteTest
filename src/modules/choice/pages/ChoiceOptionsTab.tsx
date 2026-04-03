@@ -111,10 +111,8 @@ export function ChoiceOptionsTab({ groupId, options, showFlash, loadOptions }: P
               <div className="choice-card__accent" />
               <div className="choice-card__body">
                 <div className="choice-card__header">
-                  <h3 className="choice-card__title">
-                    {o.icon && <DynamicIcon name={o.icon} size={16} className="choice-card__icon" />}
-                    {o.title}
-                  </h3>
+                  {o.icon && <DynamicIcon name={o.icon} size={24} className="choice-card__icon choice-card__icon--option" />}
+                  <h3 className="choice-card__title">{o.title}</h3>
                   <span className={`choice-status choice-status--${o.is_active ? 'active' : 'inactive'}`}>
                     {o.is_active ? 'Aktiv' : 'Deaktiviert'}
                   </span>

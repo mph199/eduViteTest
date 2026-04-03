@@ -41,10 +41,6 @@ export function BLAdmin() {
 
   return (
     <AdminPageWrapper style={adminBgStyle}>
-      <div className="admin-section-header">
-        <h2>Beratungslehrkräfte</h2>
-      </div>
-
       {error && <div className="admin-error">{error}</div>}
 
       <BLCounselorsTab counselors={counselors} schedulesMap={adminSchedulesMap} />
