@@ -9,13 +9,6 @@ const STATUS_LABELS: Record<ChoiceGroupStatus, string> = {
   archived: 'Archiviert',
 };
 
-const STATUS_COLORS: Record<ChoiceGroupStatus, string> = {
-  draft: 'var(--color-gray-500)',
-  open: 'var(--brand-primary)',
-  closed: 'var(--color-gray-600)',
-  archived: 'var(--color-gray-400)',
-};
-
 const emptyForm = {
   title: '',
   description: '',
@@ -102,33 +95,38 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onSelectGroup }
     }
   };
 
+  const formatDate = (iso: string | null | undefined) => {
+    if (!iso) return null;
+    return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div>
-      <div className="action-btns" style={{ marginBottom: '1rem' }}>
-        <button className="btn-secondary" onClick={handleNew}>Neues Wahldach</button>
+      <div className="choice-toolbar">
+        <button className="btn-primary" onClick={handleNew}>Neues Wahldach</button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSave} className="teacher-form-container" style={{ marginBottom: '1.5rem' }}>
-          <div className="teacher-form">
+        <form onSubmit={handleSave} className="choice-form-panel">
+          <div className="form-group">
+            <label>Titel *</label>
+            <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label>Beschreibung</label>
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+          </div>
+          <div className="choice-form-row">
             <div className="form-group">
-              <label>Titel *</label>
-              <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+              <label>Min. Wahlen</label>
+              <input type="number" min={1} max={20} value={form.min_choices} onChange={(e) => setForm({ ...form, min_choices: Number(e.target.value) })} />
             </div>
             <div className="form-group">
-              <label>Beschreibung</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+              <label>Max. Wahlen</label>
+              <input type="number" min={1} max={20} value={form.max_choices} onChange={(e) => setForm({ ...form, max_choices: Number(e.target.value) })} />
             </div>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Min. Wahlen</label>
-                <input type="number" min={1} max={20} value={form.min_choices} onChange={(e) => setForm({ ...form, min_choices: Number(e.target.value) })} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Max. Wahlen</label>
-                <input type="number" min={1} max={20} value={form.max_choices} onChange={(e) => setForm({ ...form, max_choices: Number(e.target.value) })} />
-              </div>
-            </div>
+          </div>
+          <div className="choice-form-row">
             <div className="form-group">
               <label>Ranking</label>
               <select value={form.ranking_mode} onChange={(e) => setForm({ ...form, ranking_mode: e.target.value as 'none' | 'required' })}>
@@ -137,85 +135,90 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onSelectGroup }
               </select>
             </div>
             <div className="form-group">
-              <label>
+              <label>&nbsp;</label>
+              <label className="choice-checkbox-label">
                 <input type="checkbox" checked={form.allow_edit_after_submit} onChange={(e) => setForm({ ...form, allow_edit_after_submit: e.target.checked })} />
-                {' '}Bearbeitung nach Abgabe erlauben
+                Bearbeitung nach Abgabe
               </label>
             </div>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Öffnet am</label>
-                <input type="datetime-local" value={form.opens_at} onChange={(e) => setForm({ ...form, opens_at: e.target.value })} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Schliesst am</label>
-                <input type="datetime-local" value={form.closes_at} onChange={(e) => setForm({ ...form, closes_at: e.target.value })} />
-              </div>
+          </div>
+          <div className="choice-form-row">
+            <div className="form-group">
+              <label>Öffnet am</label>
+              <input type="datetime-local" value={form.opens_at} onChange={(e) => setForm({ ...form, opens_at: e.target.value })} />
             </div>
-            <div className="action-btns">
-              <button type="submit" className="btn-secondary">{editingId ? 'Speichern' : 'Erstellen'}</button>
-              <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
+            <div className="form-group">
+              <label>Schliesst am</label>
+              <input type="datetime-local" value={form.closes_at} onChange={(e) => setForm({ ...form, closes_at: e.target.value })} />
             </div>
+          </div>
+          <div className="choice-card__actions">
+            <button type="submit" className="btn-primary">{editingId ? 'Speichern' : 'Erstellen'}</button>
+            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
           </div>
         </form>
       )}
 
-      <div className="admin-resp-table-container">
-        <table className="admin-resp-table">
-          <thead>
-            <tr>
-              <th>Titel</th>
-              <th>Status</th>
-              <th>Wahlen</th>
-              <th>Ranking</th>
-              <th>Erstellt</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>Keine Wahldächer vorhanden</td></tr>
-            )}
-            {groups.map((g) => (
-              <tr key={g.id}>
-                <td>
-                  <button
-                    style={{ background: 'none', border: 'none', color: 'var(--brand-primary)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontWeight: 500 }}
-                    onClick={() => onSelectGroup(g.id)}
-                  >
+      {groups.length === 0 ? (
+        <div className="choice-empty">Keine Wahldächer vorhanden</div>
+      ) : (
+        <div className="choice-cards">
+          {groups.map((g) => (
+            <div key={g.id} className="choice-card">
+              <div className="choice-card__accent" />
+              <div className="choice-card__body">
+                <div className="choice-card__header">
+                  <h3 className="choice-card__title" onClick={() => onSelectGroup(g.id)}>
                     {g.title}
-                  </button>
-                </td>
-                <td>
-                  <span style={{ color: STATUS_COLORS[g.status], fontWeight: 500 }}>
+                  </h3>
+                  <span className={`choice-status choice-status--${g.status}`}>
                     {STATUS_LABELS[g.status]}
                   </span>
-                </td>
-                <td>{g.min_choices}–{g.max_choices}</td>
-                <td>{g.ranking_mode === 'required' ? 'Ja' : 'Nein'}</td>
-                <td>{new Date(g.created_at).toLocaleDateString('de-DE')}</td>
-                <td>
-                  <div className="action-btns">
-                    <button className="btn-secondary" onClick={() => handleEdit(g)}>Bearbeiten</button>
-                    {g.status === 'draft' && (
-                      <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'open')}>Öffnen</button>
-                    )}
-                    {g.status === 'open' && (
-                      <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'closed')}>Schliessen</button>
-                    )}
-                    {g.status === 'closed' && (
-                      <>
-                        <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'open')}>Wieder öffnen</button>
-                        <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'archived')}>Archivieren</button>
-                      </>
-                    )}
+                </div>
+
+                <div className="choice-card__meta">
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Wahlen</span>
+                    <span className="choice-card__meta-value">{g.min_choices}–{g.max_choices}</span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Ranking</span>
+                    <span className="choice-card__meta-value">{g.ranking_mode === 'required' ? 'Ja' : 'Nein'}</span>
+                  </div>
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Erstellt</span>
+                    <span className="choice-card__meta-value">{new Date(g.created_at).toLocaleDateString('de-DE')}</span>
+                  </div>
+                </div>
+
+                {(g.opens_at || g.closes_at) && (
+                  <div className="choice-card__time">
+                    {g.opens_at && <span>{formatDate(g.opens_at)}</span>}
+                    {g.opens_at && g.closes_at && <span>–</span>}
+                    {g.closes_at && <span>{formatDate(g.closes_at)}</span>}
+                  </div>
+                )}
+
+                <div className="choice-card__actions">
+                  <button className="btn-secondary" onClick={() => handleEdit(g)}>Bearbeiten</button>
+                  {g.status === 'draft' && (
+                    <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'open')}>Öffnen</button>
+                  )}
+                  {g.status === 'open' && (
+                    <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'closed')}>Schliessen</button>
+                  )}
+                  {g.status === 'closed' && (
+                    <>
+                      <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'open')}>Wieder öffnen</button>
+                      <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'archived')}>Archivieren</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

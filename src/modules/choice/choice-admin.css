@@ -1,0 +1,353 @@
+/* ── Choice Admin – Module-specific styles ────────────────────────── */
+
+/* ── Tab Navigation ───────────────────────────────────────────────── */
+
+.choice-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-gray-200);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.choice-tab-btn {
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-gray-500);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.choice-tab-btn:hover:not(:disabled) {
+  color: var(--color-gray-700);
+}
+
+.choice-tab-btn--active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.choice-tab-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Group Context Bar ────────────────────────────────────────────── */
+
+.choice-context-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1.25rem;
+  background: rgba(var(--brand-primary-rgb), 0.04);
+  border: 1px solid rgba(var(--brand-primary-rgb), 0.12);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--color-gray-600);
+}
+
+.choice-context-bar strong {
+  color: var(--color-gray-900);
+}
+
+/* ── Group Cards Grid ─────────────────────────────────────────────── */
+
+.choice-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Group Card ───────────────────────────────────────────────────── */
+
+.choice-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.choice-card:hover {
+  box-shadow: 0 2px 12px rgba(var(--color-black-rgb), 0.06);
+}
+
+.choice-card__accent {
+  height: 3px;
+  background: var(--module-accent-choice);
+}
+
+.choice-card__body {
+  padding: 1rem 1.25rem;
+}
+
+.choice-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.choice-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.choice-card__title:hover {
+  color: var(--brand-primary);
+}
+
+/* ── Status Badge ─────────────────────────────────────────────────── */
+
+.choice-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.choice-status--draft {
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+}
+
+.choice-status--open {
+  background: rgba(var(--brand-primary-rgb), 0.1);
+  color: var(--brand-primary);
+}
+
+.choice-status--closed {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.choice-status--archived {
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
+}
+
+.choice-status--submitted {
+  background: rgba(var(--brand-primary-rgb), 0.1);
+  color: var(--brand-primary);
+}
+
+/* ── Card Meta Grid ───────────────────────────────────────────────── */
+
+.choice-card__meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.choice-card__meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.choice-card__meta-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-gray-400);
+  margin-bottom: 0.15rem;
+}
+
+.choice-card__meta-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+/* ── Card Time Window ─────────────────────────────────────────────── */
+
+.choice-card__time {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--color-gray-400);
+  margin-bottom: 0.75rem;
+}
+
+/* ── Card Actions ─────────────────────────────────────────────────── */
+
+.choice-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.choice-card__actions .btn-secondary {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────── */
+
+.choice-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.choice-toolbar__info {
+  font-size: 0.85rem;
+  color: var(--color-gray-500);
+  margin-left: auto;
+}
+
+/* ── Form Panel ───────────────────────────────────────────────────── */
+
+.choice-form-panel {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.choice-form-panel .form-group {
+  margin-bottom: 0.9rem;
+}
+
+.choice-form-panel .form-group label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-gray-700);
+}
+
+.choice-form-panel input[type="text"],
+.choice-form-panel input[type="email"],
+.choice-form-panel input[type="number"],
+.choice-form-panel input[type="datetime-local"],
+.choice-form-panel textarea,
+.choice-form-panel select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  transition: border-color 0.15s;
+}
+
+.choice-form-panel input:focus,
+.choice-form-panel textarea:focus,
+.choice-form-panel select:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+  border-color: var(--brand-primary);
+}
+
+.choice-form-panel input:focus:not(:focus-visible),
+.choice-form-panel textarea:focus:not(:focus-visible),
+.choice-form-panel select:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.choice-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.choice-form-panel .choice-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+/* ── Inactive Row ────────────────────────────────────────────────── */
+
+.choice-row--inactive {
+  opacity: 0.5;
+}
+
+/* ── Priority Hint ───────────────────────────────────────────────── */
+
+.choice-priority-hint {
+  color: var(--color-gray-400);
+}
+
+/* ── Empty State ──────────────────────────────────────────────────── */
+
+.choice-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-gray-400);
+  font-size: 0.95rem;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .choice-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .choice-card__meta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .choice-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .choice-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .choice-toolbar__info {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .choice-tabs {
+    gap: 0;
+  }
+
+  .choice-tab-btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .choice-card__actions {
+    flex-direction: column;
+  }
+
+  .choice-card__actions .btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -10,6 +10,7 @@ import { ChoiceOptionsTab } from './ChoiceOptionsTab';
 import { ChoiceParticipantsTab } from './ChoiceParticipantsTab';
 import { ChoiceSubmissionsTab } from './ChoiceSubmissionsTab';
 import '../../../pages/AdminDashboard.css';
+import '../choice-admin.css';
 
 type ChoiceTabId = 'groups' | 'options' | 'participants' | 'submissions';
 
@@ -96,26 +97,14 @@ export function ChoiceAdmin() {
       {flash && <div className="admin-success">{flash}</div>}
       {error && <div className="admin-error">{error}</div>}
 
-      {/* Tab-Navigation */}
-      <div className="admin-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--color-gray-200)' }}>
+      <div className="choice-tabs">
         {(Object.entries(TAB_LABELS) as [ChoiceTabId, string][]).map(([id, label]) => {
           const needsGroup = id !== 'groups';
           const disabled = needsGroup && !selectedGroupId;
           return (
             <button
               key={id}
-              className={`btn-secondary${activeTab === id ? ' active' : ''}`}
-              style={{
-                padding: '0.5rem 1rem',
-                borderBottom: activeTab === id ? '2px solid var(--brand-primary)' : '2px solid transparent',
-                opacity: disabled ? 0.5 : 1,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                background: 'none',
-                border: 'none',
-                borderRadius: 0,
-                fontWeight: activeTab === id ? 600 : 400,
-                color: activeTab === id ? 'var(--brand-primary)' : 'var(--color-gray-600)',
-              }}
+              className={`choice-tab-btn${activeTab === id ? ' choice-tab-btn--active' : ''}`}
               onClick={() => !disabled && setActiveTab(id)}
               disabled={disabled}
             >
@@ -126,11 +115,10 @@ export function ChoiceAdmin() {
       </div>
 
       {selectedGroup && activeTab !== 'groups' && (
-        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--color-gray-600)' }}>
-          Wahldach: <strong>{selectedGroup.title}</strong>
+        <div className="choice-context-bar">
+          <span>Wahldach: <strong>{selectedGroup.title}</strong></span>
           <button
-            className="btn-secondary"
-            style={{ marginLeft: '0.75rem', fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}
+            className="btn-secondary btn--sm"
             onClick={() => { setSelectedGroupId(null); setActiveTab('groups'); }}
           >
             Wechseln
