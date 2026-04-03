@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { ChoiceOption } from '../../../types';
 import api from '../../../services/api';
+import { IconPicker, DynamicIcon } from '../../../shared/components/IconPicker';
 
 const emptyForm = {
   title: '',
   description: '',
+  icon: null as string | null,
   sort_order: 0,
 };
 
@@ -31,6 +33,7 @@ export function ChoiceOptionsTab({ groupId, options, showFlash, loadOptions }: P
     setForm({
       title: o.title,
       description: o.description || '',
+      icon: o.icon || null,
       sort_order: o.sort_order,
     });
     setShowForm(true);
@@ -85,6 +88,10 @@ export function ChoiceOptionsTab({ groupId, options, showFlash, loadOptions }: P
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
           </div>
           <div className="form-group">
+            <label>Icon</label>
+            <IconPicker value={form.icon} onChange={(icon) => setForm({ ...form, icon })} />
+          </div>
+          <div className="form-group">
             <label>Sortierung</label>
             <input type="number" min={0} value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
           </div>
@@ -104,7 +111,10 @@ export function ChoiceOptionsTab({ groupId, options, showFlash, loadOptions }: P
               <div className="choice-card__accent" />
               <div className="choice-card__body">
                 <div className="choice-card__header">
-                  <h3 className="choice-card__title">{o.title}</h3>
+                  <h3 className="choice-card__title">
+                    {o.icon && <DynamicIcon name={o.icon} size={16} className="choice-card__icon" />}
+                    {o.title}
+                  </h3>
                   <span className={`choice-status choice-status--${o.is_active ? 'active' : 'inactive'}`}>
                     {o.is_active ? 'Aktiv' : 'Deaktiviert'}
                   </span>

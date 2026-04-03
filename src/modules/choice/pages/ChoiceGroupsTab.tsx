@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ChoiceGroup, ChoiceGroupStatus } from '../../../types';
 import api from '../../../services/api';
+import { IconPicker, DynamicIcon } from '../../../shared/components/IconPicker';
 
 const STATUS_LABELS: Record<ChoiceGroupStatus, string> = {
   draft: 'Entwurf',
@@ -12,6 +13,7 @@ const STATUS_LABELS: Record<ChoiceGroupStatus, string> = {
 const emptyForm = {
   title: '',
   description: '',
+  icon: null as string | null,
   min_choices: 1,
   max_choices: 1,
   ranking_mode: 'none' as 'none' | 'required',
@@ -44,6 +46,7 @@ export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGrou
     setForm({
       title: g.title,
       description: g.description || '',
+      icon: g.icon || null,
       min_choices: g.min_choices,
       max_choices: g.max_choices,
       ranking_mode: g.ranking_mode,
@@ -64,6 +67,7 @@ export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGrou
       const payload = {
         title: form.title,
         description: form.description || undefined,
+        icon: form.icon || null,
         min_choices: form.min_choices,
         max_choices: form.max_choices,
         ranking_mode: form.ranking_mode,
@@ -118,6 +122,10 @@ export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGrou
             <label>Beschreibung</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
           </div>
+          <div className="form-group">
+            <label>Icon</label>
+            <IconPicker value={form.icon} onChange={(icon) => setForm({ ...form, icon })} />
+          </div>
           <div className="choice-form-row">
             <div className="form-group">
               <label>Min. Wahlen</label>
@@ -170,7 +178,10 @@ export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGrou
               <div className="choice-card__accent" />
               <div className="choice-card__body">
                 <div className="choice-card__header">
-                  <h3 className="choice-card__title">{g.title}</h3>
+                  <h3 className="choice-card__title">
+                    {g.icon && <DynamicIcon name={g.icon} size={18} className="choice-card__icon" />}
+                    {g.title}
+                  </h3>
                   <span className={`choice-status choice-status--${g.status}`}>
                     {STATUS_LABELS[g.status]}
                   </span>

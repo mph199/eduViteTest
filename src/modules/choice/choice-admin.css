@@ -131,6 +131,14 @@
   color: var(--brand-primary);
 }
 
+.choice-card__icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  margin-right: 0.35rem;
+  flex-shrink: 0;
+  color: var(--module-accent-choice);
+}
+
 /* ── Status Badge ─────────────────────────────────────────────────── */
 
 .choice-status {

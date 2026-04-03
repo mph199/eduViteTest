@@ -535,6 +535,7 @@ export interface ChoiceGroupsTable {
   id: Generated<string>;
   title: string;
   description: string | null;
+  icon: string | null;
   status: string;
   min_choices: number;
   max_choices: number;
@@ -552,6 +553,7 @@ export interface ChoiceOptionsTable {
   group_id: string;
   title: string;
   description: string | null;
+  icon: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: Timestamp;

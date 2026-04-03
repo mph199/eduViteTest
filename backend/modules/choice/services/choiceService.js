@@ -18,7 +18,7 @@ const STATUS_TRANSITIONS = {
 export async function listGroups() {
   const rows = await db.selectFrom('choice_groups')
     .select([
-      'id', 'title', 'status', 'min_choices', 'max_choices',
+      'id', 'title', 'icon', 'status', 'min_choices', 'max_choices',
       'ranking_mode', 'opens_at', 'closes_at', 'created_at', 'updated_at',
     ])
     .orderBy('created_at', 'desc')
@@ -29,7 +29,7 @@ export async function listGroups() {
 export async function getGroupById(id) {
   const row = await db.selectFrom('choice_groups')
     .select([
-      'id', 'title', 'description', 'status', 'min_choices', 'max_choices',
+      'id', 'title', 'description', 'icon', 'status', 'min_choices', 'max_choices',
       'ranking_mode', 'allow_edit_after_submit', 'opens_at', 'closes_at',
       'created_by', 'created_at', 'updated_at',
     ])
@@ -100,7 +100,7 @@ export async function changeGroupStatus(id, newStatus) {
 
 export async function listOptions(groupId) {
   const rows = await db.selectFrom('choice_options')
-    .select(['id', 'group_id', 'title', 'description', 'sort_order', 'is_active', 'created_at'])
+    .select(['id', 'group_id', 'title', 'description', 'icon', 'sort_order', 'is_active', 'created_at'])
     .where('group_id', '=', groupId)
     .orderBy('sort_order', 'asc')
     .orderBy('title', 'asc')

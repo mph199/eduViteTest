@@ -1,0 +1,204 @@
+/* ── Icon Picker ─────────────────────────────────────────────────── */
+
+.icon-picker {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+/* ── Trigger Button ──────────────────────────────────────────────── */
+
+.icon-picker__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 6px;
+  background: var(--color-white);
+  font-size: 0.88rem;
+  color: var(--color-gray-700);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  text-align: left;
+}
+
+.icon-picker__trigger:hover:not(:disabled) {
+  border-color: var(--color-gray-300);
+}
+
+.icon-picker__trigger:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+  border-color: var(--brand-primary);
+}
+
+.icon-picker__trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-picker__trigger--has-value {
+  font-weight: 500;
+}
+
+.icon-picker__trigger-placeholder {
+  color: var(--color-gray-400);
+}
+
+.icon-picker__trigger-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-picker__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.icon-picker__clear:hover {
+  background: var(--color-gray-200);
+  color: var(--color-gray-700);
+}
+
+/* ── Dropdown Panel ──────────────────────────────────────────────── */
+
+.icon-picker__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 300px;
+  max-height: 360px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(var(--color-black-rgb), 0.1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* ── Search ──────────────────────────────────────────────────────── */
+
+.icon-picker__search-wrap {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.icon-picker__search {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid var(--color-gray-200);
+  border-radius: 5px;
+  font-size: 0.85rem;
+  transition: border-color 0.15s;
+}
+
+.icon-picker__search:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+/* ── Category Filter ─────────────────────────────────────────────── */
+
+.icon-picker__categories {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-gray-100);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.icon-picker__cat-btn {
+  border: none;
+  background: none;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.icon-picker__cat-btn:hover {
+  background: var(--color-gray-50);
+  color: var(--color-gray-700);
+}
+
+.icon-picker__cat-btn--active {
+  background: rgba(var(--brand-primary-rgb), 0.1);
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+/* ── Icon Grid ───────────────────────────────────────────────────── */
+
+.icon-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 2px;
+  padding: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.icon-picker__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.icon-picker__icon-btn:hover {
+  background: var(--color-gray-50);
+  color: var(--color-gray-900);
+}
+
+.icon-picker__icon-btn:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
+.icon-picker__icon-btn--selected {
+  background: rgba(var(--brand-primary-rgb), 0.1);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+/* ── Empty State ─────────────────────────────────────────────────── */
+
+.icon-picker__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--color-gray-400);
+  font-size: 0.85rem;
+}

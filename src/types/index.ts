@@ -688,6 +688,7 @@ export interface ChoiceGroup {
   id: string;
   title: string;
   description?: string | null;
+  icon?: string | null;
   status: ChoiceGroupStatus;
   min_choices: number;
   max_choices: number;
@@ -705,6 +706,7 @@ export interface ChoiceOption {
   group_id: string;
   title: string;
   description?: string | null;
+  icon?: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
