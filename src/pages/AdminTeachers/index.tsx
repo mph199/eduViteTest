@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { UserPlus, Search } from 'lucide-react';
+import { UserPlus, Search, Upload } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
 import { useBgStyle } from '../../hooks/useBgStyle';
@@ -181,8 +181,11 @@ export function AdminTeachers() {
                   <h2 className="um-header__title">Benutzer</h2>
                   <span className="um-header__count">{teachers.length}</span>
                 </div>
-                <div className="admin-actions-row">
-                  <button onClick={() => csvFileRef.current?.click()} className="btn-secondary btn--sm">CSV Import</button>
+                <div className="um-header__actions">
+                  <button onClick={() => csvFileRef.current?.click()} className="um-header__csv-btn">
+                    <Upload size={15} />
+                    <span className="um-header__btn-label">CSV</span>
+                  </button>
                   <input
                     ref={csvFileRef}
                     type="file"
@@ -191,8 +194,8 @@ export function AdminTeachers() {
                     onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCsvImport(file); e.target.value = ''; }}
                   />
                   <button onClick={form.handleNewUser} className="um-header__add-btn">
-                    <UserPlus size={16} />
-                    Hinzufügen
+                    <UserPlus size={15} />
+                    <span className="um-header__btn-label">Hinzufügen</span>
                   </button>
                 </div>
               </div>

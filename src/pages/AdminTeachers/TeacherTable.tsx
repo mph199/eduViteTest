@@ -179,26 +179,26 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                   )}
 
                   {/* Three-dot menu */}
-                  <button
-                    className="um-menu-trigger"
-                    onClick={() => setMenuOpenId(menuOpenId === teacher.id ? null : teacher.id)}
-                    aria-label="Aktionen"
-                  >
-                    <MoreVertical size={18} />
-                  </button>
+                  <div className="um-menu-anchor">
+                    <button
+                      className="um-menu-trigger"
+                      onClick={() => setMenuOpenId(menuOpenId === teacher.id ? null : teacher.id)}
+                      aria-label="Aktionen"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {menuOpenId === teacher.id && (
+                      <ContextMenu
+                        teacher={teacher}
+                        onEdit={() => onEdit(teacher)}
+                        onDelete={() => onDelete(teacher.id, teacher.name)}
+                        onToggleDetail={() => toggleDetail(teacher.id)}
+                        detailOpen={isDetailOpen}
+                        onClose={() => setMenuOpenId(null)}
+                      />
+                    )}
+                  </div>
                 </div>
-
-                {/* Context Menu */}
-                {menuOpenId === teacher.id && (
-                  <ContextMenu
-                    teacher={teacher}
-                    onEdit={() => onEdit(teacher)}
-                    onDelete={() => onDelete(teacher.id, teacher.name)}
-                    onToggleDetail={() => toggleDetail(teacher.id)}
-                    detailOpen={isDetailOpen}
-                    onClose={() => setMenuOpenId(null)}
-                  />
-                )}
 
                 {/* Expandable Detail Panel */}
                 <div className={`um-detail-panel${isDetailOpen ? ' um-detail-panel--open' : ''}`}>

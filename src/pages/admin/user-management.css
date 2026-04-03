@@ -28,6 +28,12 @@
   color: var(--color-gray-400);
 }
 
+.um-header__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .um-header__add-btn {
   display: inline-flex;
   align-items: center;
@@ -45,6 +51,26 @@
 
 .um-header__add-btn:hover {
   opacity: 0.9;
+}
+
+.um-header__csv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+  background: var(--color-white);
+  color: var(--color-gray-600);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.um-header__csv-btn:hover {
+  border-color: var(--color-gray-300);
+  color: var(--color-gray-800);
 }
 
 /* ── Search Bar ──────────────────────────────────────────────────── */
@@ -254,6 +280,11 @@
 
 /* ── Three-Dot Menu Trigger ──────────────────────────────────────── */
 
+.um-menu-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .um-menu-trigger {
   width: 32px;
   height: 32px;
@@ -265,7 +296,6 @@
   border-radius: 6px;
   color: var(--color-gray-400);
   cursor: pointer;
-  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -280,7 +310,7 @@
   position: absolute;
   right: 0;
   top: 100%;
-  z-index: 50;
+  z-index: 200;
   min-width: 180px;
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
@@ -376,6 +406,84 @@
   color: var(--color-gray-400);
 }
 
+/* ── Slots Panel (AdminSlots) ────────────────────────────────────── */
+
+.slots-panel {
+  padding: 0.5rem 0 0.75rem;
+  margin-left: 48px;
+}
+
+.slots-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.slots-count {
+  font-size: 0.78rem;
+  color: var(--color-gray-400);
+  margin-left: auto;
+}
+
+.slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 5px;
+  transition: background 0.1s;
+}
+
+.slot-row:hover {
+  background: var(--color-gray-50);
+}
+
+.slot-row--booked {
+  background: rgba(var(--brand-primary-rgb), 0.03);
+}
+
+.slot-row__time {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.slot-row__date {
+  font-size: 0.78rem;
+  color: var(--color-gray-500);
+}
+
+.slot-row__clock {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-gray-800);
+}
+
+.slot-row__visitor {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--color-gray-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-row__student {
+  color: var(--color-gray-400);
+  font-size: 0.78rem;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
@@ -386,12 +494,34 @@
 
   .um-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0.75rem;
   }
 
-  .um-header__add-btn {
-    width: 100%;
+  .um-header__actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .um-header__add-btn,
+  .um-header__csv-btn {
+    flex: 1;
     justify-content: center;
+  }
+
+  .um-header__btn-label {
+    display: none;
+  }
+
+  .slots-panel {
+    margin-left: 0;
+  }
+
+  .slot-row__time {
+    min-width: 110px;
+  }
+
+  .slot-row {
+    flex-wrap: wrap;
   }
 }
