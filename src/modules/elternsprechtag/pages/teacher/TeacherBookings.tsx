@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MessageSquare } from 'lucide-react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
 import { parseDateValue, parseStartMinutes, visitorLabel } from '../../../../utils/bookingSort';
@@ -10,6 +9,7 @@ import { BookingCard } from '../../../../shared/components/BookingCard';
 import { BookingTableRow } from '../../components/BookingTableRow';
 import '../../components/CalendarSubscription.css';
 import '../../../../shared/components/BookingCard.css';
+import '../../../../pages/admin/user-management.css';
 import './TeacherBookings.css';
 
 
@@ -269,37 +269,25 @@ export function TeacherBookings() {
           <div className="date-groups">
             {dateGroups.map((group) => (
               <div key={group.dateKey} className={`date-group${group.isPast ? ' date-group--past' : ''}`}>
-                <div className="date-group__header">
-                  <h4 className="date-group__label">
+                <div className="um-alpha-divider">
+                  <span className="um-alpha-divider__letter">
                     {group.label}
                     {group.isToday && <span className="date-group__badge date-group__badge--today">Heute</span>}
-                  </h4>
-                  <span className="date-group__count">
+                  </span>
+                  <span className="um-alpha-divider__line" />
+                  <span className="date-group__count" style={{ flexShrink: 0 }}>
                     {group.bookings.length} {group.bookings.length === 1 ? 'Termin' : 'Termine'}
                   </span>
                 </div>
-                <div className="bookings-table-container teacher-bookings-table-container">
-                  <table className="bookings-table teacher-bookings-table">
-                    <thead>
-                      <tr>
-                        <th>Uhrzeit</th>
-                        <th>Besuchende</th>
-                        <th>Schüler*in/Azubi</th>
-                        <th className="teacher-col-msg" title="Nachricht"><MessageSquare size={14} aria-label="Nachricht" /></th>
-                        <th className="teacher-col-actions"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.bookings.map((booking) => (
-                        <BookingTableRow
-                          key={booking.id}
-                          booking={booking}
-                          onConfirm={handleAcceptBooking}
-                          onCancel={handleCancelBooking}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="um-list">
+                  {group.bookings.map((booking) => (
+                    <BookingTableRow
+                      key={booking.id}
+                      booking={booking}
+                      onConfirm={handleAcceptBooking}
+                      onCancel={handleCancelBooking}
+                    />
+                  ))}
                 </div>
               </div>
             ))}
