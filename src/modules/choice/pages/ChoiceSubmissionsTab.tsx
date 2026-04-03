@@ -55,7 +55,7 @@ export function ChoiceSubmissionsTab({ groupId, submissions, showFlash }: Props)
               <tr><td colSpan={7} className="choice-empty">Keine Abgaben vorhanden</td></tr>
             )}
             {submissions.map((s) => (
-              <tr key={s.id}>
+              <tr key={s.id} className={s.status === 'draft' ? 'choice-row--inactive' : ''}>
                 <td className="cell-bold">{s.last_name || '–'}</td>
                 <td>{s.first_name || '–'}</td>
                 <td>{s.email || '–'}</td>
@@ -67,14 +67,14 @@ export function ChoiceSubmissionsTab({ groupId, submissions, showFlash }: Props)
                 </td>
                 <td>{s.submitted_at ? new Date(s.submitted_at).toLocaleString('de-DE') : '–'}</td>
                 <td>
-                  {(s.items || []).map((item, i) => (
-                    <span key={i}>
-                      {item.option_title || item.option_id}
-                      {' '}
-                      <small className="choice-priority-hint">(P{item.priority})</small>
-                      {i < s.items.length - 1 ? ', ' : ''}
-                    </span>
-                  ))}
+                  <div className="choice-submission-items">
+                    {(s.items || []).map((item, i) => (
+                      <span key={i} className="choice-submission-pill">
+                        {item.option_title || item.option_id}
+                        <small className="choice-priority-hint">P{item.priority}</small>
+                      </span>
+                    ))}
+                  </div>
                 </td>
               </tr>
             ))}

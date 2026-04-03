@@ -206,6 +206,93 @@
   font-size: 0.8rem;
 }
 
+/* ── Quick-Action Footer (Group Cards) ───────────────────────────── */
+
+.choice-card__quickactions {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--color-gray-50);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.choice-quickaction-btn {
+  border: none;
+  background: none;
+  color: var(--color-gray-500);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.choice-quickaction-btn:hover {
+  color: var(--brand-primary);
+  background: rgba(var(--brand-primary-rgb), 0.06);
+}
+
+/* ── Option/Participant Card Variants ────────────────────────────── */
+
+.choice-card--compact {
+  border-radius: 8px;
+}
+
+.choice-card--compact .choice-card__accent {
+  height: 2px;
+}
+
+.choice-card--compact .choice-card__body {
+  padding: 0.85rem 1rem;
+}
+
+.choice-card__desc {
+  font-size: 0.82rem;
+  color: var(--color-gray-500);
+  margin-bottom: 0.6rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.choice-card__email {
+  font-size: 0.8rem;
+  color: var(--color-gray-400);
+  margin-bottom: 0.5rem;
+}
+
+.choice-status--active {
+  background: rgba(var(--color-success-rgb, 34, 197, 94), 0.1);
+  color: var(--color-success);
+}
+
+.choice-status--inactive {
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
+}
+
+/* ── Submission Item Pills ───────────────────────────────────────── */
+
+.choice-submission-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.choice-submission-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 /* ── Toolbar ──────────────────────────────────────────────────────── */
 
 .choice-toolbar {
@@ -349,5 +436,9 @@
   .choice-card__actions .btn-secondary {
     width: 100%;
     text-align: center;
+  }
+
+  .choice-card__quickactions {
+    flex-wrap: wrap;
   }
 }
