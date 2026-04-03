@@ -24,10 +24,10 @@ interface Props {
   groups: ChoiceGroup[];
   showFlash: (msg: string) => void;
   loadGroups: () => Promise<void>;
-  onSelectGroup: (id: string) => void;
+  onNavigateTo: (id: string, tab: 'options' | 'participants' | 'submissions') => void;
 }
 
-export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onSelectGroup }: Props) {
+export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onNavigateTo }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -168,7 +168,7 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onSelectGroup }
               <div className="choice-card__accent" />
               <div className="choice-card__body">
                 <div className="choice-card__header">
-                  <h3 className="choice-card__title" onClick={() => onSelectGroup(g.id)}>
+                  <h3 className="choice-card__title" onClick={() => onNavigateTo(g.id, 'options')}>
                     {g.title}
                   </h3>
                   <span className={`choice-status choice-status--${g.status}`}>
@@ -214,6 +214,11 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onSelectGroup }
                     </>
                   )}
                 </div>
+              </div>
+              <div className="choice-card__quickactions">
+                <button className="choice-quickaction-btn" onClick={() => onNavigateTo(g.id, 'options')}>Optionen</button>
+                <button className="choice-quickaction-btn" onClick={() => onNavigateTo(g.id, 'participants')}>Teilnehmer</button>
+                <button className="choice-quickaction-btn" onClick={() => onNavigateTo(g.id, 'submissions')}>Abgaben</button>
               </div>
             </div>
           ))}

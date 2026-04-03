@@ -95,44 +95,44 @@ export function ChoiceOptionsTab({ groupId, options, showFlash, loadOptions }: P
         </form>
       )}
 
-      <div className="admin-resp-table-container">
-        <table className="admin-resp-table">
-          <thead>
-            <tr>
-              <th>Titel</th>
-              <th>Beschreibung</th>
-              <th>Sortierung</th>
-              <th>Status</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {options.length === 0 && (
-              <tr><td colSpan={5} className="choice-empty">Keine Optionen vorhanden</td></tr>
-            )}
-            {options.map((o) => (
-              <tr key={o.id} className={o.is_active ? '' : 'choice-row--inactive'}>
-                <td className="cell-bold">{o.title}</td>
-                <td>{o.description || '–'}</td>
-                <td>{o.sort_order}</td>
-                <td>
-                  <span className={`choice-status choice-status--${o.is_active ? 'open' : 'archived'}`}>
+      {options.length === 0 ? (
+        <div className="choice-empty">Keine Optionen vorhanden</div>
+      ) : (
+        <div className="choice-cards">
+          {options.map((o) => (
+            <div key={o.id} className={`choice-card choice-card--compact${o.is_active ? '' : ' choice-row--inactive'}`}>
+              <div className="choice-card__accent" />
+              <div className="choice-card__body">
+                <div className="choice-card__header">
+                  <h3 className="choice-card__title">{o.title}</h3>
+                  <span className={`choice-status choice-status--${o.is_active ? 'active' : 'inactive'}`}>
                     {o.is_active ? 'Aktiv' : 'Deaktiviert'}
                   </span>
-                </td>
-                <td>
-                  <div className="action-btns">
-                    <button className="btn-secondary btn--sm" onClick={() => handleEdit(o)}>Bearbeiten</button>
-                    {o.is_active && (
-                      <button className="btn-secondary btn--sm btn--danger" onClick={() => handleDeactivate(o.id)}>Deaktivieren</button>
-                    )}
+                </div>
+                {o.description && (
+                  <div className="choice-card__desc">{o.description}</div>
+                )}
+                <div className="choice-card__meta">
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Sortierung</span>
+                    <span className="choice-card__meta-value">{o.sort_order}</span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Erstellt</span>
+                    <span className="choice-card__meta-value">{new Date(o.created_at).toLocaleDateString('de-DE')}</span>
+                  </div>
+                </div>
+                <div className="choice-card__actions">
+                  <button className="btn-secondary" onClick={() => handleEdit(o)}>Bearbeiten</button>
+                  {o.is_active && (
+                    <button className="btn-secondary btn--danger" onClick={() => handleDeactivate(o.id)}>Deaktivieren</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -79,9 +79,9 @@ export function ChoiceAdmin() {
     }
   }, [selectedGroupId, loadGroupDetails]);
 
-  const handleSelectGroup = (id: string) => {
+  const handleNavigateTo = (id: string, tab: ChoiceTabId = 'options') => {
     setSelectedGroupId(id);
-    setActiveTab('options');
+    setActiveTab(tab);
   };
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) || null;
@@ -131,7 +131,7 @@ export function ChoiceAdmin() {
           groups={groups}
           showFlash={showFlash}
           loadGroups={loadGroups}
-          onSelectGroup={handleSelectGroup}
+          onNavigateTo={handleNavigateTo}
         />
       )}
       {activeTab === 'options' && selectedGroupId && (

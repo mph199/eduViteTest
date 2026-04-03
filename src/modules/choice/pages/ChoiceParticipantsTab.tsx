@@ -153,46 +153,42 @@ export function ChoiceParticipantsTab({ groupId, group, participants, showFlash,
         </form>
       )}
 
-      <div className="admin-resp-table-container">
-        <table className="admin-resp-table">
-          <thead>
-            <tr>
-              <th>Nachname</th>
-              <th>Vorname</th>
-              <th>E-Mail</th>
-              <th>Klasse</th>
-              <th>Status</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {participants.length === 0 && (
-              <tr><td colSpan={6} className="choice-empty">Keine Teilnehmer vorhanden</td></tr>
-            )}
-            {participants.map((p) => (
-              <tr key={p.id} className={p.is_active ? '' : 'choice-row--inactive'}>
-                <td className="cell-bold">{p.last_name}</td>
-                <td>{p.first_name}</td>
-                <td>{p.email}</td>
-                <td>{p.audience_label || '–'}</td>
-                <td>
-                  <span className={`choice-status choice-status--${p.is_active ? 'open' : 'archived'}`}>
+      {participants.length === 0 ? (
+        <div className="choice-empty">Keine Teilnehmer vorhanden</div>
+      ) : (
+        <div className="choice-cards">
+          {participants.map((p) => (
+            <div key={p.id} className={`choice-card choice-card--compact${p.is_active ? '' : ' choice-row--inactive'}`}>
+              <div className="choice-card__accent" />
+              <div className="choice-card__body">
+                <div className="choice-card__header">
+                  <h3 className="choice-card__title">{p.last_name}, {p.first_name}</h3>
+                  <span className={`choice-status choice-status--${p.is_active ? 'active' : 'inactive'}`}>
                     {p.is_active ? 'Aktiv' : 'Deaktiviert'}
                   </span>
-                </td>
-                <td>
-                  <div className="action-btns">
-                    <button className="btn-secondary btn--sm" onClick={() => handleEdit(p)}>Bearbeiten</button>
-                    {p.is_active && (
-                      <button className="btn-secondary btn--sm btn--danger" onClick={() => handleDeactivate(p.id)}>Deaktivieren</button>
-                    )}
+                </div>
+                <div className="choice-card__email">{p.email}</div>
+                <div className="choice-card__meta">
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Klasse</span>
+                    <span className="choice-card__meta-value">{p.audience_label || '–'}</span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <div className="choice-card__meta-item">
+                    <span className="choice-card__meta-label">Hinzugefügt</span>
+                    <span className="choice-card__meta-value">{new Date(p.created_at).toLocaleDateString('de-DE')}</span>
+                  </div>
+                </div>
+                <div className="choice-card__actions">
+                  <button className="btn-secondary" onClick={() => handleEdit(p)}>Bearbeiten</button>
+                  {p.is_active && (
+                    <button className="btn-secondary btn--danger" onClick={() => handleDeactivate(p.id)}>Deaktivieren</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
