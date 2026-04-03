@@ -106,7 +106,7 @@ export function SSWTermineTab({ counselors, showFlash, loadData }: Props) {
               }}
             >
               <option value="">– Bitte wählen –</option>
-              {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {counselors.map(c => <option key={c.id} value={c.id}>{`${c.first_name || ''} ${c.last_name || ''}`.trim()}</option>)}
             </select>
           </div>
           <div className="form-group">

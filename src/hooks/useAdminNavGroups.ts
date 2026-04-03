@@ -82,11 +82,11 @@ export function useAdminNavGroups() {
         const hasAdminModuleAccess = !isAdmin && mod.requiredModule &&
           (user?.adminModules?.includes(mod.requiredModule) ?? false);
         const isCounselorAccess = !isAdmin && mod.requiredModule &&
-          !hasTeacherId && userModules.includes(mod.requiredModule);
+          !hasAdminModuleAccess && userModules.includes(mod.requiredModule);
 
         let groupView: ActiveView | undefined;
         if (isCounselorAccess) {
-          // Dedicated counselors (no teacherId, no ViewSwitcher): always visible
+          // Counselors (with or without teacherId, no admin-module access): always visible
           groupView = undefined;
         } else if (hasAdminModuleAccess) {
           // Module-admins with teacherId: show in admin view, filtered in teacher view

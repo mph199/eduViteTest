@@ -169,7 +169,7 @@ export function CounselorBookingApp({ config }: { config: CounselorBookingConfig
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectCounselor(c); } }}
                 >
                   <div className="cb-counselor-card__name">
-                    {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                    {c.salutation ? `${c.salutation} ` : ''}{`${c.first_name || ''} ${c.last_name || ''}`.trim()}
                   </div>
                   <div className="cb-counselor-card__meta">
                     {c.room && <>Raum {c.room}</>}

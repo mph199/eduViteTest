@@ -32,7 +32,7 @@ const emptyCounselor = {
 };
 
 function getCounselorLastName(c: Counselor): string {
-  return c.last_name || (c.name || '').trim().split(/\s+/).pop() || '';
+  return c.last_name || '';
 }
 
 // ── Context Menu ────────────────────────────────────────────────────
@@ -321,10 +321,10 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                 return (
                   <div key={c.id} className="um-row-wrapper">
                     <div className="um-row" onClick={() => setOpenId(isOpen ? null : c.id)}>
-                      <div className="ssw-avatar">{getInitials(c.first_name || '', c.last_name || c.name || '')}</div>
+                      <div className="ssw-avatar">{getInitials(c.first_name || '', c.last_name || '')}</div>
                       <div className="um-info">
                         <span className="um-name">
-                          {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                          {c.salutation ? `${c.salutation} ` : ''}{`${c.first_name || ''} ${c.last_name || ''}`.trim()}
                         </span>
                         <span className="um-email">{c.email || '--'}</span>
                       </div>

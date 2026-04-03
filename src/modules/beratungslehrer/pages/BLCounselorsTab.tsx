@@ -2,14 +2,12 @@ import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import { WEEKDAY_SHORT } from '../../../shared/constants/weekdays';
-import { groupAlphabetically, getInitialsFromName } from '../../../shared/utils/groupAlphabetically';
+import { groupAlphabetically, getInitials } from '../../../shared/utils/groupAlphabetically';
 import '../../../shared/styles/um-components.css';
 import './bl-counselors.css';
 
 function getCounselorLastName(c: Counselor): string {
-  if (c.last_name) return c.last_name;
-  const parts = (c.name || '').trim().split(/\s+/);
-  return parts[parts.length - 1] || '';
+  return c.last_name || '';
 }
 
 interface Props {
@@ -51,10 +49,10 @@ export function BLCounselorsTab({ counselors, schedulesMap }: Props) {
                 return (
                   <div key={c.id} className="um-row-wrapper">
                     <div className="um-row" onClick={() => setOpenId(isOpen ? null : c.id)}>
-                      <div className="bl-avatar">{getInitialsFromName(c.name || '')}</div>
+                      <div className="bl-avatar">{getInitials(c.first_name || '', c.last_name || '')}</div>
                       <div className="um-info">
                         <span className="um-name">
-                          {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                          {c.salutation ? `${c.salutation} ` : ''}{`${c.first_name || ''} ${c.last_name || ''}`.trim()}
                         </span>
                         <span className="um-email">{c.email || '--'}</span>
                       </div>
