@@ -22,7 +22,7 @@ const choiceModule: ModuleDefinition = {
   icon: '',
   basePath: '/wahl/*',
   accent: 'var(--module-accent-choice)',
-  accentRgb: '67, 133, 187',
+  accentRgb: '196, 162, 101',
   requiredModule: 'choice',
 
   // Teilnahme erfolgt über Link in Einladungsmail – kein Menüeintrag nötig
