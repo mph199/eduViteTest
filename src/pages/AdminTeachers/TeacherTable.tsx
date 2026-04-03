@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { MoreVertical, ChevronDown, Pencil, KeyRound, Trash2, Mail } from 'lucide-react';
 import api from '../../services/api';
 import type { Teacher as ApiTeacher, UserAccount, TeacherLoginResponse } from '../../types';
 
@@ -12,246 +13,241 @@ interface Props {
   onDelete: (id: number, name: string) => void;
 }
 
-function ResetLoginButton({ teacher, className }: { teacher: ApiTeacher; className?: string }) {
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+/* ── Helpers ─────────────────────────────────────────────────────── */
 
-  return (
-    <>
-      <button
-        onClick={async () => {
-          try {
-            const res = await api.admin.resetTeacherLogin(teacher.id);
-            const typed = res as TeacherLoginResponse;
-            if (typed?.user) {
-              setFeedback({ type: 'success', message: `Login zurückgesetzt – Benutzer: ${typed.user.username}, Passwort: ${typed.user.tempPassword}` });
-            } else {
-              setFeedback({ type: 'success', message: 'Login zurückgesetzt.' });
-            }
-          } catch (err) {
-            setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Logins' });
-          }
-        }}
-        className={`reset-button${className ? ` ${className}` : ''}`}
-      >
-        <span aria-hidden="true">↺</span> Login zurücksetzen
-      </button>
-      {feedback && (
-        <div className={`reset-feedback ${feedback.type === 'success' ? 'admin-success' : 'admin-error'}`}>
-          {feedback.message}
-          <button type="button" className="btn-secondary btn-secondary--sm" onClick={() => setFeedback(null)}>OK</button>
-        </div>
-      )}
-    </>
-  );
+function getInitials(t: ApiTeacher): string {
+  const first = t.first_name || t.name?.split(' ')[0] || '';
+  const last = t.last_name || t.name?.split(' ').slice(-1)[0] || '';
+  return ((first[0] || '') + (last[0] || '')).toUpperCase();
 }
 
-function RoleSelect({ acct, isSelf, roleSaving, updateRole }: {
-  acct: UserAccount; isSelf: boolean;
-  roleSaving: Record<number, boolean>;
-  updateRole: (target: UserAccount, nextRole: string) => void;
+function getRoleLabel(role: string | undefined): string {
+  if (!role) return 'Kein Login';
+  if (role === 'admin') return 'Admin';
+  if (role === 'superadmin') return 'Superadmin';
+  return 'Lehrkraft';
+}
+
+function formatTime(time: string | undefined, fallback: string): string {
+  if (!time) return fallback;
+  // Strip seconds if present (16:00:00 → 16:00)
+  const parts = time.split(':');
+  return parts.slice(0, 2).join(':');
+}
+
+/* ── Context Menu ────────────────────────────────────────────────── */
+
+function ContextMenu({ teacher, onEdit, onDelete, onToggleDetail, detailOpen, onClose }: {
+  teacher: ApiTeacher;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleDetail: () => void;
+  detailOpen: boolean;
+  onClose: () => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [onClose]);
+
+  const handleResetLogin = async () => {
+    onClose();
+    try {
+      const res = await api.admin.resetTeacherLogin(teacher.id);
+      const typed = res as TeacherLoginResponse;
+      if (typed?.user) {
+        alert(`Login zurückgesetzt\nBenutzer: ${typed.user.username}\nPasswort: ${typed.user.tempPassword}`);
+      } else {
+        alert('Login zurückgesetzt.');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen');
+    }
+  };
+
   return (
-    <div className="admin-users-action">
-      <select
-        className="admin-table-select"
-        value={acct.role}
-        disabled={!!roleSaving[acct.id] || (isSelf && acct.role === 'admin')}
-        onChange={(e) => updateRole(acct, e.target.value)}
-        aria-label={`Rolle für ${acct.username}`}
-      >
-        <option value="teacher">Lehrkraft</option>
-        <option value="admin">Admin</option>
-      </select>
-      {roleSaving[acct.id] && <span className="admin-users-saving">Speichert…</span>}
+    <div className="um-context-menu" ref={ref}>
+      <button className="um-context-menu__item" onClick={() => { onToggleDetail(); onClose(); }}>
+        <ChevronDown size={15} style={{ transform: detailOpen ? 'rotate(180deg)' : undefined }} />
+        {detailOpen ? 'Details ausblenden' : 'Details anzeigen'}
+      </button>
+      <button className="um-context-menu__item" onClick={() => { onEdit(); onClose(); }}>
+        <Pencil size={15} />
+        Bearbeiten
+      </button>
+      <button className="um-context-menu__item" onClick={handleResetLogin}>
+        <KeyRound size={15} />
+        Login zurücksetzen
+      </button>
+      <div className="um-context-menu__divider" />
+      <button className="um-context-menu__item um-context-menu__item--danger" onClick={() => { onDelete(); onClose(); }}>
+        <Trash2 size={15} />
+        Löschen
+      </button>
     </div>
   );
 }
 
+/* ── Main Component ──────────────────────────────────────────────── */
+
 export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleSaving, updateRole, onEdit, onDelete }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const toggleExpand = (id: number) => {
-    setExpandedIds(prev => {
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+
+  const toggleDetail = (id: number) => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
+
+  // Sort alphabetically by last_name, group by first letter
+  const sortedAndGrouped = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => {
+      const aName = (a.last_name || a.name || '').toLowerCase();
+      const bName = (b.last_name || b.name || '').toLowerCase();
+      return aName.localeCompare(bName, 'de');
+    });
+
+    const groups: { letter: string; teachers: ApiTeacher[] }[] = [];
+    let currentLetter = '';
+
+    for (const t of sorted) {
+      const lastName = t.last_name || t.name || '';
+      const letter = (lastName[0] || '#').toUpperCase();
+      if (letter !== currentLetter) {
+        currentLetter = letter;
+        groups.push({ letter, teachers: [] });
+      }
+      groups[groups.length - 1].teachers.push(t);
+    }
+
+    return groups;
+  }, [filtered]);
+
   if (filtered.length === 0) {
-    return (
-      <div className="no-teachers">
-        <p>Keine Lehrkräfte vorhanden.</p>
-      </div>
-    );
+    return <div className="um-empty">Keine Benutzer gefunden.</div>;
   }
 
   return (
-    <>
-      {/* Desktop: Table */}
-      <div className="teachers-table-desktop">
-        <div className="admin-resp-table-container">
-          <table className="admin-resp-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>E-Mail</th>
-                <th>Sprechzeiten</th>
-                <th>Username</th>
-                <th>Rolle</th>
-                <th className="admin-actions-header">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((teacher) => {
-                const acct = userByTeacherId.get(teacher.id);
-                const isSelf = !!currentUsername && acct?.username === currentUsername;
-                return (
-                  <tr key={teacher.id}>
-                    <td>
-                      <div className="admin-cell-main">
-                        {teacher.salutation || ''} {teacher.name}
-                        {teacher.bl_counselor_id && <span className="admin-badge admin-badge--bl" role="img" aria-label="Beratungslehrkraft">BL</span>}
-                        {teacher.ssw_counselor_id && <span className="admin-badge admin-badge--ssw" role="img" aria-label="Schulsozialarbeit">SSW</span>}
-                      </div>
-                      <div className="admin-cell-id">#{teacher.id}</div>
-                    </td>
-                    <td>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</td>
-                    <td>
-                      <span>{teacher.available_from || '16:00'} – {teacher.available_until || '19:00'}</span>
-                    </td>
-                    <td>
-                      {acct ? (
-                        <span className="admin-users-username">
-                          {acct.username}
-                          {isSelf && <span className="admin-users-badge" title="Das bist du">Du</span>}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--color-gray-400)' }}>–</span>
-                      )}
-                    </td>
-                    <td>
-                      {acct ? (
-                        <div className="admin-users-action">
-                          <RoleSelect acct={acct} isSelf={isSelf} roleSaving={roleSaving} updateRole={updateRole} />
-                        </div>
-                      ) : (
-                        <span className="teacher-card__tag teacher-card__tag--nologin" style={{ fontSize: '0.78rem' }}>Kein Login</span>
-                      )}
-                    </td>
-                    <td className="admin-actions-cell">
-                      <div className="action-buttons">
-                        <button onClick={() => onEdit(teacher)} className="edit-button">
-                          <span aria-hidden="true">✎</span> Bearbeiten
-                        </button>
-                        <button onClick={() => onDelete(teacher.id, teacher.name)} className="cancel-button">
-                          <span aria-hidden="true">✕</span> Löschen
-                        </button>
-                        <ResetLoginButton teacher={teacher} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="um-list">
+      {sortedAndGrouped.map((group) => (
+        <div key={group.letter}>
+          <div className="um-alpha-divider">
+            <span className="um-alpha-divider__letter">{group.letter}</span>
+            <span className="um-alpha-divider__line" />
+          </div>
 
-      {/* Mobile: Expandable cards */}
-      <div className="teachers-cards-mobile">
-        <div className="teachers-card-list">
-          {filtered.map((teacher) => {
-            const isExpanded = expandedIds.has(teacher.id);
+          {group.teachers.map((teacher) => {
             const acct = userByTeacherId.get(teacher.id);
-            const isAdmin = acct?.role === 'admin';
+            const role = acct?.role || '';
+            const roleClass = role || 'teacher';
+            const isDetailOpen = expandedIds.has(teacher.id);
+
             return (
-              <article key={teacher.id} className={`teacher-card${isExpanded ? ' is-expanded' : ''}`}>
-                <header
-                  className="teacher-card__header"
-                  onClick={() => toggleExpand(teacher.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(teacher.id); } }}
-                  aria-expanded={isExpanded}
-                >
-                  <div className="teacher-card__summary">
-                    <span className="teacher-card__name">
-                      {teacher.salutation || ''} {teacher.name}
-                      {teacher.bl_counselor_id && <span className="admin-badge admin-badge--bl" title="Beratungslehrkraft">BL</span>}
-                      {teacher.ssw_counselor_id && <span className="admin-badge admin-badge--ssw" title="Schulsozialarbeit">SSW</span>}
-                    </span>
-                    <div className="teacher-card__tags">
-                      {acct && (
-                        <span className={`teacher-card__tag ${isAdmin ? 'teacher-card__tag--admin' : 'teacher-card__tag--teacher'}`}>
-                          {isAdmin ? 'Admin' : 'Lehrkraft'}
-                        </span>
-                      )}
-                      {!acct && <span className="teacher-card__tag teacher-card__tag--nologin">Kein Login</span>}
-                    </div>
+              <div key={teacher.id} className="um-row-wrapper">
+                <div className="um-row">
+                  {/* Avatar */}
+                  <div className={`um-avatar um-avatar--${roleClass}`}>
+                    {getInitials(teacher)}
                   </div>
-                  <span className={`teacher-card__chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">›</span>
-                </header>
-                <div className="teacher-card__body">
-                  <dl className="teacher-card__dl">
-                    <div className="teacher-card__row">
-                      <dt>E-Mail</dt>
-                      <dd>{teacher.email ? <a href={`mailto:${teacher.email}`} className="teacher-card__link">{teacher.email}</a> : '–'}</dd>
-                    </div>
-                    <div className="teacher-card__row">
-                      <dt>Anrede</dt>
-                      <dd>{teacher.salutation || '–'}</dd>
-                    </div>
-                    <div className="teacher-card__row">
-                      <dt>Sprechzeiten</dt>
-                      <dd>{teacher.available_from || '16:00'} – {teacher.available_until || '19:00'}</dd>
-                    </div>
-                    <div className="teacher-card__row">
-                      <dt>Username</dt>
-                      <dd>
-                        {acct ? (
-                          <span className="admin-users-username">
-                            {acct.username}
-                            {currentUsername === acct.username && <span className="admin-users-badge" title="Das bist du">Du</span>}
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--color-gray-400)' }}>Kein Login vorhanden</span>
-                        )}
-                      </dd>
-                    </div>
-                    {acct && (
-                      <div className="teacher-card__row">
-                        <dt>Rolle</dt>
-                        <dd>
-                          <RoleSelect
-                            acct={acct}
-                            isSelf={!!currentUsername && acct.username === currentUsername}
-                            roleSaving={roleSaving}
-                            updateRole={updateRole}
-                          />
-                        </dd>
+
+                  {/* Name + Role + Badges */}
+                  <div className="um-info">
+                    <span className="um-name">
+                      {teacher.salutation ? `${teacher.salutation} ` : ''}{teacher.name}
+                    </span>
+                    <span className={`um-role-chip um-role-chip--${acct ? roleClass : 'nologin'}`}>
+                      {getRoleLabel(acct?.role)}
+                    </span>
+                    {teacher.bl_counselor_id && <span className="um-badge">BL</span>}
+                    {teacher.ssw_counselor_id && <span className="um-badge">SSW</span>}
+                  </div>
+
+                  {/* Email (desktop only) */}
+                  {teacher.email && (
+                    <span className="um-email">
+                      <Mail size={13} className="um-email__icon" />
+                      {teacher.email}
+                    </span>
+                  )}
+
+                  {/* Three-dot menu */}
+                  <button
+                    className="um-menu-trigger"
+                    onClick={() => setMenuOpenId(menuOpenId === teacher.id ? null : teacher.id)}
+                    aria-label="Aktionen"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+                </div>
+
+                {/* Context Menu */}
+                {menuOpenId === teacher.id && (
+                  <ContextMenu
+                    teacher={teacher}
+                    onEdit={() => onEdit(teacher)}
+                    onDelete={() => onDelete(teacher.id, teacher.name)}
+                    onToggleDetail={() => toggleDetail(teacher.id)}
+                    detailOpen={isDetailOpen}
+                    onClose={() => setMenuOpenId(null)}
+                  />
+                )}
+
+                {/* Expandable Detail Panel */}
+                <div className={`um-detail-panel${isDetailOpen ? ' um-detail-panel--open' : ''}`}>
+                  <div className="um-detail-panel__inner">
+                    <div className="um-detail-grid">
+                      <div className="um-detail-item">
+                        <span className="um-detail-label">Username</span>
+                        <span className="um-detail-value">{acct?.username || '–'}</span>
                       </div>
-                    )}
-                    <div className="teacher-card__row">
-                      <dt>ID</dt>
-                      <dd>{teacher.id}</dd>
+                      <div className="um-detail-item">
+                        <span className="um-detail-label">E-Mail</span>
+                        <span className="um-detail-value">{teacher.email || '–'}</span>
+                      </div>
+                      <div className="um-detail-item">
+                        <span className="um-detail-label">Sprechzeiten</span>
+                        <span className="um-detail-value">
+                          {formatTime(teacher.available_from, '16:00')} – {formatTime(teacher.available_until, '19:00')}
+                        </span>
+                      </div>
+                      <div className="um-detail-item">
+                        <span className="um-detail-label">ID</span>
+                        <span className="um-detail-value">{teacher.id}</span>
+                      </div>
+                      {acct && (
+                        <div className="um-detail-item">
+                          <span className="um-detail-label">Rolle</span>
+                          <span className="um-detail-value">
+                            <select
+                              className="admin-table-select"
+                              value={acct.role}
+                              disabled={!!roleSaving[acct.id] || (!!currentUsername && acct.username === currentUsername && acct.role === 'admin')}
+                              onChange={(e) => updateRole(acct, e.target.value)}
+                              aria-label={`Rolle für ${acct.username}`}
+                            >
+                              <option value="teacher">Lehrkraft</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            {roleSaving[acct.id] && <span className="admin-users-saving"> Speichert…</span>}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </dl>
-                  <div className="teacher-card__actions">
-                    <div className="teacher-card__actions-row">
-                      <button onClick={() => onEdit(teacher)} className="edit-button">
-                        <span aria-hidden="true">✎</span> Bearbeiten
-                      </button>
-                      <button onClick={() => onDelete(teacher.id, teacher.name)} className="cancel-button">
-                        <span aria-hidden="true">✕</span> Löschen
-                      </button>
-                    </div>
-                    <ResetLoginButton teacher={teacher} className="teacher-card__actions-full" />
                   </div>
                 </div>
-              </article>
+              </div>
             );
           })}
         </div>
-      </div>
-    </>
+      ))}
+    </div>
   );
 }

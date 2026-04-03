@@ -1,0 +1,397 @@
+/* ── User Management Rework ──────────────────────────────────────── */
+
+/* ── Page Header ─────────────────────────────────────────────────── */
+
+.um-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.um-header__left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.um-header__title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin: 0;
+}
+
+.um-header__count {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-gray-400);
+}
+
+.um-header__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--brand-primary);
+  color: var(--color-white);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.um-header__add-btn:hover {
+  opacity: 0.9;
+}
+
+/* ── Search Bar ──────────────────────────────────────────────────── */
+
+.um-search {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.um-search__icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  pointer-events: none;
+}
+
+.um-search__input {
+  width: 100%;
+  padding: 0.55rem 0.75rem 0.55rem 2.4rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--color-gray-700);
+  background: var(--color-white);
+  transition: border-color 0.15s;
+}
+
+.um-search__input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.um-search__input::placeholder {
+  color: var(--color-gray-400);
+}
+
+/* ── Alpha Group Divider ─────────────────────────────────────────── */
+
+.um-alpha-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.um-alpha-divider__letter {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.um-alpha-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-gray-200);
+}
+
+/* ── User Row ────────────────────────────────────────────────────── */
+
+.um-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.um-row-wrapper {
+  position: relative;
+}
+
+.um-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.um-row:hover {
+  background: var(--color-gray-50);
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────── */
+
+.um-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.um-avatar--admin {
+  background: var(--brand-primary);
+  color: var(--color-white);
+}
+
+.um-avatar--teacher {
+  background: rgba(var(--brand-primary-rgb), 0.1);
+  color: var(--brand-primary);
+}
+
+.um-avatar--superadmin {
+  background: var(--brand-primary);
+  color: var(--color-white);
+}
+
+/* ── Name + Role Chip area ───────────────────────────────────────── */
+
+.um-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.um-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Role Chip ───────────────────────────────────────────────────── */
+
+.um-role-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.um-role-chip--admin {
+  background: var(--brand-primary);
+  color: var(--color-white);
+}
+
+.um-role-chip--teacher {
+  background: rgba(var(--brand-primary-rgb), 0.1);
+  color: var(--brand-primary);
+}
+
+.um-role-chip--superadmin {
+  background: var(--brand-primary);
+  color: var(--color-white);
+}
+
+.um-role-chip--nologin {
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
+}
+
+/* ── Module badges (BL/SSW) ──────────────────────────────────────── */
+
+.um-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+  flex-shrink: 0;
+}
+
+/* ── Email ────────────────────────────────────────────────────────── */
+
+.um-email {
+  display: none;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--color-gray-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.um-email__icon {
+  flex-shrink: 0;
+  color: var(--color-gray-400);
+}
+
+@media (min-width: 600px) {
+  .um-email {
+    display: flex;
+  }
+}
+
+/* ── Three-Dot Menu Trigger ──────────────────────────────────────── */
+
+.um-menu-trigger {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.um-menu-trigger:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+/* ── Context Menu ────────────────────────────────────────────────── */
+
+.um-context-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  min-width: 180px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(var(--color-black-rgb), 0.08);
+  overflow: hidden;
+}
+
+.um-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: none;
+  font-size: 0.82rem;
+  color: var(--color-gray-700);
+  cursor: pointer;
+  transition: background 0.1s;
+  text-align: left;
+}
+
+.um-context-menu__item:hover {
+  background: var(--color-gray-50);
+}
+
+.um-context-menu__item--danger {
+  color: var(--color-error);
+}
+
+.um-context-menu__item--danger:hover {
+  background: rgba(var(--color-error-rgb, 220, 38, 38), 0.05);
+}
+
+.um-context-menu__divider {
+  height: 1px;
+  background: var(--color-gray-200);
+  margin: 0;
+}
+
+/* ── Detail Panel ────────────────────────────────────────────────── */
+
+.um-detail-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 180ms ease;
+  overflow: hidden;
+}
+
+.um-detail-panel--open {
+  grid-template-rows: 1fr;
+}
+
+.um-detail-panel__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.um-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1.5rem;
+  padding: 0.6rem 0 0.75rem;
+  margin-left: 64px;
+}
+
+.um-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.um-detail-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+  letter-spacing: 0.03em;
+}
+
+.um-detail-value {
+  font-size: 0.8rem;
+  color: var(--color-gray-600);
+}
+
+/* ── Empty State ─────────────────────────────────────────────────── */
+
+.um-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  font-size: 0.88rem;
+  color: var(--color-gray-400);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .um-detail-grid {
+    grid-template-columns: 1fr;
+    margin-left: 50px;
+  }
+
+  .um-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .um-header__add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

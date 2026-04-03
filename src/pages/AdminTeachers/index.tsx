@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { UserPlus, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { useActiveView } from '../../hooks/useActiveView';
 import { useBgStyle } from '../../hooks/useBgStyle';
@@ -12,6 +13,7 @@ import { TeacherDetailView } from './TeacherDetailView';
 import { CsvImportDialog } from './CsvImportDialog';
 import { TeacherTable } from './TeacherTable';
 import '../AdminDashboard.css';
+import '../admin/user-management.css';
 
 export function AdminTeachers() {
   const { isModuleEnabled } = useModuleConfig();
@@ -70,12 +72,6 @@ export function AdminTeachers() {
     return map;
   }, [users]);
 
-  const stats = useMemo(() => ({
-    total: users.length,
-    adminCount: users.filter(u => u.role === 'admin').length,
-    teacherCount: users.filter(u => u.role === 'teacher').length,
-  }), [users]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return teachers;
@@ -84,7 +80,8 @@ export function AdminTeachers() {
       const email = (t.email || '').toLowerCase();
       const acct = userByTeacherId.get(t.id);
       const username = acct ? (acct.username || '').toLowerCase() : '';
-      return name.includes(q) || email.includes(q) || username.includes(q);
+      const role = acct?.role || '';
+      return name.includes(q) || email.includes(q) || username.includes(q) || role.includes(q);
     });
   }, [teachers, search, userByTeacherId]);
 
@@ -171,23 +168,6 @@ export function AdminTeachers() {
         />
       ) : (
         <>
-          <div className="admin-section-header">
-            <h2>Benutzer & Rechte verwalten</h2>
-            {!csvImport.show && (
-              <div className="admin-actions-row">
-                <button onClick={form.handleNewUser} className="btn-primary">+ Neuer Nutzer</button>
-                <button onClick={() => csvFileRef.current?.click()} className="btn-secondary">CSV Import</button>
-                <input
-                  ref={csvFileRef}
-                  type="file"
-                  accept=".csv,.txt"
-                  style={{ display: 'none' }}
-                  onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCsvImport(file); e.target.value = ''; }}
-                />
-              </div>
-            )}
-          </div>
-
           <CsvImportDialog
             csvImport={csvImport}
             onClose={() => setCsvImport({ show: false, uploading: false, result: null })}
@@ -196,39 +176,37 @@ export function AdminTeachers() {
 
           {!csvImport.show && (
             <>
-              <div className="admin-teacher-search">
-                <label htmlFor="teacherAdminSearch" className="admin-teacher-search-label">Suche</label>
-                <div className="admin-teacher-search-row">
+              <div className="um-header">
+                <div className="um-header__left">
+                  <h2 className="um-header__title">Benutzer</h2>
+                  <span className="um-header__count">{teachers.length}</span>
+                </div>
+                <div className="admin-actions-row">
+                  <button onClick={() => csvFileRef.current?.click()} className="btn-secondary btn--sm">CSV Import</button>
                   <input
-                    id="teacherAdminSearch"
-                    className="admin-teacher-search-input"
-                    type="text"
-                    placeholder="Name, E-Mail oder Username..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    ref={csvFileRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    style={{ display: 'none' }}
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCsvImport(file); e.target.value = ''; }}
                   />
-                  {search && (
-                    <button type="button" className="btn-secondary btn-secondary--sm" onClick={() => setSearch('')}>Löschen</button>
-                  )}
+                  <button onClick={form.handleNewUser} className="um-header__add-btn">
+                    <UserPlus size={16} />
+                    Hinzufügen
+                  </button>
                 </div>
               </div>
 
-              {users.length > 0 && (
-                <div className="admin-users-stats" style={{ marginBottom: '1rem' }}>
-                  <div className="admin-users-stat">
-                    <div className="admin-users-stat__label">Logins</div>
-                    <div className="admin-users-stat__value">{stats.total}</div>
-                  </div>
-                  <div className="admin-users-stat">
-                    <div className="admin-users-stat__label">Admins</div>
-                    <div className="admin-users-stat__value">{stats.adminCount}</div>
-                  </div>
-                  <div className="admin-users-stat">
-                    <div className="admin-users-stat__label">Lehrkräfte</div>
-                    <div className="admin-users-stat__value">{stats.teacherCount}</div>
-                  </div>
-                </div>
-              )}
+              <div className="um-search">
+                <Search size={16} className="um-search__icon" />
+                <input
+                  type="text"
+                  className="um-search__input"
+                  placeholder="Benutzer suchen ..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
 
               <TeacherTable
                 filtered={filtered}
