@@ -48,7 +48,7 @@ interface AlphaGroup {
 
 function groupAlphabetically(counselors: Counselor[]): AlphaGroup[] {
   const sorted = [...counselors].sort((a, b) =>
-    getLastName(a).localeCompare(getLastName(b), 'de', { sensitivity: 'base' })
+    getLastName(a).localeCompare(getLastName(b), 'de')
   );
   const groups: AlphaGroup[] = [];
   let current: AlphaGroup | null = null;
@@ -336,13 +336,13 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
       {counselors.length === 0 ? (
         <div className="um-empty">Keine Berater/innen vorhanden.</div>
       ) : (
-        groups.map((group) => (
-          <div key={group.letter}>
-            <div className="um-alpha-divider">
-              <span className="um-alpha-divider__letter">{group.letter}</span>
-              <span className="um-alpha-divider__line" />
-            </div>
-            <div className="um-list">
+        <div className="um-list">
+          {groups.map((group) => (
+            <div key={group.letter}>
+              <div className="um-alpha-divider">
+                <span className="um-alpha-divider__letter">{group.letter}</span>
+                <span className="um-alpha-divider__line" />
+              </div>
               {group.items.map((c) => {
                 const isOpen = openId === c.id;
                 const scheduleEntries = (schedulesMap[c.id] || []).filter(s => s.active);
@@ -438,8 +438,8 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                 );
               })}
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </>
   );

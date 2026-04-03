@@ -1,11 +1,11 @@
 /* ── SSW Counselors List ──────────────────────────────────────────── */
 
 .ssw-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(var(--module-accent-ssw-rgb, 205, 92, 92), 0.12);
-  color: var(--module-accent-schulsozialarbeit, #cd5c5c);
+  background: rgba(var(--module-accent-schulsozialarbeit-rgb), 0.12);
+  color: var(--module-accent-schulsozialarbeit);
   display: flex;
   align-items: center;
   justify-content: center;

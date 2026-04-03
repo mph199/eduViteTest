@@ -99,7 +99,9 @@
   /* ── Module accent colors ────────────────────────────── */
   --module-accent-elternsprechtag: #1a7f7a;
   --module-accent-beratungslehrer: #b8860b;
+  --module-accent-beratungslehrer-rgb: 184, 134, 11;
   --module-accent-schulsozialarbeit: #cd5c5c;
+  --module-accent-schulsozialarbeit-rgb: 205, 92, 92;
   --module-accent-choice: #C4A265;
 
   /* ── Login page (brand-derived) ──────────────────────── */
