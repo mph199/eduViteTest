@@ -40,10 +40,6 @@ export function SSWAdmin() {
 
   return (
     <AdminPageWrapper style={adminBgStyle}>
-      <div className="admin-section-header">
-        <h2>Schulsozialarbeit — Berater/innen</h2>
-      </div>
-
       {flash && <div className="admin-success">{flash}</div>}
       {createdCreds && (
         <div className="creds-box">
