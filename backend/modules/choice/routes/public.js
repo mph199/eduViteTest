@@ -135,7 +135,7 @@ router.get('/groups/:id', requireChoiceSession, async (req, res) => {
 
     // Nur aktive Optionen zurückgeben
     const options = await db.selectFrom('choice_options')
-      .select(['id', 'title', 'description', 'sort_order'])
+      .select(['id', 'title', 'description', 'icon', 'sort_order'])
       .where('group_id', '=', groupId)
       .where('is_active', '=', true)
       .orderBy('sort_order', 'asc')

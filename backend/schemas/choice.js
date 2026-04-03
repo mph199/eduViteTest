@@ -11,6 +11,7 @@ import { z } from 'zod/v4';
 export const choiceGroupCreateSchema = z.object({
   title: z.string().min(1, 'Titel erforderlich').max(255).transform((v) => v.trim()),
   description: z.string().max(5000).optional().nullable().transform((v) => v?.trim() || null),
+  icon: z.string().max(100).optional().nullable().transform((v) => v?.trim() || null),
   min_choices: z.number().int().min(1).max(20).default(1),
   max_choices: z.number().int().min(1).max(20).default(1),
   ranking_mode: z.enum(['none', 'required']).default('none'),
@@ -25,6 +26,7 @@ export const choiceGroupCreateSchema = z.object({
 export const choiceGroupUpdateSchema = z.object({
   title: z.string().min(1, 'Titel erforderlich').max(255).transform((v) => v.trim()).optional(),
   description: z.string().max(5000).nullable().transform((v) => v?.trim() || null).optional(),
+  icon: z.string().max(100).nullable().transform((v) => v?.trim() || null).optional(),
   min_choices: z.number().int().min(1).max(20).optional(),
   max_choices: z.number().int().min(1).max(20).optional(),
   ranking_mode: z.enum(['none', 'required']).optional(),
@@ -52,12 +54,14 @@ export const choiceGroupStatusSchema = z.object({
 export const choiceOptionCreateSchema = z.object({
   title: z.string().min(1, 'Titel erforderlich').max(255).transform((v) => v.trim()),
   description: z.string().max(2000).optional().nullable().transform((v) => v?.trim() || null),
+  icon: z.string().max(100).optional().nullable().transform((v) => v?.trim() || null),
   sort_order: z.number().int().min(0).default(0),
 });
 
 export const choiceOptionUpdateSchema = z.object({
   title: z.string().min(1, 'Titel erforderlich').max(255).transform((v) => v.trim()).optional(),
   description: z.string().max(2000).nullable().transform((v) => v?.trim() || null).optional(),
+  icon: z.string().max(100).nullable().transform((v) => v?.trim() || null).optional(),
   sort_order: z.number().int().min(0).optional(),
   is_active: z.boolean().optional(),
 });
