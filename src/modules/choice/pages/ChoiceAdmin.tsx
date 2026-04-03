@@ -5,17 +5,16 @@ import { useBgStyle } from '../../../hooks/useBgStyle';
 import { useFlash } from '../../../hooks/useFlash';
 import api from '../../../services/api';
 import { AdminPageWrapper } from '../../../shared/components/AdminPageWrapper';
-import { ChoiceGroupsTab } from './ChoiceGroupsTab';
+import { ChoiceGroupsOverview } from './ChoiceGroupsTab';
 import { ChoiceOptionsTab } from './ChoiceOptionsTab';
 import { ChoiceParticipantsTab } from './ChoiceParticipantsTab';
 import { ChoiceSubmissionsTab } from './ChoiceSubmissionsTab';
 import '../../../pages/AdminDashboard.css';
 import '../choice-admin.css';
 
-type ChoiceTabId = 'groups' | 'options' | 'participants' | 'submissions';
+type DetailTabId = 'options' | 'participants' | 'submissions';
 
-const TAB_LABELS: Record<ChoiceTabId, string> = {
-  groups: 'Wahldächer',
+const DETAIL_TAB_LABELS: Record<DetailTabId, string> = {
   options: 'Optionen',
   participants: 'Teilnehmer',
   submissions: 'Abgaben',
@@ -26,8 +25,8 @@ export function ChoiceAdmin() {
   const adminBgStyle = useBgStyle('admin', '--page-bg');
   const [flash, showFlash] = useFlash();
 
-  const [activeTab, setActiveTab] = useState<ChoiceTabId>('groups');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTabId>('options');
 
   const [groups, setGroups] = useState<ChoiceGroup[]>([]);
   const [options, setOptions] = useState<ChoiceOption[]>([]);
@@ -79,62 +78,72 @@ export function ChoiceAdmin() {
     }
   }, [selectedGroupId, loadGroupDetails]);
 
-  const handleNavigateTo = (id: string, tab: ChoiceTabId = 'options') => {
+  const handleOpenGroup = (id: string) => {
     setSelectedGroupId(id);
-    setActiveTab(tab);
+    setDetailTab('options');
+  };
+
+  const handleBack = () => {
+    setSelectedGroupId(null);
   };
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) || null;
 
   if (loading) return <AdminPageWrapper style={adminBgStyle}><p>Lade...</p></AdminPageWrapper>;
 
+  /* ── Screen 1: Overview ─────────────────────────────────────────── */
+  if (!selectedGroupId) {
+    return (
+      <AdminPageWrapper style={adminBgStyle}>
+        <div className="admin-section-header">
+          <h2>Differenzierungswahl</h2>
+        </div>
+
+        {flash && <div className="admin-success">{flash}</div>}
+        {error && <div className="admin-error">{error}</div>}
+
+        <ChoiceGroupsOverview
+          groups={groups}
+          showFlash={showFlash}
+          loadGroups={loadGroups}
+          onOpenGroup={handleOpenGroup}
+        />
+      </AdminPageWrapper>
+    );
+  }
+
+  /* ── Screen 2: Detail ───────────────────────────────────────────── */
   return (
     <AdminPageWrapper style={adminBgStyle}>
+      <button className="choice-back-btn" onClick={handleBack}>
+        Alle Wahldächer
+      </button>
+
       <div className="admin-section-header">
-        <h2>Differenzierungswahl</h2>
+        <h2>{selectedGroup?.title || 'Wahldach'}</h2>
+        {selectedGroup && (
+          <span className={`choice-status choice-status--${selectedGroup.status}`}>
+            {selectedGroup.status === 'draft' ? 'Entwurf' : selectedGroup.status === 'open' ? 'Offen' : selectedGroup.status === 'closed' ? 'Geschlossen' : 'Archiviert'}
+          </span>
+        )}
       </div>
 
       {flash && <div className="admin-success">{flash}</div>}
       {error && <div className="admin-error">{error}</div>}
 
       <div className="choice-tabs">
-        {(Object.entries(TAB_LABELS) as [ChoiceTabId, string][]).map(([id, label]) => {
-          const needsGroup = id !== 'groups';
-          const disabled = needsGroup && !selectedGroupId;
-          return (
-            <button
-              key={id}
-              className={`choice-tab-btn${activeTab === id ? ' choice-tab-btn--active' : ''}`}
-              onClick={() => !disabled && setActiveTab(id)}
-              disabled={disabled}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {(Object.entries(DETAIL_TAB_LABELS) as [DetailTabId, string][]).map(([id, label]) => (
+          <button
+            key={id}
+            className={`choice-tab-btn${detailTab === id ? ' choice-tab-btn--active' : ''}`}
+            onClick={() => setDetailTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {selectedGroup && activeTab !== 'groups' && (
-        <div className="choice-context-bar">
-          <span>Wahldach: <strong>{selectedGroup.title}</strong></span>
-          <button
-            className="btn-secondary btn--sm"
-            onClick={() => { setSelectedGroupId(null); setActiveTab('groups'); }}
-          >
-            Wechseln
-          </button>
-        </div>
-      )}
-
-      {activeTab === 'groups' && (
-        <ChoiceGroupsTab
-          groups={groups}
-          showFlash={showFlash}
-          loadGroups={loadGroups}
-          onNavigateTo={handleNavigateTo}
-        />
-      )}
-      {activeTab === 'options' && selectedGroupId && (
+      {detailTab === 'options' && (
         <ChoiceOptionsTab
           groupId={selectedGroupId}
           options={options}
@@ -142,7 +151,7 @@ export function ChoiceAdmin() {
           loadOptions={() => loadGroupDetails(selectedGroupId)}
         />
       )}
-      {activeTab === 'participants' && selectedGroupId && (
+      {detailTab === 'participants' && (
         <ChoiceParticipantsTab
           groupId={selectedGroupId}
           group={selectedGroup}
@@ -151,7 +160,7 @@ export function ChoiceAdmin() {
           loadParticipants={() => loadGroupDetails(selectedGroupId)}
         />
       )}
-      {activeTab === 'submissions' && selectedGroupId && (
+      {detailTab === 'submissions' && (
         <ChoiceSubmissionsTab
           groupId={selectedGroupId}
           submissions={submissions}

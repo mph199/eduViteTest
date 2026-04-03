@@ -24,10 +24,10 @@ interface Props {
   groups: ChoiceGroup[];
   showFlash: (msg: string) => void;
   loadGroups: () => Promise<void>;
-  onNavigateTo: (id: string, tab: 'options' | 'participants' | 'submissions') => void;
+  onOpenGroup: (id: string) => void;
 }
 
-export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onNavigateTo }: Props) {
+export function ChoiceGroupsOverview({ groups, showFlash, loadGroups, onOpenGroup }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -38,7 +38,8 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onNavigateTo }:
     setShowForm(true);
   };
 
-  const handleEdit = (g: ChoiceGroup) => {
+  const handleEdit = (e: React.MouseEvent, g: ChoiceGroup) => {
+    e.stopPropagation();
     setEditingId(g.id);
     setForm({
       title: g.title,
@@ -85,7 +86,8 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onNavigateTo }:
     }
   };
 
-  const handleStatusChange = async (id: string, status: string) => {
+  const handleStatusChange = async (e: React.MouseEvent, id: string, status: string) => {
+    e.stopPropagation();
     try {
       await api.choice.changeGroupStatus(id, status);
       showFlash(`Status geändert: ${STATUS_LABELS[status as ChoiceGroupStatus] || status}`);
@@ -164,13 +166,11 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onNavigateTo }:
       ) : (
         <div className="choice-cards">
           {groups.map((g) => (
-            <div key={g.id} className="choice-card">
+            <div key={g.id} className="choice-card choice-card--clickable" onClick={() => onOpenGroup(g.id)}>
               <div className="choice-card__accent" />
               <div className="choice-card__body">
                 <div className="choice-card__header">
-                  <h3 className="choice-card__title" onClick={() => onNavigateTo(g.id, 'options')}>
-                    {g.title}
-                  </h3>
+                  <h3 className="choice-card__title">{g.title}</h3>
                   <span className={`choice-status choice-status--${g.status}`}>
                     {STATUS_LABELS[g.status]}
                   </span>
@@ -200,25 +200,20 @@ export function ChoiceGroupsTab({ groups, showFlash, loadGroups, onNavigateTo }:
                 )}
 
                 <div className="choice-card__actions">
-                  <button className="btn-secondary" onClick={() => handleEdit(g)}>Bearbeiten</button>
+                  <button className="btn-secondary" onClick={(e) => handleEdit(e, g)}>Bearbeiten</button>
                   {g.status === 'draft' && (
-                    <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'open')}>Öffnen</button>
+                    <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'open')}>Öffnen</button>
                   )}
                   {g.status === 'open' && (
-                    <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'closed')}>Schliessen</button>
+                    <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'closed')}>Schliessen</button>
                   )}
                   {g.status === 'closed' && (
                     <>
-                      <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'open')}>Wieder öffnen</button>
-                      <button className="btn-secondary" onClick={() => handleStatusChange(g.id, 'archived')}>Archivieren</button>
+                      <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'open')}>Wieder öffnen</button>
+                      <button className="btn-secondary" onClick={(e) => handleStatusChange(e, g.id, 'archived')}>Archivieren</button>
                     </>
                   )}
                 </div>
-              </div>
-              <div className="choice-card__quickactions">
-                <button className="choice-quickaction-btn" onClick={() => onNavigateTo(g.id, 'options')}>Optionen</button>
-                <button className="choice-quickaction-btn" onClick={() => onNavigateTo(g.id, 'participants')}>Teilnehmer</button>
-                <button className="choice-quickaction-btn" onClick={() => onNavigateTo(g.id, 'submissions')}>Abgaben</button>
               </div>
             </div>
           ))}
