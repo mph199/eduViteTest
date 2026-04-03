@@ -1,11 +1,6 @@
 import type { ChoiceSubmission } from '../../../types';
 import api from '../../../services/api';
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Entwurf',
-  submitted: 'Abgegeben',
-};
-
 interface Props {
   groupId: string;
   submissions: ChoiceSubmission[];
@@ -33,11 +28,11 @@ export function ChoiceSubmissionsTab({ groupId, submissions, showFlash }: Props)
 
   return (
     <div>
-      <div className="action-btns" style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <button className="btn-secondary" onClick={handleExportCSV} disabled={submissions.length === 0}>
+      <div className="choice-toolbar">
+        <button className="btn-primary" onClick={handleExportCSV} disabled={submissions.length === 0}>
           CSV exportieren
         </button>
-        <span style={{ fontSize: '0.85rem', color: 'var(--color-gray-500)' }}>
+        <span className="choice-toolbar__info">
           {submittedCount} abgegeben, {draftCount} Entwürfe, {submissions.length} gesamt
         </span>
       </div>
@@ -57,17 +52,17 @@ export function ChoiceSubmissionsTab({ groupId, submissions, showFlash }: Props)
           </thead>
           <tbody>
             {submissions.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>Keine Abgaben vorhanden</td></tr>
+              <tr><td colSpan={7} className="choice-empty">Keine Abgaben vorhanden</td></tr>
             )}
             {submissions.map((s) => (
               <tr key={s.id}>
-                <td>{s.last_name || '–'}</td>
+                <td className="cell-bold">{s.last_name || '–'}</td>
                 <td>{s.first_name || '–'}</td>
                 <td>{s.email || '–'}</td>
                 <td>{s.audience_label || '–'}</td>
                 <td>
-                  <span style={{ fontWeight: 500, color: s.status === 'submitted' ? 'var(--brand-primary)' : 'var(--color-gray-500)' }}>
-                    {STATUS_LABELS[s.status] || s.status}
+                  <span className={`choice-status choice-status--${s.status}`}>
+                    {s.status === 'submitted' ? 'Abgegeben' : 'Entwurf'}
                   </span>
                 </td>
                 <td>{s.submitted_at ? new Date(s.submitted_at).toLocaleString('de-DE') : '–'}</td>
@@ -76,7 +71,7 @@ export function ChoiceSubmissionsTab({ groupId, submissions, showFlash }: Props)
                     <span key={i}>
                       {item.option_title || item.option_id}
                       {' '}
-                      <small style={{ color: 'var(--color-gray-500)' }}>(P{item.priority})</small>
+                      <small className="choice-priority-hint">(P{item.priority})</small>
                       {i < s.items.length - 1 ? ', ' : ''}
                     </span>
                   ))}

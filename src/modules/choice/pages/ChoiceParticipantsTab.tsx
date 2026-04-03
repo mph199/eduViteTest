@@ -110,8 +110,8 @@ export function ChoiceParticipantsTab({ groupId, group, participants, showFlash,
 
   return (
     <div>
-      <div className="action-btns" style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button className="btn-secondary" onClick={handleNew}>Teilnehmer hinzufügen</button>
+      <div className="choice-toolbar">
+        <button className="btn-primary" onClick={handleNew}>Teilnehmer hinzufügen</button>
         <input type="file" accept=".csv" ref={fileRef} style={{ display: 'none' }} onChange={handleCSVImport} />
         <button className="btn-secondary" onClick={() => fileRef.current?.click()}>CSV-Import</button>
         {group?.status === 'open' && (
@@ -119,24 +119,24 @@ export function ChoiceParticipantsTab({ groupId, group, participants, showFlash,
             {inviting ? 'Sende...' : 'Einladungen senden'}
           </button>
         )}
-        <span style={{ fontSize: '0.85rem', color: 'var(--color-gray-500)' }}>
+        <span className="choice-toolbar__info">
           {activeCount} aktiv / {participants.length} gesamt
         </span>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSave} className="teacher-form-container" style={{ marginBottom: '1.5rem' }}>
-          <div className="teacher-form">
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Vorname *</label>
-                <input type="text" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Nachname *</label>
-                <input type="text" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required />
-              </div>
+        <form onSubmit={handleSave} className="choice-form-panel">
+          <div className="choice-form-row">
+            <div className="form-group">
+              <label>Vorname *</label>
+              <input type="text" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required />
             </div>
+            <div className="form-group">
+              <label>Nachname *</label>
+              <input type="text" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required />
+            </div>
+          </div>
+          <div className="choice-form-row">
             <div className="form-group">
               <label>E-Mail *</label>
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
@@ -145,10 +145,10 @@ export function ChoiceParticipantsTab({ groupId, group, participants, showFlash,
               <label>Klasse / Gruppe</label>
               <input type="text" value={form.audience_label} onChange={(e) => setForm({ ...form, audience_label: e.target.value })} />
             </div>
-            <div className="action-btns">
-              <button type="submit" className="btn-secondary">{editingId ? 'Speichern' : 'Hinzufügen'}</button>
-              <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
-            </div>
+          </div>
+          <div className="choice-card__actions">
+            <button type="submit" className="btn-primary">{editingId ? 'Speichern' : 'Hinzufügen'}</button>
+            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
           </div>
         </form>
       )}
@@ -167,20 +167,24 @@ export function ChoiceParticipantsTab({ groupId, group, participants, showFlash,
           </thead>
           <tbody>
             {participants.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>Keine Teilnehmer vorhanden</td></tr>
+              <tr><td colSpan={6} className="choice-empty">Keine Teilnehmer vorhanden</td></tr>
             )}
             {participants.map((p) => (
-              <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.5 }}>
-                <td>{p.last_name}</td>
+              <tr key={p.id} className={p.is_active ? '' : 'choice-row--inactive'}>
+                <td className="cell-bold">{p.last_name}</td>
                 <td>{p.first_name}</td>
                 <td>{p.email}</td>
                 <td>{p.audience_label || '–'}</td>
-                <td>{p.is_active ? 'Aktiv' : 'Deaktiviert'}</td>
+                <td>
+                  <span className={`choice-status choice-status--${p.is_active ? 'open' : 'archived'}`}>
+                    {p.is_active ? 'Aktiv' : 'Deaktiviert'}
+                  </span>
+                </td>
                 <td>
                   <div className="action-btns">
-                    <button className="btn-secondary" onClick={() => handleEdit(p)}>Bearbeiten</button>
+                    <button className="btn-secondary btn--sm" onClick={() => handleEdit(p)}>Bearbeiten</button>
                     {p.is_active && (
-                      <button className="btn-secondary btn--danger" onClick={() => handleDeactivate(p.id)}>Deaktivieren</button>
+                      <button className="btn-secondary btn--sm btn--danger" onClick={() => handleDeactivate(p.id)}>Deaktivieren</button>
                     )}
                   </div>
                 </td>
