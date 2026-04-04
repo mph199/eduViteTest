@@ -32,6 +32,7 @@ const ADMIN_MODULE_OPTIONS = [
   { key: 'schulsozialarbeit', label: 'Schulsozialarbeit' },
   { key: 'beratungslehrer', label: 'Beratungslehrkräfte' },
   { key: 'flow', label: 'Flow / Arbeitspakete' },
+  { key: 'choice', label: 'Differenzierungswahl' },
 ];
 
 type FormTab = 'stammdaten' | 'beratungslehrer' | 'schulsozialarbeit' | 'adminrechte';

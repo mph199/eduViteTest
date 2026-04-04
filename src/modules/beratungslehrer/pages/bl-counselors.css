@@ -1,11 +1,11 @@
 /* ── BL Counselors List ───────────────────────────────────────────── */
 
 .bl-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(var(--module-accent-bl-rgb, 184, 134, 11), 0.12);
-  color: var(--module-accent-beratungslehrer, #b8860b);
+  background: rgba(var(--module-accent-beratungslehrer-rgb), 0.12);
+  color: var(--module-accent-beratungslehrer);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,4 +55,16 @@
 
 .bl-schedule-item__time {
   color: var(--color-gray-500);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .bl-schedule-item {
+    font-size: 0.85rem;
+  }
+
+  .bl-info-banner {
+    font-size: 0.85rem;
+  }
 }

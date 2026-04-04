@@ -10,7 +10,7 @@ import { exportTeacherSlotsToICal } from '../../../utils/icalExport';
 import { teacherDisplayName } from '../../../utils/teacherDisplayName';
 import { SlotForm } from '../components/SlotForm';
 import '../../../pages/AdminDashboard.css';
-import '../../../pages/admin/user-management.css';
+import '../../../shared/styles/um-components.css';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 
@@ -158,12 +158,7 @@ function TeacherSlotsRow({ teacher, slots, loading, onLoadSlots, showFlash }: {
         </span>
         <ChevronDown
           size={16}
-          style={{
-            color: 'var(--color-gray-400)',
-            transition: 'transform 180ms ease',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            flexShrink: 0,
-          }}
+          className={`tb-chevron${expanded ? ' tb-chevron--open' : ''}`}
         />
       </div>
 

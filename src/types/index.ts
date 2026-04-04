@@ -145,7 +145,7 @@ export interface Counselor {
   id: number;
   first_name: string;
   last_name: string;
-  name: string;
+  name?: string;
   salutation?: string;
   email?: string;
   room?: string;

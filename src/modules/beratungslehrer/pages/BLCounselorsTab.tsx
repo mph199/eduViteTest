@@ -2,51 +2,22 @@ import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import { WEEKDAY_SHORT } from '../../../shared/constants/weekdays';
-import '../../../pages/admin/user-management.css';
+import { groupAlphabetically, getInitials } from '../../../shared/utils/groupAlphabetically';
+import '../../../shared/styles/um-components.css';
 import './bl-counselors.css';
+
+function getCounselorLastName(c: Counselor): string {
+  return c.last_name || '';
+}
 
 interface Props {
   counselors: Counselor[];
   schedulesMap: Record<number, ScheduleEntry[]>;
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return (parts[0]?.[0] || '?').toUpperCase();
-}
-
-function getLastName(c: Counselor): string {
-  if (c.last_name) return c.last_name;
-  const parts = (c.name || '').trim().split(/\s+/);
-  return parts[parts.length - 1] || '';
-}
-
-interface AlphaGroup {
-  letter: string;
-  items: Counselor[];
-}
-
-function groupAlphabetically(counselors: Counselor[]): AlphaGroup[] {
-  const sorted = [...counselors].sort((a, b) =>
-    getLastName(a).localeCompare(getLastName(b), 'de', { sensitivity: 'base' })
-  );
-  const groups: AlphaGroup[] = [];
-  let current: AlphaGroup | null = null;
-  for (const c of sorted) {
-    const letter = (getLastName(c)[0] || '#').toUpperCase();
-    if (!current || current.letter !== letter) {
-      current = { letter, items: [] };
-      groups.push(current);
-    }
-    current.items.push(c);
-  }
-  return groups;
-}
-
 export function BLCounselorsTab({ counselors, schedulesMap }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
-  const groups = useMemo(() => groupAlphabetically(counselors), [counselors]);
+  const groups = useMemo(() => groupAlphabetically(counselors, getCounselorLastName), [counselors]);
 
   return (
     <>
@@ -65,23 +36,23 @@ export function BLCounselorsTab({ counselors, schedulesMap }: Props) {
       {counselors.length === 0 ? (
         <div className="um-empty">Keine Beratungslehrkräfte vorhanden.</div>
       ) : (
-        groups.map((group) => (
-          <div key={group.letter}>
-            <div className="um-alpha-divider">
-              <span className="um-alpha-divider__letter">{group.letter}</span>
-              <span className="um-alpha-divider__line" />
-            </div>
-            <div className="um-list">
+        <div className="um-list">
+          {groups.map((group) => (
+            <div key={group.letter}>
+              <div className="um-alpha-divider">
+                <span className="um-alpha-divider__letter">{group.letter}</span>
+                <span className="um-alpha-divider__line" />
+              </div>
               {group.items.map((c) => {
                 const isOpen = openId === c.id;
                 const scheduleEntries = (schedulesMap[c.id] || []).filter(s => s.active);
                 return (
                   <div key={c.id} className="um-row-wrapper">
                     <div className="um-row" onClick={() => setOpenId(isOpen ? null : c.id)}>
-                      <div className="bl-avatar">{getInitials(c.name || '')}</div>
+                      <div className="bl-avatar">{getInitials(c.first_name || '', c.last_name || '')}</div>
                       <div className="um-info">
                         <span className="um-name">
-                          {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                          {c.salutation ? `${c.salutation} ` : ''}{`${c.first_name || ''} ${c.last_name || ''}`.trim()}
                         </span>
                         <span className="um-email">{c.email || '--'}</span>
                       </div>
@@ -131,8 +102,8 @@ export function BLCounselorsTab({ counselors, schedulesMap }: Props) {
                 );
               })}
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </>
   );

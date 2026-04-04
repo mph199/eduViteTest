@@ -4,7 +4,8 @@ import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { WEEKDAY_LABELS_FULL } from '../../../shared/constants/weekdays';
 import { buildDefaultSchedule, mergeScheduleEntries } from '../../../shared/utils/schedule';
-import '../../../pages/admin/user-management.css';
+import { groupAlphabetically, getInitials } from '../../../shared/utils/groupAlphabetically';
+import '../../../shared/styles/um-components.css';
 import './ssw-counselors.css';
 
 function defaultSchedule(): ScheduleEntry[] {
@@ -30,37 +31,8 @@ const emptyCounselor = {
   password: '',
 };
 
-function getInitials(c: Counselor): string {
-  if (c.first_name && c.last_name) return (c.first_name[0] + c.last_name[0]).toUpperCase();
-  const parts = (c.name || '').trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return (parts[0]?.[0] || '?').toUpperCase();
-}
-
-function getLastName(c: Counselor): string {
-  return c.last_name || (c.name || '').trim().split(/\s+/).pop() || '';
-}
-
-interface AlphaGroup {
-  letter: string;
-  items: Counselor[];
-}
-
-function groupAlphabetically(counselors: Counselor[]): AlphaGroup[] {
-  const sorted = [...counselors].sort((a, b) =>
-    getLastName(a).localeCompare(getLastName(b), 'de', { sensitivity: 'base' })
-  );
-  const groups: AlphaGroup[] = [];
-  let current: AlphaGroup | null = null;
-  for (const c of sorted) {
-    const letter = (getLastName(c)[0] || '#').toUpperCase();
-    if (!current || current.letter !== letter) {
-      current = { letter, items: [] };
-      groups.push(current);
-    }
-    current.items.push(c);
-  }
-  return groups;
+function getCounselorLastName(c: Counselor): string {
+  return c.last_name || '';
 }
 
 // ── Context Menu ────────────────────────────────────────────────────
@@ -107,7 +79,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
   const [openId, setOpenId] = useState<number | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
 
-  const groups = useMemo(() => groupAlphabetically(counselors), [counselors]);
+  const groups = useMemo(() => groupAlphabetically(counselors, getCounselorLastName), [counselors]);
 
   const loadSchedule = async (counselorId: number) => {
     setScheduleLoading(true);
@@ -319,7 +291,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                   </div>
                   <div className="form-group">
                     <label htmlFor="ssw-password">Passwort <span className="label-hint">(optional – wird sonst automatisch generiert)</span></label>
-                    <input id="ssw-password" type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
+                    <input id="ssw-password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Leer = Zufallspasswort" autoComplete="off" />
                   </div>
                 </>
               )}
@@ -336,23 +308,23 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
       {counselors.length === 0 ? (
         <div className="um-empty">Keine Berater/innen vorhanden.</div>
       ) : (
-        groups.map((group) => (
-          <div key={group.letter}>
-            <div className="um-alpha-divider">
-              <span className="um-alpha-divider__letter">{group.letter}</span>
-              <span className="um-alpha-divider__line" />
-            </div>
-            <div className="um-list">
+        <div className="um-list">
+          {groups.map((group) => (
+            <div key={group.letter}>
+              <div className="um-alpha-divider">
+                <span className="um-alpha-divider__letter">{group.letter}</span>
+                <span className="um-alpha-divider__line" />
+              </div>
               {group.items.map((c) => {
                 const isOpen = openId === c.id;
                 const scheduleEntries = (schedulesMap[c.id] || []).filter(s => s.active);
                 return (
                   <div key={c.id} className="um-row-wrapper">
                     <div className="um-row" onClick={() => setOpenId(isOpen ? null : c.id)}>
-                      <div className="ssw-avatar">{getInitials(c)}</div>
+                      <div className="ssw-avatar">{getInitials(c.first_name || '', c.last_name || '')}</div>
                       <div className="um-info">
                         <span className="um-name">
-                          {c.salutation ? `${c.salutation} ` : ''}{c.name}
+                          {c.salutation ? `${c.salutation} ` : ''}{`${c.first_name || ''} ${c.last_name || ''}`.trim()}
                         </span>
                         <span className="um-email">{c.email || '--'}</span>
                       </div>
@@ -438,8 +410,8 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                 );
               })}
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </>
   );

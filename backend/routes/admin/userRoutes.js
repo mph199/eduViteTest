@@ -165,7 +165,7 @@ router.put('/users/:id/modules', requireAdmin, async (req, res) => {
 
 // ── Admin-Module-Rechte (user_admin_access) ─────────────────────
 
-const VALID_ADMIN_MODULE_KEYS = ['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer', 'flow'];
+const VALID_ADMIN_MODULE_KEYS = ['elternsprechtag', 'schulsozialarbeit', 'beratungslehrer', 'flow', 'choice'];
 
 // GET /api/admin/users/:id/admin-access
 router.get('/users/:id/admin-access', requireAdmin, async (req, res) => {
