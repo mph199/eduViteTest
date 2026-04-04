@@ -14,6 +14,18 @@ const BLBookingApp = lazy(() =>
 const BLAdmin = lazy(() =>
   import('./pages/BLAdmin').then((m) => ({ default: m.BLAdmin }))
 );
+const BLCounselorLayout = lazy(() =>
+  import('./pages/BLCounselorLayout').then((m) => ({ default: m.BLCounselorLayout }))
+);
+const BLCounselorAnfragenPage = lazy(() =>
+  import('./pages/BLCounselorAnfragenPage').then((m) => ({ default: m.BLCounselorAnfragenPage }))
+);
+const BLCounselorSprechzeitenPage = lazy(() =>
+  import('./pages/BLCounselorSprechzeitenPage').then((m) => ({ default: m.BLCounselorSprechzeitenPage }))
+);
+const BLCounselorTerminePage = lazy(() =>
+  import('./pages/BLCounselorTerminePage').then((m) => ({ default: m.BLCounselorTerminePage }))
+);
 
 const beratungslehrerModule: ModuleDefinition = {
   id: 'beratungslehrer',
@@ -37,9 +49,21 @@ const beratungslehrerModule: ModuleDefinition = {
   sidebarNav: {
     label: 'Beratungslehrkräfte',
     items: [
-      { path: '/admin/beratungslehrer', label: 'Beratungstermine verwalten', iconName: 'GraduationCap', allowedModules: ['beratungslehrer'] },
+      { path: '/admin/beratungslehrer', label: 'Beratungstermine verwalten', iconName: 'GraduationCap', allowedModules: ['beratungslehrer'], view: 'admin' },
+      { path: '/teacher/bl', label: 'Meine Anfragen', iconName: 'Inbox', allowedModules: ['beratungslehrer'], view: 'teacher' },
+      { path: '/teacher/bl/sprechzeiten', label: 'Sprechzeiten', iconName: 'Clock', allowedModules: ['beratungslehrer'], view: 'teacher' },
+      { path: '/teacher/bl/termine', label: 'Termine', iconName: 'CalendarCheck', allowedModules: ['beratungslehrer'], view: 'teacher' },
     ],
   },
+
+  /** Lehrkraft-Bereich: Berater-eigene Ansicht */
+  teacherLayout: BLCounselorLayout,
+  teacherBasePath: '/teacher/bl',
+  teacherRoutes: [
+    { index: true, Component: BLCounselorAnfragenPage },
+    { path: 'sprechzeiten', Component: BLCounselorSprechzeitenPage },
+    { path: 'termine', Component: BLCounselorTerminePage },
+  ],
 };
 
 export default beratungslehrerModule;

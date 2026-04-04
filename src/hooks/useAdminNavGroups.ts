@@ -86,7 +86,8 @@ export function useAdminNavGroups() {
 
         let groupView: ActiveView | undefined;
         if (isCounselorAccess || hasAdminModuleAccess) {
-          // Counselors and module-admins: always visible in both views
+          // Counselors and module-admins: group visible in both views;
+          // individual items are filtered by item.view in filteredGroups.
           groupView = undefined;
         } else {
           const itemViews = visibleItems
@@ -145,7 +146,14 @@ export function useAdminNavGroups() {
 
   const filteredGroups = useMemo(() => {
     if (!activeView) return navGroups;
-    return navGroups.filter((g) => !g.view || g.view === activeView);
+    return navGroups
+      .filter((g) => !g.view || g.view === activeView)
+      .map((g) => {
+        // Filter individual items by their view property
+        const items = g.items.filter((item) => !item.view || item.view === activeView);
+        return items.length === g.items.length ? g : { ...g, items };
+      })
+      .filter((g) => g.items.length > 0);
   }, [navGroups, activeView]);
 
   const isActive = (path: string) => {
