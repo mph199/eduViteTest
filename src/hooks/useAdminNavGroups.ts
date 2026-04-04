@@ -121,8 +121,8 @@ export function useAdminNavGroups() {
       });
     }
 
-    // Teacher section
-    if (hasTeacherId) {
+    // Teacher section (visible for all teacher-role users, including counselors without teacherId)
+    if (hasTeacherId || user?.role === 'teacher') {
       groups.push({
         label: 'Lehrkraft',
         accentRgb: '26, 127, 122',
@@ -180,7 +180,7 @@ export function useAdminNavGroups() {
   // ViewSwitcher: only for admin/module-admin users who are also teachers
   const viewSwitcherOptions = useMemo(() => {
     if (!user) return null;
-    if (isAdminOrModuleAdmin && hasTeacherId) {
+    if (isAdminOrModuleAdmin && (hasTeacherId || user?.role === 'teacher')) {
       return [
         { value: 'admin' as ActiveView, label: 'Admin' },
         { value: 'teacher' as ActiveView, label: 'Lehrkraft' },

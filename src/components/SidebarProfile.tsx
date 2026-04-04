@@ -32,7 +32,7 @@ export function SidebarProfile({ user, onLogout, onNavigate }: SidebarProfilePro
   const color = getAvatarColor(user.username);
   const displayName = user.fullName || user.username;
   const roleLabel = ROLE_LABELS[user.role] || user.role;
-  const canChangePw = Boolean(user.teacherId);
+  const canChangePw = Boolean(user.teacherId || user.role === 'teacher');
 
   const close = useCallback(() => {
     setOpen(false);
