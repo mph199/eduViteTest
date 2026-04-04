@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { MoreVertical, MessageSquare, ChevronDown } from 'lucide-react';
+import { PopoverMenu } from '../../../shared/components/PopoverMenu';
 import type { TimeSlot } from '../../../types';
 import { visitorLabel } from '../../../utils/bookingSort';
 import { statusLabel } from '../../../shared/utils/statusLabel';
@@ -13,17 +14,8 @@ interface BookingTableRowProps {
 export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const isPending = booking.status === 'reserved';
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
 
   const time = booking.time?.toString().slice(0, 5) || '--:--';
   const visitor = visitorLabel(booking) || '--';
@@ -61,8 +53,9 @@ export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRo
         />
 
         {/* Three-dot menu */}
-        <div className="um-menu-anchor" ref={menuRef}>
+        <div className="um-menu-anchor">
           <button
+            ref={menuTriggerRef}
             className="um-menu-trigger"
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
             aria-label="Aktionen"
@@ -70,7 +63,7 @@ export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRo
             <MoreVertical size={18} />
           </button>
           {menuOpen && (
-            <div className="um-context-menu">
+            <PopoverMenu triggerRef={menuTriggerRef} onClose={() => setMenuOpen(false)}>
               <button className="um-context-menu__item" onClick={(e) => { e.stopPropagation(); setDetailOpen(!detailOpen); setMenuOpen(false); }}>
                 Details
               </button>
@@ -83,7 +76,7 @@ export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRo
               <button className="um-context-menu__item um-context-menu__item--danger" onClick={(e) => { e.stopPropagation(); onCancel(booking); setMenuOpen(false); }}>
                 Stornieren
               </button>
-            </div>
+            </PopoverMenu>
           )}
         </div>
       </div>

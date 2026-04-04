@@ -319,6 +319,12 @@
   overflow: hidden;
 }
 
+/* Portal-rendered variant (position:fixed, set by JS) */
+.um-context-menu--portal {
+  position: fixed;
+  z-index: 9999;
+}
+
 .um-context-menu__item {
   display: flex;
   align-items: center;
