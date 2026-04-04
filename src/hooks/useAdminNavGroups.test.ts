@@ -213,8 +213,8 @@ describe('useAdminNavGroups', () => {
       expect(labels(hook().filteredGroups)).toContain('Schulsozialarbeit');
     });
 
-    it('no Lehrkraft group', () => {
-      expect(labels(hook().filteredGroups)).not.toContain('Lehrkraft');
+    it('Lehrkraft group visible for teacher-role counselors', () => {
+      expect(labels(hook().filteredGroups)).toContain('Lehrkraft');
     });
 
     it('no ViewSwitcher', () => {
