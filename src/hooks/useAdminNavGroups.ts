@@ -85,12 +85,9 @@ export function useAdminNavGroups() {
           !hasAdminModuleAccess && userModules.includes(mod.requiredModule);
 
         let groupView: ActiveView | undefined;
-        if (isCounselorAccess) {
-          // Counselors (with or without teacherId, no admin-module access): always visible
+        if (isCounselorAccess || hasAdminModuleAccess) {
+          // Counselors and module-admins: always visible in both views
           groupView = undefined;
-        } else if (hasAdminModuleAccess) {
-          // Module-admins with teacherId: show in admin view, filtered in teacher view
-          groupView = 'admin';
         } else {
           const itemViews = visibleItems
             .map((item: SidebarNavItem) => item.view)
