@@ -76,3 +76,139 @@
   }
 }
 
+/* ── Admin Dashboard Booking Section ─────────────────────────────── */
+
+.adb-header {
+  margin-bottom: 1rem;
+}
+
+.adb-header__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--brand-text-primary, var(--color-gray-800));
+}
+
+.adb-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.adb-meta-tag {
+  font-size: 0.82rem;
+  color: var(--brand-text-secondary, var(--color-gray-500));
+}
+
+.adb-meta-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-gray-300);
+  flex-shrink: 0;
+}
+
+.adb-status-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.adb-status-pill--published {
+  background: rgba(var(--color-success-rgb, 34, 197, 94), 0.1);
+  color: var(--color-success, #16a34a);
+}
+
+.adb-status-pill--draft {
+  background: rgba(var(--color-warning-rgb, 234, 179, 8), 0.1);
+  color: var(--color-warning, #ca8a04);
+}
+
+.adb-status-pill--closed {
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+}
+
+/* ── Filters ────────────────────────────────────────────────────── */
+
+.adb-filters {
+  margin-bottom: 1rem;
+}
+
+.adb-filters__row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adb-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-gray-700);
+  cursor: pointer;
+  appearance: auto;
+}
+
+.adb-select:focus {
+  outline: 2px solid var(--brand-primary, var(--color-primary));
+  outline-offset: -1px;
+}
+
+.adb-filter-count {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--color-gray-500);
+}
+
+/* ── Teacher Divider ────────────────────────────────────────────── */
+
+.adb-teacher-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0 0.35rem;
+}
+
+.adb-teacher-divider__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-primary, var(--module-accent-elternsprechtag, var(--color-primary)));
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.adb-teacher-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-gray-200);
+}
+
+.adb-teacher-divider__count {
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .adb-filters__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adb-select {
+    flex: none;
+    width: 100%;
+  }
+}
+
