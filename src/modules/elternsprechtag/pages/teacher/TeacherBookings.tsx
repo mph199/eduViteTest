@@ -5,7 +5,7 @@
  * mit kompaktem Event-Info-Header, Suche und Filtern.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import api from '../../../../services/api';
 import type { TimeSlot } from '../../../../types';
@@ -15,6 +15,7 @@ import { CalendarSetupBanner, CalendarSyncLink } from '../../components/Calendar
 import { CalendarStatusFooter } from '../../components/CalendarStatusFooter';
 import { BookingTableRow } from '../../components/BookingTableRow';
 import '../../components/CalendarSubscription.css';
+import '../../../../pages/AdminDashboard.css';
 import '../../../../shared/styles/um-components.css';
 import './TeacherBookings.css';
 
@@ -100,7 +101,7 @@ export function TeacherBookings() {
 
   const calSub = useCalendarSubscription();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -115,9 +116,9 @@ export function TeacherBookings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
   // Unique teacher names for dropdown
   const teacherNames = useMemo(() => {
