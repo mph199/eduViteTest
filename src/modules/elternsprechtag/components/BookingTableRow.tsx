@@ -1,8 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
-import { MoreVertical, MessageSquare, ChevronDown } from 'lucide-react';
+/**
+ * BookingTableRow — Kompakte Buchungszeile mit aufklappbarem Detail-Panel.
+ *
+ * Zeigt Zeitslot, Besuchername, Besuchertyp-Chip, Schüler/Azubi+Klasse,
+ * Nachricht-Indikator und Drei-Punkte-Menü. Responsive: auf Mobile
+ * werden Chip und Schüler-Info ins Detail-Panel verschoben.
+ */
+
+import { useRef, useState } from 'react';
+import { MoreVertical, MessageSquare, ChevronDown, X } from 'lucide-react';
+import { PopoverMenu } from '../../../shared/components/PopoverMenu';
 import type { TimeSlot } from '../../../types';
 import { visitorLabel } from '../../../utils/bookingSort';
-import { statusLabel } from '../../../shared/utils/statusLabel';
 
 interface BookingTableRowProps {
   booking: TimeSlot;
@@ -10,59 +18,55 @@ interface BookingTableRowProps {
   onCancel: (b: TimeSlot) => void;
 }
 
+const VISITOR_TYPE_LABELS: Record<string, string> = {
+  parent: 'Erziehungsberechtigte/r',
+  company: 'Ausbildungsbetrieb',
+};
+
 export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const isPending = booking.status === 'reserved';
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
 
   const time = booking.time?.toString().slice(0, 5) || '--:--';
   const visitor = visitorLabel(booking) || '--';
   const student = booking.visitorType === 'parent' ? booking.studentName : booking.traineeName;
-  const status = booking.status || 'confirmed';
+  const studentInfo = student
+    ? `${student}${booking.className ? ` (${booking.className})` : ''}`
+    : '';
+  const visitorTypeLabel = VISITOR_TYPE_LABELS[booking.visitorType || ''] || '';
 
   return (
-    <div className="um-row-wrapper">
-      <div className="um-row" onClick={() => setDetailOpen(!detailOpen)}>
-        {/* Time block as avatar replacement */}
-        <div className="tb-time-block">
-          <span className="tb-time-block__time">{time}</span>
-        </div>
+    <div className="bkr-wrapper">
+      <div className="bkr-row" onClick={() => setDetailOpen(!detailOpen)}>
+        {/* Time */}
+        <span className="bkr-time">{time}</span>
 
-        <div className="um-info">
-          <div className="um-name">
-            {visitor}
-            {booking.message && (
-              <span title={booking.message || ''}><MessageSquare size={13} className="tb-message-icon" /></span>
-            )}
-          </div>
-          <span className="um-email">
-            {student && <>{student}</>}
-            {booking.className && <> | Klasse: {booking.className}</>}
+        {/* Visitor name */}
+        <span className="bkr-visitor">{visitor}</span>
+
+        {/* Visitor type chip (hidden on mobile) */}
+        {visitorTypeLabel && (
+          <span className="bkr-type-chip">{visitorTypeLabel}</span>
+        )}
+
+        {/* Student + class (hidden on mobile) */}
+        {studentInfo && (
+          <span className="bkr-student">{studentInfo}</span>
+        )}
+
+        {/* Message indicator */}
+        {booking.message && (
+          <span className="bkr-msg-icon" title="Nachricht vorhanden">
+            <MessageSquare size={14} />
           </span>
-        </div>
-
-        <span className={`um-role-chip tb-status-chip tb-status-chip--${status}`}>
-          {statusLabel(status)}
-        </span>
-
-        <ChevronDown
-          size={16}
-          className={`tb-chevron${detailOpen ? ' tb-chevron--open' : ''}`}
-        />
+        )}
 
         {/* Three-dot menu */}
-        <div className="um-menu-anchor" ref={menuRef}>
+        <div className="bkr-menu">
           <button
+            ref={menuTriggerRef}
             className="um-menu-trigger"
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
             aria-label="Aktionen"
@@ -70,10 +74,17 @@ export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRo
             <MoreVertical size={18} />
           </button>
           {menuOpen && (
-            <div className="um-context-menu">
+            <PopoverMenu triggerRef={menuTriggerRef} onClose={() => setMenuOpen(false)}>
               <button className="um-context-menu__item" onClick={(e) => { e.stopPropagation(); setDetailOpen(!detailOpen); setMenuOpen(false); }}>
-                Details
+                <ChevronDown size={15} style={{ transform: detailOpen ? 'rotate(180deg)' : undefined }} />
+                {detailOpen ? 'Details ausblenden' : 'Details anzeigen'}
               </button>
+              {booking.message && (
+                <button className="um-context-menu__item" onClick={(e) => { e.stopPropagation(); setDetailOpen(true); setMenuOpen(false); }}>
+                  <MessageSquare size={15} />
+                  Nachricht lesen
+                </button>
+              )}
               {isPending && booking.verifiedAt && (
                 <button className="um-context-menu__item" onClick={(e) => { e.stopPropagation(); onConfirm(booking.id); setMenuOpen(false); }}>
                   Bestätigen
@@ -81,45 +92,48 @@ export function BookingTableRow({ booking, onConfirm, onCancel }: BookingTableRo
               )}
               <div className="um-context-menu__divider" />
               <button className="um-context-menu__item um-context-menu__item--danger" onClick={(e) => { e.stopPropagation(); onCancel(booking); setMenuOpen(false); }}>
+                <X size={15} />
                 Stornieren
               </button>
-            </div>
+            </PopoverMenu>
           )}
         </div>
       </div>
 
-      {/* Expandable detail panel */}
+      {/* Detail panel */}
       <div className={`um-detail-panel${detailOpen ? ' um-detail-panel--open' : ''}`}>
         <div className="um-detail-panel__inner">
-          <div className="um-detail-grid">
-            <div className="um-detail-item">
-              <span className="um-detail-label">E-Mail</span>
-              <span className="um-detail-value">
-                {booking.email ? <a href={`mailto:${booking.email}`}>{booking.email}</a> : '--'}
-              </span>
-            </div>
-            <div className="um-detail-item">
-              <span className="um-detail-label">Status</span>
-              <span className="um-detail-value">{statusLabel(status)}</span>
-            </div>
-            {student && (
+          <div className="bkr-detail">
+            <div className="bkr-detail__grid">
               <div className="um-detail-item">
-                <span className="um-detail-label">{booking.visitorType === 'parent' ? 'Schüler/in' : 'Azubi'}</span>
-                <span className="um-detail-value">{student}</span>
+                <span className="um-detail-label">Besucher/in</span>
+                <span className="um-detail-value">{visitor}</span>
               </div>
-            )}
-            {booking.className && (
               <div className="um-detail-item">
-                <span className="um-detail-label">Klasse</span>
-                <span className="um-detail-value">{booking.className}</span>
+                <span className="um-detail-label">E-Mail</span>
+                <span className="um-detail-value">
+                  {booking.email ? <a href={`mailto:${booking.email}`}>{booking.email}</a> : '--'}
+                </span>
               </div>
-            )}
-            {booking.message && (
-              <div className="um-detail-item" style={{ gridColumn: '1 / -1' }}>
-                <span className="um-detail-label">Nachricht</span>
-                <span className="um-detail-value">{booking.message}</span>
-              </div>
-            )}
+              {student && (
+                <div className="um-detail-item">
+                  <span className="um-detail-label">{booking.visitorType === 'parent' ? 'Schüler/in' : 'Azubi'}</span>
+                  <span className="um-detail-value">{student}</span>
+                </div>
+              )}
+              {booking.className && (
+                <div className="um-detail-item">
+                  <span className="um-detail-label">Klasse</span>
+                  <span className="um-detail-value">{booking.className}</span>
+                </div>
+              )}
+              {booking.message && (
+                <div className="um-detail-item bkr-detail__full">
+                  <span className="um-detail-label">Nachricht</span>
+                  <span className="um-detail-value">{booking.message}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

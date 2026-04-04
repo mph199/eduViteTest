@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Search, Clock, MoreVertical, Pencil, Trash2, CalendarPlus, Download, ChevronDown } from 'lucide-react';
+import { PopoverMenu } from '../../../shared/components/PopoverMenu';
 import { useActiveView } from '../../../hooks/useActiveView';
 import { useBgStyle } from '../../../hooks/useBgStyle';
 import { useFlash } from '../../../hooks/useFlash';
@@ -27,24 +28,15 @@ function formatTime(time: string | undefined, fallback: string): string {
 
 /* ── Slot Context Menu ───────────────────────────────────────────── */
 
-function SlotContextMenu({ slot, onEdit, onDelete, onClose }: {
+function SlotContextMenu({ slot, triggerRef, onEdit, onDelete, onClose }: {
   slot: ApiSlot;
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
   onEdit: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [onClose]);
-
   return (
-    <div className="um-context-menu" ref={ref}>
+    <PopoverMenu triggerRef={triggerRef} onClose={onClose}>
       <button className="um-context-menu__item" onClick={() => { onEdit(); onClose(); }} disabled={slot.booked}>
         <Pencil size={15} />
         Bearbeiten
@@ -54,7 +46,7 @@ function SlotContextMenu({ slot, onEdit, onDelete, onClose }: {
         <Trash2 size={15} />
         Löschen
       </button>
-    </div>
+    </PopoverMenu>
   );
 }
 
@@ -72,6 +64,7 @@ function TeacherSlotsRow({ teacher, slots, loading, onLoadSlots, showFlash }: {
   const [editingSlot, setEditingSlot] = useState<ApiSlot | null>(null);
   const [formData, setFormData] = useState({ time: '', date: '' });
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const [bulkCreating, setBulkCreating] = useState(false);
 
   const bookedCount = slots.filter((s) => s.booked).length;
@@ -226,8 +219,9 @@ function TeacherSlotsRow({ teacher, slots, loading, onLoadSlots, showFlash }: {
                     {!slot.booked && <span className="slot-row__visitor" />}
                     <div className="um-menu-anchor">
                       <button
+                        ref={menuOpenId === slot.id ? menuTriggerRef : undefined}
                         className="um-menu-trigger"
-                        onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === slot.id ? null : slot.id); }}
+                        onClick={(e) => { e.stopPropagation(); menuTriggerRef.current = e.currentTarget; setMenuOpenId(menuOpenId === slot.id ? null : slot.id); }}
                         disabled={slot.booked}
                         aria-label="Aktionen"
                       >
@@ -236,6 +230,7 @@ function TeacherSlotsRow({ teacher, slots, loading, onLoadSlots, showFlash }: {
                       {menuOpenId === slot.id && (
                         <SlotContextMenu
                           slot={slot}
+                          triggerRef={menuTriggerRef}
                           onEdit={() => handleEdit(slot)}
                           onDelete={() => handleDelete(slot)}
                           onClose={() => setMenuOpenId(null)}

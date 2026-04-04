@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { MoreVertical, ChevronDown, Pencil, KeyRound, Trash2, Mail } from 'lucide-react';
+import { PopoverMenu } from '../../shared/components/PopoverMenu';
 import api from '../../services/api';
 import type { Teacher as ApiTeacher, UserAccount, TeacherLoginResponse } from '../../types';
 
@@ -37,24 +38,15 @@ function formatTime(time: string | undefined, fallback: string): string {
 
 /* ── Context Menu ────────────────────────────────────────────────── */
 
-function ContextMenu({ teacher, onEdit, onDelete, onToggleDetail, detailOpen, onClose }: {
+function ContextMenu({ teacher, triggerRef, onEdit, onDelete, onToggleDetail, detailOpen, onClose }: {
   teacher: ApiTeacher;
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
   onEdit: () => void;
   onDelete: () => void;
   onToggleDetail: () => void;
   detailOpen: boolean;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [onClose]);
-
   const handleResetLogin = async () => {
     onClose();
     try {
@@ -71,7 +63,7 @@ function ContextMenu({ teacher, onEdit, onDelete, onToggleDetail, detailOpen, on
   };
 
   return (
-    <div className="um-context-menu" ref={ref}>
+    <PopoverMenu triggerRef={triggerRef} onClose={onClose}>
       <button className="um-context-menu__item" onClick={() => { onToggleDetail(); onClose(); }}>
         <ChevronDown size={15} style={{ transform: detailOpen ? 'rotate(180deg)' : undefined }} />
         {detailOpen ? 'Details ausblenden' : 'Details anzeigen'}
@@ -89,7 +81,7 @@ function ContextMenu({ teacher, onEdit, onDelete, onToggleDetail, detailOpen, on
         <Trash2 size={15} />
         Löschen
       </button>
-    </div>
+    </PopoverMenu>
   );
 }
 
@@ -98,6 +90,7 @@ function ContextMenu({ teacher, onEdit, onDelete, onToggleDetail, detailOpen, on
 export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleSaving, updateRole, onEdit, onDelete }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
   const toggleDetail = (id: number) => {
     setExpandedIds((prev) => {
@@ -181,8 +174,12 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                   {/* Three-dot menu */}
                   <div className="um-menu-anchor">
                     <button
+                      ref={menuOpenId === teacher.id ? menuTriggerRef : undefined}
                       className="um-menu-trigger"
-                      onClick={() => setMenuOpenId(menuOpenId === teacher.id ? null : teacher.id)}
+                      onClick={(e) => {
+                        menuTriggerRef.current = e.currentTarget;
+                        setMenuOpenId(menuOpenId === teacher.id ? null : teacher.id);
+                      }}
                       aria-label="Aktionen"
                     >
                       <MoreVertical size={18} />
@@ -190,6 +187,7 @@ export function TeacherTable({ filtered, userByTeacherId, currentUsername, roleS
                     {menuOpenId === teacher.id && (
                       <ContextMenu
                         teacher={teacher}
+                        triggerRef={menuTriggerRef}
                         onEdit={() => onEdit(teacher)}
                         onDelete={() => onDelete(teacher.id, teacher.name)}
                         onToggleDetail={() => toggleDetail(teacher.id)}

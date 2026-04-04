@@ -1,15 +1,66 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Search } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
 import { useActiveView } from '../hooks/useActiveView';
 import { useBgStyle } from '../hooks/useBgStyle';
 import api from '../services/api';
 import type { TimeSlot as ApiBooking, AdminEvent, EventStats } from '../types';
 import { formatDateTime } from '../utils/formatters';
-import { parseDateValue, parseStartMinutes, visitorLabel } from '../utils/bookingSort';
+import { parseStartMinutes, visitorLabel } from '../utils/bookingSort';
+import { BookingTableRow } from '../modules/elternsprechtag/components/BookingTableRow';
+import '../shared/styles/um-components.css';
 import './AdminDashboard.css';
 
-type SortKey = 'teacher' | 'when' | 'visitor';
-type SortDir = 'asc' | 'desc';
+// ── Types ─────────────────────────────────────────────────────────────
+
+interface TeacherGroup {
+  teacherName: string;
+  bookings: ApiBooking[];
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+
+function formatShortDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+}
+
+function getBookingWindowLabel(event: AdminEvent): string {
+  if (!event.booking_opens_at) return 'Sofort offen';
+  return `ab ${formatShortDate(event.booking_opens_at)}`;
+}
+
+const EVENT_STATUS_LABELS: Record<AdminEvent['status'], string> = {
+  draft: 'Entwurf',
+  published: 'Veröffentlicht',
+  closed: 'Geschlossen',
+};
+
+function groupByTeacher(bookings: ApiBooking[]): TeacherGroup[] {
+  const map = new Map<string, ApiBooking[]>();
+  for (const b of bookings) {
+    const name = b.teacherName || 'Unbekannt';
+    if (!map.has(name)) map.set(name, []);
+    map.get(name)!.push(b);
+  }
+
+  const groups: TeacherGroup[] = [];
+  const sortedNames = [...map.keys()].sort((a, b) => a.localeCompare(b, 'de'));
+  for (const name of sortedNames) {
+    const items = map.get(name)!;
+    items.sort((a, b) => {
+      const aMin = parseStartMinutes(a.time) ?? 0;
+      const bMin = parseStartMinutes(b.time) ?? 0;
+      return aMin - bMin || a.id - b.id;
+    });
+    groups.push({ teacherName: name, bookings: items });
+  }
+  return groups;
+}
+
+// ── Main ──────────────────────────────────────────────────────────────
 
 export function AdminDashboard() {
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
@@ -17,28 +68,21 @@ export function AdminDashboard() {
   const [error, setError] = useState('');
   const [activeEvent, setActiveEvent] = useState<AdminEvent | null>(null);
   const [activeEventStats, setActiveEventStats] = useState<EventStats | null>(null);
-  const [activeEventStatsError, setActiveEventStatsError] = useState<string>('');
+  const [activeEventStatsError, setActiveEventStatsError] = useState('');
 
-  // Filter & sort state
+  // Filter state
   const [query, setQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'parent' | 'company'>('all');
-  const [teacherFilter, setTeacherFilter] = useState<string>('all');
-  const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({ key: null, dir: 'asc' });
+  const [typeFilter, setTypeFilter] = useState('');
+  const [teacherFilter, setTeacherFilter] = useState('');
+
   const { user } = useAuth();
   const adminBgStyle = useBgStyle('admin', '--page-bg');
   useActiveView('admin');
-
-  const statusLabel: Record<AdminEvent['status'], string> = {
-    draft: 'Entwurf',
-    published: 'Veröffentlicht',
-    closed: 'Geschlossen',
-  };
 
   const loadBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      // Use appropriate endpoint per role
       const data = user?.role === 'teacher'
         ? await api.teacher.getBookings()
         : await api.admin.getBookings();
@@ -56,7 +100,6 @@ export function AdminDashboard() {
       const parsed = res as unknown as { event?: AdminEvent | null };
       setActiveEvent(parsed?.event || null);
     } catch {
-      // Non-blocking: keep UI usable even if event endpoint fails
       setActiveEvent(null);
     }
   }, []);
@@ -72,14 +115,8 @@ export function AdminDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
-
-  useEffect(() => {
-    loadActiveEvent();
-  }, [loadActiveEvent]);
-
+  useEffect(() => { loadBookings(); }, [loadBookings]);
+  useEffect(() => { loadActiveEvent(); }, [loadActiveEvent]);
   useEffect(() => {
     if (user?.role !== 'admin') {
       setActiveEventStats(null);
@@ -94,105 +131,70 @@ export function AdminDashboard() {
     loadActiveEventStats(activeEvent.id);
   }, [activeEvent?.id, loadActiveEventStats, user?.role]);
 
-  // Unique teacher names for dropdown
+  // Unique teacher names
   const teacherNames = useMemo(() => {
     const names = new Set<string>();
     for (const b of bookings) {
       if (b.teacherName) names.add(b.teacherName);
     }
-    return Array.from(names).sort((a, b) => a.localeCompare(b, 'de'));
+    return [...names].sort((a, b) => a.localeCompare(b, 'de'));
   }, [bookings]);
 
-  // Filter logic
+  // Filter
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return bookings.filter((b) => {
-      if (typeFilter !== 'all' && b.visitorType !== typeFilter) return false;
-      if (teacherFilter !== 'all' && b.teacherName !== teacherFilter) return false;
+      if (typeFilter && b.visitorType !== typeFilter) return false;
+      if (teacherFilter && b.teacherName !== teacherFilter) return false;
       if (!q) return true;
       const hay = [
-        b.teacherName,
-        b.teacherSubject,
-        visitorLabel(b),
-        b.representativeName,
-        b.studentName,
-        b.traineeName,
-        b.className,
-        b.email,
-        b.time,
-        b.date,
-        b.message,
-        b.status,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+        b.teacherName, b.teacherSubject, visitorLabel(b),
+        b.representativeName, b.studentName, b.traineeName,
+        b.className, b.email, b.message,
+      ].filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
   }, [bookings, query, typeFilter, teacherFilter]);
 
-  // Sort logic
-  const filteredAndSorted = useMemo(() => {
-    if (!sort.key) return filtered;
-    const dir = sort.dir === 'asc' ? 1 : -1;
-    const copy = [...filtered];
-    const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
-    copy.sort((a, b) => {
-      if (sort.key === 'teacher') {
-        return collator.compare(a.teacherName || '', b.teacherName || '') * dir;
-      }
-      if (sort.key === 'visitor') {
-        return collator.compare(visitorLabel(a), visitorLabel(b)) * dir;
-      }
-      // 'when'
-      const aDate = parseDateValue(a.date);
-      const bDate = parseDateValue(b.date);
-      if (aDate != null && bDate != null && aDate !== bDate) return (aDate - bDate) * dir;
-      const aTime = parseStartMinutes(a.time);
-      const bTime = parseStartMinutes(b.time);
-      if (aTime != null && bTime != null && aTime !== bTime) return (aTime - bTime) * dir;
-      return (a.id - b.id) * dir;
-    });
-    return copy;
-  }, [filtered, sort.key, sort.dir]);
+  // Group by teacher
+  const groups = useMemo(() => groupByTeacher(filtered), [filtered]);
 
-  const cycleSort = (key: SortKey) => {
-    setSort((prev) => {
-      if (prev.key !== key) return { key, dir: 'asc' };
-      if (prev.dir === 'asc') return { key, dir: 'desc' };
-      return { key: null, dir: 'asc' };
-    });
-  };
+  // Stats
+  const stats = useMemo(() => {
+    const total = bookings.length;
+    const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
+    const reserved = bookings.filter((b) => b.status === 'reserved').length;
+    return { total, confirmed, reserved };
+  }, [bookings]);
 
-  const clearFilters = () => {
-    setQuery('');
-    setTypeFilter('all');
-    setTeacherFilter('all');
-    setSort({ key: null, dir: 'asc' });
-  };
+  const hasActiveFilters = query !== '' || typeFilter !== '' || teacherFilter !== '';
 
-  const hasActiveFilters = query !== '' || typeFilter !== 'all' || teacherFilter !== 'all' || sort.key !== null;
-
-  const handleCancelBooking = async (slotId: number) => {
+  const handleCancelBooking = async (booking: ApiBooking) => {
     const reason = prompt(
       'Bitte geben Sie einen Grund für die Stornierung ein.\nDiese Nachricht wird dem/der Buchenden per E-Mail mitgeteilt.'
     );
-    if (!reason || !reason.trim()) {
-      return;
-    }
-
+    if (!reason || !reason.trim()) return;
     try {
-      await api.admin.cancelBooking(slotId, reason.trim());
-      await loadBookings(); // Reload bookings after cancellation
+      await api.admin.cancelBooking(booking.id, reason.trim());
+      await loadBookings();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Fehler beim Stornieren');
+    }
+  };
+
+  const handleConfirmBooking = async (slotId: number) => {
+    try {
+      await api.teacher.acceptBooking(slotId);
+      await loadBookings();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Fehler beim Bestätigen');
     }
   };
 
   if (loading) {
     return (
       <div className="admin-loading">
-        <div className="spinner"></div>
+        <div className="spinner" />
         <p>Laden...</p>
       </div>
     );
@@ -204,6 +206,7 @@ export function AdminDashboard() {
       style={adminBgStyle}
     >
       <div className="admin-main">
+        {/* ── Active Events Section ─────────────────────────────── */}
         <div className="teacher-form-container">
           <div className="admin-section-header">
             <h3>Aktive Events</h3>
@@ -234,7 +237,7 @@ export function AdminDashboard() {
                     </td>
                     <td data-label="Status">
                       <span className={`admin-status-pill admin-status-pill--${activeEvent.status === 'published' ? 'success' : activeEvent.status === 'draft' ? 'warning' : 'neutral'}`}>
-                        {statusLabel[activeEvent.status]}
+                        {EVENT_STATUS_LABELS[activeEvent.status]}
                       </span>
                     </td>
                     {(user?.role === 'admin' || user?.role === 'superadmin') && (
@@ -264,157 +267,111 @@ export function AdminDashboard() {
           )}
         </div>
 
-        {error && (
-          <div className="admin-error">
-            {error}
-          </div>
-        )}
+        {error && <div className="admin-error">{error}</div>}
 
-        <div className="teacher-form-container">
-          <div className="admin-section-header">
-            <h3>Buchungen des Kollegiums</h3>
+        {/* ── Buchungen des Kollegiums ──────────────────────────── */}
+        <div className="teacher-form-container" style={{ padding: '1.25rem' }}>
+          {/* Header */}
+          <div className="adb-header">
+            <h3 className="adb-header__title">Buchungen des Kollegiums</h3>
+            <div className="adb-header__meta">
+              {activeEvent && (
+                <>
+                  <span className="adb-meta-tag">{activeEvent.school_year}</span>
+                  <span className="adb-meta-sep" aria-hidden="true" />
+                  <span className="adb-meta-tag">{getBookingWindowLabel(activeEvent)}</span>
+                  <span className="adb-meta-sep" aria-hidden="true" />
+                  <span className={`adb-status-pill adb-status-pill--${activeEvent.status}`}>
+                    {EVENT_STATUS_LABELS[activeEvent.status]}
+                  </span>
+                  <span className="adb-meta-sep" aria-hidden="true" />
+                </>
+              )}
+              <span className="adb-meta-tag">{stats.total} Buchungen</span>
+              <span className="adb-meta-sep" aria-hidden="true" />
+              <span className="adb-meta-tag">{stats.confirmed} bestätigt</span>
+              <span className="adb-meta-sep" aria-hidden="true" />
+              <span className="adb-meta-tag">{stats.reserved} offen</span>
+            </div>
           </div>
 
+          {/* Filter & Search */}
           {bookings.length > 0 && (
-            <div className="admin-stats" style={{ gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-              <div className="stat-card" style={{ flex: '1 1 100%', minWidth: 0, padding: '1rem 1.1rem' }}>
-                <h3 style={{ marginBottom: 8 }}>Filter &amp; Sortierung</h3>
-                <div className="admin-filter-bar">
-                  <input
-                    type="text"
-                    className="admin-filter-input"
-                    placeholder="Suche (Name, Klasse, E-Mail, Nachricht…)"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                  <select
-                    className="admin-filter-select"
-                    value={teacherFilter}
-                    onChange={(e) => setTeacherFilter(e.target.value)}
-                  >
-                    <option value="all">Alle Lehrkräfte</option>
-                    {teacherNames.map((name) => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
-                  <select
-                    className="admin-filter-select"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as 'all' | 'parent' | 'company')}
-                  >
-                    <option value="all">Alle Besuchertypen</option>
-                    <option value="parent">Erziehungsberechtigte</option>
-                    <option value="company">Ausbildungsbetrieb</option>
-                  </select>
-                  {hasActiveFilters && (
-                    <button type="button" className="btn-secondary btn-secondary--sm" onClick={clearFilters}>
-                      Filter zurücksetzen
-                    </button>
-                  )}
-                </div>
+            <div className="adb-filters">
+              <div className="um-search">
+                <Search size={16} className="um-search__icon" />
+                <input
+                  type="text"
+                  className="um-search__input"
+                  placeholder="Name, Klasse, E-Mail, Nachricht ..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <div className="adb-filters__row">
+                <select
+                  className="adb-select"
+                  value={teacherFilter}
+                  onChange={(e) => setTeacherFilter(e.target.value)}
+                >
+                  <option value="">Alle Lehrkräfte</option>
+                  {teacherNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                <select
+                  className="adb-select"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="">Alle Besuchertypen</option>
+                  <option value="parent">Erziehungsberechtigte</option>
+                  <option value="company">Ausbildungsbetriebe</option>
+                </select>
                 {hasActiveFilters && (
-                  <div className="text-muted" style={{ marginTop: 6, fontSize: '0.85rem' }}>
-                    {filteredAndSorted.length} von {bookings.length} Buchungen
-                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-secondary--sm"
+                    onClick={() => { setQuery(''); setTypeFilter(''); setTeacherFilter(''); }}
+                  >
+                    Zurücksetzen
+                  </button>
                 )}
               </div>
+              {hasActiveFilters && (
+                <div className="adb-filter-count">
+                  {filtered.length} von {bookings.length} Buchungen
+                </div>
+              )}
             </div>
           )}
 
+          {/* Booking List */}
           {bookings.length === 0 ? (
-            <div className="no-bookings">
-              <p>Keine Buchungen vorhanden.</p>
-              <a href="/" className="back-to-booking">Zur Buchungsseite</a>
-            </div>
+            <div className="um-empty">Noch keine Buchungen vorhanden.</div>
+          ) : filtered.length === 0 ? (
+            <div className="um-empty">Keine Buchungen gefunden.</div>
           ) : (
-            <div className="admin-resp-table-container">
-              <table className="admin-resp-table">
-              <thead>
-                <tr>
-                  <th>
-                    <button type="button" className="teacher-sort-button" onClick={() => cycleSort('teacher')} title="Nach Lehrkraft sortieren">
-                      Lehrkraft {sort.key === 'teacher' ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" className="teacher-sort-button" onClick={() => cycleSort('when')} title="Nach Termin sortieren">
-                      Termin {sort.key === 'when' ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" className="teacher-sort-button" onClick={() => cycleSort('visitor')} title="Nach Besuchenden sortieren">
-                      Besuchende {sort.key === 'visitor' ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
-                    </button>
-                  </th>
-                  <th>Schüler*in / Azubi</th>
-                  <th>Nachricht</th>
-                  <th className="admin-actions-header">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSorted.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="empty-state">
-                      Keine Buchungen für die gewählten Filter gefunden.
-                    </td>
-                  </tr>
-                ) : filteredAndSorted.map((booking) => (
-                  <tr key={booking.id}>
-                    <td data-label="Lehrkraft">
-                      <div className="admin-cell-main">{booking.teacherName}</div>
-                      <div className="admin-cell-meta">{booking.teacherSubject}</div>
-                    </td>
-                    <td data-label="Termin">
-                      <div className="admin-cell-main">{booking.date}</div>
-                      <div className="admin-cell-meta">{booking.time}</div>
-                    </td>
-                    <td data-label="Besuchende">
-                      <div className="admin-cell-main">
-                        {booking.visitorType === 'parent' 
-                          ? booking.parentName 
-                          : booking.companyName}
-                      </div>
-                      <div className="admin-cell-meta">
-                        {booking.visitorType === 'parent' ? 'Erziehungsberechtigte' : 'Ausbildungsbetrieb'}
-                      </div>
-                      {booking.visitorType === 'company' && booking.representativeName && (
-                        <div className="admin-cell-meta" title={booking.representativeName}>
-                          Vertreter*in: {booking.representativeName}
-                        </div>
-                      )}
-                      {booking.email && (
-                        <div className="admin-cell-meta" title={booking.email}>
-                          <a href={`mailto:${booking.email}`}>{booking.email}</a>
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="Schüler*in / Azubi">
-                      <div className="admin-cell-main">
-                        {booking.visitorType === 'parent' 
-                          ? booking.studentName 
-                          : booking.traineeName}
-                      </div>
-                      <div className="admin-cell-meta">Klasse: {booking.className || '—'}</div>
-                    </td>
-                    <td data-label="Nachricht" className="admin-message-cell">
-                      <span className="admin-message-value" title={booking.message || ''}>
-                        {booking.message || '—'}
-                      </span>
-                    </td>
-                    <td data-label="Aktionen" className="admin-actions-cell">
-                      <div className="action-buttons">
-                        <button
-                          onClick={() => handleCancelBooking(booking.id)}
-                          className="cancel-button"
-                        >
-                          <span aria-hidden="true">✕</span> Stornieren
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="um-list">
+              {groups.map((group) => (
+                <div key={group.teacherName}>
+                  <div className="adb-teacher-divider">
+                    <span className="adb-teacher-divider__name">{group.teacherName}</span>
+                    <span className="adb-teacher-divider__line" />
+                    <span className="adb-teacher-divider__count">
+                      {group.bookings.length} {group.bookings.length === 1 ? 'Termin' : 'Termine'}
+                    </span>
+                  </div>
+                  {group.bookings.map((booking) => (
+                    <BookingTableRow
+                      key={booking.id}
+                      booking={booking}
+                      onConfirm={handleConfirmBooking}
+                      onCancel={handleCancelBooking}
+                    />
+                  ))}
+                </div>
+              ))}
             </div>
           )}
         </div>

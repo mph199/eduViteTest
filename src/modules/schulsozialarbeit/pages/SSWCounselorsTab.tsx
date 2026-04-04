@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { ChevronDown, MoreVertical, UserPlus } from 'lucide-react';
+import { PopoverMenu } from '../../../shared/components/PopoverMenu';
 import type { Counselor, ScheduleEntry } from '../../../types';
 import api from '../../../services/api';
 import { WEEKDAY_LABELS_FULL } from '../../../shared/constants/weekdays';
@@ -37,26 +38,18 @@ function getCounselorLastName(c: Counselor): string {
 
 // ── Context Menu ────────────────────────────────────────────────────
 
-function ContextMenu({ onEdit, onDelete, onClose }: {
+function ContextMenu({ triggerRef, onEdit, onDelete, onClose }: {
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
   onEdit: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
   return (
-    <div className="um-context-menu" ref={ref}>
+    <PopoverMenu triggerRef={triggerRef} onClose={onClose}>
       <button className="um-context-menu__item" onClick={onEdit}>Bearbeiten</button>
       <div className="um-context-menu__divider" />
       <button className="um-context-menu__item um-context-menu__item--danger" onClick={onDelete}>Löschen</button>
-    </div>
+    </PopoverMenu>
   );
 }
 
@@ -78,6 +71,7 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
   const groups = useMemo(() => groupAlphabetically(counselors, getCounselorLastName), [counselors]);
 
@@ -335,14 +329,16 @@ export function SSWCounselorsTab({ counselors, schedulesMap, showFlash, loadData
                       />
                       <div className="um-menu-anchor">
                         <button
+                          ref={menuOpenId === c.id ? menuTriggerRef : undefined}
                           className="um-menu-trigger"
-                          onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === c.id ? null : c.id); }}
+                          onClick={(e) => { e.stopPropagation(); menuTriggerRef.current = e.currentTarget; setMenuOpenId(menuOpenId === c.id ? null : c.id); }}
                           aria-label="Aktionen"
                         >
                           <MoreVertical size={18} />
                         </button>
                         {menuOpenId === c.id && (
                           <ContextMenu
+                            triggerRef={menuTriggerRef}
                             onEdit={() => handleEdit(c)}
                             onDelete={() => { handleDelete(c.id); setMenuOpenId(null); }}
                             onClose={() => setMenuOpenId(null)}
