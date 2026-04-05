@@ -55,7 +55,10 @@ vi.mock('../modules/registry', () => ({
       sidebarNav: {
         label: 'Schulsozialarbeit',
         items: [
-          { path: '/admin/ssw', label: 'Berater/innen verwalten', iconName: 'HeartHandshake', allowedModules: ['schulsozialarbeit'] },
+          { path: '/admin/ssw', label: 'Berater/innen verwalten', iconName: 'HeartHandshake', allowedModules: ['schulsozialarbeit'], view: 'admin' },
+          { path: '/teacher/ssw', label: 'Meine Anfragen', iconName: 'Inbox', allowedModules: ['schulsozialarbeit'], view: 'teacher' },
+          { path: '/teacher/ssw/sprechzeiten', label: 'Sprechzeiten', iconName: 'Clock', allowedModules: ['schulsozialarbeit'], view: 'teacher' },
+          { path: '/teacher/ssw/termine', label: 'Termine', iconName: 'CalendarCheck', allowedModules: ['schulsozialarbeit'], view: 'teacher' },
         ],
       },
     },
@@ -66,7 +69,10 @@ vi.mock('../modules/registry', () => ({
       sidebarNav: {
         label: 'Beratungslehrkräfte',
         items: [
-          { path: '/admin/beratungslehrer', label: 'Beratungstermine verwalten', iconName: 'GraduationCap', allowedModules: ['beratungslehrer'] },
+          { path: '/admin/beratungslehrer', label: 'Beratungstermine verwalten', iconName: 'GraduationCap', allowedModules: ['beratungslehrer'], view: 'admin' },
+          { path: '/teacher/bl', label: 'Meine Anfragen', iconName: 'Inbox', allowedModules: ['beratungslehrer'], view: 'teacher' },
+          { path: '/teacher/bl/sprechzeiten', label: 'Sprechzeiten', iconName: 'Clock', allowedModules: ['beratungslehrer'], view: 'teacher' },
+          { path: '/teacher/bl/termine', label: 'Termine', iconName: 'CalendarCheck', allowedModules: ['beratungslehrer'], view: 'teacher' },
         ],
       },
     },
@@ -121,14 +127,21 @@ describe('useAdminNavGroups', () => {
   describe('A: Lehrkraft + Beratungslehrer', () => {
     beforeEach(() => setUser({ role: 'teacher', teacherId: 5, modules: ['beratungslehrer'], adminModules: [] }, 'teacher'));
 
-    it('BL group visible without view filter (counselor without teacherId would get no-filter, but this user HAS teacherId so normal view logic applies)', () => {
-      // User A has teacherId=5, so !hasTeacherId is false → isModuleAdminAccess=false
-      // But modules.includes('beratungslehrer')=true so checkModuleAccess passes
-      // Items: roleMatch=false (teacher not in [admin,superadmin]), moduleMatch=true (modules includes bl)
+    it('BL group visible with teacher-view counselor items', () => {
       const { navGroups } = hook();
       const bl = navGroups.find((g) => g.label === 'Beratungslehrkräfte');
       expect(bl).toBeDefined();
-      expect(bl!.items).toHaveLength(1);
+      // 4 items total (1 admin + 3 teacher), all matched via allowedModules
+      expect(bl!.items).toHaveLength(4);
+    });
+
+    it('BL teacher-view items visible in teacher view', () => {
+      const { filteredGroups } = hook();
+      const bl = filteredGroups.find((g) => g.label === 'Beratungslehrkräfte');
+      expect(bl).toBeDefined();
+      // Only teacher-view items shown (3 counselor items)
+      expect(bl!.items.every((i: any) => !i.view || i.view === 'teacher')).toBe(true);
+      expect(bl!.items).toHaveLength(3);
     });
 
     it('no ViewSwitcher', () => {
@@ -202,15 +215,20 @@ describe('useAdminNavGroups', () => {
   describe('E: Nur SSW-Berater (no teacherId)', () => {
     beforeEach(() => setUser({ role: 'teacher', teacherId: null, modules: ['schulsozialarbeit'], adminModules: [] }, 'teacher'));
 
-    it('SSW group visible without view filter', () => {
+    it('SSW group visible without group-level view filter', () => {
       const { navGroups } = hook();
       const ssw = navGroups.find((g) => g.label === 'Schulsozialarbeit');
       expect(ssw).toBeDefined();
       expect(ssw!.view).toBeUndefined();
     });
 
-    it('SSW visible in teacher view (no view filter)', () => {
-      expect(labels(hook().filteredGroups)).toContain('Schulsozialarbeit');
+    it('SSW visible in teacher view with counselor items only', () => {
+      const { filteredGroups } = hook();
+      const ssw = filteredGroups.find((g) => g.label === 'Schulsozialarbeit');
+      expect(ssw).toBeDefined();
+      // Only teacher-view items (3 counselor items)
+      expect(ssw!.items).toHaveLength(3);
+      expect(ssw!.items.every((i: any) => i.view === 'teacher')).toBe(true);
     });
 
     it('Lehrkraft group visible for teacher-role counselors', () => {
@@ -235,6 +253,24 @@ describe('useAdminNavGroups', () => {
       expect(bl!.view).toBeUndefined();
     });
 
+    it('teacher view shows only BL teacher items', () => {
+      const { filteredGroups } = hook();
+      const bl = filteredGroups.find((g) => g.label === 'Beratungslehrkräfte');
+      expect(bl).toBeDefined();
+      // 3 teacher-view items
+      expect(bl!.items).toHaveLength(3);
+      expect(bl!.items.every((i: any) => i.view === 'teacher')).toBe(true);
+    });
+
+    it('admin view shows only BL admin items', () => {
+      setUser({ role: 'teacher', teacherId: 5, modules: [], adminModules: ['beratungslehrer'] }, 'admin');
+      const { filteredGroups } = hook();
+      const bl = filteredGroups.find((g) => g.label === 'Beratungslehrkräfte');
+      expect(bl).toBeDefined();
+      expect(bl!.items).toHaveLength(1);
+      expect(bl!.items[0].path).toBe('/admin/beratungslehrer');
+    });
+
     it('ViewSwitcher visible', () => {
       expect(hook().isAdminOrModuleAdmin).toBe(true);
     });
@@ -252,7 +288,7 @@ describe('useAdminNavGroups', () => {
   describe('G: Lehrkraft + Admin-Rechte Elternsprechtag', () => {
     beforeEach(() => setUser({ role: 'teacher', teacherId: 5, modules: [], adminModules: ['elternsprechtag'] }, 'teacher'));
 
-    it('Elternsprechtag group has no view filter (visible in both views)', () => {
+    it('Elternsprechtag group has no group-level view filter', () => {
       const { navGroups } = hook();
       const est = navGroups.find((g) => g.label === 'Elternsprechtag');
       expect(est).toBeDefined();
@@ -260,10 +296,17 @@ describe('useAdminNavGroups', () => {
       expect(est!.items).toHaveLength(2);
     });
 
-    it('teacher view shows Elternsprechtag and Lehrkraft', () => {
-      const l = labels(hook().filteredGroups);
-      expect(l).toContain('Elternsprechtag');
-      expect(l).toContain('Lehrkraft');
+    it('teacher view hides EST admin items (all items are admin-only)', () => {
+      const { filteredGroups } = hook();
+      // EST group filtered out because all items have view: 'admin'
+      expect(labels(filteredGroups)).not.toContain('Elternsprechtag');
+      expect(labels(filteredGroups)).toContain('Lehrkraft');
+    });
+
+    it('admin view shows EST items', () => {
+      setUser({ role: 'teacher', teacherId: 5, modules: [], adminModules: ['elternsprechtag'] }, 'admin');
+      const { filteredGroups } = hook();
+      expect(labels(filteredGroups)).toContain('Elternsprechtag');
     });
 
     it('getViewChangeTarget → /admin/events', () => {
@@ -275,14 +318,23 @@ describe('useAdminNavGroups', () => {
   describe('H: Lehrkraft + Admin-Rechte Beratung + Elternsprechtag', () => {
     beforeEach(() => setUser({ role: 'teacher', teacherId: 5, modules: [], adminModules: ['beratungslehrer', 'elternsprechtag'] }, 'teacher'));
 
-    it('teacher view shows all module groups and Lehrkraft', () => {
+    it('teacher view shows BL teacher items and Lehrkraft, not EST', () => {
       const l = labels(hook().filteredGroups);
-      expect(l).toContain('Elternsprechtag');
+      // EST has only admin-view items → hidden in teacher view
+      expect(l).not.toContain('Elternsprechtag');
+      // BL has teacher-view items
       expect(l).toContain('Beratungslehrkräfte');
       expect(l).toContain('Lehrkraft');
     });
 
-    it('admin-module groups have no view filter (visible in both views)', () => {
+    it('admin view shows both module groups', () => {
+      setUser({ role: 'teacher', teacherId: 5, modules: [], adminModules: ['beratungslehrer', 'elternsprechtag'] }, 'admin');
+      const l = labels(hook().filteredGroups);
+      expect(l).toContain('Elternsprechtag');
+      expect(l).toContain('Beratungslehrkräfte');
+    });
+
+    it('admin-module groups have no group-level view filter', () => {
       const { navGroups } = hook();
       expect(navGroups.find((g) => g.label === 'Elternsprechtag')!.view).toBeUndefined();
       expect(navGroups.find((g) => g.label === 'Beratungslehrkräfte')!.view).toBeUndefined();

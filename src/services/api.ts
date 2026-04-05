@@ -495,6 +495,18 @@ const api = {
       });
     },
     // Counselor self-service
+    async getProfile() {
+      return requestJSON('/ssw/counselor/profile');
+    },
+    async getSchedule() {
+      return requestJSON('/ssw/counselor/schedule');
+    },
+    async updateSchedule(schedule: { weekday: number; start_time: string; end_time: string; active: boolean }[]) {
+      return requestJSON('/ssw/counselor/schedule', {
+        method: 'PUT',
+        body: JSON.stringify({ schedule }),
+      });
+    },
     async getAppointments(params: { date?: string; date_from?: string; date_until?: string; status?: string } = {}) {
       const qs = new URLSearchParams();
       if (params.date) qs.set('date', params.date);
@@ -508,6 +520,12 @@ const api = {
       return requestJSON(`/ssw/admin/counselors/${encodeURIComponent(counselorId)}/generate-slots`, {
         method: 'POST',
         body: JSON.stringify({ date_from: dateFrom, date_until: dateUntil }),
+      });
+    },
+    async counselorGenerateSlots(counselorId: number, dateFrom: string, dateUntil: string) {
+      return requestJSON('/ssw/counselor/generate-slots', {
+        method: 'POST',
+        body: JSON.stringify({ counselor_id: counselorId, date_from: dateFrom, date_until: dateUntil }),
       });
     },
     async confirmAppointment(id: number) {

@@ -14,6 +14,18 @@ const SSWBookingApp = lazy(() =>
 const SSWAdmin = lazy(() =>
   import('./pages/SSWAdmin').then((m) => ({ default: m.SSWAdmin }))
 );
+const SSWCounselorLayout = lazy(() =>
+  import('./pages/SSWCounselorLayout').then((m) => ({ default: m.SSWCounselorLayout }))
+);
+const SSWCounselorAnfragenPage = lazy(() =>
+  import('./pages/SSWCounselorAnfragenPage').then((m) => ({ default: m.SSWCounselorAnfragenPage }))
+);
+const SSWCounselorSprechzeitenPage = lazy(() =>
+  import('./pages/SSWCounselorSprechzeitenPage').then((m) => ({ default: m.SSWCounselorSprechzeitenPage }))
+);
+const SSWCounselorTerminePage = lazy(() =>
+  import('./pages/SSWCounselorTerminePage').then((m) => ({ default: m.SSWCounselorTerminePage }))
+);
 
 const schulsozialarbeitModule: ModuleDefinition = {
   id: 'schulsozialarbeit',
@@ -37,9 +49,21 @@ const schulsozialarbeitModule: ModuleDefinition = {
   sidebarNav: {
     label: 'Schulsozialarbeit',
     items: [
-      { path: '/admin/ssw', label: 'Berater/innen verwalten', iconName: 'HeartHandshake', allowedModules: ['schulsozialarbeit'] },
+      { path: '/admin/ssw', label: 'Berater/innen verwalten', iconName: 'HeartHandshake', allowedModules: ['schulsozialarbeit'], view: 'admin' },
+      { path: '/teacher/ssw', label: 'Meine Anfragen', iconName: 'Inbox', allowedModules: ['schulsozialarbeit'], view: 'teacher' },
+      { path: '/teacher/ssw/sprechzeiten', label: 'Sprechzeiten', iconName: 'Clock', allowedModules: ['schulsozialarbeit'], view: 'teacher' },
+      { path: '/teacher/ssw/termine', label: 'Termine', iconName: 'CalendarCheck', allowedModules: ['schulsozialarbeit'], view: 'teacher' },
     ],
   },
+
+  /** Lehrkraft-Bereich: Berater-eigene Ansicht */
+  teacherLayout: SSWCounselorLayout,
+  teacherBasePath: '/teacher/ssw',
+  teacherRoutes: [
+    { index: true, Component: SSWCounselorAnfragenPage },
+    { path: 'sprechzeiten', Component: SSWCounselorSprechzeitenPage },
+    { path: 'termine', Component: SSWCounselorTerminePage },
+  ],
 };
 
 export default schulsozialarbeitModule;
